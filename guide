@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.svfu/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.x6AZ/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__e7a988bf4c9c96b7bb18fa79df33ec17');
+meta::section('building-functions', <<'__0264f11dd8f437b4cfdad0dbb17a6fd1');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1593,16 +1593,25 @@ meta::section('building-functions', <<'__e7a988bf4c9c96b7bb18fa79df33ec17');
         d('/foo/bar || /bif/baz')('foobif')     // => 'barbif'
       - end
 
-    - s2 Functions | sec:building-functions-strings-functions
-      If a string begins with \verb|^|, then it is treated as the expression of a {\tt return}. So, for example:
+    - s2 Named-argument expressions | sec:building-functions-strings-named-expressions
+      If a string begins with {\tt |}, then it is parsed as a named-argument function. For example:
 
-      - javascript examples/return-functions.js << end
-        d('^3')                 // => function () {return 3}
-        d('^$0 + $1')           // => function (x, y) {return x + y}
-        d('^"foo"')             // => function () {return "foo"}
-        d('^$0.foo($1)')        // => function (x, y) {return x.foo(y)}
+      - javascript examples/named-argument-expressions.js << end
+        d('|foo| foo + 1')      // => function (foo) {return foo + 1}
+        d('|x, y| x + y * 2')   // => function (x, y) {return x + y * 2}
+        d('|x| (|y| x + y)')    // => function (x) {return function (y) {return x + y}}
       - end
-__e7a988bf4c9c96b7bb18fa79df33ec17
+
+      A couple of macros are available for brevity. One expands expressions of the form {\tt @foo}, where {\tt foo} is some identifier, into {\tt this.foo}. (Using \verb|@| without a following
+      identifier expands into {\tt this}.) The other provides shortcuts for {\tt call} and {\tt apply}: the operator \verb|#c| expands to {\tt .call}, and the operator \verb|#a| expands to
+      {\tt .apply}. For example:
+
+      - javascript examples/named-argument-expression-macros.js << end
+        d('|foo| foo#c(@, @x)')         // => function (foo) {return foo.call(this, this.x)}
+        d('|x, y| @x = x, @y = y')      // => function (x, y) {return this.x = x, this.y = y}
+        d('|f, xs| f#a(f, xs)')         // => function (f, xs) {return f.apply (f, xs)}
+      - end
+__0264f11dd8f437b4cfdad0dbb17a6fd1
 
 meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
 - sc Instances | sec:instances
@@ -1700,7 +1709,7 @@ meta::section('introduction', <<'__2eecbd49eb86262dd4225449890020ab');
   definitions are scoped to a particular instance of Divergence; they are not global by default.
 __2eecbd49eb86262dd4225449890020ab
 
-meta::section('main', <<'__e6ab3bb28991af861581208334895970');
+meta::section('main', <<'__14e6b96ca3ef110b402a39f0e52e8609');
 - documentclass report
 - include resource::header
 
@@ -1711,11 +1720,14 @@ meta::section('main', <<'__e6ab3bb28991af861581208334895970');
   - maketitle
   - tableofcontents
 
+  - sp Using Divergence
   - include section::introduction
   - include section::building-functions
   - include section::instances
+
+  - sp Extending Divergence
 - end
-__e6ab3bb28991af861581208334895970
+__14e6b96ca3ef110b402a39f0e52e8609
 
 meta::template('comment', "'';     # A mechanism for line or block comments.");
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
