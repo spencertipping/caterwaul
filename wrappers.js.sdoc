@@ -1,0 +1,5 @@
+Wrappers.
+Specifies function transforms for all of the basic datatypes. Analogous to Divergence's .fn() method, d() returns a function for each of them. The conversions are roughly the same as before,
+though with more versatility:
+
+  Strings. These are evaluated
