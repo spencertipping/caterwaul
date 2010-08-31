@@ -1,0 +1,6 @@
+These examples provide some use cases for Divergence. They're designed more for
+reference than for actual use, but all that is required to run them is this:
+
+new divergence (function (d) {
+  // Example goes here
+});
