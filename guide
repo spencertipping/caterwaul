@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.seoM/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.d0Dl/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__d3e38c8917f88f1af80f8aa031f98df4');
+meta::section('building-functions', <<'__8670463da4ec5ee3f8aa6666e9430359');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1474,12 +1474,27 @@ meta::section('building-functions', <<'__d3e38c8917f88f1af80f8aa031f98df4');
   - s1 Numbers | sec:building-functions-numbers
     Numbers are now much more expressive. Just like before, 0, 1, 2, 3, and 4 map to the first five positional parameters. However, there are some new cases:
 
-    - s2 Large integers | sec:building-functions-numbers-large-integers
-      Integers larger than 5 are converted into hexadecimal and interpreted, where each digit is a command in a stack-based language. The stack's initial contents are the positional
+    - s2 Large positive integers | sec:building-functions-large-positive-integers
+      Integers larger than 4 are converted into hexadecimal and interpreted, where each digit is a command in a stack-based language. The stack's initial contents are the positional
       parameters, where {\tt arguments[0]} is at the top and {\tt arguments[arguments.length - 1]} is at the bottom. Digits are interpreted from left-to-right; so, for example, the number {\tt
       0xab} is interpreted as the command {\tt a} followed by the command {\tt b}. The following commands are understood:
 
       - description << end
+        - item {\tt 5}
+          Swap the top two stack entries. (``5'' looks kind of like ``S'', which stands for Swap.)
+
+        - item {\tt 6}
+          Drop the top stack entry. (``6'' is a backwards ``d'', which stands for Drop.)
+
+        - item {\tt 7}
+          If the next digit is a 0, 1, 2, 3, or 4, then push that digit as a number onto the stack. Otherwise, push the stack depth onto the stack and process the next digit normally.
+
+        - item {\tt 8}
+          Duplicate the top stack entry. (``8'' looks like two ``0''s.)
+
+        - item {\tt 9}
+          Drop the second entry. (``9'' is ``6'' upside-down, and {\tt 6} drops the top entry.)
+
         - item {\tt a}
           Add the two arguments on the top of the stack, and push the result. This also works on strings. If the top of the stack is an array, then push a new array consisting of the stack top
           concatenated with the second stack element; that is, {\tt stack[0].concat([stack[1]])}.
@@ -1500,35 +1515,15 @@ meta::section('building-functions', <<'__d3e38c8917f88f1af80f8aa031f98df4');
           Negate the top stack entry if it's a number. If it's not a number, then apply logical negation.
 
         - item {\tt f}
-          Invoke the top stack entry on the next one, and return the result.
+          Invoke the top stack entry on the next one, and return the result. If the top of the stack isn't a function, then the current {\tt d()} (that is, the one being used to convert this
+          number to a function in the first place) is used to convert the stack top to a function first.
       - end
 
-      Because the digits 5-9 aren't used otherwise, they are also commands:
-
-      - description << end
-        - item {\tt 5}
-          Swap the top two stack entries. (``5'' looks kind of like ``S'', which stands for Swap.)
-
-        - item {\tt 6}
-          Drop the top stack entry. (``6'' is a backwards ``d'', which stands for Drop.)
-
-        - item {\tt 7}
-          Rotate the top three stack entries -- that is, the top two are moved down, and the third is moved to the top. (``7'' looks kind of like a knight's jump in chess, which is two down
-          and one over. You can think of the two down as shifts, and the one over as a pull.)
-
-        - item {\tt 8}
-          Duplicate the top stack entry. (``8'' looks like two ``0''s.)
-
-        - item {\tt 9}
-          Drop the second entry. (``9'' is ``6'' upside-down, and {\tt 6} drops the top entry.)
-      - end
-
-      The digits 0-4, of course, push those positional parameters onto the top of the stack. For example 0 pushes {\tt arguments[0]}, 1 pushes {\tt arguments[1]}, etc. This solves the
-      ``leading-zero'' problem -- you will never need a leading zero, since {\tt arguments[0]} begins at the stack top.
-
+      The digits 0-4, of course, push those positional parameters onto the top of the stack. For example 0 pushes {\tt arguments[0]}, 1 pushes {\tt arguments[1]}, etc.
+      
       Here are some examples:
 
-      - javascript examples/number-functions.js << end
+      - javascript examples/large-integer-functions.js << end
         d(0xa)    // => function (x, y) {return x + y}          (if numeric)
         d(0xa)    // => function (x, y) {return x.concat([y])}  (if x is an array)
         d(0xb)    // => function (x, y) {return x - y}          (if numeric)
@@ -1544,10 +1539,22 @@ meta::section('building-functions', <<'__d3e38c8917f88f1af80f8aa031f98df4');
         d(0x65b)  // => function (x, y, z) {return z - y}       (if numeric)
         d(0xdd)   // => function (x, y, z) {return x[y][z]}     (if non-numeric)
         d(0xdd)   // => function (x, y, z) {return (x / y) / z} (if numeric)
-      - end
-__d3e38c8917f88f1af80f8aa031f98df4
 
-meta::section('instances', <<'__257cf3b18fb6a15d92d7bb89362d92cd');
+        d(0x88cc) // => function (x) {return x * x * x}         (if numeric)
+        d(0xee)   // => function (x) {return !!x}               (if non-numeric)
+        d(0x7a)   // => function (x) {return x + 1}             (if numeric)
+        d(0x74a)  // => function (x) {return x + 4}             (if numeric)
+        d(0x748cc) // => function (x) {return x * 16}           (if numeric)
+        d(0x2f1f) // => function (f, x, y) {return f(y)(x)}
+      - end
+
+      To be portable, you should use at most seven hex digits. Some browsers have integer math that can change the sign if the 32-bit is set.
+
+    - Positive floating-point numbers | sec:building-functions-positive-floating-point-numbers
+      
+__8670463da4ec5ee3f8aa6666e9430359
+
+meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
 - sc Instances | sec:instances
   Unlike before, Divergence isn't just one function. You can create a new instance of Divergence with its own configuration, which can be useful for isolated regions of code that require a
   particularly common pattern, unit tests, etc. The most common way to do this is to use {\tt new}:
@@ -1620,7 +1627,7 @@ meta::section('instances', <<'__257cf3b18fb6a15d92d7bb89362d92cd');
         d.assert (3 === 3, 'basic math');       // => true
       });
 
-      new divergence ('assert', function (d) {
+      new divergence.using ('assert', function (d) {
         // d is a clone of divergence, but also with 'assert'
         d.assert (true, 'should pass');         // => true
       });
@@ -1630,7 +1637,7 @@ meta::section('instances', <<'__257cf3b18fb6a15d92d7bb89362d92cd');
     - end
 
     Roles can't be ``un-used'', so generally the best approach is to add a role to a copy of your divergence function.
-__257cf3b18fb6a15d92d7bb89362d92cd
+__526d70f504043bd799844f03774c68eb
 
 meta::section('introduction', <<'__2eecbd49eb86262dd4225449890020ab');
 - sc Introduction | sec:introduction

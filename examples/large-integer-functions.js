@@ -13,3 +13,10 @@ d(0x8aa)  // => function (x, y) {return x + x + y}      (if numeric)
 d(0x65b)  // => function (x, y, z) {return z - y}       (if numeric)
 d(0xdd)   // => function (x, y, z) {return x[y][z]}     (if non-numeric)
 d(0xdd)   // => function (x, y, z) {return (x / y) / z} (if numeric)
+
+d(0x88cc) // => function (x) {return x * x * x}         (if numeric)
+d(0xee)   // => function (x) {return !!x}               (if non-numeric)
+d(0x7a)   // => function (x) {return x + 1}             (if numeric)
+d(0x74a)  // => function (x) {return x + 4}             (if numeric)
+d(0x748cc) // => function (x) {return x * 16}           (if numeric)
+d(0x2f1f) // => function (f, x, y) {return f(y)(x)}

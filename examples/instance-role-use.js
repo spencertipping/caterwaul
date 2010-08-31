@@ -3,7 +3,7 @@ new divergence (function (d) {
   d.assert (3 === 3, 'basic math');       // => true
 });
 
-new divergence ('assert', function (d) {
+new divergence.using ('assert', function (d) {
   // d is a clone of divergence, but also with 'assert'
   d.assert (true, 'should pass');         // => true
 });
