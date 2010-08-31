@@ -164,7 +164,7 @@ __34a5da8558897a4388fc22ed4b0c3c6b
 
 meta::meta('template::code', 'code::template $_ for qw/java cpp asm javascript html resource/;');
 meta::meta('template::document', 'tex::template tex::id(qw/document tableofcontents maketitle title author date abstract documentclass verbatim/);');
-meta::meta('template::enumeration', 'tex::template tex::id(qw/enumerate itemize item/);');
+meta::meta('template::enumeration', 'tex::template tex::id(qw/enumerate itemize description item/);');
 meta::meta('template::math', <<'__2ea173a12f781eec97f4a0d3bfe80f75');
 tex::template align => 'align*', nalign => 'align';
 tex::template tex::id(qw/theorem proof lemma corollary conjecture definition proposition/);
@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.EAbM/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.seoM/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__29af5ca2aaf0beda0d182df1666d5aa1');
+meta::section('building-functions', <<'__d3e38c8917f88f1af80f8aa031f98df4');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1489,7 +1489,7 @@ meta::section('building-functions', <<'__29af5ca2aaf0beda0d182df1666d5aa1');
           instead; that is, {\tt stack[0] || stack[1]}.
 
         - item {\tt c}
-          Pop twice, multiply, and push. If either argument is non-numeric, then this operator applies {\tt &&} to the top two stack entries instead; that is, {\tt stack[0] && stack[1]}.
+          Pop twice, multiply, and push. If either argument is non-numeric, then this operator applies \verb|&&| to the top two stack entries instead; that is, \verb|stack[0] && stack[1]|.
 
         - item {\tt d}
           Pop twice, divide, and push. Operands are ordered the same way as they are for subtraction. If either argument is non-numeric, then this operator dereferences the stack top by the
@@ -1545,7 +1545,7 @@ meta::section('building-functions', <<'__29af5ca2aaf0beda0d182df1666d5aa1');
         d(0xdd)   // => function (x, y, z) {return x[y][z]}     (if non-numeric)
         d(0xdd)   // => function (x, y, z) {return (x / y) / z} (if numeric)
       - end
-__29af5ca2aaf0beda0d182df1666d5aa1
+__d3e38c8917f88f1af80f8aa031f98df4
 
 meta::section('instances', <<'__257cf3b18fb6a15d92d7bb89362d92cd');
 - sc Instances | sec:instances
