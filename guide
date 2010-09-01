@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.x6AZ/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.I1La/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__0264f11dd8f437b4cfdad0dbb17a6fd1');
+meta::section('building-functions', <<'__4d3bef57bf42c1ec83e42239b15ca4f0');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1526,42 +1526,42 @@ meta::section('building-functions', <<'__0264f11dd8f437b4cfdad0dbb17a6fd1');
       Here are some examples:
 
       - javascript examples/large-integer-functions.js << end
-        d(0xa)    // => function (x, y) {return x + y}          (if numeric)
-        d(0xa)    // => function (x, y) {return x.concat([y])}  (if x is an array)
-        d(0xb)    // => function (x, y) {return x - y}          (if numeric)
-        d(0xb)    // => function (x, y) {return x || y}         (if non-numeric)
-        d(0xc)    // => function (x, y) {return x * y}          (if numeric)
-        d(0xc)    // => function (x, y) {return x && y}         (if non-numeric)
-        d(0xd)    // => function (x, y) {return x / y}          (if numeric)
-        d(0xd)    // => function (x, y) {return x[y]}           (if x is non-numeric)
+        d(0xa)          // => function (x, y) {return x + y}          (if numeric)
+        d(0xa)          // => function (x, y) {return x.concat([y])}  (if x is an array)
+        d(0xb)          // => function (x, y) {return x - y}          (if numeric)
+        d(0xb)          // => function (x, y) {return x || y}         (if non-numeric)
+        d(0xc)          // => function (x, y) {return x * y}          (if numeric)
+        d(0xc)          // => function (x, y) {return x && y}         (if non-numeric)
+        d(0xd)          // => function (x, y) {return x / y}          (if numeric)
+        d(0xd)          // => function (x, y) {return x[y]}           (if x is non-numeric)
 
-        d(0x8a)   // => function (x)    {return x + x}          (if numeric)
-        d(0x8aa)  // => function (x, y) {return x + x + y}      (if numeric)
+        d(0x8a)         // => function (x)    {return x + x}          (if numeric)
+        d(0x8aa)        // => function (x, y) {return x + x + y}      (if numeric)
 
-        d(0x65b)  // => function (x, y, z) {return z - y}       (if numeric)
-        d(0x95b)  // => function (x, y, z) {return z - x}       (if numeric)
-        d(0xdd)   // => function (x, y, z) {return x[y][z]}     (if non-numeric)
-        d(0xdd)   // => function (x, y, z) {return (x / y) / z} (if numeric)
+        d(0x65b)        // => function (x, y, z) {return z - y}       (if numeric)
+        d(0x95b)        // => function (x, y, z) {return z - x}       (if numeric)
+        d(0xdd)         // => function (x, y, z) {return x[y][z]}     (if non-numeric)
+        d(0xdd)         // => function (x, y, z) {return (x / y) / z} (if numeric)
 
-        d(0x88cc) // => function (x) {return x * x * x}         (if numeric)
-        d(0xee)   // => function (x) {return !!x}               (if non-numeric)
-        d(0x7a)   // => function (x) {return x + 1}             (if numeric)
-        d(0x74a)  // => function (x) {return x + 4}             (if numeric)
-        d(0x748cc) // => function (x) {return x * 16}           (if numeric)
-        d(0x2f1f) // => function (f, x, y) {return f(y)(x)}
-        d(0x7)    // => function () {return arguments.length}
+        d(0x88cc)       // => function (x) {return x * x * x}         (if numeric)
+        d(0xee)         // => function (x) {return !!x}               (if non-numeric)
+        d(0x7a)         // => function (x) {return x + 1}             (if numeric)
+        d(0x74a)        // => function (x) {return x + 4}             (if numeric)
+        d(0x748cc)      // => function (x) {return x * 16}            (if numeric)
+        d(0x25f15f)     // => function (f, x, y) {return f(y)(x)}
+        d(0x7)          // => function () {return arguments.length}
       - end
 
       To be portable, you should use at most seven hex digits. Some browsers have integer math that can change the sign if the 32-bit is set.
 
     - s2 Positive floating-point numbers | sec:building-functions-positive-floating-points
-      {\em todo}
+      {\em TBD}
 
     - s2 Negative integers | sec:building-functions-negative-integers
-      {\em todo}
+      {\em TBD}
 
     - s2 Negative floating-point numbers | sec:building-functions-negative-floating-points
-      {\em todo}
+      {\em TBD}
 
   - s1 Strings | sec:building-functions-strings
     Strings delegate to domain-specific language parsers, and this delegation is managed entirely by the first character of the string. Divergence includes a few such languages built-in, and
@@ -1611,7 +1611,76 @@ meta::section('building-functions', <<'__0264f11dd8f437b4cfdad0dbb17a6fd1');
         d('|x, y| @x = x, @y = y')      // => function (x, y) {return this.x = x, this.y = y}
         d('|f, xs| f#a(f, xs)')         // => function (f, xs) {return f.apply (f, xs)}
       - end
-__0264f11dd8f437b4cfdad0dbb17a6fd1
+
+    - s2 Destructuring binds | sec:building-functions-strings-destructuring-binds
+      Strings beginning with {\tt [} or {\tt \{} are interpreted as pattern matches with bind variables. For example:
+
+      - javascript examples/destructuring-binds.js << end
+        d('[#x, #y, #z]')([1, 2, 3])
+        // => {x: 1, y: 2, z: 3}
+
+        d('{x: {y: {foo: #x}}}')({x: {y: {foo: 'bar'}}})
+        // => {x: 'bar'}
+
+        d('[1, 2, {bif: #x}, @#xs]')([1, 2, {bif: 3}, 4, 5])
+        // => {x: 3, xs: [4, 5]}
+      - end
+
+      Basically, arrays and objects are both allowed as containers, and \verb|#| is used to mark a variable. The prefix \verb|@#| is used to mark a splice variable, which can occur either in
+      array or object context; this picks up the remaining (unmatched) entries. The results are returned in a flat hash mapping variable names to matched values. Any variable called \verb|_|
+      will match anything and be ignored; you can use it multiple times, in single or splice context. It's useful for things like indicating that an array has a bunch of useless stuff on the
+      end.
+
+      You can also put guards onto destructuring binds. For example:
+
+      - javascript examples/destructuring-bind-guards.js << end
+        d('[#x, #y] | x < y')([1, 2])   // => {x: 1, y: 2}
+        d('[#x, #y] | x < y')([2, 1])   // => false
+      - end
+
+      If the match fails either due to structural or constraint problems, {\tt false} is returned. This has some convenient and inconvenient properties. The nice thing is that you won't get
+      any errors if you ask for bound variables; they'll all just be {\tt undefined}.\footnote{Unless you've named one of them {\tt constructor} or something, but don't do that.} However, {\tt
+      false} will still fail any boolean condition, so you can fall out gracefully. The only bad part is that you can't use the {\tt === undefined} or {\tt === null} check.
+
+  - s1 Regular Expressions | sec:building-functions-regular-expressions
+    These are really simple; they just attempt to match against the input and return an array of matches if successful, {\tt null} otherwise. (This is identical to the behavior of {\tt
+    exec()}.) There is a twist, though. The returned function is automatically homomorphic across arrays and object values, and if invoked on multiple arguments it concatenates their results.
+    For example:
+
+    - javascript examples/regular-expressions-homomorphic.js << end
+      d(/foo/)('foo')           // => ['foo']
+      d(/foo/)(['foo', 'bar'])  // => [['foo'], null]
+      d(/foo/)('foo', 'food')   // => ['foo', 'foo']
+    - end
+
+  - s1 Booleans | sec:building-functions-booleans
+    These are also very simple. {\tt true} and {\tt false} become functional decisionals. The exception is when one or more arguments are unspecified. In this case, they default to {\tt true}
+    and {\tt undefined} respectively:
+
+    - javascript examples/booleans.js << end
+      d(true)(4, 5)             // => 4
+      d(false)(4, 5)            // => 5
+      d(true)()                 // => true
+      d(false)()                // => undefined
+    - end
+
+  - s1 Arrays | sec:building-functions-arrays
+    Arrays, just like in the original Divergence library, are homomorphic across {\tt d}. For example:
+
+    - javascript examples/arrays.js << end
+      d([0x71, '.foo'])({foo: 'bar'})   // => [1, 'bar']
+      d([0xa, 0xb, 0xc])(2, 3)          // => [5, -1, 6]
+      d([])(1, 2, 3)                    // => []
+    - end
+
+  - s1 Objects | sec:building-functions-objects
+    Same thing here. These are homomorphic across {\tt d} for values, so:
+
+    - javascript examples/objects.js << end
+      d({foo: 0x71a})(5)                  // => {foo: 6}
+      d({two: 0x8ab, four: 0x74cb})(6, 7) // => {two: 5, four: 17}
+    - end
+__4d3bef57bf42c1ec83e42239b15ca4f0
 
 meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
 - sc Instances | sec:instances
@@ -1709,7 +1778,7 @@ meta::section('introduction', <<'__2eecbd49eb86262dd4225449890020ab');
   definitions are scoped to a particular instance of Divergence; they are not global by default.
 __2eecbd49eb86262dd4225449890020ab
 
-meta::section('main', <<'__14e6b96ca3ef110b402a39f0e52e8609');
+meta::section('main', <<'__e02ec6cb8f647e721da5de0f20220b08');
 - documentclass report
 - include resource::header
 
@@ -1723,11 +1792,50 @@ meta::section('main', <<'__14e6b96ca3ef110b402a39f0e52e8609');
   - sp Using Divergence
   - include section::introduction
   - include section::building-functions
+  - include section::transforming-functions
   - include section::instances
 
   - sp Extending Divergence
 - end
-__14e6b96ca3ef110b402a39f0e52e8609
+__e02ec6cb8f647e721da5de0f20220b08
+
+meta::section('transforming-functions', <<'__3541b2b43d668b821aa62aad3e5152ad');
+- sc Transforming Functions | sec:transforming-functions
+  As explained in \Ref{chapter}{sec:building-functions}, you can use Divergence to build functions from values. However, that occupies only one parameter; {\tt d} can accept more. Parameters
+  after the first are used to modify the function being generated. So, for example, consider the following invocation:
+
+  - verbatim << end
+    d(0x748cc, 'alift', {suchThat: '|f| f([1])[0] === 16',
+                           ensure: '|xs| xs.constructor === Array',
+                          require: '|xs| xs.constructor === Array'});
+  - end
+
+  The anatomy of this call is that {\tt 0x748cc} is the initial function (which multiplies its first argument by 16; see \Ref{section}{sec:building-functions-large-positive-integers} for
+  details), {\tt 'alift'} is a nullary transformation that lifts the function to distribute componentwise across arrays, and the following object contains a list of transforms to be applied in
+  arbitrary order. In this case, {\tt suchThat} is an in-place unit test, {\tt ensure} is a postcondition, and {\tt require} is a precondition. The resulting function would look something like
+  this:
+
+  - verbatim << end
+    function (xs) {
+      if (! (xs.constructor === Array)) throw new Error (...);
+      var result = [];
+      for (var i = 0, l = xs.length; i < l; ++i)
+        result.push (16 * xs[i]);
+      if (! (result.constructor === Array)) throw new Error (...);
+      return result;
+    }
+  - end
+
+  In addition, this code would be run at function-definition time:
+
+  - verbatim << end
+    // Here, f is the above function
+    if (! (f([1])[0] === 16)) throw new Error (...);
+  - end
+
+  Obviously a lot has happened to the original function and the intermediate structures. Divergence keeps functions in intermediate format until all of the transformations have been run, and
+  compiles the function into native JavaScript just before returning it.
+__3541b2b43d668b821aa62aad3e5152ad
 
 meta::template('comment', "'';     # A mechanism for line or block comments.");
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
