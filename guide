@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.hMVX/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.38_z/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1827,7 +1827,7 @@ meta::section('main', <<'__e02ec6cb8f647e721da5de0f20220b08');
 - end
 __e02ec6cb8f647e721da5de0f20220b08
 
-meta::section('transforming-functions', <<'__88dce522ff6c9866548714dc4dfefe0a');
+meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
 - sc Transforming Functions | sec:transforming-functions
   As explained in \Ref{chapter}{sec:building-functions}, you can use Divergence to build functions from values. However, that occupies only one parameter; {\tt d} can accept more. Parameters
   after the first are used to modify the function being generated. So, for example, consider the following invocation:
@@ -1876,16 +1876,14 @@ meta::section('transforming-functions', <<'__88dce522ff6c9866548714dc4dfefe0a');
     - end
 
   - s1 Numbers | sec:transforming-functions-numbers
-    Numbers are run through {\tt d} and composed normally. For example:
+    Numbers are run through {\tt d} and composed normally. It's often useful to use negative integers for quick argument swapping. For example:
 
     - javascript examples/number-transforms.js << end
       d(0xa)(1, 3)              // => 4
       d(0xe, 0xa)(1, 3)         // => -4
       d(0, 0xb)(4, 2)           // => 2
+      d(0xb, -0x10)(4, 2)       // => -2
     - end
-
-    The only problem is that only the top entry is returned; other arguments are thrown away. Using numbers is generally more useful as array entries; see
-    \Ref{section}{sec:transforming-functions-arrays}.
 
   - s1 Regular expressions | sec:transforming-functions-regular-expressions
     These are composed normally, and are most useful when you expect a string as input. For example:
@@ -1957,7 +1955,7 @@ meta::section('transforming-functions', <<'__88dce522ff6c9866548714dc4dfefe0a');
       d(0, '|x, y| [x]')(3, 4)                  // => 3
       d(1, '|x, y| [x, y]')(3, 4)               // => 4
     - end
-__88dce522ff6c9866548714dc4dfefe0a
+__0edfb465a8512fd185afeca8aea0e0d9
 
 meta::template('comment', "'';     # A mechanism for line or block comments.");
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
