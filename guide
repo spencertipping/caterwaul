@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.38_z/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.DOjz/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__901f64b041c6dc5c54748c7e6e82e09a');
+meta::section('building-functions', <<'__4eef45770c984e6504e0b170d2e25809');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1611,7 +1611,7 @@ meta::section('building-functions', <<'__901f64b041c6dc5c54748c7e6e82e09a');
       results are returned in an array.
 
     - s2 Named-argument expressions | sec:building-functions-strings-named-expressions
-      If a string begins with {\tt |}, then it is parsed as a named-argument function. For example:
+      If a string begins with {\tt |} or {\tt @}, then it is parsed as a named-argument function. For example:
 
       - javascript examples/named-argument-expressions.js << end
         d('|foo| foo + 1')      // => function (foo) {return foo + 1}
@@ -1629,8 +1629,17 @@ meta::section('building-functions', <<'__901f64b041c6dc5c54748c7e6e82e09a');
         d('|f, xs| f#a(f, xs)')         // => function (f, xs) {return f.apply (f, xs)}
       - end
 
+      The {\tt @} prefix preserves {\tt this} in the context of a subfunction (that is, binds it to {\tt this} outside of the subfunction body). Using it on the toplevel function lets you set
+      {\tt d}'s {\tt this} reference and hang onto that (though the {\tt bind} transform described in \Ref{chapter}{sec:builtin-transforms} is probably more appropriate). For example:
+
+      - javascript examples/named-argument-expression-this.js << end
+        d('|| this === (|| this)()').call(true)         // => false
+        d('|| this === (@|| this)()').call(true)        // => true
+        d('@|x| this === x').call(3, 3)                 // => true
+      - end
+
     - s2 Destructuring binds | sec:building-functions-strings-destructuring-binds
-      Strings beginning with {\tt [} or {\tt \{} are interpreted as pattern matches with bind variables. For example:
+      Strings beginning with {\tt [} or \verb|{| are interpreted as pattern matches with bind variables. For example:
 
       - javascript examples/destructuring-binds.js << end
         d('[#x, #y, #z]')([1, 2, 3])
@@ -1708,7 +1717,117 @@ meta::section('building-functions', <<'__901f64b041c6dc5c54748c7e6e82e09a');
       d({foo: 0x71a})(5)                  // => {foo: 6}
       d({two: 0x8ab, four: 0x74cb})(6, 7) // => {two: 5, four: 17}
     - end
-__901f64b041c6dc5c54748c7e6e82e09a
+__4eef45770c984e6504e0b170d2e25809
+
+meta::section('builtin-transforms', <<'__78b2beaefa129696b431041c515b02ea');
+- sc Built-in Transforms | sec:builtin-transforms
+  Divergence comes with a handful of transforms that are useful for working with JavaScript functions and data types. Some of them are standalone (e.g.~{\tt require}, {\tt ensure}), while
+  others (e.g.~{\tt amap}, {\tt xlift}) are generated from a data structure. Divergence provides a framework for defining Haskell-style typeclasses and operations on their instances.
+
+  - s1 Defining a Typeclass | sec:builtin-transforms-defining-a-typeclass
+    Here is the definition for the {\tt foldable} typeclass:
+
+    - javascript examples/foldable.js << end
+      d.typeclass('foldable', 'fold', 'zero', 'merge', 'ret').define ({
+        map:  '|f| @fold((@|x, y| @merge(x, @ret(f(y)))), @zero())',
+        lift: '|f| @fold((@|x, y| @merge(x, f(y))), @zero())'});
+    - end
+
+    Here's how this works. First, we tell Divergence that we're defining a {\tt foldable} typeclass, and instances are assumed to provide implementations of {\tt fold}, {\tt zero}, {\tt
+    merge}, and {\tt ret}. Then we proceed to define methods that we get for free, in this case {\tt map} and {\tt lift}.
+
+    For arrays, {\tt map} can be defined in terms of {\tt fold} like this:
+
+    - verbatim << end
+      var map = function (xs, f) {
+        return fold ([], xs, function (ys, x) {
+          return ys.concat ([f(x)]);
+        });
+      };
+    - end
+
+    However, this definition works only for arrays. To generalize it, we need to remove all array-specific references. Here's what the code looks like in general form, where the extra
+    parameter {\tt t} provides collection-specific methods:
+
+    - verbatim << end
+      var map = function (t, xs, f) {
+        return t.fold (t.zero(), xs, function (ys, x) {
+          return t.merge (ys, t.ret (f(x)));
+        });
+      };
+    - end
+
+    Now there is only one step left. We need to take a regular function and return a mapping function, but we don't have a collection yet. That is, instead of having a function {\tt map} that
+    does this:
+
+    - verbatim << end
+      var ys = map(xs, f);
+    - end
+
+    \noindent we want {\tt map} to do this:
+
+    - verbatim << end
+      var ys = map(f)(xs);
+    - end
+
+    If {\tt fold} is already a function-transform, then we're all set. Here's how that works:
+
+    - verbatim << end
+      var map = function (t, f) {
+        return t.fold (t.zero(), function (ys, x) {
+          return t.merge (ys, t.ret (f(x)));
+        });
+      };
+    - end
+
+    All we've done here is curried out the {\tt xs} parameter at every level. Also notice that it isn't hard to get from the above definition of {\tt map} to what we have implemented in the
+    {\tt foldable} typeclass.
+
+    The following functions are provided for each instance of {\tt foldable} (examples here are for arrays):
+
+    - s2 {\tt amap} | sec:transforming-functions-transforms-amap
+      Causes the function to be invoked componentwise across an array. This transform takes no parameters. For example:
+
+      - javascript examples/amap.js << end
+        d(0x71a, 'amap')([1, 2, 3, 4])          // => [2, 3, 4, 5]
+        d(0x8a, 'amap')([1, 2, 'foo'])          // => [2, 4, 'foofoo']
+        d(0xee, 'amap')(['foo', null])          // => [true, false]
+        d(0xee, 'amap')([])                     // => []
+        d(0x8c, 'amap')([1, 2, 3])              // => [1, 4, 9]
+        d(-0x8c, 'amap')([1, 2, 3])             // => [[1], [4], [9]]
+      - end
+
+    - s2 {\tt alift} | sec:transforming-functions-transforms-alift
+      Lifts a function into the array monad. More specifically, causes the function to be invoked componentwise across the array entries and the results, which should be arrays, are then
+      concatenated. {\tt false}, {\tt undefined}, {\tt null}, and other falsy values are considered to be equivalent to empty arrays. For example:
+
+      - javascript examples/alift.js << end
+        d('|x| [x + 1]', 'alift')([1, 2, 3])            // => [2, 3, 4]
+        d('|x| [x, x + 1]', 'alift')([1, 2, 3])         // => [1, 2, 2, 3, 3, 4]
+        d('|x| x&1 && [x]', 'alift')([1, 2, 3, 4])      // => [1, 3]
+        d([0], 'alift')([1, 2, 3])                      // => [1, 2, 3]
+        d([0x71a, 0x8c], 'alift')([1, 2, 3])            // => [2, 1, 3, 4, 4, 9]
+        d(-0x8c, 'alift')([1, 2, 3])                    // => [1, 4, 9]
+      - end
+
+    - s2 {\tt afold} | sec:transforming-functions-transforms-afold
+      Lifts a function into a left-fold over arrays. That is, calling your function on an array is equivalent to calling a traditional {\tt foldLeft} implementation on both your function and
+      the array. For example:
+
+      - javascript examples/afold.js << end
+        d(0xa, 'afold')([1, 2, 3])              // => 6
+        d(0xc, 'afold')([2, 3, 4])              // => 24
+        d(0xa, 'afold')([1])                    // => 1
+        d(0x18c0a, 'afold')([[], 1, 2, 3])      // => [1, 4, 9]
+      - end
+
+      You can also specify the first fold argument as a transform parameter:
+
+      - javascript >> examples/afold.js << end
+        d(0xa, {afold: 4})([1, 2, 3])           // => 10
+        d(0x18c0a, {afold: []})([1, 2, 3])      // => [1, 4, 9]
+      - end
+__78b2beaefa129696b431041c515b02ea
 
 meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
 - sc Instances | sec:instances
@@ -1806,7 +1925,7 @@ meta::section('introduction', <<'__2eecbd49eb86262dd4225449890020ab');
   definitions are scoped to a particular instance of Divergence; they are not global by default.
 __2eecbd49eb86262dd4225449890020ab
 
-meta::section('main', <<'__e02ec6cb8f647e721da5de0f20220b08');
+meta::section('main', <<'__cd884c51ab63fee0b30a19e06a3d58a3');
 - documentclass report
 - include resource::header
 
@@ -1821,13 +1940,14 @@ meta::section('main', <<'__e02ec6cb8f647e721da5de0f20220b08');
   - include section::introduction
   - include section::building-functions
   - include section::transforming-functions
+  - include section::builtin-transforms
   - include section::instances
 
   - sp Extending Divergence
 - end
-__e02ec6cb8f647e721da5de0f20220b08
+__cd884c51ab63fee0b30a19e06a3d58a3
 
-meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
+meta::section('transforming-functions', <<'__9f88ee1fe2236dd300295b17f3d02ce1');
 - sc Transforming Functions | sec:transforming-functions
   As explained in \Ref{chapter}{sec:building-functions}, you can use Divergence to build functions from values. However, that occupies only one parameter; {\tt d} can accept more. Parameters
   after the first are used to modify the function being generated. So, for example, consider the following invocation:
@@ -1838,10 +1958,9 @@ meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
                          require: '|xs| xs.constructor === Array'});
   - end
 
-  The anatomy of this call is that {\tt 0x748cc} is the initial function (which multiplies its first argument by 16; see \Ref{section}{sec:building-functions-large-positive-integers} for
-  details), {\tt 'amap'} is a nullary transformation that lifts the function to distribute componentwise across arrays, and the following object contains a list of transforms to be applied in
-  arbitrary order. In this case, {\tt suchThat} is an in-place unit test, {\tt ensure} is a postcondition, and {\tt require} is a precondition. The resulting function would look something like
-  this:
+  {\tt 0x748cc} is the initial function (which multiplies its first argument by 16; see \Ref{section}{sec:building-functions-large-positive-integers} for details), {\tt 'amap'} is a nullary
+  transformation that lifts the function to distribute componentwise across arrays, and the following object contains a list of transforms to be applied in arbitrary order. In this case, {\tt
+  suchThat} is an in-place unit test, {\tt ensure} is a postcondition, and {\tt require} is a precondition. The resulting function would look something like this:
 
   - verbatim << end
     function (xs) {
@@ -1862,7 +1981,8 @@ meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
   - end
 
   Obviously a lot has happened to the original function and the intermediate structures. Divergence keeps functions in intermediate format until all of the transformations have been run, and
-  compiles the function into native JavaScript just before returning it.
+  compiles the function into native JavaScript just before returning it. This transformation step isn't primitive; it's a customization that is built into the default copy of Divergence and
+  inherited.
 
   - s1 Arrays | sec:transforming-functions-arrays
     Array transformation arguments are treated as argument list manipulators (\verb|flat_compose| in the original Divergence). They are homomorphic across {\tt d} and let you do things like
@@ -1894,7 +2014,7 @@ meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
       d(0xee, /foobar/)('foo')                  // => null
     - end
 
-    If the regular expression fails to match, the function is never executed and {\tt null} will be returned.
+    If the regular expression fails to match, the function is never executed and {\tt null} will be returned. Normal regular-expression rules apply for array or multiple arguments.
 
   - s1 Generalized transforms | sec:transforming-functions-generalized-transforms
     Strings and objects are used to specify generalized transforms. These are arbitrary functions that can transform the function you're building. In the example above, {\tt suchThat}, {\tt
@@ -1907,43 +2027,7 @@ meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
       d(0x71a, {amap: null}, 'vlift')
     - end
 
-    Divergence comes with several generalized transforms, and you can write your own. They are:
-
-    - s2 {\tt amap} | sec:transforming-functions-transforms-amap
-      Causes the function to be invoked componentwise across an array. This transform takes no parameters. For example:
-
-      - javascript examples/amap.js << end
-        d(0x71a, 'amap')([1, 2, 3, 4])          // => [2, 3, 4, 5]
-        d(0x8a, 'amap')([1, 2, 'foo'])          // => [2, 4, 'foofoo']
-        d(0xee, 'amap')(['foo', null])          // => [true, false]
-        d(0xee, 'amap')([])                     // => []
-        d(0x8c, 'amap')([1, 2, 3])              // => [1, 4, 9]
-        d(-0x8c, 'amap')([1, 2, 3])             // => [[1], [4], [9]]
-      - end
-
-    - s2 {\tt alift} | sec:transforming-functions-transforms-alift
-      Lifts a function into the array monad. More specifically, causes the function to be invoked componentwise across the array entries and the results, which should be arrays, are then
-      concatenated. {\tt false}, {\tt undefined}, {\tt null}, and other falsy values are considered to be equivalent to empty arrays. For example:
-
-      - javascript examples/alift.js << end
-        d('|x| [x + 1]', 'alift')([1, 2, 3])            // => [2, 3, 4]
-        d('|x| [x, x + 1]', 'alift')([1, 2, 3])         // => [1, 2, 2, 3, 3, 4]
-        d('|x| x&1 && [x]', 'alift')([1, 2, 3, 4])      // => [1, 3]
-        d([0], 'alift')([1, 2, 3])                      // => [1, 2, 3]
-        d([0x71a, 0x8c], 'alift')([1, 2, 3])            // => [2, 1, 3, 4, 4, 9]
-        d(-0x8c, 'alift')([1, 2, 3])                    // => [1, 4, 9]
-      - end
-
-    - s2 {\tt afold} | sec:transforming-functions-transforms-afold
-      Lifts a function into a left-fold over arrays. That is, calling your function on an array is equivalent to calling a traditional {\tt foldLeft} implementation on both your function and
-      the array. For example:
-
-      - javascript examples/afold.js << end
-        d(0xa, 'afold')([1, 2, 3])              // => 6
-        d(0xc, 'afold')([2, 3, 4])              // => 24
-        d(0xa, 'afold')([1])                    // => 1
-        d(0x18c0a, 'afold')([[], 1, 2, 3])      // => [1, 4, 9]
-      - end
+    Divergence comes with several generalized transforms, and you can write your own. The built-in transforms are described in \Ref{chapter}{sec:builtin-transforms}.
 
   - s1 Strings | sec:transforming-functions-strings
     If a string doesn't match one of the defined generalized transforms, then it is interpreted as a string function (see \Ref{section}{sec:building-functions-strings}) and is expected to
@@ -1955,7 +2039,16 @@ meta::section('transforming-functions', <<'__0edfb465a8512fd185afeca8aea0e0d9');
       d(0, '|x, y| [x]')(3, 4)                  // => 3
       d(1, '|x, y| [x, y]')(3, 4)               // => 4
     - end
-__0edfb465a8512fd185afeca8aea0e0d9
+
+  - s1 Functions | sec:transforming-functions-functions
+    A function is used on the argument list and is expected to return an array of new arguments. For example:
+
+    - javascript examples/function-transforms.js << end
+      d(0xa, d(-0xc))(4, 5, 6)                  // => 26
+      d(0xb, d('|x| [x, x]'))(5)                // => 0
+      d(0xc, d('|x| [x, x]'))(5)                // => 25
+    - end
+__9f88ee1fe2236dd300295b17f3d02ce1
 
 meta::template('comment', "'';     # A mechanism for line or block comments.");
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
