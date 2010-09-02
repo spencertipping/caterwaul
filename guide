@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.DOjz/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.SZAg/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__4eef45770c984e6504e0b170d2e25809');
+meta::section('building-functions', <<'__6f95fb487f74db5bdfad9b0f03518916');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1576,8 +1576,8 @@ meta::section('building-functions', <<'__4eef45770c984e6504e0b170d2e25809');
       {\em TBD}
 
   - s1 Strings | sec:building-functions-strings
-    Strings delegate to domain-specific language parsers, and this delegation is managed entirely by the first character of the string. Divergence includes a few such languages built-in, and
-    others can be defined later on. Here are the ones Divergence comes with:
+    Strings delegate to domain-specific language parsers, and this delegation is managed entirely by the first non-whitespace character of the string. Divergence includes a few such languages
+    built-in, and others can be defined later on. Here are the ones Divergence comes with:
 
     - s2 Dereferencing | sec:building-functions-strings-dereferencing
       If a string begins with a dot, then it is treated as a monadic dereferencer. It will not fail if it hits a null reference; it simply stops dereferencing at that point. So, for example:
@@ -1611,7 +1611,7 @@ meta::section('building-functions', <<'__4eef45770c984e6504e0b170d2e25809');
       results are returned in an array.
 
     - s2 Named-argument expressions | sec:building-functions-strings-named-expressions
-      If a string begins with {\tt |} or {\tt @}, then it is parsed as a named-argument function. For example:
+      If a string begins with {\tt |}, then it is parsed as a named-argument function. For example:
 
       - javascript examples/named-argument-expressions.js << end
         d('|foo| foo + 1')      // => function (foo) {return foo + 1}
@@ -1629,13 +1629,11 @@ meta::section('building-functions', <<'__4eef45770c984e6504e0b170d2e25809');
         d('|f, xs| f#a(f, xs)')         // => function (f, xs) {return f.apply (f, xs)}
       - end
 
-      The {\tt @} prefix preserves {\tt this} in the context of a subfunction (that is, binds it to {\tt this} outside of the subfunction body). Using it on the toplevel function lets you set
-      {\tt d}'s {\tt this} reference and hang onto that (though the {\tt bind} transform described in \Ref{chapter}{sec:builtin-transforms} is probably more appropriate). For example:
+      The {\tt @} prefix preserves {\tt this} in the context of a subfunction (that is, binds it to {\tt this} outside of the subfunction body). For example:
 
       - javascript examples/named-argument-expression-this.js << end
-        d('|| this === (|| this)()').call(true)         // => false
-        d('|| this === (@|| this)()').call(true)        // => true
-        d('@|x| this === x').call(3, 3)                 // => true
+        d('|| @ === (|| @)()').call(true)         // => false
+        d('|| @ === (@|| @)()').call(true)        // => true
       - end
 
     - s2 Destructuring binds | sec:building-functions-strings-destructuring-binds
@@ -1717,9 +1715,9 @@ meta::section('building-functions', <<'__4eef45770c984e6504e0b170d2e25809');
       d({foo: 0x71a})(5)                  // => {foo: 6}
       d({two: 0x8ab, four: 0x74cb})(6, 7) // => {two: 5, four: 17}
     - end
-__4eef45770c984e6504e0b170d2e25809
+__6f95fb487f74db5bdfad9b0f03518916
 
-meta::section('builtin-transforms', <<'__78b2beaefa129696b431041c515b02ea');
+meta::section('builtin-transforms', <<'__4233f7a745c52b321c26c52de7d7d83f');
 - sc Built-in Transforms | sec:builtin-transforms
   Divergence comes with a handful of transforms that are useful for working with JavaScript functions and data types. Some of them are standalone (e.g.~{\tt require}, {\tt ensure}), while
   others (e.g.~{\tt amap}, {\tt xlift}) are generated from a data structure. Divergence provides a framework for defining Haskell-style typeclasses and operations on their instances.
@@ -1783,7 +1781,27 @@ meta::section('builtin-transforms', <<'__78b2beaefa129696b431041c515b02ea');
     All we've done here is curried out the {\tt xs} parameter at every level. Also notice that it isn't hard to get from the above definition of {\tt map} to what we have implemented in the
     {\tt foldable} typeclass.
 
-    The following functions are provided for each instance of {\tt foldable} (examples here are for arrays):
+    - s2 Making {\tt Array} foldable | sec:builtin-transforms-making-array-foldable
+      The definition to make {\tt Array} an instance of {\tt foldable} isn't hard at all:
+
+      - javascript examples/array-foldable.js << end
+        d.instance(Array, 'foldable', {
+          zero:  '||[]',
+          merge: '|x, y| x.concat(y)',
+          ret:   -0x77,
+          fold:  function (f) {
+            var args = arguments;
+            return function (xs) {
+              var start   = args.length === 2;
+              var initial = start ? args[1] : xs[0];
+              for (var i = start, l = xs.length; i < l; ++i)
+                initial = f(initial, xs[i]);
+              return initial;
+            };
+          }});
+      - end
+
+      The following functions are provided for each instance of {\tt foldable} (examples here are for arrays):
 
     - s2 {\tt amap} | sec:transforming-functions-transforms-amap
       Causes the function to be invoked componentwise across an array. This transform takes no parameters. For example:
@@ -1808,6 +1826,7 @@ meta::section('builtin-transforms', <<'__78b2beaefa129696b431041c515b02ea');
         d([0], 'alift')([1, 2, 3])                      // => [1, 2, 3]
         d([0x71a, 0x8c], 'alift')([1, 2, 3])            // => [2, 1, 3, 4, 4, 9]
         d(-0x8c, 'alift')([1, 2, 3])                    // => [1, 4, 9]
+        d([-0x8c], 'alift')([1, 2, 3])                  // => [[1], [4], [9]]
       - end
 
     - s2 {\tt afold} | sec:transforming-functions-transforms-afold
@@ -1827,7 +1846,7 @@ meta::section('builtin-transforms', <<'__78b2beaefa129696b431041c515b02ea');
         d(0xa, {afold: 4})([1, 2, 3])           // => 10
         d(0x18c0a, {afold: []})([1, 2, 3])      // => [1, 4, 9]
       - end
-__78b2beaefa129696b431041c515b02ea
+__4233f7a745c52b321c26c52de7d7d83f
 
 meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
 - sc Instances | sec:instances
