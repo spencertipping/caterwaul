@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.SZAg/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.br5c/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1466,7 +1466,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
 meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__6f95fb487f74db5bdfad9b0f03518916');
+meta::section('building-functions', <<'__1bc1eb4765a96eefb7fb924951ac4c7c');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1636,6 +1636,10 @@ meta::section('building-functions', <<'__6f95fb487f74db5bdfad9b0f03518916');
         d('|| @ === (@|| @)()').call(true)        // => true
       - end
 
+      Note that the notation is unambiguous in practice. In JavaScript {\tt this} is always boxed, so expressions of the form {\tt this || x} are trivially {\tt this} and would never evaluate
+      {\tt x}. Therefore, there is never a case where {\tt this || x} should be written, and thus the sequence \verb/@|/ always refers to the beginning of an inner function.\footnote{Spaces
+      also disambiguate these cases further, since generally there are spaces in expressions but not on decorators.}
+
     - s2 Destructuring binds | sec:building-functions-strings-destructuring-binds
       Strings beginning with {\tt [} or \verb|{| are interpreted as pattern matches with bind variables. For example:
 
@@ -1666,7 +1670,123 @@ meta::section('building-functions', <<'__6f95fb487f74db5bdfad9b0f03518916');
       any errors if you ask for bound variables; they'll all just be {\tt undefined}.\footnote{Unless you've named one of them {\tt constructor} or something, but don't do that.} However, {\tt
       false} will still fail any boolean condition, so you can fall out gracefully. The only bad part is that you can't use the {\tt === undefined} or {\tt === null} check.
 
-      If multiple arguments are provided, the function returns the results from the first match that succeeds.
+      Alternatives can be specified using {\tt ;}. For example:
+
+      - javascript examples/destructuring-bind-alternatives.js << end
+        d('[#x, #y] | x < y ; [#x, #y] | x > y')([1, 2])        // => {x: 1, y: 2}
+        d('[#x, #y] | x < y ; [#y, #x] | x < y')([2, 1])        // => {x: 1, y: 2}
+        d('[#x, #y] | x < y ; [#y, #x] | x < y')([1, 1])        // => false
+      - end
+
+      If multiple arguments are provided, the function returns the results from the first match that succeeds:
+
+      - javascript examples/destructuring-bind-multiple.js << end
+        d('[#x, 3, #y] | x == y')([1, 3, 5], [2, 3, 2]) // => {x: 2, y: 2}
+      - end
+
+    - s2 Terse-form stack functions | sec:building-functions-string-terse-stack
+      Large positive and negative integer values (see sections \ref{sec:building-functions-large-positive-integers} and \ref{sec:building-functions-negative-integers}) implement a small
+      stack-based command language. Within strings, however, many more characters are available. Strings beginning with {\tt x} are interpreted in this language, which contains as a subset the
+      language used for hexadecimal integers. Whitespace within these strings is ignored. For example:
+
+      - javascript examples/terse-form-stack-functions.js << end
+        d([0x71a, 'x71a'])(5)           // => [6, 6]
+        d([0xee,  'xee'])(1)            // => [1, 1]
+      - end
+
+      Using a string allows the entry of additional commands, described in the following sections:
+
+      - s3 Control-flow commands | sec:building-functions-string-terse-control-flow
+        - description << end
+          - item {\tt g}, {\tt G}
+            Goto a label. The next character is the label name. Used with {\tt l}. For example, the string {\tt 'xlaga'} produces an infinite-loop function. The alias {\tt G} always refers to
+            the \verb|_| label; for example, the string {\tt 'xLG'} is a quicker way to write an infinite-loop function.
+
+          - item {\tt l}, {\tt L}
+            Creates a named label. The syntax is {\tt lx}, where {\tt x} is some non-whitespace character. Labels can be gone to using {\tt g} or conditional branching. Label definitions are
+            mutable (though I do not advise using them this way), so you can redefine them within a function as the function is running. The alias {\tt L} always refers to the \verb|_| label.
+
+          - item {\tt t}, {\tt T}
+            Jumps to a label if the stack top is truthy. (Doesn't modify the stack.) Its complement, {\tt T}, jumps to a label if the stack top is falsy. For example, the function \verb|Tnrlnn|
+            returns its first argument if it's truthy and returns {\tt null} otherwise.\footnote{A shorter and more readable version of this function is {\tt n5b}.}
+
+          - item {\tt r}, {\tt R}
+            Returns immediately. The return value is whatever is on the top of the stack. The idiom {\tt ur} can be used to return nothing (analogous to \verb|return;|). The {\tt R} variant
+            throws the stack top instead of returning it.
+        - end
+
+      - s3 Array commands | sec:building-functions-string-terse-array
+        - description << end
+          - item {\tt Pn}
+            Here {\tt n} is a single digit. This command pops {\tt n} items off of the stack and into an array, where the array's first element is the previous stack top. The array is then
+            pushed onto the stack.
+
+          - item {\tt p}
+            Pops a number $n$ off of the top of the stack, and then pops $n$ more items off of the stack and pushes them onto an empty array. The array is then pushed. Analogous to {\tt P},
+            but the number is determined at runtime.
+
+          - item {\tt U}
+            Unpacks the array on the top of the stack into stack entries. The first element in the array becomes the top of the stack.
+
+          - item {\tt i}
+            A zero-based generalized iota, similar to the iota in APL. Replaces the stack top $n$ with an array of consecutive integers from 0 to $n-1$. Distributes across arrays and object
+            values. If the top is a string, then it is replaced with an array of right-handed substrings (e.g.~{\tt 'foo'} has right-handed substrings {\tt 'foo'}, {\tt 'oo'}, and {\tt 'o'}).
+            Booleans, regular expressions, {\tt null}, and {\tt undefined} are wrapped in single-element arrays.
+
+          - item {\tt \#}
+            Pushes the size of the stack top onto the stack. The size of arrays and strings is obtained from the {\tt length} property, and the size of an object is the number of keys for
+            which {\tt hasOwnProperty} is true. Numbers, booleans, regular expressions, {\tt null}, and {\tt undefined} have size 0.
+        - end
+
+      - s3 Value commands | sec:building-functions-string-terse-values
+        - description << end
+          - item {\tt @}
+            Pushes {\tt this} onto the stack.
+
+          - item {\tt n}
+            Pushes {\tt null} onto the stack.
+
+          - item {\tt u}
+            Pushes {\tt undefined} onto the stack.
+        - end
+
+      - s3 Quotation | sec:building-functions-string-terse-quotation
+        - description << end
+          - item {\tt [n}, {\tt ]}
+            Quotes a closure. Closures work by being preloaded with the first $n$ things from the enclosing stack. So, for example, the function {\tt '|x| (|y| x + y)'} can be written instead
+            as {\tt 'x[1a]'}.
+        - end
+
+      - s3 Combinatory logic | sec:building-functions-string-terse-combinatory
+        - description << end
+          - item {\tt k}
+            Replace the stack top with a constant function returning the stack top. That is, $x \Rightarrow (\lambda y.x)$.
+        - end
+
+      - s3 Unbound | sec:building-functions-string-terse-unbound
+        - description << end
+          - item {\tt j}
+          - item {\tt h}
+
+          - item {\tt m}
+
+          - item {\tt o}
+
+          - item {\tt q}
+
+          - item {\tt s}
+
+          - item {\tt v}
+          - item {\tt w}
+          - item {\tt x}
+          - item {\tt y}
+          - item {\tt z}
+
+          - item {\tt A}
+          - item {\tt B}
+          - item {\tt C}
+          - item {\tt D}
+        - end
 
   - s1 Regular Expressions | sec:building-functions-regular-expressions
     These are really simple; they just attempt to match against the input and return an array of matches if successful, {\tt null} otherwise. (This is identical to the behavior of {\tt
@@ -1698,12 +1818,13 @@ meta::section('building-functions', <<'__6f95fb487f74db5bdfad9b0f03518916');
     - end
 
   - s1 Arrays | sec:building-functions-arrays
-    Arrays, just like in the original Divergence library, are homomorphic across {\tt d}. For example:
+    Arrays, just like in the original Divergence library, are homomorphic across {\tt d}.\footnote{The {\tt d} in question, of course, is the same {\tt d} that you called on the array. The
+    same goes for objects (\Ref{section}{sec:building-functions-objects}). See \Ref{chapter}{sec:instances} for an explanation of why this is a relevant question.} For example:
 
     - javascript examples/arrays.js << end
       d([0x71, '.foo'])({foo: 'bar'})   // => [1, 'bar']
-      d([0xee, '.foo'])({foo: 'bar'})   // => [1, 'bar']
-      d([0xee, '.foo'])(null)           // => [0, null]
+      d([0xee, '.foo'])({foo: 'bar'})   // => [true, 'bar']
+      d([0xee, '.foo'])(null)           // => [false, null]
       d([0xa, 0xb, 0xc])(2, 3)          // => [5, -1, 6]
       d([])(1, 2, 3)                    // => []
     - end
@@ -1714,8 +1835,9 @@ meta::section('building-functions', <<'__6f95fb487f74db5bdfad9b0f03518916');
     - javascript examples/objects.js << end
       d({foo: 0x71a})(5)                  // => {foo: 6}
       d({two: 0x8ab, four: 0x74cb})(6, 7) // => {two: 5, four: 17}
+      d({foo: '||@'}).call(5)             // => 5
     - end
-__6f95fb487f74db5bdfad9b0f03518916
+__1bc1eb4765a96eefb7fb924951ac4c7c
 
 meta::section('builtin-transforms', <<'__4233f7a745c52b321c26c52de7d7d83f');
 - sc Built-in Transforms | sec:builtin-transforms
