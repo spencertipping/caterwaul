@@ -1,0 +1,1 @@
+var mapped = my_array.map (d('|x| x + 1'));

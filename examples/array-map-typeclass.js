@@ -1,0 +1,1 @@
+var mapped = d('|x| x + 1', 'map')(my_array);

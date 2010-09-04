@@ -200,7 +200,7 @@ meta::functor::editable 'configuration', inherit => 0, extension => '.conf', def
 };
 __d67e10a128e6b1d958c5b9d3bbe25aa4
 
-meta::meta('type::data', "meta::functor::editable 'data', extension => '', inherit => 0, default => 'cat';");
+meta::meta('type::data', 'meta::functor::editable \'data\', extension => \'\', inherit => 0, default => \'cat\';');
 meta::meta('type::function', <<'__d93b3cc15693707dac518e3d6b1f5648');
 meta::configure 'function', extension => '.pl', inherit => 1;
 meta::define_form 'function', sub {
@@ -265,14 +265,14 @@ meta::meta('type::meta', <<'__640f25635ce2365b0648962918cf9932');
 meta::configure 'meta', extension => '.pl', inherit => 1;
 __640f25635ce2365b0648962918cf9932
 
-meta::meta('type::note', "meta::functor::editable 'note', extension => '', inherit => 0, default => 'edit';");
+meta::meta('type::note', 'meta::functor::editable \'note\', extension => \'\', inherit => 0, default => \'edit\';');
 meta::meta('type::parent', <<'__607e9931309b1b595424bedcee5dfa45');
 meta::define_form 'parent', \&meta::bootstrap::implementation;
 meta::configure 'parent', extension => '', inherit => 1;
 __607e9931309b1b595424bedcee5dfa45
 
-meta::meta('type::resource', "meta::functor::editable 'resource', extension => '.cltex', inherit => 1, default => 'edit';");
-meta::meta('type::section', "meta::functor::editable 'section', extension => '.cltex', inherit => 0, default => 'edit';");
+meta::meta('type::resource', 'meta::functor::editable \'resource\', extension => \'.cltex\', inherit => 1, default => \'edit\';');
+meta::meta('type::section', 'meta::functor::editable \'section\', extension => \'.cltex\', inherit => 0, default => \'edit\';');
 meta::meta('type::state', <<'__c1f29670be26f1df6100ffe4334e1202');
 # Allows temporary or long-term storage of states. Nothing particularly insightful
 # is done about compression, so storing alternative states will cause a large
@@ -293,8 +293,8 @@ meta::define_form 'template', sub {
 };
 __25f4d6eafb1d3eea6d5d3d9a71a5623e
 
-meta::meta('type::vim_highlighter', "meta::functor::editable 'vim_highlighter', extension => '.vim', inherit => 1, default => 'edit';");
-meta::meta('type::watch', "meta::functor::editable 'watch', prefix => 'watch::', inherit => 1, extension => '.pl', default => 'cat';");
+meta::meta('type::vim_highlighter', 'meta::functor::editable \'vim_highlighter\', extension => \'.vim\', inherit => 1, default => \'edit\';');
+meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::bootstrap('initialization', <<'__baa43e5e8e6e1cd76d4e2de828ceaa4d');
 #!/usr/bin/perl
 
@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.br5c/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.slNG/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -386,7 +386,7 @@ meta::data('source-directory', '.');
 meta::data('table-of-contents', '1');
 meta::data('tex-command', 'latex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('watching', '0');
-meta::function('cat', 'join "\n", retrieve(@_);');
+meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('child', <<'__3eeb4b4fd37a502b53f0008e7835b5de');
 my ($child_name) = @_;
 
@@ -598,10 +598,7 @@ join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [gre
                                                     $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : ());
 __ffe7609f16d647b7eb9ed9693dd12c23
 
-meta::function('ls-a', <<'__87c7c2aabf4dee78f646c5542608af56');
-ls('-ad', @_);
-__87c7c2aabf4dee78f646c5542608af56
-
+meta::function('ls-a', 'ls(\'-ad\', @_);');
 meta::function('make', <<'__9a3d7e3c7e0017f4c9b239f3858aaf03');
 compile() || view();
 clean();
@@ -623,7 +620,7 @@ meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
 create("note::$_[0]");
 __bcbfeac6dd2112f47296265444570a6e
 
-meta::function('parents', 'join "\n", grep s/^parent:://o, sort keys %data;');
+meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
 meta::function('perl', <<'__f2b57dd342923797e8e2287c3095803f');
 my $result = eval(join ' ', @_);
 $@ ? terminal::message('error', $@) : $result;
@@ -726,20 +723,22 @@ my @final_array          = @{$partial ? \@attributes : [retrieve('bootstrap::ini
 join "\n", @final_array;
 __023436ac07471e2f2cf016e2172c8d73
 
-meta::function('serialize_single', <<'__6292f0374819c770ce00608252aa4506');
+meta::function('serialize_single', <<'__48005281edde632b0df2e346c094b7bd');
 # Serializes a single attribute and optimizes for content.
 
 my $name               = $_[0] || $_;
 my $contents           = $data{$name};
 my $meta_function_name = 'meta::' . namespace($name);
 my $invocation_name    = attribute($name);
+my $escaped            = $contents;
+$escaped =~ s/\\/\\\\/go;
+$escaped =~ s/'/\\'/go;
 
-return "$meta_function_name('$invocation_name', '$contents');"   if $contents =~ /^[^\n']*$/;
-return "$meta_function_name('$invocation_name', \"$contents\");" if $contents =~ /^[^\n"\\\$@%&]*$/;
+return "$meta_function_name('$invocation_name', '$escaped');" unless $escaped =~ /\v/;
 
 my $delimiter = '__' . fast_hash($contents);
 return "$meta_function_name('$invocation_name', <<'$delimiter');\n$contents\n$delimiter\n";
-__6292f0374819c770ce00608252aa4506
+__48005281edde632b0df2e346c094b7bd
 
 meta::function('shell', <<'__c6ef6c31734c0b330f6076543fef8f1f');
 use Term::ReadLine;
@@ -805,10 +804,7 @@ preprocess(retrieve("section::$document"));
 __5bb8bf491e1b442858096acf711135f9
 
 meta::function('unlock', 'chmod_self(sub {$_[0] | 0200});');
-meta::function('update', <<'__4de1a6a4085836590a3b1ef997f9d5ea');
-&{'update-from'}(@_, grep s/^parent:://o, sort keys %data);
-__4de1a6a4085836590a3b1ef997f9d5ea
-
+meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
 meta::function('update-from', <<'__f927cc6b2e1c93ce2e969845e01ba839');
 # Upgrade all attributes that aren't customized. Customization is defined when the data type is created,
 # and we determine it here by checking for $transients{inherit}{$type}.
@@ -1144,7 +1140,7 @@ my %options;
 ({%options}, @others, @_);
 __d47e8ee23fe55e27bb523c9fcb2f5ca1
 
-meta::internal_function('strip', 'wantarray ? map {s/^\s*|\s*$//g; $_} @_ : $_[0] =~ /^\s*(.*?)\s*$/ && $1;');
+meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
 meta::internal_function('table_display', <<'__8a6897e093f36bf05477a3889b84a61d');
 # Displays an array of arrays as a table; that is, with alignment. Arrays are
 # expected to be in column-major order.
@@ -1208,7 +1204,7 @@ __6999988eaf441c9b1282e03e1db427b5
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('watch', 'blue');
-meta::parent('/home/spencertipping/bin/literate-project', <<'__5eee3de9c142e281acc39863fa696ed1');
+meta::parent('/home/spencertipping/bin/literate-project', <<'__db24da081d7ec99943b65e5c7bcf0979');
 function::clean
 function::compile
 function::make
@@ -1233,8 +1229,9 @@ resource::header-listings
 resource::header-packages
 resource::header-refs
 resource::header-resource
+template::item[]
 vim_highlighter::cltex
-__5eee3de9c142e281acc39863fa696ed1
+__db24da081d7ec99943b65e5c7bcf0979
 
 meta::parent('/home/spencertipping/bin/object', <<'__2fa5e2565231e24d8c3ba43abc0403c4');
 bootstrap::initialization
@@ -1464,9 +1461,9 @@ meta::resource('header-packages', <<'__5a7e0bd196996326e6278b6dc308371c');
 \usepackage[colorlinks]{hyperref}
 __5a7e0bd196996326e6278b6dc308371c
 
-meta::resource('header-refs', '\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}');
-meta::resource('header-resource', '\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__1bc1eb4765a96eefb7fb924951ac4c7c');
+meta::resource('header-refs', '\\newcommand{\\Ref}[2]{\\hyperref[#2]{#1 \\ref*{#2}}}');
+meta::resource('header-resource', '\\lstnewenvironment{resourcecode}{}{}');
+meta::section('building-functions', <<'__c820b7422827ac7b0ed5a9e221d6a6b4');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1479,45 +1476,45 @@ meta::section('building-functions', <<'__1bc1eb4765a96eefb7fb924951ac4c7c');
       parameters, where {\tt arguments[0]} is at the top and {\tt arguments[arguments.length - 1]} is at the bottom. Digits are interpreted from left-to-right; so, for example, the number {\tt
       0xab} is interpreted as the command {\tt a} followed by the command {\tt b}. The following commands are understood (along with mnemonics in the footnotes):
 
-      - description << end
-        - item {\tt 5}
+      - enumerate << end
+        - item[] {\tt 5}
           Swap the top two stack entries.\footnote{``5'' looks kind of like ``S'', which stands for Swap.}
 
-        - item {\tt 6}
+        - item[] {\tt 6}
           Drop the top stack entry.\footnote{``6'' is a backwards ``d'', which stands for Drop.}
 
-        - item {\tt 7}
+        - item[] {\tt 7}
           If the next digit is a 0, 1, 2, 3, or 4, then push that digit as a number onto the stack. Otherwise, push the stack depth onto the stack and process the next digit
           normally. As a special case, the command ``77'' deletes all but the top stack entry.\footnote{``7'', when rotated $180^\circ$, looks like the letter ``L'', which stands for Literal
           or Length.}
 
-        - item {\tt 8}
+        - item[] {\tt 8}
           Duplicate the top stack entry.\footnote{``8'' looks like two ``0''s.}
 
-        - item {\tt 9}
+        - item[] {\tt 9}
           Drop the second entry.\footnote{``9'' is ``6'' upside-down, and {\tt 6} drops the top entry.}
 
-        - item {\tt a}
+        - item[] {\tt a}
           Add the two arguments on the top of the stack, and push the result. This also works on strings. If the top of the stack is an array, then push a new array consisting of the stack top
           concatenated with the second stack element; that is, {\tt stack[0].concat([stack[1]])}.\footnote{``a'' stands for Add or Append.}
 
-        - item {\tt b}
+        - item[] {\tt b}
           Subtract {\tt stack[1]} from {\tt stack[0]}, pop both, and push the result. If either argument is non-numeric, then this operator applies {\tt ||} to the top two stack entries
           instead; that is, {\tt stack[0] || stack[1]}.\footnote{``b'' stands for suBtract.}
 
-        - item {\tt c}
+        - item[] {\tt c}
           Pop twice, multiply, and push. If either argument is non-numeric, then this operator applies \verb|&&| to the top two stack entries instead; that is,
           \verb|stack[0] && stack[1]|.\footnote{``c'' stands for Combine, which in regular algebra is generally multiply, and multiplication translates to {\tt and} in Boolean algebra.}
 
-        - item {\tt d}
+        - item[] {\tt d}
           Pop twice, divide, and push. Operands are ordered the same way as they are for subtraction. If either argument is non-numeric, then this operator dereferences the stack top by the
           stack second instead of performing division; that is, {\tt stack[0][stack[1]]}. If the stack top is undefined or null, then the second argument is dropped silently instead of being
           used for dereferencing.\footnote{``d'' stands for Divide or Dereference.}
 
-        - item {\tt e}
+        - item[] {\tt e}
           Negate the top stack entry if it's a number. If it's not a number, then apply logical negation.\footnote{``e'' stands for nEgate.}
 
-        - item {\tt f}
+        - item[] {\tt f}
           Invoke the top stack entry on the next one, and return the result. If the top of the stack isn't a function, then the current {\tt d()} (that is, the one being used to convert this
           number to a function in the first place) is used to convert the stack top to a function first.\footnote{``f'' stands for Function, obviously.}
       - end
@@ -1697,95 +1694,117 @@ meta::section('building-functions', <<'__1bc1eb4765a96eefb7fb924951ac4c7c');
       Using a string allows the entry of additional commands, described in the following sections:
 
       - s3 Control-flow commands | sec:building-functions-string-terse-control-flow
-        - description << end
-          - item {\tt g}, {\tt G}
+        - enumerate << end
+          - item[] {\tt g}, {\tt G}
             Goto a label. The next character is the label name. Used with {\tt l}. For example, the string {\tt 'xlaga'} produces an infinite-loop function. The alias {\tt G} always refers to
             the \verb|_| label; for example, the string {\tt 'xLG'} is a quicker way to write an infinite-loop function.
 
-          - item {\tt l}, {\tt L}
+          - item[] {\tt l}, {\tt L}
             Creates a named label. The syntax is {\tt lx}, where {\tt x} is some non-whitespace character. Labels can be gone to using {\tt g} or conditional branching. Label definitions are
-            mutable (though I do not advise using them this way), so you can redefine them within a function as the function is running. The alias {\tt L} always refers to the \verb|_| label.
+            mutable (though I do not advise using them this way), so you can redefine them within a function as the function is running. The alias {\tt L} refers to an autogenerated label ID.
+            The first one is \verb|_|, and subsequent ones are the digits 0 to 9, the lowercase letters, and then the uppercase letters.\footnote{Seriously, I hope this sentence is never that
+            useful. I mean, who's going to use anything like 63 labels in a one-liner anyway?}
 
-          - item {\tt t}, {\tt T}
+          - item[] {\tt t}, {\tt T}
             Jumps to a label if the stack top is truthy. (Doesn't modify the stack.) Its complement, {\tt T}, jumps to a label if the stack top is falsy. For example, the function \verb|Tnrlnn|
             returns its first argument if it's truthy and returns {\tt null} otherwise.\footnote{A shorter and more readable version of this function is {\tt n5b}.}
 
-          - item {\tt r}, {\tt R}
+          - item[] {\tt r}, {\tt R}
             Returns immediately. The return value is whatever is on the top of the stack. The idiom {\tt ur} can be used to return nothing (analogous to \verb|return;|). The {\tt R} variant
             throws the stack top instead of returning it.
         - end
 
       - s3 Array commands | sec:building-functions-string-terse-array
-        - description << end
-          - item {\tt Pn}
+        - enumerate << end
+          - item[] {\tt Pn}
             Here {\tt n} is a single digit. This command pops {\tt n} items off of the stack and into an array, where the array's first element is the previous stack top. The array is then
             pushed onto the stack.
 
-          - item {\tt p}
+          - item[] {\tt p}
             Pops a number $n$ off of the top of the stack, and then pops $n$ more items off of the stack and pushes them onto an empty array. The array is then pushed. Analogous to {\tt P},
             but the number is determined at runtime.
 
-          - item {\tt U}
+          - item[] {\tt U}
             Unpacks the array on the top of the stack into stack entries. The first element in the array becomes the top of the stack.
 
-          - item {\tt i}
+          - item[] {\tt i}
             A zero-based generalized iota, similar to the iota in APL. Replaces the stack top $n$ with an array of consecutive integers from 0 to $n-1$. Distributes across arrays and object
             values. If the top is a string, then it is replaced with an array of right-handed substrings (e.g.~{\tt 'foo'} has right-handed substrings {\tt 'foo'}, {\tt 'oo'}, and {\tt 'o'}).
             Booleans, regular expressions, {\tt null}, and {\tt undefined} are wrapped in single-element arrays.
 
-          - item {\tt \#}
+          - item[] {\tt \#}
             Pushes the size of the stack top onto the stack. The size of arrays and strings is obtained from the {\tt length} property, and the size of an object is the number of keys for
             which {\tt hasOwnProperty} is true. Numbers, booleans, regular expressions, {\tt null}, and {\tt undefined} have size 0.
         - end
 
+      - s3 Typeclass commands | sec:building-functions-string-terse-typeclass
+        The commands \verb|*|, \verb|+|, \verb|/|, \verb|%|, and \verb|^| are reserved for typeclasses that provide operator overloading.\footnote{See \Ref{chapter}{sec:typeclasses} for more
+        information about typeclasses.} When you define a typeclass, you can define shorthands for various operations; these are alternative names that can be used in an overloaded-operator
+        context.\footnote{Previously this was handled by a Divergence module called Rebase. Now operator overloading functionality is built into {\tt d}.}
+
       - s3 Value commands | sec:building-functions-string-terse-values
-        - description << end
-          - item {\tt @}
+        - enumerate << end
+          - item[] {\tt @}
             Pushes {\tt this} onto the stack.
 
-          - item {\tt n}
+          - item[] {\tt n}
             Pushes {\tt null} onto the stack.
 
-          - item {\tt u}
+          - item[] {\tt u}
             Pushes {\tt undefined} onto the stack.
         - end
 
       - s3 Quotation | sec:building-functions-string-terse-quotation
-        - description << end
-          - item {\tt [n}, {\tt ]}
-            Quotes a closure. Closures work by being preloaded with the first $n$ things from the enclosing stack. So, for example, the function {\tt '|x| (|y| x + y)'} can be written instead
-            as {\tt 'x[1a]'}.
+        - enumerate << end
+          - item[] {\tt [n}, {\tt ]}
+            Quotes a closure and pushes it onto the stack. Closures work by being preloaded with the first $n$ things from the enclosing stack. So, for example, the function {\tt '|x| (|y| x +
+            y)'} can be written as {\tt 'x[1a]'}.
         - end
 
       - s3 Combinatory logic | sec:building-functions-string-terse-combinatory
-        - description << end
-          - item {\tt k}
+        - enumerate << end
+          - item[] {\tt K}
             Replace the stack top with a constant function returning the stack top. That is, $x \Rightarrow (\lambda y.x)$.
+
+          - item[] {\tt I}
+            Push the identity function onto the stack.
+        - end
+
+      - s3 Invocation | sec:building-functions-string-terse-invocation
+        - enumerate << end
+          - item[] {\tt v}
+            {\tt stack[0].apply(null, stack[1])}. Pops both entries and pushes the result. The {\tt v} stands for ``variadic invocation''.
+
+          - item[] {\tt A}
+            {\tt stack[0].apply(stack[1], stack[2])}. Pops all three entries and pushes the result.
+
+          - item[] {\tt B}
+            Binds the stack top (as a function; if it is not a function, then it is run through {\tt d} first) to the next entry, pops both, and pushes the result. For example, {\tt
+            'x72[0@]Bn5f'} returns 2. The inner function, \verb|[0@]|, is bound by the {\tt B} to the next entry down (the literal 2 pushed by {\tt 72}). Then we push {\tt null}, swap the
+            function and the value, and invoke the function. It returns {\tt this}, which is 2.
         - end
 
       - s3 Unbound | sec:building-functions-string-terse-unbound
-        - description << end
-          - item {\tt j}
-          - item {\tt h}
+        - enumerate << end
+          - item[] {\tt k}
+          - item[] {\tt j}
+          - item[] {\tt h}
 
-          - item {\tt m}
+          - item[] {\tt m}
 
-          - item {\tt o}
+          - item[] {\tt o}
 
-          - item {\tt q}
+          - item[] {\tt q}
 
-          - item {\tt s}
+          - item[] {\tt s}
 
-          - item {\tt v}
-          - item {\tt w}
-          - item {\tt x}
-          - item {\tt y}
-          - item {\tt z}
+          - item[] {\tt w}
+          - item[] {\tt x}
+          - item[] {\tt y}
+          - item[] {\tt z}
 
-          - item {\tt A}
-          - item {\tt B}
-          - item {\tt C}
-          - item {\tt D}
+          - item[] {\tt C}
+          - item[] {\tt D}
         - end
 
   - s1 Regular Expressions | sec:building-functions-regular-expressions
@@ -1837,7 +1856,7 @@ meta::section('building-functions', <<'__1bc1eb4765a96eefb7fb924951ac4c7c');
       d({two: 0x8ab, four: 0x74cb})(6, 7) // => {two: 5, four: 17}
       d({foo: '||@'}).call(5)             // => 5
     - end
-__1bc1eb4765a96eefb7fb924951ac4c7c
+__c820b7422827ac7b0ed5a9e221d6a6b4
 
 meta::section('builtin-transforms', <<'__4233f7a745c52b321c26c52de7d7d83f');
 - sc Built-in Transforms | sec:builtin-transforms
@@ -2055,7 +2074,7 @@ meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
     Roles can't be ``un-used'', so generally the best approach is to add a role to a copy of your divergence function.
 __526d70f504043bd799844f03774c68eb
 
-meta::section('introduction', <<'__2eecbd49eb86262dd4225449890020ab');
+meta::section('introduction', <<'__d00ba9397d998926b90168ffe22f310a');
 - sc Introduction | sec:introduction
   The original Divergence\footnote{\url{http://github.com/spencertipping/divergence}} has some shortcomings. For one thing, it puts a bunch of methods into the global prototype namespace
   (probably its biggest problem). This used to break jQuery, and now breaks jQuery UI's tab and accordion components.\footnote{Not that is has to in theory; someone made the assumption that
@@ -2064,9 +2083,70 @@ meta::section('introduction', <<'__2eecbd49eb86262dd4225449890020ab');
 
   This rewrite of Divergence solves both problems. The only object placed into the global namespace is called {\tt divergence}, and all customization is done to it or a copy of it. Macro
   definitions are scoped to a particular instance of Divergence; they are not global by default.
-__2eecbd49eb86262dd4225449890020ab
 
-meta::section('main', <<'__cd884c51ab63fee0b30a19e06a3d58a3');
+  - s1 Conventions | sec:introduction-conventions
+    I'll often make reference to ``the {\tt d} function''. When I say this, I'm referring to either the global {\tt divergence} function or a customized clone of it. (The important thing is
+    that it is one of a class of functions that ultimately come from {\tt divergence}; see \Ref{section}{sec:instances} if customization and cloning are unfamiliar.)
+
+  - s1 Disclaimer | sec:introduction-disclaimer
+    Divergence is dangerous for developers in a couple of ways. First, it might not work; I'm designing this library as an academic as much as a developer, so there will be times when I make
+    impractical choices for the sake of some form of purity. Second, it gives developers many ways to do things, and few of them are at all readable. For example:
+
+    - verbatim << end
+      d(0x71a)          // Adds one to the first argument
+      d(0x8ee5b)        // Returns first arg if truthy, false otherwise
+      d(0x8c8c)         // Returns first arg to the fourth power
+      d('xn5b')         // Returns first arg if truthy, null otherwise
+      d('x[1]')         // K function
+      d('x')            // Identity
+      d(0)              // Identity
+      d('x#p')          // Returns arguments[] as an array
+      d('x68t_R')       // Returns second argument if truthy, throws it otherwise
+    - end
+
+    To be fair, each of these functions can be written more readably (in the same order as above):
+
+    - verbatim << end
+      d('|x| x + 1')
+      d('|x| x || !!x')
+      d('|x| x*x*x*x')
+      d('|x| x || null')
+      d('|x| (|y| x)')
+      d('|x| x')
+      d('|| arguments[0]')
+      d('|| Array.prototype.slice.call (arguments)')
+      function (x, y) {
+        if (y) return y;
+        else   throw y;
+      }
+    - end
+
+    Divergence isn't there to make code readable in the small, however. Its purpose is to make easy things really easy, and to make some hard things easier. It does this by helping you
+    condense your code semantically; things that are unrelated to your core logic can be packed into very few characters and peripherally mentioned, while core logic can occupy most of the
+    code space. For example:
+
+    - verbatim << end
+      var variable = function (name) {
+        this.name  = name;
+        this.value = undefined;
+      };
+      variable.prototype.assign = function (v) {
+        this.value = v;
+        return this;
+      };
+    - end
+
+    Using Divergence you could write this instead:
+
+    - verbatim << end
+      var variable = d('|name| @name = name, @value = undefined');
+      variable.prototype.assign = d('|value| @value = value, @');
+    - end
+
+    Notice that the mundane code takes up less space, and the definitions relatively more. That's what Divergence was built to do.
+__d00ba9397d998926b90168ffe22f310a
+
+meta::section('main', <<'__73fea24ef317f657479473f9542878ea');
 - documentclass report
 - include resource::header
 
@@ -2082,11 +2162,12 @@ meta::section('main', <<'__cd884c51ab63fee0b30a19e06a3d58a3');
   - include section::building-functions
   - include section::transforming-functions
   - include section::builtin-transforms
+  - include section::typeclasses
   - include section::instances
 
   - sp Extending Divergence
 - end
-__cd884c51ab63fee0b30a19e06a3d58a3
+__73fea24ef317f657479473f9542878ea
 
 meta::section('transforming-functions', <<'__9f88ee1fe2236dd300295b17f3d02ce1');
 - sc Transforming Functions | sec:transforming-functions
@@ -2191,7 +2272,31 @@ meta::section('transforming-functions', <<'__9f88ee1fe2236dd300295b17f3d02ce1');
     - end
 __9f88ee1fe2236dd300295b17f3d02ce1
 
-meta::template('comment', "'';     # A mechanism for line or block comments.");
+meta::section('typeclasses', <<'__fc48c03c1a822ce15ebcc82504976340');
+- sc Typeclasses | sec:typeclasses
+  Adding functionality to default constructs such as arrays and objects is difficult, especially in a dynamically-typed language with poor global containment. Divergence doesn't have a great
+  solution to this, but it avoids global namespace pollution. The idea is that you define typeclasses in Haskell style, and then promote types into those typeclasses later on. When you want to
+  use functionality provided by a typeclass, you do so by lifting a function into an operator over instances of that typeclass. In other words, rather than focusing on the values you instead
+  focus on the functions that manipulate those values.
+
+  Here's a simple example of the difference:
+
+  - javascript examples/array-map-traditional.js << end
+    var mapped = my_array.map (d('|x| x + 1'));
+  - end
+
+  The reason this example works is that JavaScript does dynamic dispatch on the {\tt map} method based on the prototype of \verb|my_array|. However, since {\tt Array} is global, we can't
+  modify it.
+
+  - javascript examples/array-map-typeclass.js << end
+    var mapped = d('|x| x + 1', 'map')(my_array);
+  - end
+
+  Here, Divergence has to decide how to lift the function. It's a runtime-dispatch decision just as it was before, but this time the type-selection logic happens in library-space. This lets
+  Divergence compile a custom version of the function for that data structure (if the \verb|specialize_typeclass_functions| and \verb|inline_typeclass_members| compiler options are set).
+__fc48c03c1a822ce15ebcc82504976340
+
+meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
 my $result = eval $_[0];
 terminal::message('warning', "Error during template evaluation: $@") if $@;
@@ -2211,6 +2316,7 @@ return '' if template::failing_conditional($commands);
 join "\n", map retrieve($_), split /\s+/, $commands;
 __e0624844a65ae41e0217dd871fc0dbfb
 
+meta::template('item[]', '"\\\\item[$_[0]]";');
 meta::vim_highlighter('cltex', <<'__5bfc80e1a2ad3bb7cb4f57ff906d71b0');
 " Cleaner TeX
 " Maintainer: Spencer Tipping <spencer@spencertipping.com>
