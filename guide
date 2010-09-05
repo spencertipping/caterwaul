@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.slNG/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.BStW/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1204,6 +1204,7 @@ __6999988eaf441c9b1282e03e1db427b5
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('watch', 'blue');
+meta::note('orthogonality', 'Right now, the stack language isn\'t at all orthogonal. It\'s hard to remember and needs to be cleaned up before it\'s very useful.');
 meta::parent('/home/spencertipping/bin/literate-project', <<'__db24da081d7ec99943b65e5c7bcf0979');
 function::clean
 function::compile
@@ -1463,7 +1464,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\\newcommand{\\Ref}[2]{\\hyperref[#2]{#1 \\ref*{#2}}}');
 meta::resource('header-resource', '\\lstnewenvironment{resourcecode}{}{}');
-meta::section('building-functions', <<'__c820b7422827ac7b0ed5a9e221d6a6b4');
+meta::section('building-functions', <<'__423ef2acb211939a073c075fc1f7e6b5');
 - sc Building Functions | sec:building-functions
   Just like the original Divergence, this version is all about building functions. Also just like the old version, it specifies conversions to promote any built-in data type into a function,
   and lets you use your own data types if they provide {\tt .fn()} methods.
@@ -1752,6 +1753,15 @@ meta::section('building-functions', <<'__c820b7422827ac7b0ed5a9e221d6a6b4');
 
           - item[] {\tt u}
             Pushes {\tt undefined} onto the stack.
+
+          - item[] {\tt z}
+            Pushes an empty array onto the stack. Equivalent to {\tt 70i}, but faster. For example, \verb|'xz5LV85a5t_'| takes an integer $n$ and returns an array $[n, n-1, n-2, \cdots, 1]$.
+
+          - item[] {\tt Z}
+            Pushes an empty object onto the stack.
+
+          - item[] {\tt V}
+            Decrement the item on the top of the stack. Works only for numbers.
         - end
 
       - s3 Quotation | sec:building-functions-string-terse-quotation
@@ -1801,7 +1811,6 @@ meta::section('building-functions', <<'__c820b7422827ac7b0ed5a9e221d6a6b4');
           - item[] {\tt w}
           - item[] {\tt x}
           - item[] {\tt y}
-          - item[] {\tt z}
 
           - item[] {\tt C}
           - item[] {\tt D}
@@ -1856,7 +1865,7 @@ meta::section('building-functions', <<'__c820b7422827ac7b0ed5a9e221d6a6b4');
       d({two: 0x8ab, four: 0x74cb})(6, 7) // => {two: 5, four: 17}
       d({foo: '||@'}).call(5)             // => 5
     - end
-__c820b7422827ac7b0ed5a9e221d6a6b4
+__423ef2acb211939a073c075fc1f7e6b5
 
 meta::section('builtin-transforms', <<'__4233f7a745c52b321c26c52de7d7d83f');
 - sc Built-in Transforms | sec:builtin-transforms
@@ -2272,7 +2281,7 @@ meta::section('transforming-functions', <<'__9f88ee1fe2236dd300295b17f3d02ce1');
     - end
 __9f88ee1fe2236dd300295b17f3d02ce1
 
-meta::section('typeclasses', <<'__fc48c03c1a822ce15ebcc82504976340');
+meta::section('typeclasses', <<'__968c7c95a542d4b382c01bc184674a4b');
 - sc Typeclasses | sec:typeclasses
   Adding functionality to default constructs such as arrays and objects is difficult, especially in a dynamically-typed language with poor global containment. Divergence doesn't have a great
   solution to this, but it avoids global namespace pollution. The idea is that you define typeclasses in Haskell style, and then promote types into those typeclasses later on. When you want to
@@ -2289,12 +2298,35 @@ meta::section('typeclasses', <<'__fc48c03c1a822ce15ebcc82504976340');
   modify it.
 
   - javascript examples/array-map-typeclass.js << end
-    var mapped = d('|x| x + 1', 'map')(my_array);
+    var mappable = d.typeclass(...);
+    var mapped   = d('|x| x + 1', mappable.map)(my_array);
   - end
 
   Here, Divergence has to decide how to lift the function. It's a runtime-dispatch decision just as it was before, but this time the type-selection logic happens in library-space. This lets
-  Divergence compile a custom version of the function for that data structure (if the \verb|specialize_typeclass_functions| and \verb|inline_typeclass_members| compiler options are set).
-__fc48c03c1a822ce15ebcc82504976340
+  Divergence compile a custom version of the function for that data structure (if the \verb|specialize_typeclass_functions| and \verb|inline_typeclass_members| compiler options are set). Note
+  that the type selection logic isn't blazingly fast; constructor functions are first hashed by their {\tt toString()} output, and then a referential comparison is done on the identity. So,
+  for example, if we want to lift a function using {\tt map}, and the {\tt mappable} typeclass contains {\tt Array} and {\tt Object}, then this is the process when that function is invoked:
+
+  - enumerate << end
+    - item Find the constructor of the first argument.
+    - item Invoke {\tt toString()} on the constructor to obtain its source code.
+    - item Look up that string in the {\tt mappable.instances} hashtable. This returns an array of pairs.
+    - item Find the constructor in that array and retrieve the second element of the pair (the instance method table).
+    - item Invoke the element's {\tt map} method on the original function, and invoke that result on the first argument.
+    - item Repeat this process for each additional argument.
+  - end
+
+  If there are few instances or each instance has a short and unique constructor, then this won't be a slow operation. The problem arises when there are a bunch of instances with identical
+  constructor code, or code that is very long. In that case, using typeclasses will be computationally expensive.\footnote{And unfortunately there is no way to memoize the process, since
+  JavaScript references are opaque.}
+
+  - s1 Defining a typeclass
+    Divergence doesn't keep a registry of typeclasses. A typeclass is just another value, and you can modify it using standard method calls. For example, here is a typeclass definition:
+
+    - javascript examples/defining-the-mappable-typeclass.js << end
+      var mappable = d.typeclass({
+    - end
+__968c7c95a542d4b382c01bc184674a4b
 
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');

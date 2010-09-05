@@ -1,0 +1,1 @@
+var mappable = d.typeclass({
