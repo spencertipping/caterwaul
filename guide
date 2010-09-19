@@ -378,7 +378,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'guide');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/guide.BStW/document.pdf');
+meta::data('pdf-output-file', '/tmp/guide.mgdd/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -2083,7 +2083,7 @@ meta::section('instances', <<'__526d70f504043bd799844f03774c68eb');
     Roles can't be ``un-used'', so generally the best approach is to add a role to a copy of your divergence function.
 __526d70f504043bd799844f03774c68eb
 
-meta::section('introduction', <<'__d00ba9397d998926b90168ffe22f310a');
+meta::section('introduction', <<'__d7fd4de81501ea00ca41486ead15b9b8');
 - sc Introduction | sec:introduction
   The original Divergence\footnote{\url{http://github.com/spencertipping/divergence}} has some shortcomings. For one thing, it puts a bunch of methods into the global prototype namespace
   (probably its biggest problem). This used to break jQuery, and now breaks jQuery UI's tab and accordion components.\footnote{Not that is has to in theory; someone made the assumption that
@@ -2095,7 +2095,7 @@ meta::section('introduction', <<'__d00ba9397d998926b90168ffe22f310a');
 
   - s1 Conventions | sec:introduction-conventions
     I'll often make reference to ``the {\tt d} function''. When I say this, I'm referring to either the global {\tt divergence} function or a customized clone of it. (The important thing is
-    that it is one of a class of functions that ultimately come from {\tt divergence}; see \Ref{section}{sec:instances} if customization and cloning are unfamiliar.)
+    that it is one of a class of functions that ultimately come from {\tt divergence}; see \Ref{chapter}{sec:instances} if customization and cloning are unfamiliar.)
 
   - s1 Disclaimer | sec:introduction-disclaimer
     Divergence is dangerous for developers in a couple of ways. First, it might not work; I'm designing this library as an academic as much as a developer, so there will be times when I make
@@ -2153,7 +2153,7 @@ meta::section('introduction', <<'__d00ba9397d998926b90168ffe22f310a');
     - end
 
     Notice that the mundane code takes up less space, and the definitions relatively more. That's what Divergence was built to do.
-__d00ba9397d998926b90168ffe22f310a
+__d7fd4de81501ea00ca41486ead15b9b8
 
 meta::section('main', <<'__73fea24ef317f657479473f9542878ea');
 - documentclass report
