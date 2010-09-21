@@ -1,3 +1,0 @@
-#!/bin/bash
-./preprocess extern preprocess divergence.improved > divergence.improved.js.sdoc
-sdoc divergence.improved.js.sdoc
