@@ -37,6 +37,8 @@ divergence and restore the global that was there when Divergence was loaded.
             right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- l++ r++ l-- r-- ?'),
            prefix = hash('if function catch for switch with while do'),
 
+Old Rebase code that I'm keeping for reference. This will be gone in production:
+
 |                  unary: set(qw('u++ u-- ++ -- u+ u- u! u~ new typeof var case try finally throw return case else delete void import export ( [ { ?:')),
                syntactic: set(qw('case var if while for do switch return throw delete export import try catch finally void with else function new typeof in instanceof')),
                statement: set(qw('case var if while for do switch return throw delete export import try catch finally void with else')),
