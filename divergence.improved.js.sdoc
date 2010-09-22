@@ -31,7 +31,7 @@ divergence and restore the global that was there when Divergence was loaded.
                                                                                   q_remove = fn('this.left.right = this.right, this.right.left = this.left, this'),
                                                                                   q_create = fn('this.left = $0, this.right = $1, this'),
 
-     reduce_order = map(hash, ['[] . ()', 'new', 'l++ r++ l-- r-- typeof ~ ! u+ u-', '* / %' '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||', '?',
+     reduce_order = map(hash, ['[] . ()', 'new', 'l++ r++ l-- r-- typeof ~ ! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||', '?',
                                '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
 
             right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- l++ r++ l-- r-- ?'),
@@ -92,7 +92,7 @@ whole is O(n). (Though perhaps with a large constant.)
                     while (lex_space[c = cs[i]] && i < l) ++i;
                     esc = exp = false;
        if                                              (lex_bracket[c])                                                                           re = lex_opener[c],            t = ! ++i;
-  else if       (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while                 (cs[++i] !== lex_slash || cs[i - 1] !== lex_star);                                t = ! ++i};
+  else if       (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while                 (cs[++i] !== lex_slash || cs[i - 1] !== lex_star);                                t = ! ++i}
   else if                  (c === lex_slash && cs[i + 1] === lex_slash) {while                                              (! lex_eol[cs[++i]]);                                t = false}
   else if               (c === lex_slash && re && ! (re = ! (t = '/'))) {while                              ((c = cs[++i]) !== lex_slash || esc)  esc = ! esc && c === lex_back;
                                                                          while                                      (lex_regexp_suffix[cs[++i]]);                                t = true}
@@ -102,7 +102,7 @@ whole is O(n). (Though perhaps with a large constant.)
   else                                                                  {while                                          (lex_ident[c = cs[++i]]); re = has(precedence, t = true)}
                     t !== false && ts.push(t === true ? s.substring(mark, i) : t);
                   }
-                  return ts},
+                  return ts};
 
 Parsing.
 (in a bit)
