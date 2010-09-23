@@ -63,3 +63,8 @@ q('x++ /foo/g', 'x ++ / foo / g');
 q('x+++ /foo/g', 'x ++ + /foo/g');
 q('++x /foo/g', 'u++ x / foo / g');
 q('++x+ /foo/g', 'u++ x + /foo/g');
+
+q('x-- /foo/g', 'x -- / foo / g');
+q('x--+ /foo/g', 'x -- + /foo/g');
+q('--x /foo/g', 'u-- x / foo / g');
+q('--x+ /foo/g', 'u-- x + /foo/g');
