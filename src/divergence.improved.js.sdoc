@@ -13,7 +13,8 @@ By default, the only thing Divergence does is provide a quotation operator. For 
 
 This function returns a syntax tree representing the expression 'x + 1'. The standard library provides additional constructs to enable macros and easy macro definitions.
 
-(function () {
+this.preprocess || (this.preprocess = function (x) {return x});
+preprocess (function () {
 
 Global management.
 Divergence creates a global symbol, divergence. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call divergence.deglobalize() to return
@@ -25,7 +26,7 @@ divergence and restore the global that was there when Divergence was loaded.
               own = Object.prototype.hasOwnProperty,                                   has = fn('own.call($0, $1)'),
 
               map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
-             hash = function (f) {return (function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o})},
+             hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
 
                                                                                   q_insert = fn('(this.left = $0).right = this, (this.right = $1).left = this'),
                                                                                   q_remove = fn('this.left.right = this.right, this.right.left = this.left, this'),
@@ -73,9 +74,9 @@ whole is O(n). (Though perhaps with a large constant.)
   character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency, only
   the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance.
 
-          lex_table = function (s) {for (var i = 0, xs = []; i < 256; ++i) xs.push(false); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
-             lex_op = hash('. new ++ -- typeof ~ ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : ,'),
-            lex_exp = lex_table('eE+-'),                    lex_digit = lex_table('0123456789.'),  lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
+          lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs = xs.concat(xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
+             lex_op = hash('. new ++ -- u+ u- typeof u~ u! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : ,'),
+            lex_exp = lex_table('eE'),                      lex_digit = lex_table('0123456789.'),  lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
           lex_space = lex_table(' \n\r\t'),               lex_bracket = lex_table('()[]{}'),      lex_opener = lex_table('([{'),          lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
             lex_eol = lex_table('\n\r'),            lex_regexp_suffix = lex_table('gims'),         lex_quote = lex_table('\'"'),          lex_slash = '/'.charCodeAt(0),
            lex_star = '*'.charCodeAt(0),                     lex_back = '\\'.charCodeAt(0),
@@ -90,18 +91,18 @@ whole is O(n). (Though perhaps with a large constant.)
                 lex = divergence.lex = function (s) {
                   var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, exp = false, close = 0, t = '', ts = [];
                   for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
-                  while (i < l) {
-                    while (lex_space[c = cs[i]] && i < l) ++i;
+                  while ((mark = i) < l) {
+                    while (lex_space[c = cs[i]] && i < l) mark = ++i;
                     esc = exp = false;
-       if                                              (lex_bracket[c])                                                                           re = lex_opener[c],            t = ! ++i;
-  else if       (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while                 (cs[++i] !== lex_slash || cs[i - 1] !== lex_star);                                t = ! ++i}
-  else if                  (c === lex_slash && cs[i + 1] === lex_slash) {while                                              (! lex_eol[cs[++i]]);                                t = false}
-  else if               (c === lex_slash && re && ! (re = ! (t = '/'))) {while                              ((c = cs[++i]) !== lex_slash || esc)  esc = ! esc && c === lex_back;
-                                                                         while                                      (lex_regexp_suffix[cs[++i]]);                                t = true}
-  else if (lex_quote[c] && (close = c) && ! (re = ! (t = s.charAt(i)))) {while                                  ((c = cs[++i]) !== close || esc)  esc = ! esc && c === lex_back; t = true}
-  else if          (lex_punct[c] && (t = re ? 'u' : '') && (re = true))  while                      (lex_punct[c = cs[i]] && has(lex_op, t + c))  t += c, ++i;
-  else if                              (lex_digit[c] && ! (re = false)) {while (lex_digit[c = cs[++i]] && ! (exp && (exp |= lex_exp[c] && ++i))); t = true}
-  else                                                                  {while                                          (lex_ident[c = cs[++i]]); re = has(precedence, t = true)}
+     if                                              (lex_bracket[c])                                                                                    re = lex_opener[c],            t = ! ++i;
+else if       (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while                 (++i < l && cs[i] !== lex_slash || cs[i - 1] !== lex_star);                                t = ! ++i}
+else if                  (c === lex_slash && cs[i + 1] === lex_slash) {while                                              (++i < l && ! lex_eol[cs[i]]);                                t = false}
+else if               (c === lex_slash && re && ! (re = ! (t = '/'))) {while                              (++i < l && (c = cs[i]) !== lex_slash || esc)  esc = ! esc && c === lex_back;
+                                                                       while                                       (++i < l && ex_regexp_suffix[cs[i]]);                                t = true}
+else if (lex_quote[c] && (close = c) && ! (re = ! (t = s.charAt(i)))) {while                                  (++i < l && (c = cs[i]) !== close || esc)  esc = ! esc && c === lex_back; t = !! ++i}
+else if              (lex_punct[c] && (t = re ? 'u' : '', re = true))  while                (i < l && lex_punct[cs[i]] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++);
+else if                              (lex_digit[c] && ! (re = false)) {while (++i < l && lex_digit[c = cs[i]] && ! (exp && (exp |= lex_exp[c] && ++i)));                                t = true}
+else                                                                  {while                                          (++i < l && lex_ident[c = cs[i]]); re = has(lex_op, t = s.substring(mark, i))}
                     t !== false && ts.push(t === true ? s.substring(mark, i) : t);
                   }
                   return ts};
@@ -109,5 +110,6 @@ whole is O(n). (Though perhaps with a large constant.)
 Parsing.
 (in a bit)
 
+this.divergence = divergence;
 
-  return divergence}) ();
+}) ();

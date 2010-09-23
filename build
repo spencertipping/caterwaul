@@ -1,9 +1,15 @@
 #!/bin/bash
-sdoc . test/
+sdoc src lib test
 rm -f .test-log
-for file in test/*.js; do
+
+if [[ $1 == --debug ]]; then
+  debug="lib/divergence.js lib/divergence.rebase.js lib/divergence.debug.js lib/debug.js"
+  shift
+fi
+
+for file in test/$1*.js; do
   echo $file
-  ${js:-d8} divergence.improved.js unit.js $file
+  ${js:-d8} $debug src/divergence.improved.js lib/unit.js $file
   if [[ $? -eq 0 ]]; then echo pass $file >> .test-log
   else                    echo fail $file >> .test-log
                           echo -e "\033[1;31mfail\033[0;0m: $file"; fi

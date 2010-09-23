@@ -1,0 +1,4 @@
+Debugging definitions
+
+d.tracer = print;
+var preprocess = d.debug.trace;

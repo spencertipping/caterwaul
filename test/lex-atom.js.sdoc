@@ -1,0 +1,14 @@
+Atom lexing unit tests
+
+var l = divergence.lex;
+
+Identifiers
+
+aeq(l('foo'), ['foo']);
+aeq(l('foo bar'), ['foo', 'bar']);
+aeq(l('foo bar bif'), ['foo', 'bar', 'bif']);
+
+Strings
+
+aeq(l('"foo"'), ['"foo"']);
+aeq(l('"foo bar"'), ['"foo bar"']);
