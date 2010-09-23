@@ -56,3 +56,10 @@ q('case /foo/g:', 'case /foo/g :');
 q('bar /foo/g', 'bar / foo / g');
 q('3.5 /foo/g', '3.5 / foo / g');
 q('false /foo/g', 'false / foo / g');
+
+Pre/post increment and decrement.
+
+q('x++ /foo/g', 'x ++ / foo / g');
+q('x+++ /foo/g', 'x ++ + /foo/g');
+q('++x /foo/g', 'u++ x / foo / g');
+q('++x+ /foo/g', 'u++ x + /foo/g');
