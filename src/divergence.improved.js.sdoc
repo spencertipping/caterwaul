@@ -109,7 +109,7 @@ whole is O(n). (Though perhaps with a large constant.)
   This includes bracket resetting (the top case, where an open-bracket of any sort triggers regexp mode) and comment removal. Both line and block comments are removed by comparing against
   lex_slash, which represents /, and lex_star, which represents *.
 
-         if                                        (lex_bracket[c])                                                                     t = !! ++i, re = lex_opener[c];
+         if                                        (lex_bracket[c])                                                                    {t = !! ++i; re = lex_opener[c]}
     else if (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while (++i < l && cs[i] !== lex_slash || cs[i - 1] !== lex_star);  t = !  ++i}
     else if            (c === lex_slash && cs[i + 1] === lex_slash) {while                              (++i < l && ! lex_eol[cs[i]]);  t = false}
 
