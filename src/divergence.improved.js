@@ -21,7 +21,7 @@ preprocess (function () {
 // divergence and restore the global that was there when Divergence was loaded.
 
   var _divergence = this.divergence,                                                    fn = function () {return eval('(function($0, $1, $2, $3, $4){return ' + arguments[0] + '})')},
-       divergence = fn('divergence.init.apply(this, arguments)'),                   gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}}) (0),
+                d = fn('d.init.apply(this, arguments)'),                            gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}}) (0),
                qw = fn('$0.split(/\\s+/)'),                                         intern = (function (st, n) {return function (x) {return st[x] || (st[x] = ++n)}}) ({}, 0),
               own = Object.prototype.hasOwnProperty,                                   has = fn('own.call($0, $1)'),
 
@@ -94,7 +94,7 @@ preprocess (function () {
 //   a number. close is used for parsing single and double quoted strings; it contains the character code of the closing quotation mark. t is the token to be appended to ts, which is the
 //   resulting token array. If t === false, then nothing is appended to the resulting array.
 
-                lex = divergence.lex = function (s) {
+                lex = d.lex = function (s) {
                   var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [];
                   for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
 
@@ -174,7 +174,7 @@ preprocess (function () {
 // Parsing.
 // (in a bit)
 
-this.divergence = divergence;
+  divergence = d;
 
 }) ();
 
