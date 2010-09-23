@@ -13,11 +13,11 @@ Strings
 
 s('"foo"');
 s('"foo bar"');
-t('"foo bar" "bif baz"', '"foo bar"', '"bif baz"');
+t('"foo bar", "bif baz"', '"foo bar"', ',', '"bif baz"');
 
 s('"foo"');
 s("'foo bar'");
-t('"foo bar" \'bif baz\'', '"foo bar"', "'bif baz'");
+t('"foo bar", \'bif baz\'', '"foo bar"', ',', "'bif baz'");
 
 Escaped strings
 

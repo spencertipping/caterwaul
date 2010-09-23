@@ -77,15 +77,15 @@ whole is O(n). (Though perhaps with a large constant.)
   The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
   cause a following / to indicate division.
 
-             lex_op = hash('. new ++ -- u+ u- typeof u~ u! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : ,' +
-                           'return case var const break continue'),
+             lex_op = hash('. new ++ -- u+ u- typeof u~ u! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
+                           'return throw case var const break continue'),
 
           lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs = xs.concat(xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
-            lex_exp = lex_table('eE'),                     lex_number = lex_table('.0123456789'),   lex_digit = lex_table('.0123456789abcdefABCDEF'),
-          lex_space = lex_table(' \n\r\t'),               lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),          lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
-            lex_eol = lex_table('\n\r'),            lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),         lex_slash = '/'.charCodeAt(0),
-           lex_star = '*'.charCodeAt(0),                     lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),
-          lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
+          lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'), lex_exp = lex_table('eE'),
+          lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                   lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
+            lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                  lex_slash = '/'.charCodeAt(0),
+           lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                    lex_dot = '.'.charCodeAt(0),
+           lex_zero = '0'.charCodeAt(0),             lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
 
   Variable names.
   s, obviously, is the string being lexed. mark indicates the position of the stream, while i is used for lookahead. The difference is later read into a token and pushed onto the result. c is
@@ -95,7 +95,7 @@ whole is O(n). (Though perhaps with a large constant.)
   resulting token array. If t === false, then nothing is appended to the resulting array.
 
                 lex = divergence.lex = function (s) {
-                  var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, exp = false, close = 0, t = '', ts = [];
+                  var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [];
                   for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
 
   Main lex loop.
@@ -103,13 +103,13 @@ whole is O(n). (Though perhaps with a large constant.)
 
                   while ((mark = i) < l) {
                     while (lex_space[c = cs[i]] && i < l) mark = ++i;
-                    esc = exp = false;
+                    esc = exp = dot = t = false;
 
   Miscellaneous lexing.
   This includes bracket resetting (the top case, where an open-bracket of any sort triggers regexp mode) and comment removal. Both line and block comments are removed by comparing against
   lex_slash, which represents /, and lex_star, which represents *.
 
-         if                                        (lex_bracket[c])                                                                     t = !! ++i, re = lex_opener[c];
+        if                                        (lex_bracket[c])                                                                     t = !! ++i, re = lex_opener[c];
     else if (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while (++i < l && cs[i] !== lex_slash || cs[i - 1] !== lex_star);  t = !  ++i}
     else if            (c === lex_slash && cs[i + 1] === lex_slash) {while                              (++i < l && ! lex_eol[cs[i]]);  t = false}
 
@@ -137,8 +137,14 @@ whole is O(n). (Though perhaps with a large constant.)
   whenever a number starts with zero and is followed by 'x' or a digit (for conciseness I call 'x' a digit), and the second case is triggered when '.' is followed by a digit, or when a digit
   starts.
 
-    else if                  (c === lex_zero && lex_digit[cs[i + 1]]) {while (++i < l && lex_digit[cs[i]]); t = true}
-    else if (c === lex_dot && lex_number[cs[i + 1]] || lex_number[c]) {
+  A trivial change, using regular expressions, would reduce this logic significantly. I chose to write it out longhand because (1) it's more fun that way, and (2) the regular expression
+  approach has theoretically quadratic time in the length of the numbers, whereas this approach keeps things linear. Whether or not that actually makes a difference I have no idea.
+
+    else if                (c === lex_zero && lex_integer[cs[i + 1]]) {while (++i < l && lex_integer[cs[i]]); re = ! (t = true)}
+
+    else if (c === lex_dot && lex_decimal[cs[i + 1]] || lex_float[c]) {while (++i < l && (lex_decimal[c = cs[i]] || (dot ^ (dot |= c === lex_dot)) ||
+                                                                                                                    (exp ^ (exp |= lex_exp[c] && ++i))));
+                                                                       while (i < l && lex_decimal[cs[i]]) ++i; re = ! (t = true)}
 
   Operator lexing.
   The 're' flag is reused here. Some operators have both unary and binary modes, and as a heuristic (which happens to be accurate) we can assume that anytime we expect a regular expression, a
@@ -146,10 +152,18 @@ whole is O(n). (Though perhaps with a large constant.)
   otherwise, it is postfix. For this reason I've listed both '++' and 'u++' (same for --) in the operator tables; the lexer is actually doing more than its job here by identifying the variants
   of these operators.
 
-else if                  (lex_number[c] && lex_number[cs[i + 1]] && ! (re = false))
-else if (lex_punct[c] && ! lex_number[cs[i + 1]] && (t = re ? 'u' : '', re = true))  while (i < l && lex_punct[cs[i]] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++);
-else if                                           (lex_number[c] && ! (re = false)) {while (++i < l && 
-else                                                                                {while                           (++i < l && lex_ident[c = cs[i]]); re = has(lex_op, t = s.substring(mark, i))}
+    else if (lex_punct[c] && (t = re ? 'u' : '', re = true))  while (i < l && lex_punct[cs[i]] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++);
+
+  Identifier lexing.
+  If nothing else matches, then the token is lexed as a regular identifier or JavaScript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is that
+  you could write 'x / 5', and it is obvious that the / means division. But if you wrote 'return / 5', the / would be a regexp delimiter because return is an operator, not a value. So at the
+  very end, in addition to assigning t, we also set the re flag if the word turns out to be an identifier.
+
+    else {while (++i < l && lex_ident[cs[i]]); re = has(lex_op, t = s.substring(mark, i))}
+
+  Token collection.
+  t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
+  avoid duplicated logic.)
 
                     t !== false && ts.push(t === true ? s.substring(mark, i) : t);
                   }
