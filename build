@@ -11,6 +11,8 @@ if [[ $1 == clean ]]; then
   exit
 fi
 
+[[ $1 == js ]] && exit
+
 rm -f .test-log
 for file in test/$1*.js; do
   echo $file
@@ -20,4 +22,4 @@ for file in test/$1*.js; do
                           echo -e "\033[1;31mfail\033[0;0m: $file"; fi
 done
 
-[[ $1 == js ]] || $0 clean
+$0 clean
