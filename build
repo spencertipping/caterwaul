@@ -2,9 +2,14 @@
 sdoc src lib test
 rm -f .test-log
 
-if [[ $1 == --debug ]]; then
+if [[ $1 == debug ]]; then
   debug="lib/divergence.js lib/divergence.rebase.js lib/divergence.debug.js lib/debug.js"
   shift
+fi
+
+if [[ $1 == clean ]]; then
+  rm -f test/*.js src/*.js
+  exit
 fi
 
 for file in test/$1*.js; do
