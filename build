@@ -1,6 +1,5 @@
 #!/bin/bash
 sdoc src lib test
-rm -f .test-log
 
 if [[ $1 == debug ]]; then
   debug="lib/divergence.js lib/divergence.rebase.js lib/divergence.debug.js lib/debug.js"
@@ -12,6 +11,7 @@ if [[ $1 == clean ]]; then
   exit
 fi
 
+rm -f .test-log
 for file in test/$1*.js; do
   echo $file
   ${js:-d8} $debug src/divergence.improved.js lib/unit.js $file
