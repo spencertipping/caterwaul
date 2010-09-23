@@ -20,17 +20,20 @@ Global management.
 Divergence creates a global symbol, divergence. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call divergence.deglobalize() to return
 divergence and restore the global that was there when Divergence was loaded.
 
-  var _divergence = this.divergence,                                                    fn = function () {return eval('(function($0, $1, $2, $3, $4){return ' + arguments[0] + '})')},
-                d = fn('d.init.apply(this, arguments)'),                            gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}}) (0),
-               qw = fn('$0.split(/\\s+/)'),                                         intern = (function (st, n) {return function (x) {return st[x] || (st[x] = ++n)}}) ({}, 0),
-              own = Object.prototype.hasOwnProperty,                                   has = fn('own.call($0, $1)'),
+The disgraceful hack in the fn() function is required because IE's eval() function doesn't return expressions. It is capable only of side-effecting, which we do by creating a temp variable to
+assign to and returning its modified value.
+
+  var _divergence = this.divergence,                                fn = function () {eval('var r = (function($0, $1, $2, $3, $4){return ' + arguments[0] + '})'); return r},
+                d = fn('d.init.apply(this, arguments)'),        gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}}) (0),
+               qw = fn('$0.split(/\\s+/)'),                     intern = (function (st, n) {return function (x) {return st[x] || (st[x] = ++n)}}) ({}, 0),
+              own = Object.prototype.hasOwnProperty,               has = fn('own.call($0, $1)'),
 
               map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
              hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
 
-                                                                                  q_insert = fn('(this.left = $0).right = this, (this.right = $1).left = this'),
-                                                                                  q_remove = fn('this.left.right = this.right, this.right.left = this.left, this'),
-                                                                                  q_create = fn('this.left = $0, this.right = $1, this'),
+                                                              q_insert = fn('(this.left = $0).right = this, (this.right = $1).left = this'),
+                                                              q_remove = fn('this.left.right = this.right, this.right.left = this.left, this'),
+                                                              q_create = fn('this.left = $0, this.right = $1, this'),
 
      reduce_order = map(hash, ['[] . ()', 'new', 'l++ r++ l-- r-- typeof ~ ! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||', '?',
                                '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
