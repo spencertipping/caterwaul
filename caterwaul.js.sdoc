@@ -211,6 +211,23 @@ much faster as well. Instead of guessing and backtracking as a recursive-descent
 example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
 we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
+    parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ?'),
+              parse_prefix = hash('if function catch for switch with while do'),
+        parse_reduce_order = map(hash, ['[] . ()', 'new', 'u++ u-- ++ -- typeof ~ ! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||',
+                                        '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
+       parse_inverse_order = (function (xs) {for (var o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(o, k) && (o[k] = i); return o}) (parse_reduce_order),
+
+                parse_link = extend (fn('this.l = this.r = null, this.data = $0, this.children = []'), {
+                              fold_l: fn('this.append(this.l.remove())'),   after: fn('($1 = $0.r = this.r) && ($1.l = $0), ($0.l = this).r = $0, $0.parent = this.parent, this'),
+                              fold_r: fn('this.append(this.r.remove())'),  before: fn('($1 = $0.l = this.l) && ($1.r = $0), ($0.r = this).l = $0, $0.parent = this.parent, this'),
+                           fold_both: fn('this.fold_l().fold_r()'),        append: fn('this.children.push($0), $0.parent = this'),
+                           append_to: fn('$0.append(this), this'),         remove: fn('($0 = this.l) && (this.l.r = this.r), this.r && (this.r.l = $0), this.l = this.r = this.parent = null, this'),
+                                                                    insert_before: fn('$0.before(this), this'),
+                                                                     insert_after: fn('$0.after(this), this')}),
+
+               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
+             parse_k_empty = fn('[]'),
+
   Syntax folding.
   The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
   tokens (including unary and binary operators) are indexed by associativity. The following pass runs through these indexes from high to low precedence and folds tokens into trees. By this
@@ -232,31 +249,22 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   operation. Also, commas inside these groups are flattened into a single variadic (possibly nullary) comma node so that you don't have to worry about the tree structure. This is the case for
   all left-associative operators; right-associative operators preserve their hierarchical folding.
 
-    parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ?'),
-              parse_prefix = hash('if function catch for switch with while do'),
-        parse_reduce_order = map(hash, ['[] . ()', 'new', 'u++ u-- ++ -- typeof ~ ! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||',
-                                        '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
-       parse_inverse_order = (function (xs) {for (var o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(o, k) && (o[k] = i); return o}) (parse_reduce_order),
-
-                parse_link = extend (fn('this.left = this.right = null, this.data = $0, this.children = []'), {
-                              fold_left: fn('this.append(this.left.remove())'),   after: fn('$0.right = this.right, ($0.left = this).right = $0, this'),
-                             fold_right: fn('this.append(this.right.remove())'), before: fn('$0.left = this.left, ($0.right = this).left = $0, this'),
-                              fold_both: fn('this.fold_left().fold_right()'),    append: fn('this.children.push($0), $0.parent = this'),
-                              append_to: fn('$0.append(this), this'),            remove: fn('($0 = this.left) && (this.left.right = this.right), this.right && (this.right.left = $0), this')}),
-
-               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
-             parse_k_empty = fn('[]'),
-
     parse = $c.parse = function (ts) {
-      var grouping_stack = [], gs_top = null, root = new parse_link(), head = root, indexes = map(parse_k_empty, parse_reduce_order);
+      var grouping_stack = [], gs_top = null, root = new parse_link('<root>'), head = root, indexes = map(parse_k_empty, parse_reduce_order);
 
-  First step.
+  First step: group and index.
   Group parens and other brackets, and index other operators. All operator indexing is done uniformly, left-to-right. This is also the stage where we go from an array to a linked list; after
   this all nodes will be children or siblings of root. Note that the indexing I mentioned above isn't strictly by operator. It's by reduction order, which is arguably more important. That's
   what the parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 1.)
 
-      for (var i = 0, l = ts.length, _; _ = ts[i], i < l; ++i)  has(parse_group, _) && grouping_stack.push(gs_top = parse_group[_]) && (head = new parse_link(_).append_to(head)) ||
-                                                                false;
+      for (var i = 0, l = ts.length, _; _ = ts[i], i < l; ++i)  has(parse_group, _)         ? (grouping_stack.push(gs_top = parse_group[_]), head = new parse_link(_).append_to(head)) :
+                                                                _ == gs_top                 ? (grouping_stack.pop(),                         head = head.parent()) :
+                                                                                              (head = new parse_link(_).insert_after(head),
+                                                                                               has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head));
+
+  Second step: fold operators.
+  Now we can go through the list of operators, folding each according to precedence and associativity.
+
     };
 
   this.caterwaul = this.$c = $c;
