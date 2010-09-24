@@ -178,8 +178,19 @@ expression-mode stuff like arithmetic operators. In Rebase I tried to model ever
 particular this was infeasible for keywords such as 'break', 'continue', 'return', and some others (any of these can be nullary or unary). It also involved creating a bizarre hack for 'case
 x:' inside a switch block. This hack made the expression passed in to 'case' unavailable, as it would be buried in a ':' node.
 
-Caterwaul fixes this by using a proper context-free grammar. I've optimized it by precomputing token tables and interning strings into numbers for constant-time comparisons (in case the JS
-runtime doesn't already provide similar performance).
+Caterwaul fixes these problems by using a proper context-free grammar. However, it's much looser than most grammars because it doesn't need to validate anything. Correspondingly, it can be
+much faster as well. Instead of guessing and backtracking as a recursive-descent parser would, it classifies many different branches into the same basic structure and fills in the blanks. One
+example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
+we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
+
+  Group folding.
+  The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
+  tokens (including unary and binary operators) are indexed by associativity. The following pass runs through these indexes from high to low precedence and folds tokens into trees. By this
+  point all of the parentheticals have been replaced by proper nodes (here I include ?: groups in parentheticals, since they behave the same way). Finally, high-level rules are applied to the
+  remaining keywords, which are bound last. This forms a complete parse tree.
+
+  Doing all of this efficiently requires a linked list rather than an array. This gets built during the initial paren grouping stage. Arrays are used for the indexes, which are left-to-right
+  and are later processed in the order indicated by the operator associativity. That is, left-associative operators are processed 0 .. n and right associative are processed n .. 0.
 
   this.caterwaul = $c;
 
