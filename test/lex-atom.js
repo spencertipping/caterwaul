@@ -1,6 +1,6 @@
 // Atom lexing unit tests
 
-var t = function (s) {return aeq(divergence.lex(s), Array.prototype.slice.call(arguments, 1))},
+var t = function (s) {return aeq(caterwaul.lex(s), Array.prototype.slice.call(arguments, 1))},
     s = function (s) {return t(s, s)};
 
 // Identifiers
