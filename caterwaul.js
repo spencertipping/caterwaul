@@ -22,8 +22,9 @@ preprocess (function () {
 
   var _caterwaul = this.caterwaul,                                          fn = function () {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + arguments[0])},
               $c = function () {return $c.init.apply(this, arguments)}, gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}}) (0),
-              qw = fn('$0.split(/\\s+/)'),                              intern = (function (st, n) {return function (x) {return st[x] || (st[x] = ++n)}}) ({}, 0),
+              qw = fn('$0.split(/\\s+/)'),                              intern = (function (n) {return function (x) {return symbols[x] || (symbols[x] = ++n)}}) (0),
              own = Object.prototype.hasOwnProperty,                        has = function (o, p) {return own.call(o, p)},
+         symbols = {},
 
              map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
             hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
@@ -172,7 +173,13 @@ preprocess (function () {
                   return ts};
 
 // Parsing.
-// (in a bit)
+// There are two distinct parts to parsing JavaScript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
+// expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
+// particular this was infeasible for keywords such as 'break', 'continue', 'return', and some others (any of these can be nullary or unary). It also involved creating a bizarre hack for 'case
+// x:' inside a switch block. This hack made the expression passed in to 'case' unavailable, as it would be buried in a ':' node.
+
+// Caterwaul fixes this by using a proper context-free grammar. I've optimized it by precomputing token tables and interning strings into numbers for constant-time comparisons (in case the JS
+// runtime doesn't already provide similar performance).
 
   this.caterwaul = $c;
 

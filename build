@@ -11,7 +11,13 @@ if [[ $1 == clean ]]; then
   exit
 fi
 
-[[ $1 == js ]] && exit
+if [[ $1 == loc ]]; then
+  echo "Total LOC/chars:   $(cat test/*.js caterwaul.js | wc -lm)"
+  echo "Comment LOC/chars: $(grep '//' < caterwaul.js | wc -lm)"
+  echo "Source LOC/chars:  $(grep -v '//' < caterwaul.js | grep -v '^$' | wc -lm)"
+  echo "Test SLOC/chars:   $(cat test/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
+  exit
+fi
 
 rm -f .test-log
 for file in test/$1*.js; do
@@ -21,5 +27,3 @@ for file in test/$1*.js; do
   else                    echo fail $file >> .test-log
                           echo -e "\033[1;31mfail\033[0;0m: $file"; fi
 done
-
-$0 clean
