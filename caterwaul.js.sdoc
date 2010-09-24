@@ -236,7 +236,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
               parse_prefix = hash('if function catch for switch with while do'),
         parse_reduce_order = map(hash, ['[] . ()', 'new', 'u++ u-- ++ -- typeof ~ ! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||',
                                         '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
-       parse_inverse_order = (function (xs) {for (var o = [], i = 0, l = xs.length; i < l; ++i) for (var j = 0; j < xs[i].length; ++j) o[xs[i][j]] = i; return o}) (parse_reduce_order),
+       parse_inverse_order = (function (xs) {for (var o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(o, k) && (o[k] = i); return o}) (parse_reduce_order),
 
                 parse_link = extend (fn('this.left = this.right = null, this.data = $0, this.children = []'), {
                               fold_left: fn('this.append(this.left.remove())'),   after: fn('$0.right = this.right, ($0.left = this).right = $0, this'),
