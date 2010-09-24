@@ -1,8 +1,8 @@
 Unit testing library functions
 
 var eq = function (x, y, message) {
-  if (x === y) return true;
-  else         throw new Error((message ? message + ': ' : '') + x + ' !== ' + y);
+  if (x == y) return true;
+  else        throw new Error((message ? message + ': ' : '') + x + ' !== ' + y);
 };
 
 var aeq = function (xs, ys, message) {

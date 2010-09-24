@@ -1,6 +1,10 @@
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+this.preprocess || (this.preprocess = function (x) {return x});
+preprocess (function () {
+
+Introduction.
 Caterwaul implements a very small Lisp in JavaScript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding
 those in a JS-compatible grammar. Also, JavaScript convention makes square-bracket calls such as qs[foo] relatively uncommon, so I'm using that as the macro syntax (though of course you can
 define macros with other forms as well).
@@ -11,17 +15,59 @@ By default, the only thing Caterwaul does is provide a quotation operator. For e
     return qs[x + 1];
   });
 
-This function returns a syntax tree representing the expression 'x + 1'. The standard library provides additional constructs to enable macros and easy macro definitions.
+This function returns a syntax tree representing the expression 'x + 1'. The standard library provides additional constructs to enable macros and easy macro definitions. For example, using the
+standard library:
 
-this.preprocess || (this.preprocess = function (x) {return x});
-preprocess (function () {
+| caterwaul(function () {
+    macro[qs[let (_ = _) in _], function (variable, value, expression) {
+      return qq[(function ($variable) {return $expression}).call(this, $value)];
+    }];
+  });
+
+Or, more concisely (since macro definitions can be used inside other macro definitions):
+
+| var f = caterwaul(function () {
+    macro[qs[let (_ = _) in _], fn[variable, value, expression][qq[(fn[$variable][$expression]).call(this, $value)]]];
+  });
+
+Unfortunately, since macros must be executed before code will be transformed using them, you must define macros separately, call the function that contains them, and then use them later on.
+(Also, this encourages good style by requiring macros to be separated from regular code. However, as a code-anarchist this isn't a feature as far as I'm concerned; rather, a necessary evil.)
+So, for example, we couldn't use the let macro in the function above within that function, but caterwauling another function after calling the first would make it available:
+
+| f()
+  caterwaul(function () {
+    let (x = 5) in console.log(x);      // Prints 5
+  })();
+
+Coding style.
+I like to code using syntactic minimalism, and since this project is a hobby instead of work I've run with that style completely. This has some advantages and some disadvantages. Advantages
+include (1) a very small gzipped/minified footprint (especially since these comments make up most of the file), (2) few lines of code, though they are very long, and (3) lots of semantic
+factoring that should make modification relatively simple. Disadvantages are (1) completely impenetrable logic (especially without the comments) and (2) possibly suboptimal performance in the
+small scale (depending on whether your JS interpreter is optimized for statements or expressions).
+
+There are a couple of things worth knowing about as you're reading through this code. One is that invariants are generally coded as such; for example, the 'own' property lookup is factored out
+of the 'has' function even though it would be trivial to write it inside. This is to indicate to JavaScript that Object.prototype.hasOwnProperty is relatively invariant, and that saves some
+lookups as the code is running. Another is that I use the (function (variable) {return expression})(value) form to emulate let-bindings. (Reading the code with this in mind will make it much
+more obvious what's going on.)
+
+Optimizations.
+I've done a lot to prevent anything above linear time in both the lexer and the parser; this includes some low-level optimizations such as string interning. The various implementations of
+substring() that I've tested have been either constant or linear time (constant-time is possible since JS strings are immutable). However, if you slice a string twice from two different
+places, the fact that the characters are equal says nothing about the time it takes to verify that, especially for a well-implemented constant-time substring() function. There are going to be
+a lot of comparisons made against each token, so instead of using primitive strings I'm using boxed strings. These have the advantage of a constant-time equality check using ===, and the
+normalization required for this is performed automatically in the lex() function. This means an extra O(n) or perhaps O(n log n) operations to normalize the input when it is parsed, but after
+that all token comparisons are constant-time. (Another advantage is that autoboxing is no longer required, which, depending on the runtime, may reduce memory allocation.)
+
+Also, the parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the JavaScript
+interpreter; syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only
+three linear-time passes over the token stream.
 
 Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 caterwaul and restore the global that was there when Caterwaul was loaded.
 
-  var _caterwaul = this.caterwaul,                                          fn = function () {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + arguments[0])},
-              $c = function () {return $c.init.apply(this, arguments)}, gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}}) (0),
+  var _caterwaul = this.caterwaul, _$c = this.$c,                           fn = function () {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + arguments[0])},
+              $c = function () {return $c.init.apply(this, arguments)}, gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),
               qw = fn('$0.split(/\\s+/)'),                                 own = Object.prototype.hasOwnProperty,
              has = function (o, p) {return own.call(o, p)},
 
@@ -70,8 +116,16 @@ whole is O(n). (Though perhaps with a large constant.)
   a number. close is used for parsing single and double quoted strings; it contains the character code of the closing quotation mark. t is the token to be appended to ts, which is the
   resulting token array. If t === false, then nothing is appended to the resulting array.
 
+  The interned and intern variables are used for string normalization. Substrings of a larger string require linear-time comparison if substring() is constant-time, which ultimately has the
+  potential to increase parser complexity to above-linear. Normalized strings are referential comparisons, which are always constant-time and are isomorphic to comparing two integers. An array
+  of these is returned by the lexer. Note that in general they will behave identically to regular strings, since === will reflect both structural and referential equality. (Just don't use ==,
+  which will fall back to the normal linear comparison operation.) The '@' sign is prepended to avoid collision with any system-defined methods of objects, such as toString(). You have to
+  establish a unique prefix before JavaScript objects become viable hash-tables, unfortunately.
+
     lex = $c.lex = function (s) {
-      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [];
+      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [],
+          interned = {}, intern = function (s) {return interned['@' + s] || (interned['@' + s] = new String(s))};
+
       for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
 
   Main lex loop.
@@ -118,8 +172,7 @@ whole is O(n). (Though perhaps with a large constant.)
 
     else if                (c === lex_zero && lex_integer[cs[i + 1]]) {while (++i < l && lex_integer[cs[i]]); re = ! (t = true)}
 
-    else if (c === lex_dot && lex_decimal[cs[i + 1]] || lex_float[c]) {while (++i < l && (lex_decimal[c = cs[i]] || (dot ^ (dot |= c === lex_dot)) ||
-                                                                                                                    (exp ^ (exp |= lex_exp[c] && ++i))));
+    else if (c === lex_dot && lex_decimal[cs[i + 1]] || lex_float[c]) {while (++i < l && (lex_decimal[c = cs[i]] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
                                                                        while (i < l && lex_decimal[cs[i]]) ++i; re = ! (t = true)}
 
   Operator lexing.
@@ -143,7 +196,7 @@ whole is O(n). (Though perhaps with a large constant.)
   t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
   avoid duplicated logic.)
 
-      t !== false && ts.push(t === true ? s.substring(mark, i) : t);
+      t !== false && ts.push(intern(t === true ? s.substring(mark, i) : t));
     }
     return ts},
 
@@ -174,22 +227,38 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   expressions such as 'a op1 b op2 c' ambiguous if op1 and op2 shared precedence but each wanted to bind first. (I mention this because at first I was worried about it, but now I realize it
   isn't an issue.)
 
+  Notationally (for easier processing later on), a distinction is made between invocation and grouping, and between dereferencing and array literals. Dereferencing and function invocation are
+  placed into their own operators, where the left-hand side is the thing being invoked or dereferenced and the right-hand side is the paren-group or bracket-group that is responsible for the
+  operation. Also, commas inside these groups are flattened into a single variadic (possibly nullary) comma node so that you don't have to worry about the tree structure. This is the case for
+  all left-associative operators; right-associative operators preserve their hierarchical folding.
+
     parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ?'),
               parse_prefix = hash('if function catch for switch with while do'),
         parse_reduce_order = map(hash, ['[] . ()', 'new', 'u++ u-- ++ -- typeof ~ ! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^', '|', '&&', '||',
                                         '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
+       parse_inverse_order = (function (xs) {for (var o = [], i = 0, l = xs.length; i < l; ++i) for (var j = 0; j < xs[i].length; ++j) o[xs[i][j]] = i; return o}) (parse_reduce_order),
 
-                parse_link = extend (fn('this.left = this.right = null, this.data = $0, this.children = $1 || []'), {
+                parse_link = extend (fn('this.left = this.right = null, this.data = $0, this.children = []'), {
                               fold_left: fn('this.append(this.left.remove())'),   after: fn('$0.right = this.right, ($0.left = this).right = $0, this'),
                              fold_right: fn('this.append(this.right.remove())'), before: fn('$0.left = this.left, ($0.right = this).left = $0, this'),
-                              fold_both: fn('this.fold_left().fold_right()'),    append: fn('this.children = this.children.concat(Array.prototype.slice.call(arguments)), this'),
-                                                                                 remove: fn('($0 = this.left) && (this.left.right = this.right), this.right && (this.right.left = $0), this')}),
-               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
+                              fold_both: fn('this.fold_left().fold_right()'),    append: fn('this.children.push($0), $0.parent = this'),
+                              append_to: fn('$0.append(this), this'),            remove: fn('($0 = this.left) && (this.left.right = this.right), this.right && (this.right.left = $0), this')}),
 
-    parse = function (ts) {
-      var grouping_stack = [], root = new parse_link(), indexes = {}; 
+               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
+             parse_k_empty = fn('[]'),
+
+    parse = $c.parse = function (ts) {
+      var grouping_stack = [], gs_top = null, root = new parse_link(), head = root, indexes = map(parse_k_empty, parse_reduce_order);
+
+  First step.
+  Group parens and other brackets, and index other operators. All operator indexing is done uniformly, left-to-right. This is also the stage where we go from an array to a linked list; after
+  this all nodes will be children or siblings of root. Note that the indexing I mentioned above isn't strictly by operator. It's by reduction order, which is arguably more important. That's
+  what the parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 1.)
+
+      for (var i = 0, l = ts.length, _; _ = ts[i], i < l; ++i)  has(parse_group, _) && grouping_stack.push(gs_top = parse_group[_]) && (head = new parse_link(_).append_to(head)) ||
+                                                                false;
     };
 
-  this.caterwaul = $c;
+  this.caterwaul = this.$c = $c;
 
 }) ();
