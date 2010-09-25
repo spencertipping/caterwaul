@@ -289,7 +289,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
                  fold_l: fn('this.l && this.append(this.l.unlink(this)), this'),   fold_r: fn('this.r && this.append(this.r.unlink(this)), this'),
                 fold_lr: fn('this.fold_l().fold_r()'),                            fold_rr: fn('this.fold_r().fold_r()'),
                 
-                inspect: fn('"(" + this.data + (this.length ? " " + Array.prototype.map.call(this, function (x) {return x.inspect ? x.inspect() : x.toString()}).join(" ") : "") + ")"'),
+                inspect: function () {return '(' + this.data + (this.length ? ' ' + map(function (x) {return x.inspect ? x.inspect() : x.toString()}, this).join(' ') : '') + ')'},
                toString: fn('this.inspect()')}),
 
   Syntax folding.
