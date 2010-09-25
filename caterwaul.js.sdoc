@@ -217,16 +217,62 @@ we can grab the token that precedes () (along with perhaps one more in the case 
                                         '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ',']),
        parse_inverse_order = (function (xs) {for (var o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(o, k) && (o[k] = i); return o}) (parse_reduce_order),
 
-                parse_link = extend (fn('this.l = this.r = null, this.data = $0, this.children = []'), {
+               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
+             parse_k_empty = fn('[]'),
+
+  Syntax data structures.
+  There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
+  nodes. At the end of folding there is only one child per paren-group.
+
+  Doubly-linked paren-group lists.
+  When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
+
+  |                       +--------+
+                 +------  |  node  |  ------+
+                 |   +->  |        |  <--+  |
+          first  |   |    +--------+     |  |  last
+                 |   | parent     parent |  |
+                 V   |                   |  V
+              +--------+               +--------+
+              |  node  |   --- r -->   |  node  |  --- r ---/
+   /--- l --- |        |   <-- l ---   |        |
+              +--------+               +--------+
+
+  Note that it is not possible to omit the parent links. The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by
+  one certain nodes fold their siblings underneath them, breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:
+
+  |     (1) <-> (2) <-> (3) <-> (4) <-> (5)             (1) <--> (3) <--> (5)
+        / \     / \     / \     / \     / \     -->     / \     /   \     / \
+                                                               /     \
+                                                             (2)     (4)        <- No link between children
+                                                             / \     / \           (see 'Fold nodes', below)
+
+  Now imagine if we folded node (2) into node (4). The 'first' pointer of (3) would have to be updated, but that requires (2) to have a reference to (3). Conveniently, however, we can remove
+  either the 'first' or 'last' pointer (though not both), since the nodes are externally indexed. In this case, I'm omitting the 'last' pointer. This is because most unary operators are
+  right-associative; that is, they occur in prefix position. This means that the token on the right will be folded underneath, which would require the 'last' pointer of the folded-under
+  child's parent to be updated frequently if it were there. By omitting it the logic for fold-right becomes much simpler, which should translate into (immeasurably) shorter runtimes.
+
+                parse_link = extend (fn('this.l = this.r = null, this.data = $0, this.first = this.last = null'), {
                               fold_l: fn('this.append(this.l.remove())'),   after: fn('($1 = $0.r = this.r) && ($1.l = $0), ($0.l = this).r = $0, $0.parent = this.parent, this'),
                               fold_r: fn('this.append(this.r.remove())'),  before: fn('($1 = $0.l = this.l) && ($1.r = $0), ($0.r = this).l = $0, $0.parent = this.parent, this'),
-                           fold_both: fn('this.fold_l().fold_r()'),        append: fn('this.children.push($0), $0.parent = this'),
+                           fold_both: fn('this.fold_l().fold_r()'),        append: fn('this.last ? this.last.after(this.last = $0) : (this.first = this.last = $0).parent = this, this'),
                            append_to: fn('$0.append(this), this'),         remove: fn('($0 = this.l) && (this.l.r = this.r), this.r && (this.r.l = $0), this.l = this.r = this.parent = null, this'),
                                                                     insert_before: fn('$0.before(this), this'),
                                                                      insert_after: fn('$0.after(this), this')}),
 
-               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
-             parse_k_empty = fn('[]'),
+  Fold nodes.
+  Once a node has been folded (e.g. (3) in the diagram above), none of its children will change and it will gain no more children. The fact that none of its children will change can be shown
+  inductively: suppose you've decided to fold the '+' in 'x + y' (here x and y are arbitrary expressions). This means that x and y are comprised of higher-precedence operators. Since there is
+  no second pass back to high-precedence operators, x and y will not change nor will they interact with one another. The fact that a folded node never gains more children arrives from the fact
+  that it is folded only once; this is by virtue of folding by index instead of by tree structure. (Though a good tree traversal algorithm also wouldn't hit the same node twice -- it's just
+  less obvious when the tree is changing.)
+
+  Anyway, the important thing about fold nodes is that their children don't change. This means that an array is a completely reasonable data structure to use for the children; it certainly
+  makes the structure simpler. It also means that the only new links that must be added to nodes as they are folded are links to new children (via the array), and links to the new siblings.
+  Once we have the array-form of fold nodes, we can build a query interface similar to jQuery, but designed for syntactic traversal. This will make routine operations such as macro
+  transformation and quasiquoting far simpler later on.
+
+               syntax_node = $c.syntax = extend (fn('this.data = $0, this.xs = $1'), {}),
 
   Syntax folding.
   The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
@@ -257,10 +303,10 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   this all nodes will be children or siblings of root. Note that the indexing I mentioned above isn't strictly by operator. It's by reduction order, which is arguably more important. That's
   what the parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 1.)
 
-      for (var i = 0, l = ts.length, _; _ = ts[i], i < l; ++i)  has(parse_group, _)         ? (grouping_stack.push(gs_top = parse_group[_]), head = new parse_link(_).append_to(head)) :
-                                                                _ == gs_top                 ? (grouping_stack.pop(),                         head = head.parent()) :
-                                                                                              (head = new parse_link(_).insert_after(head),
-                                                                                               has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head));
+      for (var i = 0, l = ts.length, _; _ = ts[i], i < l; ++i)  has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), head = new parse_link(_).append_to(head)) :
+                                                                _ == gs_top         ? (grouping_stack.pop(),                         head = head.parent()) :
+                                                                                      (head = new parse_link(_).insert_after(head),
+                                                                                       has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head));
 
   Second step: fold operators.
   Now we can go through the list of operators, folding each according to precedence and associativity.
