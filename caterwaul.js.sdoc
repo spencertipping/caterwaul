@@ -286,7 +286,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   contain pointers to siblings of [0]; these are still accessed by their 'l' and 'r' pointers. As the structure is folded, the number of children of each paren group should be reduced to just
   one. At this point the remaining element's 'l' and 'r' pointers will both be null, which means that it is in hierarchical form instead of linked form.
 
-       syntax_node_inspect = fn('$0.inspect()'),  syntax_node_tostring = fn('$0 ? $0.toString() : ""'),
+       syntax_node_inspect = fn('$0.inspect()'),  syntax_node_tostring = fn('$0 ? $0.serialize ? $0.serialize() : $0.toString() : ""'),
                syntax_node = $c.syntax_node = extend (fn('@data = $0, @length = 0, @l = @r = @p = null'), {
                  replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),                                           
                 reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
@@ -304,16 +304,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                  inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                               (this.r ? ' -> ' + this.r.inspect() : '')},
-                toString: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.toString() + ' */' : '', space = has(parse_use_spaces, op) ? ' ' : '',
+               serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = has(parse_use_spaces, op) ? ' ' : '',
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                        has(parse_lr, op) ? map(syntax_node_tostring, [this[0], op, this[1]]).join(space) :
-                           has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].toString() : '') :
+                           has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
                                             has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[1].data != '{' && this[2] && parse_accepts[op] == this[2].data ?
                                                                             op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
                                                                             op + space + map(syntax_node_tostring, this).join('') :
-                                                        has(parse_l, op) ? (this[0] ? this[0].toString() : '') + space + op : op;
+                                                        has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
                                        return right ? s + right : s}}),
 
   Syntax folding.

@@ -1,8 +1,8 @@
-// Serialization via toString()
+// Serialization via serialize()
 
 var n = function (s)    {return caterwaul.lex(s).join(' ')},
-    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).toString(), i)},
-    i = function (f)    {return eq(n(caterwaul.parse(caterwaul.lex(f.toString())).toString()),
+    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).serialize(), i)},
+    i = function (f)    {return eq(n(caterwaul.parse(caterwaul.lex(f.toString())).serialize()),
                                    n(f.toString()))}; //.replace(/\s+/g, ''))};
 
 // Note. These tests will fail on Firefox and Rhino. They should work everywhere else.
@@ -11,7 +11,7 @@ var n = function (s)    {return caterwaul.lex(s).join(' ')},
 
 i(function () {
   var _caterwaul = this.caterwaul, _$c = this.$c,                            fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},
-              $c = function () {return $c.init.apply(this, arguments)},  gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),
+              $c = function () {return $c.init.apply(this, arguments)},  gensym = (function (n) {return function () {return 'gensym' + (++n).serialize(36)}})(0),
               qw = fn('$0.split(/\\s+/)'),                                  own = Object.prototype.hasOwnProperty,
              has = function (o, p) {return own.call(o, p)},
              map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
@@ -26,7 +26,7 @@ i(function () {
      lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                    lex_dot = '.'.charCodeAt(0),
      lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
     lex = $c.lex = function (s) {
-      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [],
+      var s = s.serialize(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [],
           interned = {}, intern = function (s) {return interned['@' + s] || (interned['@' + s] = new String(s))};
       for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
       while ((mark = i) < l) {
@@ -58,7 +58,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
            parse_block = hash('; {'),                    parse_k_empty = fn('[]'),                    parse_group = {'(':')', '[':']', '{':'}', '?':':'},  
  parse_ambiguous_group = hash('[ ('),                    parse_ternary = hash('?'),             parse_not_a_value = hash('function if for while catch'),
        parse_invisible = hash('() []'),
-       syntax_node_inspect = fn('$0.inspect()'),  syntax_node_tostring = fn('$0 ? $0.toString() : ""'),
+       syntax_node_inspect = fn('$0.inspect()'),  syntax_node_tostring = fn('$0 ? $0.serialize() : ""'),
                syntax_node = $c.syntax_node = extend (fn('@data = $0, @length = 0, @l = @r = @p = null'), {
                  replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),                                           
                 reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
@@ -67,14 +67,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                     wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),
                  inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                               (this.r ? ' -> ' + this.r.inspect() : '')},
-                toString: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.toString() + ' */' : '',
+                serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '',
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join('') :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join('') :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join('') + parse_group[op] :
                                                        has(parse_lr, op) ? map(syntax_node_tostring, [this[0], op, this[1]]).join('') :
-                           has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + ' ' + this[0].toString() :
+                           has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + ' ' + this[0].serialize() :
                                             has(parse_r_until_block, op) ? op + ' ' + map(syntax_node_tostring, this).join('') :
-                                                        has(parse_l, op) ? this[0].toString() + op : op;
+                                                        has(parse_l, op) ? this[0].serialize() + op : op;
                                        return right ? s + right : s}}),
     parse = $c.parse = function (ts) {
       var grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(parse_k_empty, parse_reduce_order),

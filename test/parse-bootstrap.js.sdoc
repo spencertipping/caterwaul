@@ -1,4 +1,4 @@
-Bootstrap parsing: Can it parse itself?
+Bootstrap parsing: Can it parse itself without blowing up?
 
 caterwaul.parse(caterwaul.lex(caterwaul.lex.toString()));
 caterwaul.parse(caterwaul.lex(caterwaul.parse.toString()));

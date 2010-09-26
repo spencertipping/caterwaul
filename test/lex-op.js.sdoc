@@ -41,10 +41,10 @@ q('1.2E10+5', '1.2E10 + 5');
 q('1E10+2',   '1E10 + 2');
 q('1E+10+4E+10', '1E+10 + 4E+10');
 
-q('0x14.toString', '0x14 . toString');
+q('0x14.serialize', '0x14 . serialize');
 q('0xE+5', '0xE + 5');
 
-q('0644.toString', '0644 . toString');
+q('0644.serialize', '0644 . serialize');
 q('0x511e+10e+10', '0x511e + 10e+10');
 
 Regular expression inference.

@@ -1,7 +1,7 @@
 // Ternary operator tests.
 
 var p = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).inspect(), i)},
-    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).toString(), i)};
+    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).serialize(), i)};
 
 p('3?4:5', '(? (3) (4) (5))');
 p('3+4?5:6', '(? (+ (3) (4)) (5) (6))');
