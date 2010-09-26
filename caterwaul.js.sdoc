@@ -283,15 +283,14 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   one. At this point the remaining element's 'l' and 'r' pointers will both be null, which means that it is in hierarchical form instead of linked form.
 
        syntax_node_inspect = fn('$0.inspect()'),
-               syntax_node = $c.syntax_node = extend (fn('@data = $0, @length = 0, @l = @r = @parent = null'), {
-               reparent: fn('@parent && @parent[0] === this && (@parent[0] = $0), @l = @r = null, this'),  fold_l: fn('@l && @append(@l.unlink(this)), this'),
-                 append: fn('(this[@length++] = $0).parent = this'),                                       fold_r: fn('@r && @append(@r.unlink(this)), this'),
-                 unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @reparent($0)'),                       fold_lr: fn('@fold_l().fold_r()'),
-                   wrap: fn('$0.l = @l, $0.r = @r, $0.parent = @parent, @reparent(@parent = $0)'),        fold_rr: fn('@fold_r().fold_r()'),
-                sibling: fn('$0.parent = @parent, (@r = $0).l = this'),                                 append_to: fn('$0 && $0.append(this), this'),
+               syntax_node = $c.syntax_node = extend (fn('@data = $0, @length = 0, @l = @r = @p = null'), {
+                 replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),  wrap: fn('$0.p = @replace($0).p, @reparent(@p = $0)'),  append_to: fn('$0 && $0.append(this), this'),                                           
+                reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                  fold_l: fn('@l && @append(@l.unlink(this)), this'),         fold_lr: fn('@fold_l().fold_r()'),
+                  append: fn('(this[@length++] = $0).p = this'),                             fold_r: fn('@r && @append(@r.unlink(this)), this'),         fold_rr: fn('@fold_r().fold_r()'),
+                 sibling: fn('$0.p = @p, (@r = $0).l = this'),                               unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
 
-                inspect: function () {return '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' + (this.r ? ' -> ' + this.r.inspect() : '')},
-               toString: fn('@inspect()')}),
+                 inspect: function () {return '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' + (this.r ? ' -> ' + this.r.inspect() : '')},
+                toString: fn('@inspect()')}),
 
   Syntax folding.
   The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
@@ -323,7 +322,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   this all nodes will be children or siblings of root. Note that the indexing I mentioned above isn't strictly by operator. It's by reduction order, which is arguably more important. That's
   what the parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 1.)
 
-      for (var i = 0, l = ts.length, _ = null; _ = ts[i], i < l; ++i) _ == gs_top          ? (gs_top = grouping_stack.pop(),                head = head ? head.parent : parent, parent = null) :
+      for (var i = 0, l = ts.length, _ = null; _ = ts[i], i < l; ++i) _ == gs_top          ? (gs_top = grouping_stack.pop(),                head = head ? head.p : parent, parent = null) :
                                                                       (has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), parent = push(new syntax_node(_)), head = null) :
                                                                                               push(new syntax_node(_)),
                                                                        has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head || parent));
@@ -335,14 +334,14 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   precedence as calls and dereferences. Here's what a () or [] transform looks like:
 
   |   quux <--> foo <--> ( <--> bar                              quux <--> () <--> bar
-                          \                                               /  \                  <-- This can be done by saying _.l.wrap(new node('()')).parent.fold_r().
-                           bif <--> , <--> baz       -->               foo    (                     _.l.wrap() returns l again, .parent gets the wrapping node, and fold_r adds a child to it.
+                          \                                               /  \                  <-- This can be done by saying _.l.wrap(new node('()')).p.fold_r().
+                           bif <--> , <--> baz       -->               foo    (                     _.l.wrap() returns l again, .p gets the wrapping node, and fold_r adds a child to it.
                                                                                \
                                                                                 bif <--> , <--> baz
 
       for (var i = 0, i0 = indexes[0], l = i0.length, _ = null, _d = null, _l = null; _ = i0[i], _d = _ && _.data, _l = _ && _.l, i < l; ++i)
         if (_d == '.')                                                                                                               _.fold_lr();
-   else if (has(parse_ambiguous_group, _d) && _l && (_l.data == '.' || ! (has(lex_op, _l.data) || has(parse_not_a_value, _l.data)))) _l.wrap(new syntax_node(_d + parse_group[_d])).parent.fold_r();
+   else if (has(parse_ambiguous_group, _d) && _l && (_l.data == '.' || ! (has(lex_op, _l.data) || has(parse_not_a_value, _l.data)))) _l.wrap(new syntax_node(_d + parse_group[_d])).p.fold_r();
 
   Second step, part 2: fold operators.
   Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
@@ -379,7 +378,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
      else if (has(parse_r_optional, data))  node.r && node.r.data != ';' && node.fold_r();
 
-      while (head.parent) head = head.parent;
+      while (head.p) head = head.p;
       return head;
     };
 

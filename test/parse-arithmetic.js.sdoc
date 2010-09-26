@@ -1,4 +1,4 @@
-Arithmetic tests for the parser.
+Arithmetic/expression tests for the parser.
 
 var p = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).inspect(), i)};
 
@@ -13,3 +13,6 @@ p('3/4/5', '(/ (/ (3) (4)) (5))');
 
 p('(3+5)*6', '(* (( (+ (3) (5))) (6))');
 p('6*(3+5)', '(* (6) (( (+ (3) (5))))');
+p('((3))+((5))', '(+ (( (( (3))) (( (( (5))))');
+
+p('(3)(4)', '(() (( (3)) (( (4)))');
