@@ -212,23 +212,19 @@ much faster as well. Instead of guessing and backtracking as a recursive-descent
 example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
 we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
-    parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
-        parse_reduce_order = map(hash, ['[ . ( [] ()', 'function', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
-                                        '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'var const', 'if else try catch finally for switch with while do',
-                                        ';']),
+    parse_reduce_order = map(hash, ['[ . ( [] ()', 'function', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
+                                    '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'var const', 'if else try catch finally for switch with while do', ';']),
 
-       parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return o}) (parse_reduce_order),
-       parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
-                                               for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs}) (parse_reduce_order),
+parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
+   parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return o}) (parse_reduce_order),
+   parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
+                                           for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs}) (parse_reduce_order),
 
-     parse_ambiguous_group = hash('[ ('),  parse_not_a_value = hash('function if for while catch'),
-                  parse_lr = hash('[] [ . ( () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= ? , ;'),
-       parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1},  parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
-          parse_r_optional = hash('return throw break continue'),  parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof else finally var const void'),
-
-               parse_block = hash('; {'),
-               parse_group = {'(':')', '[':']', '{':'}', '?':':'},
-             parse_k_empty = fn('[]'),
+              parse_lr = hash('[] [ . ( () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , ;'),
+   parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1},    parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
+      parse_r_optional = hash('return throw break continue'),  parse_l = hash('++ --'),        parse_r = hash('u+ u- u! u~ u++ u-- new typeof else finally var const void'),
+           parse_block = hash('; {'),                    parse_k_empty = fn('[]'),         parse_group = {'(':')', '[':']', '{':'}', '?':':'},  
+ parse_ambiguous_group = hash('[ ('),                    parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),
 
   Syntax data structures.
   There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -365,6 +361,14 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
      else if (has(parse_l, data))  node.fold_l();
      else if (has(parse_r, data))  node.fold_r();
+
+    Ternary operator behavior.
+    This is kind of interesting. If we have a ternary operator, then it will be treated first as a group; just like parentheses, for example. This is the case because the ternary syntax is
+    unambiguous for things in the middle. So, for example, '3 ? 4 : 5' initially parses out as a '?' node whose child is '4'. Its siblings are '3' and '5', so folding left and right is an
+    obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding, we do a quick swap of the first two
+    to set the ordering straight.
+
+     else if (has(parse_ternary, data)) {node.fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
 
     Grab-until-block behavior.
     Not quite as simple as it sounds. This is used for constructs such as 'if', 'function', etc. Each of these constructs takes the form '<construct> [identifier] () {}', but they can also
