@@ -27,3 +27,6 @@ for file in test/$1*.js; do
   else                    echo fail $file >> .test-log
                           echo -e "\033[1;31mfail\033[0;0m: $file"; fi
 done
+
+grep '^fail' .test-log && $0 clean
+echo

@@ -1,0 +1,8 @@
+Grouping construct parsing.
+
+var p = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).inspect(), i)},
+    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).toString(), i)};
+
+p('(3)[4]', '([] (( (3)) ([ (4)))');
+p('([3])', '(( ([ (3)))');
+p('([{3}])', '(( ([ ({ (3))))');
