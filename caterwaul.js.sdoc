@@ -285,11 +285,11 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
        syntax_node_inspect = fn('$0.inspect()'),
                syntax_node = $c.syntax_node = extend (fn('@data = $0, @length = 0, @l = @r = @p = null'), {
-                 replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),  append_to: fn('$0 && $0.append(this), this'),                                           
-                reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                       fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
-                  append: fn('(this[@length++] = $0).p = this'),                                  fold_r: fn('@r && @append(@r.unlink(this)), this'),  fold_rr: fn('@fold_r().fold_r()'),
-                 sibling: fn('$0.p = @p, (@r = $0).l = this'),                                    unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
-                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),
+                 replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),   append_to: fn('$0 && $0.append(this), this'),                                           
+                reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                        fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
+                  append: fn('(this[@length++] = $0).p = this'),                                   fold_r: fn('@r && @append(@r.unlink(this)), this'),  fold_rr: fn('@fold_r().fold_r()'),
+                 sibling: fn('$0.p = @p, (@r = $0).l = this'),                                     unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
+                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'), pop: fn('--@length, this'),
 
                  inspect: function () {return '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' + (this.r ? ' -> ' + this.r.inspect() : '')},
                 toString: fn('@inspect()')}),
@@ -386,8 +386,9 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
      else if (has(parse_r_until_block, data))  {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node.fold_r();
                                                 node.fold_r();
-                                                if (has(parse_accepts, data) && parse_accepts[data] == (node.r && node.r.data)) node.fold_r();
-                                           else if (node.r && node.r.data != ';')                                               node.wrap(new syntax_node(';')).p.fold_r()}
+                                                if (has(parse_accepts, data) && parse_accepts[data] == (node.r && node.r.r && node.r.r.data)) node.fold_r().pop().fold_r();
+                                           else if (has(parse_accepts, data) && parse_accepts[data] == (node.r && node.r.data))               node.fold_r();
+                                           else if (node.r && node.r.data != ';')                                                             node.wrap(new syntax_node(';')).p.fold_r()}
 
     Optional right-fold behavior.
     The return, throw, break, and continue keywords can each optionally take an expression. If the token to the right is an expression, then we take it, but if the token to the right is a

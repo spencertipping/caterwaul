@@ -20,3 +20,6 @@ Nested block-level statements
 
 p('if(foo)if(bar)bif', '(if (( (foo)) (if (( (bar)) (bif)))');
 p('if(foo);if(bar)bif', '(; (if (( (foo)) (;)) (if (( (bar)) (bif)))');
+
+p('if(foo) {bar} else bif;', '(; (if (( (foo)) ({ (bar)) (else (bif))))');
+p('if(foo) bar; else bif;', '(; (if (( (foo)) (bar) (else (bif))))');
