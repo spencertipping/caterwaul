@@ -27,3 +27,4 @@ p('if(foo) bar; else bif;', '(; (if (( (foo)) (bar) (else (bif))))');
 Functions
 
 p('function foo (bar) {bif} function bar (bif) {baz}', '(; (function (() (foo) (( (bar))) ({ (bif))) (function (() (bar) (( (bif))) ({ (baz))))');
+p('var f = function (x) {return x}', '(var (= (f) (function (( (x)) ({ (return (x))))))');
