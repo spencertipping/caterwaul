@@ -100,7 +100,7 @@ preprocess (function () {
 //   cause a following / to indicate division.
 
        lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
-                     'return throw case var const break continue'),
+                     'return throw case var const break continue ;'),
 
     lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs = xs.concat(xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
     lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'), lex_exp = lex_table('eE'),
@@ -213,16 +213,16 @@ preprocess (function () {
 
     parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
         parse_reduce_order = map(hash, ['[ . ( [] ()', 'function', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
-                                        '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',']),
+                                        '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'if else try catch finally for switch with while do', ';']),
 
        parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return o}) (parse_reduce_order),
        parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
                                                for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs}) (parse_reduce_order),
 
      parse_ambiguous_group = hash('[ ('),  parse_not_a_value = hash('function if for while catch'),
-                  parse_lr = hash('[] [ . ( () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= ? ,'),
-       parse_r_until_block = hash('function if do catch try'),  parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
-          parse_r_optional = hash('return throw break continue'),     parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof else finally var void'),
+                  parse_lr = hash('[] [ . ( () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= ? , ;'),
+       parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1},  parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
+          parse_r_optional = hash('return throw break continue'),                       parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof else finally var void'),
 
                parse_block = hash('; {'),
                parse_group = {'(':')', '[':']', '{':'}', '?':':'},
@@ -370,14 +370,33 @@ preprocess (function () {
 //     example, 'if () {} else {}' should be represented by an 'if' whose children are '()', '{}', and 'else' (whose child is '{}'). The tricky part is that 'if' doesn't accept another 'if' as a
 //     child (e.g. 'if () {} if () {}'), nor does it accept 'for' or any number of other things. This discrimination is encoded in the parse_accepts table.
 
-     else if (has(parse_r_until_block, data))  {while (node.r && ! has(parse_block, node.r.data)) node.fold_r(); node.fold_r();
-                                                if (has(parse_accepts, data) && parse_accepts[data] == node.r && node.r.data) node.fold_r()}
+//     There's another edge case too. Suppose you have something like this:
+
+//     | if (foo);
+//       if (bif);
+
+//     While this looks straightforward, the parse tree will be missing a semicolon separating the two constructs. The reason is that the parse tree for the first 'if' steals its semicolon,
+//     resulting in something like this:
+
+//     | (if (foo);) (if (bif);)
+
+//     The problem should be obvious: with no way to fold these two things together, they'll remain linked -- a form that isn't supposed to exist after we fold stuff. So for this case we insert a
+//     semicolon where one is needed; that is, if the construct doesn't accept the following one as a child.
+
+     else if (has(parse_r_until_block, data))  {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node.fold_r();
+                                                node.fold_r();
+                                                if (has(parse_accepts, data) && parse_accepts[data] == (node.r && node.r.data)) node.fold_r();
+                                           else if (node.r && node.r.data != ';')                                               node.wrap(new syntax_node(';')).p.fold_r()}
 
 //     Optional right-fold behavior.
 //     The return, throw, break, and continue keywords can each optionally take an expression. If the token to the right is an expression, then we take it, but if the token to the right is a
 //     semicolon then the keyword should be nullary.
 
      else if (has(parse_r_optional, data))  node.r && node.r.data != ';' && node.fold_r();
+
+//   Third step.
+//   Traverse all the way up the rearranged tree and return the root node. Because of the allocation stuff in the beginning of the function (see the push() function, for example), there won't be
+//   extra nodes in this tree.
 
       while (head.p) head = head.p;
       return head;

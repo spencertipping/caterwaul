@@ -68,3 +68,9 @@ q('x-- /foo/g', 'x -- / foo / g');
 q('x--+ /foo/g', 'x -- + /foo/g');
 q('--x /foo/g', 'u-- x / foo / g');
 q('--x+ /foo/g', 'u-- x + /foo/g');
+
+Semicolons (in response to a failure)
+
+q('x;y;z', 'x ; y ; z');
+q('x;/foo/g', 'x ; /foo/g');
+q('/foo/g;/bar/g', '/foo/g ; /bar/g');

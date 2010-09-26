@@ -1,0 +1,16 @@
+JavaScript syntactic constructs.
+
+var p = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).inspect(), i)};
+
+Lone block-level statements
+
+p('if (foo) {bar}', '(if (( (foo)) ({ (bar)))');
+p('if (foo) bar', '(if (( (foo)) (bar))');
+p('if (foo) bar()', '(if (( (foo)) (() (bar) (()))');
+p('if (foo) bar;', '(; (if (( (foo)) (bar)))');
+p('if (foo);', '(if (( (foo)) (;))');
+
+Nested block-level statements
+
+p('if(foo)if(bar)bif', '(if (( (foo)) (if (( (bar)) (bif)))');
+p('if(foo);if(bar)bif', '(; (if (( (foo)) (;)) (if (( (bar)) (bif)))');
