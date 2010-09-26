@@ -100,7 +100,7 @@ preprocess (function () {
 //   cause a following / to indicate division.
 
        lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
-                     'return throw case var const break continue ;'),
+                     'return throw case var const break continue void ;'),
 
     lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs = xs.concat(xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
     lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'), lex_exp = lex_table('eE'),
@@ -213,7 +213,8 @@ preprocess (function () {
 
     parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
         parse_reduce_order = map(hash, ['[ . ( [] ()', 'function', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
-                                        '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'if else try catch finally for switch with while do', ';']),
+                                        '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'var const', 'if else try catch finally for switch with while do',
+                                        ';']),
 
        parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return o}) (parse_reduce_order),
        parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
@@ -221,8 +222,8 @@ preprocess (function () {
 
      parse_ambiguous_group = hash('[ ('),  parse_not_a_value = hash('function if for while catch'),
                   parse_lr = hash('[] [ . ( () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= ? , ;'),
-       parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1},  parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
-          parse_r_optional = hash('return throw break continue'),                       parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof else finally var void'),
+       parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1},  parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
+          parse_r_optional = hash('return throw break continue'),  parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof else finally var const void'),
 
                parse_block = hash('; {'),
                parse_group = {'(':')', '[':']', '{':'}', '?':':'},
