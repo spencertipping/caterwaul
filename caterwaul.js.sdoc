@@ -9,35 +9,29 @@ Caterwaul implements a very small Lisp in JavaScript syntax. The syntax ends up 
 those in a JS-compatible grammar. Also, JavaScript convention makes square-bracket calls such as qs[foo] relatively uncommon, so I'm using that as the macro syntax (though of course you can
 define macros with other forms as well).
 
-By default, the only thing Caterwaul does is provide a quotation operator. For example:
+The most important thing Caterwaul does is provide a quotation operator. For example:
 
 | caterwaul(function () {
     return qs[x + 1];
   });
 
-This function returns a syntax tree representing the expression 'x + 1'. The standard library provides additional constructs to enable macros and easy macro definitions. For example, using the
-standard library:
+This function returns a syntax tree representing the expression 'x + 1'. (Its utility is debatable.) Caterwaul also includes macro-definition and quasiquoting:
 
 | caterwaul(function () {
     macro[qs[let (_ = _) in _], function (variable, value, expression) {
       return qq[(function ($variable) {return $expression}).call(this, $value)];
     }];
+    // Macro usable from here until the end of the function
   });
 
 Or, more concisely (since macro definitions can be used inside other macro definitions):
 
 | var f = caterwaul(function () {
     macro[qs[let (_ = _) in _], fn[variable, value, expression][qq[(fn[$variable][$expression]).call(this, $value)]]];
+    // Macro usable from here until the end of the function
   });
 
-Unfortunately, since macros must be executed before code will be transformed using them, you must define macros separately, call the function that contains them, and then use them later on.
-(Also, this encourages good style by requiring macros to be separated from regular code. However, as a code-anarchist this isn't a feature as far as I'm concerned; rather, a necessary evil.)
-So, for example, we couldn't use the let macro in the function above within that function, but caterwauling another function after calling the first would make it available:
-
-| f()
-  caterwaul(function () {
-    let (x = 5) in console.log(x);      // Prints 5
-  })();
+See the 'Macroexpansion' section some distance below for more information.
 
 Coding style.
 I like to code using syntactic minimalism, and since this project is a hobby instead of work I've run with that style completely. This has some advantages and some disadvantages. Advantages
@@ -436,6 +430,37 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       return head;
     };
 
-  this.caterwaul = this.$c = $c;
+Macroexpansion.
+Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
+(or compiled -- there are several stages I believe). Caterwaul provides both inline and offline macros. For example, you can do this:
+
+| caterwaul(function () {
+    macro[qs[let (_ = _) in _], fn[n, v, e][qq[fn[$n][$e]($v)]]];
+    let (x = 5) in console.log(x);
+  });
+
+The generated code will not include the macro definition, since the macro was defined inline. Also, the macro will be scoped just to that function and will not take effect elsewhere. The
+generated code will look like this:
+
+| function () {
+    (function (x) {return console.log(x)}) (5);
+  }
+
+Defining offline macros is done in the normal execution path instead of via code extensions. Here is the same macro as above, but defined in an offline context:
+
+| caterwaul(function () {
+    caterwaul.macro(qs[let (_ = _) in _], fn[n, v, e][qq[fn[$n][$e]($v)]]);
+  });
+
+| // Macro is usable in this function:
+  caterwaul(function () {
+    let (x = 5) in console.log(x);
+  });
+
+Note the lack of square brackets on caterwaul.macro(). The general rule is that square brackets indicate immediate macroexpansion, and parens indicate normal function calls. (Though cases like
+'let' are different, obviously.) Wrapping the first function in caterwaul() wasn't necessary, though it was helpful to get the qs[], qq[], and fn[] shorthands. In this case, the offline macro
+is persistent to the caterwaul function that it was called on. (So any future caterwaul()ed functions would have access to it.)
+
+  this.caterwaul = $c;
 
 }) ();
