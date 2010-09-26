@@ -1,4 +1,4 @@
 Debugging definitions
 
-d.tracer = print;
+d.tracer = print.compose('$0.toString()');
 var preprocess = d.debug.trace;
