@@ -1,6 +1,6 @@
 JavaScript syntactic constructs.
 
-var p = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).inspect(), i)};
+var p = function (s, i) {return eq(caterwaul.parse(s).inspect(), i)};
 
 Lone block-level statements
 

@@ -1,9 +1,7 @@
 Macro definition tests.
 
-caterwaul(function () {
-  caterwaul.macro(qs[fn[_][_]], function (params, expression) {print ('params = ' + params.serialize()); print ('expression = ' + expression.serialize()); return expression});
-})();
+var c = caterwaul.clone(function () {
+  this.macro(qs[fn[_][_]], function (params, expression) {return qs[function (_) {return _}].s('_', [params, expression])});
+});
 
-caterwaul(function () {
-  fn[x, y, z][3 + 5];
-})();
+eq(c(function () {return fn[x, y][x + y]})()(3, 5), 8);

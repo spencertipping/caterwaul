@@ -1,8 +1,8 @@
 Serialization via serialize()
 
 var n = function (s)    {return caterwaul.lex(s).join(' ')},
-    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).serialize(), i)},
-    i = function (f)    {return eq(n(caterwaul.parse(caterwaul.lex(f.toString())).serialize()),
+    s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)},
+    i = function (f)    {return eq(n(caterwaul.decompile(f).serialize()),
                                    n(f.toString()))}; //.replace(/\s+/g, ''))};
 
 Note. These tests will fail on Firefox and Rhino. They should work everywhere else.

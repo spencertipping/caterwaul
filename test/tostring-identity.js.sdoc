@@ -3,8 +3,8 @@ Serialization via serialize()
 //var n = function (s)    {var sr = s.replace(/\/\/[^\n]*/g, '').replace(/(\w)\s(\W)/g, '$1$2').replace(/(\W)\s(\w)/g, '$1$2').replace(/(\W)\s(\W)/g, '$1$2').replace(/;/g, '');
 //                         return s == sr ? s : n(sr)},
 var n = function (s)    {return caterwaul.lex(s).join(' ').replace(/;/g, '')},
-    s = function (s, i) {return eq(caterwaul.parse(caterwaul.lex(s)).serialize(), i)},
-    i = function (f)    {return eq(n(caterwaul.parse(caterwaul.lex(f.toString())).serialize()),
+    s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)},
+    i = function (f)    {return eq(n(caterwaul.decompile(f).serialize()),
                                    n(f.toString()))};
 
 Note. These tests will fail on Firefox and Rhino. They should work everywhere else.
