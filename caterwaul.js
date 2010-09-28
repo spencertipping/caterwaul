@@ -44,6 +44,30 @@ preprocess (function () {
 // lookups as the code is running. Another is that I use the (function (variable) {return expression})(value) form to emulate let-bindings. (Reading the code with this in mind will make it much
 // more obvious what's going on.)
 
+// Utility methods.
+// fn(s) creates a function that returns 's', evaluated as an expression. It gets standard arguments $0, $1, ... $4, and has '@' replaced by 'this.' for Ruby-style instance variable access. I use
+// it a fair amount, but try to keep it outside of functions because it ends up calling eval(), which is slow. As a quick example, fn('$0 + $1') returns a function that adds its first two
+// arguments.
+
+// Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
+// tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this:
+
+// | (function (gensym_0, gensym_1, ..., gensym_n) {
+//     return <your macroexpanded function>;
+//   }) (syntax_tree_1, syntax_tree_2, ..., syntax_tree_n);
+
+// Map() is an array map function, fairly standard really. I include it because IE doesn't provide Array.prototype.map. hash() takes a string, splits it on whitespace, and returns an object that
+// maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
+// function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
+
+  var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},      has = function (o, p) {return own.call(o, p)},
+  gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),  qw = fn('$0.split(/\\s+/)'),  own = Object.prototype.hasOwnProperty,
+
+     map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
+    hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
+  extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
+
+
 // Optimizations.
 // I've done a lot to prevent anything above linear time in both the lexer and the parser; this includes some low-level optimizations such as string interning. The various implementations of
 // substring() that I've tested have been either constant or linear time (constant-time is possible since JS strings are immutable). However, if you slice a string twice from two different
@@ -60,14 +84,29 @@ preprocess (function () {
 // Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 // caterwaul and restore the global that was there when Caterwaul was loaded.
 
-  var _caterwaul = this.caterwaul, _$c = this.$c,                            fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},
-              $c = function () {return $c.init.apply(this, arguments)},  gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),
-              qw = fn('$0.split(/\\s+/)'),                                  own = Object.prototype.hasOwnProperty,
-             has = function (o, p) {return own.call(o, p)},
+  _caterwaul = this.caterwaul,
 
-             map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
-            hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
-          extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
+// Configurations.
+// Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
+// replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
+
+// | var copy = caterwaul.clone (function () {
+//     // This function is for customizations. Totally optional; can also customize at the toplevel.
+//     this.macro(qs[foo], fn[][qs[bar]]);
+//   });
+
+// | copy(function () {
+//     var bar = 6;
+//     return foo;
+//   }) ();                // returns 6
+
+// Related to this is a configure() method that modifies and returns the original function:
+
+// | caterwaul.configure (function () {
+//     // Global configuration using 'this'
+//   });
+
+  $c = function () {return $c.init.apply(this, arguments)},
 
 // Lexing.
 // The lexer is for the most part straightforward. The only tricky bit is regular expression parsing, which requires the lexer to contextualize operators and operands. I've implemented this logic
@@ -432,34 +471,69 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // Macroexpansion.
 // Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
-// (or compiled -- there are several stages I believe). Caterwaul provides both inline and offline macros. For example, you can do this:
+// (or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
+// optimize macro-rewriting.
 
-// | caterwaul(function () {
-//     macro[qs[let (_ = _) in _], fn[n, v, e][qq[fn[$n][$e]($v)]]];
-//     let (x = 5) in console.log(x);
-//   });
-
-// The generated code will not include the macro definition, since the macro was defined inline. Also, the macro will be scoped just to that function and will not take effect elsewhere. The
-// generated code will look like this:
-
-// | function () {
-//     (function (x) {return console.log(x)}) (5);
-//   }
-
-// Defining offline macros is done in the normal execution path instead of via code extensions. Here is the same macro as above, but defined in an offline context:
+// Defining offline macros is done in the normal execution path instead of via code extensions. For example:
 
 // | caterwaul(function () {
 //     caterwaul.macro(qs[let (_ = _) in _], fn[n, v, e][qq[fn[$n][$e]($v)]]);
-//   });
+//   }) ();        // Must invoke the function
 
 // | // Macro is usable in this function:
 //   caterwaul(function () {
 //     let (x = 5) in console.log(x);
 //   });
 
-// Note the lack of square brackets on caterwaul.macro(). The general rule is that square brackets indicate immediate macroexpansion, and parens indicate normal function calls. (Though cases like
-// 'let' are different, obviously.) Wrapping the first function in caterwaul() wasn't necessary, though it was helpful to get the qs[], qq[], and fn[] shorthands. In this case, the offline macro
-// is persistent to the caterwaul function that it was called on. (So any future caterwaul()ed functions would have access to it.)
+// Wrapping the first function in caterwaul() wasn't necessary, though it was helpful to get the qs[], qq[], and fn[] shorthands. In this case, the macro is persistent to the caterwaul function
+// that it was called on. (So any future caterwaul()ed functions would have access to it.)
+
+// You can also define conditional macros, though they will probably be slower. For example:
+
+// | caterwaul(function () {
+//     caterwaul.macro(qs[let (_) in _], fn[bs, e][bs.data == '=' && ...]);
+//   }) ();
+
+// Here, returning a falsy value indicates that nothing should be changed about this syntax tree. It is replaced by itself and processing continues normally. You should try to express things in
+// terms of patterns; there are theoretical optimizations that can cut the average-case runtime of pattern matching to a fraction of a full linear scan. The worst possible case is when you match
+// on a universal pattern and restrict later:
+
+// | caterwaul(function () {
+//     caterwaul.macro(qs[_], fn[x][...]);
+//   }) ();
+
+// This will call your macroexpander once for every node in the syntax tree, which for large progams is costly. If you really do have such a variant structure, your best bet is to define separate
+// macros, one for each case:
+
+// | caterwaul(function () {
+//     var patterns = [qs[foo], qs[bar], qs[bif]];
+//     patterns.map (function (p) {
+//       caterwaul.macro (p, fn[x][...]);
+//     });
+//   }) ();
+
+// This gives Caterwaul the opportunity to call your function only on relevant nodes.
+
+// Pitfalls of macroexpansion.
+// Macroexpansion as described here can encode a lambda-calculus. The whole point of having macros is to make them capable, so I can't complain about that. But there are limits to how far I'm
+// willing to go down the pattern-matching path. Let's suppose the existence of the let-macro, for instance:
+
+// | let (x = y) in z   ->   (function (x) {return z}) (y)
+
+// If you write these macros:
+
+// | foo[x, y]   ->   let (x = y)
+//   bar[x, y]   ->   x in y
+
+// Caterwaul is not required to expand bar[foo[x, y], z] into (function (x) {return z}) (y). It might just leave it at let (x = y) in z instead. The reason is that while the individual
+// macroexpansion outputs are macroexpanded, a fixed point is not run on macroexpansion in general. (That would require multiple-indexing, which in my opinion isn't worth the cost.) To get the
+// extra macroexpansion you would have to wrap the whole expression in another macro, in this case called 'expand':
+
+// | caterwaul(function () {
+//     caterwaul.macro(expand[_], fn[expression][caterwaul.macroexpand(expression)]);
+//   }) ();
+
+// This is an eager macro; by outputting the already-expanded contents, it gets another free pass through the macroexpander.
 
   this.caterwaul = $c;
 
