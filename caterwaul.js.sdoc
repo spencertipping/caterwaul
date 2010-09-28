@@ -1,6 +1,8 @@
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+Temporary debug scaffolding:
+
 this.preprocess || (this.preprocess = function (x) {return x});
 preprocess (function () {
 
@@ -59,18 +61,27 @@ Map() is an array map function, fairly standard really. I include it because IE 
 maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
 function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
 
+Se() stands for 'side-effect', and its purpose is to take a value and a function, pass the value into the function, and return either whatever the function returned or the value you gave it.
+It's used to initialize things statefully; for example:
+
+| return se(function () {return 5}, function (f) {
+    f.sourceCode = 'return 5';
+  });
+
   var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},
   gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),  qw = fn('$0.split(/\\s+/)'),
 
     bind = function (f, t) {return function () {return f.apply(t, arguments)}},
      map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
     hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
-  extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
+   merge = function (o) {for (var i = 1, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (o[k] = _[k]); return o},
+  extend = function (f) {merge.apply(null, [f.prototype].concat(Array.prototype.slice.call(arguments, 1))); return f},
+      se = function (x, f) {return f && f(x) || x},
 
 Optimizations.
 The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the JavaScript interpreter;
 syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
-linear-time passes over the token stream.
+linear-time passes over the token stream. (An approximate figure; it actually does about 19 fractional passes, but not all nodes are reached.)
 
 Also, I'm not confident that all JavaScript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we throw
 a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often. To prevent this kind of
@@ -85,7 +96,7 @@ Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 caterwaul and restore the global that was there when Caterwaul was loaded.
 
-  _caterwaul = this.caterwaul,
+  _caterwaul = this.caterwaul,  _global = this,
 
 Configurations.
 Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
@@ -107,7 +118,45 @@ Related to this is a configure() method that modifies and returns the original f
     // Global configuration using 'this'
   });
 
-  $c = function () {return $c.init.apply(this, arguments)},
+  Attributes and methods.
+  Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
+  so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
+  table that keeps track of what to do with each. Attributes show up in this table when you call one of the attribute-association methods:
+
+  | .ref('attribute', value)            Creates a reference-copying attribute. No copying is done at all; the attribute is cross-referenced between copies of the Caterwaul function.
+    .shallow('attribute', value)        Creates an attribute whose value is copied shallowly; for hashes or arrays.
+    .method('name', f)                  Creates a method bound to the Caterwaul function. f will be bound to any copies on those copies.
+
+  Naturally, attributes that don't appear in the table are left alone. You can add more of these attribute behaviors using the behavior() method:
+
+  | .behavior('name', definition)       Creates a new attribute behavior. definition() should take an original attribute value and return a new one, where 'this' is the new Caterwaul function.
+
+  Underlying this mechanism is the associate() method:
+
+  | .associate('attribute', 'behavior', value)          Creates an attribute with the given behavior and assigns it a value. Calls the association handler on the new value.
+    ._associate('attribute', 'behavior', value)         Creates an attribute with the given behavior and assigns it a value, but doesn't call the association handler.
+
+  A couple of notes. First, these functions are bound to the function they modify; that is, you can eta-reduce them freely. Second, this is not a general purpose function replicator. All of
+  the functions returned here call their own init() method rather than sharing a function body somewhere. (To be fair, the init() method gets referenced -- so it's almost as good I suppose.) A
+  general-purpose way to do this would be to have g call f instead of g.init in the copy_of() function below. I'm not doing this in order to save stack frames; I want the function call
+  performance to be constant-time in the number of copies.
+
+  associator_for = function (f) {return function (name, behavior, value) {return f._associate(name, behavior, f.behaviors[behavior].call(f, value))}},
+    assigner_for = function (f) {return function (name, behavior, value) {return f.attributes[name] = behavior, f[name] = value, f}},
+    shallow_copy = function (x) {return x ? x.constructor === Array ? Array.prototype.slice.call(x) : merge({}, x) : x},
+         copy_of = function (f) {var g = merge(function () {return g.init.apply(g, arguments)}, {behaviors: shallow_copy(f.behaviors), attributes: {}});
+                                 return se(g, function (g) {(g._associate = assigner_for(g), g.associate = associator_for(g))('behavior', 'method', function (name, definition) {
+                                                              return this.associate(name, 'method', function (attribute, value) {
+                                                                return this.associate(attribute, name, definition.call(this, value));
+                                                              });
+                                                            });
+                                                            g.behavior('method', g.behaviors.method);
+                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
+
+              $c = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).
+                           behavior('ref', fn('$0')).behavior('shallow', shallow_copy).method('clone',     function (f) {return se(copy_of(this), f)}).
+                                                                                       method('configure', function (f) {return se(this, f)}),
+                         {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}),
 
 Lexing.
 The lexer is for the most part straightforward. The only tricky bit is regular expression parsing, which requires the lexer to contextualize operators and operands. I've implemented this logic
