@@ -259,9 +259,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
    parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1},    parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
       parse_r_optional = hash('return throw break continue else'),  parse_l = hash('++ --'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void'),
-           parse_block = hash('; {'),                         parse_k_empty = fn('[]'),               parse_group = {'(':')', '[':']', '{':'}', '?':':'},  
- parse_ambiguous_group = hash('[ ('),                         parse_ternary = hash('?'),        parse_not_a_value = hash('function if for while catch'),
-       parse_invisible = hash('() [] i;'),            parse_also_expression = hash('function'),  parse_use_spaces = hash('typeof new instanceof in case return throw break continue var const else'),
+           parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = {'(':')', '[':']', '{':'}', '?':':'},       parse_invisible = hash('() [] i;'),
+ parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),  parse_also_expression = hash('function'),
 
   Syntax data structures.
   There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -335,7 +334,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                  inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                               (this.r ? ' -> ' + this.r.inspect() : '')},
-               serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = has(parse_use_spaces, op) ? ' ' : '',
+               serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op) ? ' ' : '',
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
