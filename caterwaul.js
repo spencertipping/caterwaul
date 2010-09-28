@@ -535,7 +535,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     });
 //   }) ();
 
-// This gives Caterwaul the opportunity to call your function only on relevant nodes.
+// This gives Caterwaul the opportunity to call your function only on relevant nodes. (Note that at present I haven't found an algorithm to make things any faster than using a depth-first scan.
+// However, if I do find such an algorithm later on then macroexpansion will run quite a bit faster for programs with well-defined patterns.)
 
 // Pitfalls of macroexpansion.
 // Macroexpansion as described here can encode a lambda-calculus. The whole point of having macros is to make them capable, so I can't complain about that. But there are limits to how far I'm
@@ -585,8 +586,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
          macro_expand = function (t, macros, expanders) {
                           return t.rmap (function (n) {
-                            for (var i = 0, l = macros.length, macro = null, match = null; i < l && (macro = macros[i]); ++i)
-                              if (match = macro_try_match(macro, n)) return expanders[i].apply(n, match);
+                            for (var i = 0, l = macros.length, macro = null, match = null, replacement = null; i < l && (macro = macros[i]); ++i)
+                              if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(n, match))) return replacement;
                             return n;
                           });
                         };
