@@ -156,7 +156,9 @@ preprocess (function () {
 
 //   Notice the pre-existing intern mapping from 'u;' to ';'. This is to correct for a lexing artifact that exists because the lexer infers operator direction and arity. There are cases in the
 //   code when a semicolon would normally be treated as a unary operator (such as a nullary return), but for obvious reasons it doesn't make sense to preserve that distinction in the lexed output
-//   stream. The simplest way to correct for lexer output issues is to deviously redirect its interned symbol table, and that's exactly what's going on here.
+//   stream. The simplest way to correct for lexer output issues is to deviously redirect its interned symbol table, and that's exactly what's going on here. Note that this is really an
+//   inadvisable pattern. I'm the original author of the code and I have license to do things like this, but if you find yourself making such modifications then you're probably doing something
+//   wrong. (In fact, if you find yourself modifying the code at all I imagine you'll have trouble. Write-once, you know :) )
 
     lex = $c.lex = function (s) {
       var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [],
@@ -258,7 +260,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
    parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1},    parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
-      parse_r_optional = hash('return throw break continue else'),  parse_l = hash('++ --'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void'),
+      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),     parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void'),
            parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = {'(':')', '[':']', '{':'}', '?':':'},       parse_invisible = hash('() [] i;'),
  parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),  parse_also_expression = hash('function'),
 
