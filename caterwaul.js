@@ -62,7 +62,7 @@ preprocess (function () {
   var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},
   gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),  qw = fn('$0.split(/\\s+/)'),
 
-     map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
+     map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
     hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
   extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
 
@@ -341,6 +341,38 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                  sibling: fn('$0.p = @p, (@r = $0).l = this'),                                      unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
                     wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),
 
+//     Traversal functions.
+//     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
+//     reach and rmap, perform the process recusrively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
+//     function passed to rmap() returns the node verbatim then its children are traversed. If it returns a distinct node, however, then traversal doesn't descend into the children of the newly
+//     returned tree but rather continues as if the original node had been a leaf. For example:
+
+//     |           parent          Let's suppose that a function f() has these mappings:
+//                /      \
+//            node1      node2       f(parent) = parent   f(node1) = q
+//            /   \        |                              f(node2) = node2
+//          c1     c2      c3
+
+//     In this example, f() would be called on parent, node1, node2, and c3 in that order. c1 and c2 are omitted because node1 was replaced by q -- and there is hardly any point in going through
+//     the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.)
+
+//     Reparenting is done automatically. That is, any node returned by a mapping function, regardless of its original parent, will be reparented into the correct node by map() or rmap().
+
+                    each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
+                     map: function (f) {for (var n = new syntax_node(this.data), i = 0, l = this.length; i < l; ++i) n.append(f(this[i], i)); return n},
+                   reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
+                    rmap: function (f) {var r = f(this); return r === this ? this.map(function (n) {return n.rmap(f)}) : r},
+
+                 collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
+
+          distance_up_to: function (p) {var n = this, d = 0; while (n.p && n.p !== p) ++d, n = n.p; return n.p === p ? d : -1},
+                      up: function (i) {var n = this; while (n.p && i--) n = n.p; return n},
+
+//     Mutation shorthands.
+//     Be careful with these. You should never use them on the original syntax when you're writing macros; they're mainly to make my life easier in the macroexpander.
+
+           replace_child: function (original, replacement) {for (var i = 0, l = this.length; i < l; ++i) if (this[i] === original) {this[i] = replacement; break}; return this},
+
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
 //     pointer. In the serialized representation, it is shown as a comment /* -> */ followed by the serialization of whatever is to the right. This has the property that it will break tests but
@@ -480,7 +512,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
       while (head.p) head = head.p;
       return head;
-    };
+    },
 
 // Macroexpansion.
 // Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
@@ -548,9 +580,51 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // This is an eager macro; by outputting the already-expanded contents, it gets another free pass through the macroexpander.
 
+// Things that are not guaranteed:
+
+// | 1. Reassembly of different pieces (see above)
+//   2. Any sane order of macroexpansion
+//   3. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
+//   4. Performance bounds. This is optimized for the average case, but the pathological-worst-case performance is probably terrible.
+
 //   Indexing.
 //   Just like we do in the parser, we index the tree for macroexpansion. The only difference is that this time we index the whole thing, not just nodes that might happen to interest us. This
-//   includes every single constant node
+//   includes every single node, whether it's syntax or a leaf. Using these indexes we can very quickly perform macro rewrites, since we no longer have to go through the whole tree. The only
+//   downside is that we can't easily keep track of which nodes are still present in the tree later on. So in the worst case where a macro replaces everything with a single leaf, any remaining
+//   macros would still go through the other tree nodes. Not brilliantly ideal, but better than no indexing for the average case.
+
+//   To optimize further, we check each macro definition against the indexes to find the most effective tree culling strategy. Right now I'm using only single indexes, but you get the idea. Note,
+//   by the way, that having large macro patterns is kind of expensive. There's a delicate balance, and most patterns won't be a problem. But the optimizer is O(n) in the number of nodes in the
+//   pattern tree.
+
+     macro_index_tree = function (t)          {var result = {};   t.reach (function (n) {(result[n.data] || (result[n.data] = [])).push(n)});                return result},
+  macro_best_constant = function (t, indexes) {var best = t.data; t.reach (function (n) {indexes[n.data].length < indexes[best].length && (best = n.data)}); return best},
+
+//   Matching.
+//   macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
+//   illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern.
+
+      macro_try_match = function (pattern, t) {if (pattern.data == '_')                                   return [t];
+                                               if (pattern.data != t.data || pattern.length !== t.length) return null;
+                                               for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
+                                                 if (match = macro_try_match(pattern[i], t[i])) wildcards = wildcards.concat(match);
+                                                 else                                           return null;
+                                               return wildcards},
+
+//   Expansion.
+//   Here we use the indexes generated by the functions above to actually execute the macros. Note! This function by default does not re-macroexpand the output of macros. That is handled at a
+//   higher level by Caterwaul's macro definition facility.
+
+         macro_expand = function (t, macros, expanders) {
+                          var indexes = macro_index_tree(t),
+            best_index_for_each_macro = map(function (m)    {return macro_best_constant(m, indexes)}),
+           distance_up_for_each_macro = map(function (m, i) {return m.collect(function(n) {return n.data == best_index_for_each_macro[i]})[0].distance_up_to(m)});
+
+                          for (var i = 0, l = macros.length, term = null, distance = null; i < l && (distance = distance_up_for_each_macro[i], term = best_index_for_each_macro[i]); ++i)
+                            for (var index = indexes[term], j = 0, lj = index.length, node = null, match = null; j < lj && (node = index[j].up_by(distance)); ++j)
+                              (match = macro_try_match(macros[i], node = index[j])) && node.p.replace_child (node, expanders[i].apply(node, match));
+                          return t;
+                        };
 
   this.caterwaul = $c;
 
