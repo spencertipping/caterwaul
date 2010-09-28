@@ -24,11 +24,11 @@
 //     // Macro usable in future caterwaul()ed functions
 //   });
 
-// Or, more concisely (since macro definitions can be used inside other macro definitions):
+// Or, more concisely (since macro definitions can be used inside other macro definitions when you define with rmacro):
 
 // | var f = caterwaul(function () {
-//     caterwaul.macro(qs[let (_ = _) in _], fn[variable, value, expression]
-//                                             [qs[(fn[_][_]).call(this, _)].s('_', [variable, expression, value])]);
+//     caterwaul.rmacro(qs[let (_ = _) in _], fn[variable, value, expression]
+//                                              [qs[(fn[_][_]).call(this, _)].s('_', [variable, expression, value])]);
 //   });
 
 // See the 'Macroexpansion' section some distance below for more information.
@@ -77,7 +77,7 @@
 //   });
 
   var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},  qw = fn('$0.split(/\\s+/)'),
-  gensym = (function (n, m) {return function () {return '_caterwaul_gensym' + n.toString(36) + '_' + (++m).toString(36) + '_'}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+  gensym = (function (n, m) {return function () {return '_caterwaul_gensym_' + n.toString(36) + '_' + (++m).toString(36) + '_'}})(+new Date(), Math.random() * (1 << 30) >>> 0),
       id = fn('$0'),
 
     bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
@@ -211,20 +211,19 @@
 
 //   Variable names.
 //   s, obviously, is the string being lexed. mark indicates the position of the stream, while i is used for lookahead. The difference is later read into a token and pushed onto the result. c is
-//   an array of character codes in s, such that cs[i] === s.charCodeAt(i). c is a temporary value used to store the current character code. re is true iff a slash would begin a regular
-//   expression, otherwise false. esc is a flag indicating whether the next character in a string or regular expression literal is escaped. exp indicates whether we've seen the exponent marker in
-//   a number. close is used for parsing single and double quoted strings; it contains the character code of the closing quotation mark. t is the token to be appended to ts, which is the
-//   resulting token array. If t === false, then nothing is appended to the resulting array.
+//   a temporary value used to store the current character code. re is true iff a slash would begin a regular expression, otherwise false. esc is a flag indicating whether the next character in a
+//   string or regular expression literal is escaped. exp indicates whether we've seen the exponent marker in a number. close is used for parsing single and double quoted strings; it contains the
+//   character code of the closing quotation mark. t is the token to be appended to ts, which is the resulting token array. If t === false, then nothing is appended to the resulting array.
 
     lex = function (s) {
-      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [];
-      for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
+      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [], i = 0, l = s.length,
+         cs = function (i) {return s.charCodeAt(i)};
 
 //   Main lex loop.
 //   Set the mark to the current position (we'll be incrementing i as we read characters), munch whitespace, and reset flags.
 
       while ((mark = i) < l) {
-        while (lex_space[c = cs[i]] && i < l) mark = ++i;
+        while (lex_space[c = cs(i)] && i < l) mark = ++i;
         esc = exp = dot = t = false;
 
 //   Miscellaneous lexing.
@@ -232,16 +231,16 @@
 //   lex_slash, which represents /, and lex_star, which represents *.
 
         if                                        (lex_bracket[c])                                                                    {t = !! ++i; re = lex_opener[c]}
-   else if (c === lex_slash && cs[i + 1] === lex_star && (i += 2)) {while (++i < l && cs[i] !== lex_slash || cs[i - 1] !== lex_star);  t = !  ++i}
-   else if            (c === lex_slash && cs[i + 1] === lex_slash) {while                              (++i < l && ! lex_eol[cs[i]]);  t = false}
+   else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) {while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);  t = !  ++i}
+   else if            (c === lex_slash && cs(i + 1) === lex_slash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
 
 //   Regexp and string literal lexing.
 //   These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
 //   illegal for a string to occur anywhere that a slash would indicate division (and it is also illegal to follow a string literal with extra characters), so reusing the regular expression logic
 //   for strings is not a problem. (This follows because we know ahead of time that the JavaScript is valid.)
 
-   else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs[i]) !== close || esc)  esc = ! esc && c === lex_back;
-                                                                                while     (++i < l && lex_regexp_suffix[cs[i]])                               ; t = true}
+   else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs(i)) !== close || esc)  esc = ! esc && c === lex_back;
+                                                                                while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = true}
 
 //   Numeric literal lexing.
 //   This is far more complex than the above cases. Numbers have several different formats, each of which requires some custom logic. The reason we need to parse numbers so exactly is that it
@@ -262,10 +261,10 @@
 //   A trivial change, using regular expressions, would reduce this logic significantly. I chose to write it out longhand because (1) it's more fun that way, and (2) the regular expression
 //   approach has theoretically quadratic time in the length of the numbers, whereas this approach keeps things linear. Whether or not that actually makes a difference I have no idea.
 
-   else if                (c === lex_zero && lex_integer[cs[i + 1]]) {while (++i < l && lex_integer[cs[i]]); re = ! (t = true)}
+   else if                (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = true)}
 
-   else if (c === lex_dot && lex_decimal[cs[i + 1]] || lex_float[c]) {while (++i < l && (lex_decimal[c = cs[i]] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
-                                                                      while (i < l && lex_decimal[cs[i]]) ++i; re = ! (t = true)}
+   else if (c === lex_dot && lex_decimal[cs(i + 1)] || lex_float[c]) {while (++i < l && (lex_decimal[c = cs(i)] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
+                                                                      while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = true)}
 
 //   Operator lexing.
 //   The 're' flag is reused here. Some operators have both unary and binary modes, and as a heuristic (which happens to be accurate) we can assume that anytime we expect a regular expression, a
@@ -275,14 +274,14 @@
 
 //   The only exception to the regular logic happens if the operator is postfix-unary. (e.g. ++, --.) If so, then the re flag must remain false, since expressions like 'x++ / 4' can be valid.
 
-   else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs[i]] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+   else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
 
 //   Identifier lexing.
 //   If nothing else matches, then the token is lexed as a regular identifier or JavaScript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is that
 //   you could write 'x / 5', and it is obvious that the / means division. But if you wrote 'return / 5', the / would be a regexp delimiter because return is an operator, not a value. So at the
 //   very end, in addition to assigning t, we also set the re flag if the word turns out to be an identifier.
 
-   else {while (++i < l && lex_ident[cs[i]]); re = has(lex_op, t = s.substring(mark, i))}
+   else {while (++i < l && lex_ident[cs(i)]); re = has(lex_op, t = s.substring(mark, i))}
 
 //   Token collection.
 //   t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
@@ -567,7 +566,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Defining offline macros is done in the normal execution path. For example:
 
 // | caterwaul(function () {
-//     caterwaul.macro(qs[let (_ = _) in _], fn[n, v, e][qs[fn[_][_].call(this, _)].s('_', [n, e, v])]);
+//     caterwaul.rmacro(qs[let (_ = _) in _], fn[n, v, e][qs[fn[_][_].call(this, _)].s('_', [n, e, v])]);
 //   }) ();        // Must invoke the function
 
 // | // Macro is usable in this function:
@@ -581,7 +580,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // You can also define conditional macros, though they will probably be slower. For example:
 
 // | caterwaul(function () {
-//     caterwaul.macro(qs[let (_) in _], fn[bs, e][bs.data === '=' && ...]);
+//     caterwaul.rmacro(qs[let (_) in _], fn[bs, e][bs.data === '=' && ...]);
 //   }) ();
 
 // Here, returning a falsy value indicates that nothing should be changed about this syntax tree. It is replaced by itself and processing continues normally. You should try to express things in
@@ -589,7 +588,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // on a universal pattern and restrict later:
 
 // | caterwaul(function () {
-//     caterwaul.macro(qs[_], fn[x][...]);
+//     caterwaul.rmacro(qs[_], fn[x][...]);
 //   }) ();
 
 // This will call your macroexpander once for every node in the syntax tree, which for large progams is costly. If you really do have such a variant structure, your best bet is to define separate
@@ -598,7 +597,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | caterwaul(function () {
 //     var patterns = [qs[foo], qs[bar], qs[bif]];
 //     patterns.map (function (p) {
-//       caterwaul.macro (p, fn[x][...]);
+//       caterwaul.rmacro (p, fn[x][...]);
 //     });
 //   }) ();
 
@@ -620,9 +619,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // macroexpansion outputs are macroexpanded, a fixed point is not run on macroexpansion in general. (That would require multiple-indexing, which in my opinion isn't worth the cost.) To get the
 // extra macroexpansion you would have to wrap the whole expression in another macro, in this case called 'expand':
 
-// | caterwaul(function () {
-//     caterwaul.macro(expand[_], fn[expression][caterwaul.macroexpand(expression)]);
-//   }) ();
+// | caterwaul.configure(function () {
+//     this.rmacro(expand[_], fn[expression][caterwaul.macroexpand(expression)]);
+//   });
 
 // This is an eager macro; by outputting the already-expanded contents, it gets another free pass through the macroexpander.
 
@@ -631,6 +630,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | 1. Reassembly of different pieces (see above)
 //   2. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
 //   3. Performance bounds. This is optimized for the average case, but the pathological-worst-case performance is probably terrible.
+
+// Macro vs. rmacro.
+// macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will want
+// to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
+
+// | caterwaul.configure(function () {
+//     // Using macro() instead of rmacro(), so no further expansion:
+//     this.macro(qs[literal[_]], fn[x][x]);
+//   });
+
+// While macro() is marginally faster than rmacro(), the difference isn't significant.
 
 //   Matching.
 //   macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
@@ -652,9 +662,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   
 //   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility.
 
-         macro_expand = function (t, macros, expanders, wildcard) {
+         macro_expand = function (t, macros, expanders) {
                           return t.rmap (function (n) {for (var i = 0, l = macros.length, macro = null, match = null, replacement = null; i < l && (macro = macros[i]); ++i)
-                                                         if ((match = macro_try_match(macro, n, wildcard)) && (replacement = expanders[i].apply(n, match))) return replacement})},
+                                                         if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(n, match))) return replacement})},
 
 // Environment-dependent compilation.
 // It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -690,11 +700,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                        method('parse',     function                 (s) {return this.parse_lexed(this.lex(s))}).
                        method('decompile', function                 (f) {return this.parse(f.toString())}).
                        method('macro',     function (pattern, expander) {this.macro_patterns.push(pattern); this.macro_expanders.push(expander); return this}).
-                       method('init',      function    (f, environment) {var expansion = this.macroexpand(this.decompile(f));
+                       method('rmacro',    function (pattern, expander) {return this.macro(pattern, bind(function () {return this.macroexpand(expander.apply(this, arguments))}, this))}).
+                       method('init',      function    (f, environment) {var expansion = this.expand(this.decompile(f));
                                                                          return compile(expansion.tree, merge(expansion.environment, environment))}).
-                       method('macroexpand', function (t) {
+                       method('expand',    function (t) {return this.expand_qs(this.macroexpand(t))}).
+                       method('expand_qs', function (t) {
                          var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
-                         return {environment: environment,
-                                        tree: macro_expand(t, [this.compiler.qs].concat(this.macro_patterns), [quote_function].concat(this.macro_expanders))}})}) ();
+                         return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
+                       method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)})}) ();
 
 // Generated by SDoc 
