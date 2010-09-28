@@ -62,30 +62,24 @@ preprocess (function () {
   var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},
   gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),  qw = fn('$0.split(/\\s+/)'),
 
+    bind = function (f, t) {return function () {return f.apply(t, arguments)}},
      map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
     hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
   extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
 
 // Optimizations.
-// I've done a lot to prevent anything above linear time in both the lexer and the parser; this includes some low-level optimizations such as string interning. The various implementations of
-// substring() that I've tested have been either constant or linear time (constant-time is possible since JS strings are immutable). However, if you slice a string twice from two different
-// places, the fact that the characters are equal says nothing about the time it takes to verify that, especially for a well-implemented constant-time substring() function. There are going to be
-// a lot of comparisons made against each token, so instead of using primitive strings I'm using boxed strings. These have the advantage of a constant-time equality check using ===, and the
-// normalization required for this is performed automatically in the lex() function. This means an extra O(n) or perhaps O(n log n) operations to normalize the input when it is parsed, but after
-// that all token comparisons are constant-time. (Another advantage is that autoboxing is no longer required, which, depending on the runtime, may reduce memory allocation.)
+// The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the JavaScript interpreter;
+// syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
+// linear-time passes over the token stream.
 
-// Also, the parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the JavaScript
-// interpreter; syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only
-// three linear-time passes over the token stream.
-
-// There's something else too. I'm not confident that all JavaScript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5
-// characters. If we throw a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often.
-// To prevent this kind of thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to
-// verify that the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and
-// average-case O(1) regardless of the length of the candidate.
+// Also, I'm not confident that all JavaScript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we throw
+// a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often. To prevent this kind of
+// thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to verify that the
+// candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
+// regardless of the length of the candidate.
 
   annotate_keys = function (o) {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
-            has = function (o, p) {return ! (p.length > o._max_length) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
+            has = function (o, p) {return p && ! (p.length > o._max_length) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
 // Global management.
 // Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
@@ -134,7 +128,9 @@ preprocess (function () {
 //   Precomputed table values.
 //   The lexer uses several character lookups, which I've optimized by using integer->boolean arrays. The idea is that instead of using string membership checking or a hash lookup, we use the
 //   character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency, only
-//   the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance.
+//   the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. (I'm aware that the arrays are power-of-two-sized and that there are enough of
+//   them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a JavaScript JIT capable enough to have this problem, I think
+//   we'll be OK.)
 
 //   The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
 //   cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
@@ -157,26 +153,8 @@ preprocess (function () {
 //   a number. close is used for parsing single and double quoted strings; it contains the character code of the closing quotation mark. t is the token to be appended to ts, which is the
 //   resulting token array. If t === false, then nothing is appended to the resulting array.
 
-//   The interned and intern variables are used for string normalization. Substrings of a larger string require linear-time comparison if substring() is constant-time, which ultimately has the
-//   potential to increase parser complexity to above-linear. Normalized strings are referential comparisons, which are always constant-time and are isomorphic to comparing two integers. An array
-//   of these is returned by the lexer. Note that in general they will behave identically to regular strings, since === will reflect both structural and referential equality. (Just don't use ==,
-//   which will fall back to the normal linear comparison operation.) The '@' sign is prepended to avoid collision with any system-defined methods of objects, such as toString(). You have to
-//   establish a unique prefix before JavaScript objects become viable hash-tables, unfortunately.
-
-//   I'm putting an ID on each string that comes out. This can be used to index into arrays in cases where otherwise a hashtable would be used (remember that hashtables use strings structurally,
-//   not referentially, so it's O(n) in the string length again). Between this and the referential equality that the constructed string provides, we should be all set for O(1) comparisons most of
-//   the time. (There are some exceptions floating around the code. I let this fly because the strings I'm comparing against are fixed-length.)
-
-//   Notice the pre-existing intern mapping from 'u;' to ';'. This is to correct for a lexing artifact that exists because the lexer infers operator direction and arity. There are cases in the
-//   code when a semicolon would normally be treated as a unary operator (such as a nullary return), but for obvious reasons it doesn't make sense to preserve that distinction in the lexed output
-//   stream. The simplest way to correct for lexer output issues is to deviously redirect its interned symbol table, and that's exactly what's going on here. Note that this is really an
-//   inadvisable pattern. I'm the original author of the code and I have license to do things like this, but if you find yourself making such modifications then you're probably doing something
-//   wrong. (In fact, if you find yourself modifying the code at all I imagine you'll have trouble. Write-once, you know :) )
-
     lex = $c.lex = function (s) {
-      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [],
-          sym = {'@u;': new String(';')}, symbol_count = 0, intern = function (s) {var k = '@' + s, result = sym[k] || (sym[k] = new String(s)); result._id = ++symbol_count; return result};
-
+      var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [];
       for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
 
 //   Main lex loop.
@@ -245,10 +223,11 @@ preprocess (function () {
 
 //   Token collection.
 //   t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
-//   avoid duplicated logic.)
+//   avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
 
-      if (i === mark) throw new Error ('Internal error: The lexer failed to consume input and is throwing this error instead of entering an infinite loop.');
-      t !== false && ts.push(intern(t === true ? s.substring(mark, i) : t));
+      if (i === mark) throw new Error('Internal error: The lexer failed to consume input and is throwing this error instead of entering an infinite loop.');
+      t === 'u;' && (t = ';');
+      t !== false && ts.push(t === true ? s.substring(mark, i) : t);
     }
     return ts},
 
@@ -365,13 +344,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                  collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
 
-          distance_up_to: function (p) {var n = this, d = 0; while (n.p && n.p !== p) ++d, n = n.p; return n.p === p ? d : -1},
-                      up: function (i) {var n = this; while (n.p && i--) n = n.p; return n},
+          distance_up_to: function (p) {var n = this, d = 0; while (n.p && n !== p) ++d, n = n.p; return n === p ? d : -1},
+                      up: function (i) {var n = this; while (n.p && (i--) > 0) n = n.p; return n},
 
 //     Mutation shorthands.
 //     Be careful with these. You should never use them on the original syntax when you're writing macros; they're mainly to make my life easier in the macroexpander.
 
-           replace_child: function (original, replacement) {for (var i = 0, l = this.length; i < l; ++i) if (this[i] === original) {this[i] = replacement; break}; return this},
+           replace_child: function (original, replacement) {for (var i = 0, l = this.length; i < l; ++i) if (this[i] === original) {this[i] = replacement; break} return this},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -381,6 +360,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 //     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
 
+                toString: fn('@inspect()'),
                  inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                               (this.r ? ' -> ' + this.r.inspect() : '')},
                serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op) ? ' ' : '',
@@ -389,7 +369,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                        has(parse_lr, op) ? map(syntax_node_tostring, [this[0], op, this[1]]).join(space) :
                            has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
-                                            has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[1].data != '{' && this[2] && parse_accepts[op] == this[2].data ?
+                                            has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[1].data !== '{' && this[2] && parse_accepts[op] === this[2].data ?
                                                                             op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
                                                                             op + space + map(syntax_node_tostring, this).join('') :
                                                         has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
@@ -426,9 +406,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   what the parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 1.)
 
       for (var i = 0, l = ts.length, _ = null; _ = ts[i], i < l; ++i)
-        _ == gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], head = head ? head.p : parent, parent = null) :
-                      (has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), parent = push(new syntax_node(_)), head = null) : push(new syntax_node(_)),
-                       has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head || parent));
+        _ === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], head = head ? head.p : parent, parent = null) :
+                       (has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), parent = push(new syntax_node(_)), head = null) : push(new syntax_node(_)),
+                        has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head || parent));
 
 //   Second step, part 1: fold function calls, dots, and dereferences.
 //   I'm treating this differently from the generalized operator folding because of the syntactic inference required for call and dereference detection. Nothing has been folded at this point
@@ -443,8 +423,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //                                                                                 bif <--> , <--> baz
 
       for (var i = 0, i0 = indexes[0], l = i0.length, _ = null, _d = null, _l = null, _ld = null; _ = i0[i], _d = _ && _.data, _l = _ && _.l, _ld = _l && _l.data, i < l; ++i)
-        if (_d == '.')                                                                                                   _.fold_lr();
-   else if (has(parse_ambiguous_group, _d) && _l && (_ld == '.' || ! (has(lex_op, _ld) || has(parse_not_a_value, _ld)))) _l.wrap(new_node(new syntax_node(_d + parse_group[_d]))).p.fold_r();
+        if (_d === '.')                                                                                                   _.fold_lr();
+   else if (has(parse_ambiguous_group, _d) && _l && (_ld === '.' || ! (has(lex_op, _ld) || has(parse_not_a_value, _ld)))) _l.wrap(new_node(new syntax_node(_d + parse_group[_d]))).p.fold_r();
 
 //   Second step, part 2: fold operators.
 //   Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
@@ -488,15 +468,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     semicolon, since that separates top-level statements. Because desperate situations call for desperate measures, there's a hack specifically for this in the syntax tree serialization.
 
      else if (has(parse_r_until_block, data))  {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node.fold_r();
-                                                node.r && node.r.data != ';' && node.fold_r();
-                                                if (has(parse_accepts, data) && parse_accepts[data] == (node.r && node.r.r && node.r.r.data)) node.fold_r().pop().fold_r();
-                                           else if (has(parse_accepts, data) && parse_accepts[data] == (node.r && node.r.data))               node.fold_r()}
+                                                node.r && node.r.data !== ';' && node.fold_r();
+                                                if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node.fold_r().pop().fold_r();
+                                           else if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.data))               node.fold_r()}
 
 //     Optional right-fold behavior.
 //     The return, throw, break, and continue keywords can each optionally take an expression. If the token to the right is an expression, then we take it, but if the token to the right is a
 //     semicolon then the keyword should be nullary.
 
-     else if (has(parse_r_optional, data))  node.r && node.r.data != ';' && node.fold_r();
+     else if (has(parse_r_optional, data))  node.r && node.r.data !== ';' && node.fold_r();
 
 //   Third step.
 //   Find all elements with right-pointers and wrap them with semicolon nodes. This is necessary because of certain constructs at the statement-level don't use semicolons; they use brace syntax
@@ -536,7 +516,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // You can also define conditional macros, though they will probably be slower. For example:
 
 // | caterwaul(function () {
-//     caterwaul.macro(qs[let (_) in _], fn[bs, e][bs.data == '=' && ...]);
+//     caterwaul.macro(qs[let (_) in _], fn[bs, e][bs.data === '=' && ...]);
 //   }) ();
 
 // Here, returning a falsy value indicates that nothing should be changed about this syntax tree. It is replaced by itself and processing continues normally. You should try to express things in
@@ -595,17 +575,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   To optimize further, we check each macro definition against the indexes to find the most effective tree culling strategy. Right now I'm using only single indexes, but you get the idea. Note,
 //   by the way, that having large macro patterns is kind of expensive. There's a delicate balance, and most patterns won't be a problem. But the optimizer is O(n) in the number of nodes in the
-//   pattern tree.
+//   pattern tree. (We can't index the wildcard atom _; that would be cheating. Hence the check in macro_best_constant.)
 
-     macro_index_tree = function (t)          {var result = {};   t.reach (function (n) {(result[n.data] || (result[n.data] = [])).push(n)});                return result},
-  macro_best_constant = function (t, indexes) {var best = t.data; t.reach (function (n) {indexes[n.data].length < indexes[best].length && (best = n.data)}); return best},
+     macro_index_tree = function (t)          {var result = {};   t.reach (function (n) {(result[n.data] || (result[n.data] = [])).push(n)});                                  return result},
+  macro_best_constant = function (t, indexes) {var best = t.data; t.reach (function (n) {indexes[n.data] && indexes[n.data].length < indexes[best].length && n.data !== '_' && (best = n.data)}); return best},
 
 //   Matching.
 //   macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
 //   illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern.
 
-      macro_try_match = function (pattern, t) {if (pattern.data == '_')                                   return [t];
-                                               if (pattern.data != t.data || pattern.length !== t.length) return null;
+      macro_try_match = function (pattern, t) {if (pattern.data === '_')                                   return [t];
+                                               if (pattern.data !== t.data || pattern.length !== t.length) return null;
                                                for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
                                                  if (match = macro_try_match(pattern[i], t[i])) wildcards = wildcards.concat(match);
                                                  else                                           return null;
@@ -617,14 +597,34 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
          macro_expand = function (t, macros, expanders) {
                           var indexes = macro_index_tree(t),
-            best_index_for_each_macro = map(function (m)    {return macro_best_constant(m, indexes)}),
-           distance_up_for_each_macro = map(function (m, i) {return m.collect(function(n) {return n.data == best_index_for_each_macro[i]})[0].distance_up_to(m)});
+             best_term_for_each_macro = map(function (m)    {return macro_best_constant(m, indexes)}, macros),
+           distance_up_for_each_macro = map(function (m, i) {return m.collect(function(n) {return n.data === best_term_for_each_macro[i]})[0].distance_up_to(m)}, macros);
 
-                          for (var i = 0, l = macros.length, term = null, distance = null; i < l && (distance = distance_up_for_each_macro[i], term = best_index_for_each_macro[i]); ++i)
-                            for (var index = indexes[term], j = 0, lj = index.length, node = null, match = null; j < lj && (node = index[j].up_by(distance)); ++j)
-                              (match = macro_try_match(macros[i], node = index[j])) && node.p.replace_child (node, expanders[i].apply(node, match));
+                          for (var i = 0, l = macros.length, term = null, distance = null; i < l && (distance = distance_up_for_each_macro[i], term = best_term_for_each_macro[i]); ++i)
+                            for (var index = indexes[term], j = 0, lj = index.length, node = null, match = null; j < lj && (node = index[j].up(distance)); ++j)
+                              (match = macro_try_match(macros[i], node)) && node.p.replace_child(node, expanders[i].apply(node, match));
                           return t;
                         };
+
+//   Temporary code:
+
+  var qs = parse(lex('qs[_]'));
+  $c.patterns = [qs];
+  $c.expanders = [];
+
+  $c.init = function (f) {
+    var symbols = {};
+    var first_gensym = gensym();
+    $c.expanders[0] = function (syntax) {
+      var name = gensym();
+      symbols[name] = syntax;
+      return new syntax_node('(').append(new syntax_node('.').append(new syntax_node(first_gensym)).append(new syntax_node(name)));
+    };
+    var tree = macro_expand(parse(lex(f.toString())), $c.patterns, $c.expanders);
+    var code = tree.serialize();
+    return new Function (first_gensym, 'return ' + code) (symbols);
+  };
+  $c.macro = function (pattern, expander) {$c.patterns.push(pattern); $c.expanders.push(expander); return $c};
 
   this.caterwaul = $c;
 
