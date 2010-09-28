@@ -18,17 +18,16 @@ preprocess (function () {
 // This function returns a syntax tree representing the expression 'x + 1'. (Its utility is debatable.) Caterwaul also includes macro-definition and quasiquoting:
 
 // | caterwaul(function () {
-//     macro[qs[let (_ = _) in _], function (variable, value, expression) {
+//     caterwaul.macro(qs[let (_ = _) in _], function (variable, value, expression) {
 //       return qq[(function ($variable) {return $expression}).call(this, $value)];
-//     }];
-//     // Macro usable from here until the end of the function
+//     });
+//     // Macro usable in future caterwaul()ed functions
 //   });
 
 // Or, more concisely (since macro definitions can be used inside other macro definitions):
 
 // | var f = caterwaul(function () {
-//     macro[qs[let (_ = _) in _], fn[variable, value, expression][qq[(fn[$variable][$expression]).call(this, $value)]]];
-//     // Macro usable from here until the end of the function
+//     caterwaul.macro(qs[let (_ = _) in _], fn[variable, value, expression][qq[(fn[$variable][$expression]).call(this, $value)]]);
 //   });
 
 // See the 'Macroexpansion' section some distance below for more information.
@@ -66,7 +65,6 @@ preprocess (function () {
      map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
     hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
   extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
-
 
 // Optimizations.
 // I've done a lot to prevent anything above linear time in both the lexer and the parser; this includes some low-level optimizations such as string interning. The various implementations of
@@ -474,7 +472,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // (or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
 // optimize macro-rewriting.
 
-// Defining offline macros is done in the normal execution path instead of via code extensions. For example:
+// Defining offline macros is done in the normal execution path. For example:
 
 // | caterwaul(function () {
 //     caterwaul.macro(qs[let (_ = _) in _], fn[n, v, e][qq[fn[$n][$e]($v)]]);
