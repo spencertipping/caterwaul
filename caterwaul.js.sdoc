@@ -59,11 +59,11 @@ Map() is an array map function, fairly standard really. I include it because IE 
 maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
 function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
 
-  var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},      has = function (o, p) {return own.call(o, p)},
-  gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),  qw = fn('$0.split(/\\s+/)'),  own = Object.prototype.hasOwnProperty,
+  var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},
+  gensym = (function (n) {return function () {return 'gensym' + (++n).toString(36)}})(0),  qw = fn('$0.split(/\\s+/)'),
 
      map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys},
-    hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return o},
+    hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
   extend = function (f) {for (var i = 1, p = f.prototype, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) for (var k in _) has(_, k) && (p[k] = _[k]); return f},
 
 Optimizations.
@@ -77,6 +77,15 @@ that all token comparisons are constant-time. (Another advantage is that autobox
 Also, the parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the JavaScript
 interpreter; syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only
 three linear-time passes over the token stream.
+
+There's something else too. I'm not confident that all JavaScript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5
+characters. If we throw a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often.
+To prevent this kind of thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to
+verify that the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and
+average-case O(1) regardless of the length of the candidate.
+
+  annotate_keys = function (o) {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
+            has = function (o, p) {return ! (p.length > o._max_length) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
 Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
@@ -135,10 +144,10 @@ whole is O(n). (Though perhaps with a large constant.)
                      'return throw case var const break continue void u; ;'),
 
     lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs = xs.concat(xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
-    lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'), lex_exp = lex_table('eE'),
-    lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                   lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
-      lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                  lex_slash = '/'.charCodeAt(0),
-     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                    lex_dot = '.'.charCodeAt(0),
+    lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
+    lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                    lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
+      lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
+     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
      lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
 
   Variable names.
@@ -154,6 +163,10 @@ whole is O(n). (Though perhaps with a large constant.)
   which will fall back to the normal linear comparison operation.) The '@' sign is prepended to avoid collision with any system-defined methods of objects, such as toString(). You have to
   establish a unique prefix before JavaScript objects become viable hash-tables, unfortunately.
 
+  I'm putting an ID on each string that comes out. This can be used to index into arrays in cases where otherwise a hashtable would be used (remember that hashtables use strings structurally,
+  not referentially, so it's O(n) in the string length again). Between this and the referential equality that the constructed string provides, we should be all set for O(1) comparisons most of
+  the time. (There are some exceptions floating around the code. I let this fly because the strings I'm comparing against are fixed-length.)
+
   Notice the pre-existing intern mapping from 'u;' to ';'. This is to correct for a lexing artifact that exists because the lexer infers operator direction and arity. There are cases in the
   code when a semicolon would normally be treated as a unary operator (such as a nullary return), but for obvious reasons it doesn't make sense to preserve that distinction in the lexed output
   stream. The simplest way to correct for lexer output issues is to deviously redirect its interned symbol table, and that's exactly what's going on here. Note that this is really an
@@ -162,7 +175,7 @@ whole is O(n). (Though perhaps with a large constant.)
 
     lex = $c.lex = function (s) {
       var s = s.toString(), mark = 0, cs = [], c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', ts = [],
-          interned = {'@u;': new String(';')}, intern = function (s) {return interned['@' + s] || (interned['@' + s] = new String(s))};
+          sym = {'@u;': new String(';')}, symbol_count = 0, intern = function (s) {var k = '@' + s, result = sym[k] || (sym[k] = new String(s)); result._id = ++symbol_count; return result};
 
       for (var i = 0, l = s.length; i < l || (i = 0); ++i) cs.push(s.charCodeAt(i));
 
@@ -234,6 +247,7 @@ whole is O(n). (Though perhaps with a large constant.)
   t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
   avoid duplicated logic.)
 
+      if (i === mark) throw new Error ('Internal error: The lexer failed to consume input and is throwing this error instead of entering an infinite loop.');
       t !== false && ts.push(intern(t === true ? s.substring(mark, i) : t));
     }
     return ts},
@@ -254,15 +268,16 @@ we can grab the token that precedes () (along with perhaps one more in the case 
                                     'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
-   parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return o}) (parse_reduce_order),
+   parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)}) (parse_reduce_order),
    parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
                                            for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs}) (parse_reduce_order),
 
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
-   parse_r_until_block = {'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1},    parse_accepts = {'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'},
+   parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1}),
+         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),
       parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),     parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void'),
-           parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = {'(':')', '[':']', '{':'}', '?':':'},       parse_invisible = hash('() [] i;'),
- parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),  parse_also_expression = hash('function'),
+           parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),  parse_invisible = hash('() [] i;'),
+ parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),            parse_also_expression = hash('function'),
 
   Syntax data structures.
   There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -378,11 +393,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   this all nodes will be children or siblings of root. Note that the indexing I mentioned above isn't strictly by operator. It's by reduction order, which is arguably more important. That's
   what the parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 1.)
 
-      for (var i = 0, l = ts.length, _ = null; _ = ts[i], i < l; ++i) _ == gs_top          ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1],
-                                                                                                                                            head = head ? head.p : parent, parent = null) :
-                                                                      (has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), parent = push(new syntax_node(_)), head = null) :
-                                                                                              push(new syntax_node(_)),
-                                                                       has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head || parent));
+      for (var i = 0, l = ts.length, _ = null; _ = ts[i], i < l; ++i)
+        _ == gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], head = head ? head.p : parent, parent = null) :
+                      (has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), parent = push(new syntax_node(_)), head = null) : push(new syntax_node(_)),
+                       has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head || parent));
 
   Second step, part 1: fold function calls, dots, and dereferences.
   I'm treating this differently from the generalized operator folding because of the syntactic inference required for call and dereference detection. Nothing has been folded at this point
@@ -533,6 +547,10 @@ extra macroexpansion you would have to wrap the whole expression in another macr
   }) ();
 
 This is an eager macro; by outputting the already-expanded contents, it gets another free pass through the macroexpander.
+
+  Indexing.
+  Just like we do in the parser, we index the tree for macroexpansion. The only difference is that this time we index the whole thing, not just nodes that might happen to interest us. This
+  includes every single constant node
 
   this.caterwaul = $c;
 
