@@ -40,7 +40,7 @@ Macros are specified by a pattern and an expansion function. For example, let's 
       let(x = 5) in alert(x);           // alerts 5
     });
 
-The `qs[]` macro lets you **q**uote **s**yntax, and returns a syntax tree. `_` is used as a wildcard for pattern matching; the matched fragments of syntax are passed into the expander function
-in the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it out using `qs[]` again, but filled it in
-using the `s()` method (`s` stands for **s**usbstitute -- inspired by `s//` in Perl). `s` takes a node type and an array of replacements, filling in the template to be `(function (variable)
-{return expression}).call(this, value)`.
+The ``qs[]`` macro lets you `q`uote `s`yntax, and returns a syntax tree. ``_`` is used as a wildcard for pattern matching; the matched fragments of syntax are passed into the expander function
+in the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it out using ``qs[]`` again, but filled it in
+using the ``s()`` method (`s` stands for `s`usbstitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in the template to be ``(function (variable)
+{return expression}).call(this, value)``.
