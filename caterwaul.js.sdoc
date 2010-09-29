@@ -650,7 +650,7 @@ replication. This works by giving you access to copies of caterwaul() (and copie
 
 | var copy = caterwaul.clone (function () {
     // This function is for customizations. Totally optional; can also customize at the toplevel.
-    this.macro(qs[foo], fn[][qs[bar]]);
+    this.macro(qs[foo], fn_[qs[bar]]);
   });
 
 | copy(function () {
@@ -699,15 +699,16 @@ Related to this is a configure() method that modifies and returns the original f
                                                               return this.associate(name, 'method', function (attribute, value) {
                                                                 return this.associate(attribute, name, value)})}).
                                                             behavior('method', g.behaviors.method);
-                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
+                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})};
 
-              $c = this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}),
-                                          {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
+  this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
 
   Bootstrapping method behavior.
-  Setting up the behavior(), method(), ref(), and shallow() methods.
+  Setting up the behavior(), method(), ref(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the ref()
+  and shallow() methods are not core and are defined here. I'm also defining a 'configuration' function to make it clearer when an extension is being defined. For the moment it behaves
+  identically to 'ref', but that might change in the future.
 
-    behavior('ref').behavior('shallow', shallow_copy).
+    behavior('ref').behavior('shallow', shallow_copy).behavior('configuration').
 
 Global Caterwaul setup.
 Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
@@ -724,9 +725,8 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
      method('init',   function    (f, environment) {var expansion = this.expand(this.decompile(f)); return compile(expansion.tree, merge(expansion.environment, environment))}).
 
      method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)}).
-     method('expand_qs',   function (t) {
-       var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
-       return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
+     method('expand_qs',   function (t) {var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
+                                         return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
 
 Standard library.
 Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -741,18 +741,22 @@ You can also pass these libraries into a clone() call:
     ...
   });
 
+Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
+idea.
+
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
     method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this[_]).call(this); else this(_).call(this);
                                      return this}).
 
   Function abbreviations (the 'fn' library).
-  There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn[][e] constructs a nullary function returning e. Also includes
+  There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. Also includes
   forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative. This
   means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
 
-    ref('fn', function () {this.rmacro(qs[fn[_][_]],    function (vars, expression) {return qs[(function (_) {return _})].s('_', [vars, expression])});
-                           this.rmacro(qs[let[_] in _], function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
-                                                                                     return qs[fn[_][_].call(this, _)].s('_', [
-                                                                                       vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
-                                                                                       vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])});
-                           this.rmacro(qs[_, where[_]], function (expression, vars) {return qs[(let[_] in (_))].s('_', [vars, expression])})})}) ();
+    configuration('fn', function () {this.rmacro(qs[fn[_][_]],    function (vars, expression) {return qs[(function (_) {return _})].s('_', [vars, expression])}).
+                                          rmacro(qs[fn_[_]],      function (expression)       {return qs[(function () {return _})].s('_', [expression])}).
+                                          rmacro(qs[let[_] in _], function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
+                                                                                               return qs[fn[_][_].call(this, _)].s('_', [
+                                                                                                 vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
+                                                                                                 vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
+                                          rmacro(qs[_, where[_]], function (expression, vars) {return qs[(let[_] in (_))].s('_', [vars, expression])})})}) ();
