@@ -1,0 +1,13 @@
+Caterwaul fn standard library tests
+
+var fn = caterwaul.clone('fn');
+
+fn(function () {
+  eq(fn[x][x + 1](6), 7);
+
+  eq(let[y = 5] in y + 1, 6);
+  eq(let[y = 5, a = 6] in y + a, 11);
+
+  eq((z + 1, where[z = 5]), 6);
+  eq((q + w, where[q = 10, w = 100]), 110);
+}) ();
