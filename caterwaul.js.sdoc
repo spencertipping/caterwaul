@@ -108,70 +108,6 @@ to inherit it.
 
   _caterwaul = this.caterwaul,  _global = this,
 
-Configurations.
-Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
-replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
-
-| var copy = caterwaul.clone (function () {
-    // This function is for customizations. Totally optional; can also customize at the toplevel.
-    this.macro(qs[foo], fn[][qs[bar]]);
-  });
-
-| copy(function () {
-    var bar = 6;
-    return foo;
-  }) ();                // returns 6
-
-Related to this is a configure() method that modifies and returns the original function:
-
-| caterwaul.configure (function () {
-    // Global configuration using 'this'
-  });
-
-  Attributes and methods.
-  Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
-  so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
-  table that keeps track of what to do with each. Attributes show up in this table when you call one of the attribute-association methods:
-
-  | .ref('attribute', value)            Creates a reference-copying attribute. No copying is done at all; the attribute is cross-referenced between copies of the Caterwaul function.
-    .shallow('attribute', value)        Creates an attribute whose value is copied shallowly; for hashes or arrays.
-    .method('name', f)                  Creates a method bound to the Caterwaul function. f will be bound to any copies on those copies.
-
-  Naturally, attributes that don't appear in the table are left alone. You can add more of these attribute behaviors using the behavior() method:
-
-  | .behavior('name', definition)       Creates a new attribute behavior. definition() should take an original attribute value and return a new one, where 'this' is the new Caterwaul function.
-
-  Underlying this mechanism is the associate() method:
-
-  | .associate('attribute', 'behavior', value)          Creates an attribute with the given behavior and assigns it a value.
-
-  A couple of notes. First, these functions are bound to the function they modify; that is, you can eta-reduce them freely. Second, this is not a general purpose function replicator. All of
-  the functions returned here call their own init() method rather than sharing a function body somewhere. (To be fair, the init() method gets referenced -- so it's almost as good I suppose.) A
-  general-purpose way to do this would be to have g call f instead of g.init in the copy_of() function below. I'm not doing this in order to save stack frames; I want the function call
-  performance to be constant-time in the number of copies.
-
-  Another thing to be aware of is that this isn't a general-purpose metaclassing framework. I made a compromise by discouraging side-effecting initialization in the behavior-association
-  methods -- these should just copy things, reference them, or transform them in some nondestructive way. This makes it easier to have extensional copies of objects, since there are fewer
-  unknowns about the internal state. (e.g. we know that if 'foo' appears in the attribute table, we'll have something called 'foo' on the object itself and we can call its behavior -- we don't
-  have to wonder about anything else.)
-
-  associator_for = function (f) {return function (name, behavior, value) {return f[name] = (f.behaviors[f.attributes[name] = behavior] || id).call(f, value), f}},
-    shallow_copy = function (x) {return x && (x.constructor === Array ? Array.prototype.slice.call(x) : merge({}, x))},
-         copy_of = function (f) {var g = merge(function () {return g.init.apply(g, arguments)}, {behaviors: shallow_copy(f.behaviors), attributes: {}});
-                                 return se(g, function (g) {(g.associate = associator_for(g))('behavior', 'method', function (name, definition) {
-                                                              this.behaviors[name] = definition;
-                                                              return this.associate(name, 'method', function (attribute, value) {
-                                                                return this.associate(attribute, name, value);
-                                                              });
-                                                            });
-                                                            g.behavior('method', g.behaviors.method);
-                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
-
-              $c = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).
-                           behavior('ref').behavior('shallow', shallow_copy).method('clone',     function (f) {return se(copy_of(this), f && this(f))}).
-                                                                             method('configure', function (f) {return se(this,          f && this(f))}),
-                         {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}),
-
 Lexing.
 The lexer is for the most part straightforward. The only tricky bit is regular expression parsing, which requires the lexer to contextualize operators and operands. I've implemented this logic
 with an re flag that indicates whether the last token processed was an operator (if so, then we're expecting an operand and the next / delineates a regular expression).
@@ -423,11 +359,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         /   \                x  y  z
        x     y
 
+    This flatten() method returns the nodes along the chain of associativity, always from left to right. It is shallow, since generally you only need a localized flat tree. That is, it doesn't
+    descend into the nodes beyond the one specified by the flatten() call.
+
                  flatten: function () {var d = this.data;
-                                       return this.is_flat ? this : ! (has(parse_lr, d) && this.length) ? this.map(function (n) {return n.flatten()}) : se(has(parse_associates_right, d) ?
-                                         se(new this.constructor(d), bind(function (n) {for (var i = this; i.data === d; i = i[1]) n.push(i[0].flatten()); n.push(i.flatten())}, this)) :
-                                         se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1].flatten()); ns.push(i.flatten());
-                                                                                        for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this)), function () {this.is_flat = true})},
+                                       return ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                         se(new this.constructor(d), bind(function (n) {for (var i = this; i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                         se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                        for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
 
     Inspection and syntactic serialization.
     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -568,7 +507,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   should be in tree-array form.
 
       while (head.p) head = head.p;
-      return head.flatten();
+      return head;
     },
 
 Macroexpansion.
@@ -703,24 +642,91 @@ preserve JavaScript's behavior to keep things simple.
 
   compile = function (tree, environment) {var s = gensym();
                                           return (new Function(s, 'return ' + tree.rmap(function (n) {
-                                            return has(environment, n.data) && new syntax_node('(', new syntax_node('.', new syntax_node(s), n))}).serialize()))(environment)};
+                                            return has(environment, n.data) && new syntax_node('(', new syntax_node('.', new syntax_node(s), n))}).serialize()))(environment)},
+
+Configurations.
+Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
+replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
+
+| var copy = caterwaul.clone (function () {
+    // This function is for customizations. Totally optional; can also customize at the toplevel.
+    this.macro(qs[foo], fn[][qs[bar]]);
+  });
+
+| copy(function () {
+    var bar = 6;
+    return foo;
+  }) ();                // returns 6
+
+Related to this is a configure() method that modifies and returns the original function:
+
+| caterwaul.configure (function () {
+    // Global configuration using 'this'
+  });
+
+  Attributes and methods.
+  Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
+  so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
+  table that keeps track of what to do with each. Attributes show up in this table when you call one of the attribute-association methods:
+
+  | .ref('attribute', value)            Creates a reference-copying attribute. No copying is done at all; the attribute is cross-referenced between copies of the Caterwaul function.
+    .shallow('attribute', value)        Creates an attribute whose value is copied shallowly; for hashes or arrays.
+    .method('name', f)                  Creates a method bound to the Caterwaul function. f will be bound to any copies on those copies.
+
+  Naturally, attributes that don't appear in the table are left alone. You can add more of these attribute behaviors using the behavior() method:
+
+  | .behavior('name', definition)       Creates a new attribute behavior. definition() should take an original attribute value and return a new one, where 'this' is the new Caterwaul function.
+
+  Underlying this mechanism is the associate() method:
+
+  | .associate('attribute', 'behavior', value)          Creates an attribute with the given behavior and assigns it a value.
+
+  A couple of notes. First, these functions are bound to the function they modify; that is, you can eta-reduce them freely. Second, this is not a general purpose function replicator. All of
+  the functions returned here call their own init() method rather than sharing a function body somewhere. (To be fair, the init() method gets referenced -- so it's almost as good I suppose.) A
+  general-purpose way to do this would be to have g call f instead of g.init in the copy_of() function below. I'm not doing this in order to save stack frames; I want the function call
+  performance to be constant-time in the number of copies.
+
+  Another thing to be aware of is that this isn't a general-purpose metaclassing framework. I made a compromise by discouraging side-effecting initialization in the behavior-association
+  methods -- these should just copy things, reference them, or transform them in some nondestructive way. This makes it easier to have extensional copies of objects, since there are fewer
+  unknowns about the internal state. (e.g. we know that if 'foo' appears in the attribute table, we'll have something called 'foo' on the object itself and we can call its behavior -- we don't
+  have to wonder about anything else.)
+
+  associator_for = function (f) {return function (name, behavior, value) {return f[name] = (f.behaviors[f.attributes[name] = behavior] || id).call(f, value), f}},
+    shallow_copy = function (x) {return x && (x.constructor === Array ? Array.prototype.slice.call(x) : merge({}, x))},
+         copy_of = function (f) {var g = merge(function () {return g.init.apply(g, arguments)}, {behaviors: shallow_copy(f.behaviors), attributes: {}});
+                                 return se(g, function (g) {(g.associate = associator_for(g))('behavior', 'method', function (name, definition) {
+                                                              this.behaviors[name] = definition;
+                                                              return this.associate(name, 'method', function (attribute, value) {
+                                                                return this.associate(attribute, name, value)})}).
+                                                            behavior('method', g.behaviors.method);
+                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
+
+              $c = this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}),
+                                          {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
+
+  Bootstrapping method behavior.
+  Setting up the behavior(), method(), ref(), and shallow() methods.
+
+    behavior('ref').behavior('shallow', shallow_copy).
 
 Global Caterwaul setup.
 Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
-  this.caterwaul = $c.shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).
-                          ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).
-                       method('parse',     function                 (s) {return this.parse_lexed(this.lex(s))}).
-                       method('decompile', function                 (f) {return this.parse(f.toString())}).
-                       method('macro',     function (pattern, expander) {this.macro_patterns.push(pattern); this.macro_expanders.push(expander); return this}).
-                       method('rmacro',    function (pattern, expander) {return this.macro(pattern, bind(function () {return this.macroexpand(expander.apply(this, arguments))}, this))}).
-                       method('init',      function    (f, environment) {var expansion = this.expand(this.decompile(f));
-                                                                         return compile(expansion.tree, merge(expansion.environment, environment))}).
-                       method('expand',    function (t) {return this.expand_qs(this.macroexpand(t))}).
-                       method('expand_qs', function (t) {
-                         var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
-                         return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
-                       method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)});
+    shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).
+        ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).
+
+     method('parse',     fn('@parse_lexed(@lex($0))')).
+     method('decompile', fn('@parse($0.toString())')).
+     method('expand',    fn('@expand_qs(@macroexpand($0))')).
+     method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
+
+     method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {return this.macroexpand(expander.apply(this, arguments))}, this))}).
+     method('init',   function    (f, environment) {var expansion = this.expand(this.decompile(f)); return compile(expansion.tree, merge(expansion.environment, environment))}).
+
+     method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)}).
+     method('expand_qs',   function (t) {
+       var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
+       return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
 
 Standard library.
 Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -735,5 +741,18 @@ You can also pass these libraries into a clone() call:
     ...
   });
 
+    method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
+    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this[_]).call(this); else this(_).call(this);
+                                     return this}).
 
-                       }) ();
+  Function abbreviations.
+  There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn[][e] constructs a nullary function returning e. Also includes
+  forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative. This
+  means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
+
+    ref('fn', function () {this.rmacro(qs[fn[_][_]],    function (vars, expression) {return qs[(function (_) {return _})].s('_', [vars, expression])});
+                           this.rmacro(qs[let[_] in _], function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
+                                                                                     return qs[fn[_][_].call(this, _)].s('_', [
+                                                                                       vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
+                                                                                       vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])});
+                           this.rmacro(qs[_, where[_]], function (expression, vars) {return qs[(let[_] in (_))].s('_', [vars, expression])})})}) ();
