@@ -44,3 +44,20 @@ The ``qs[]`` macro lets you quote syntax, and returns a syntax tree. ``_`` is us
 the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it out using ``qs[]`` again, but filled it in using
 the ``s()`` method (`s` stands for susbstitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in the template to be ``(function (variable)
 {return expression}).call(this, value)``.
+
+Standard Macro Library
+----------------------
+
+Caterwaul comes with some standard macro libraries. To get access to them::
+
+    var with_fn = caterwaul.clone('fn');
+    with_fn(function () {
+      // Function creation:
+      var x = fn[y][y + 1](6);          // Now x is 7
+
+      // Let-bindings:
+      let [z = 10, t = 1] in z + t;     // Returns 11
+
+      // Where-bindings (Haskell-style, sort of)
+      q + w, where[q = 15, w = 5];      // Returns 20
+    });

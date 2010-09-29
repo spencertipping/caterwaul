@@ -731,13 +731,13 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
 Standard library.
 Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
 
-| caterwaul.configure(caterwaul.fn_macro);
+| caterwaul.configure(caterwaul.fn);
   // Shorthand:
-  caterwaul.configure('fn_macro');
+  caterwaul.configure('fn');
 
 You can also pass these libraries into a clone() call:
 
-| var copy = caterwaul.clone('fn_macro', 'let_binding', function () {
+| var copy = caterwaul.clone('fn', 'some_other_library', function () {
     ...
   });
 
@@ -745,7 +745,7 @@ You can also pass these libraries into a clone() call:
     method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this[_]).call(this); else this(_).call(this);
                                      return this}).
 
-  Function abbreviations.
+  Function abbreviations (the 'fn' library).
   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn[][e] constructs a nullary function returning e. Also includes
   forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative. This
   means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
