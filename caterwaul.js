@@ -338,25 +338,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //    /--- l --- |        |   <-- l ---   |        |
 //               +--------+               +--------+
 
-//   Note that it is not possible to omit the parent links. The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by
-//   one certain nodes fold their siblings underneath them, breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:
+//   The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by one certain nodes fold their siblings underneath them,
+//   breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:
 
 //   |     (1) <-> (2) <-> (3) <-> (4) <-> (5)             (1) <--> (3) <--> (5)
 //         / \     / \     / \     / \     / \     -->     / \     /   \     / \
 //                                                                /     \
 //                                                              (2)     (4)        <- No link between children
 //                                                              / \     / \           (see 'Fold nodes', below)
-
-//   Now imagine if we folded node (2) into node (4). The 'first' pointer of (3) would have to be updated, but that requires (2) to have a reference to (3). Conveniently, however, we can remove
-//   either the 'first' or 'last' pointer (though not both), since the nodes are externally indexed. In this case, I'm omitting the 'last' pointer. This is because most unary operators are
-//   right-associative; that is, they occur in prefix position. This means that the token on the right will be folded underneath, which would require the 'last' pointer of the folded-under
-//   child's parent to be updated frequently if it were there. By omitting it the logic for fold-right becomes much simpler, which should translate into (immeasurably) shorter runtimes.
-
-//   The operations performed on these links are:
-
-//   | 1. Linking them up in the first place. There are two ways to do this. One is to append a sibling to a node, and the other is to append a child. Each of these occurs only during the initial
-//        build phase, so the logic can be inlined there.
-//     2. Folding with left/right siblings. This happens multiple times and at several stages, so the logic is encapsulated into methods on parse links themselves.
 
 //   Fold nodes.
 //   Once a node has been folded (e.g. (3) in the diagram above), none of its children will change and it will gain no more children. The fact that none of its children will change can be shown
@@ -374,14 +363,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   contain pointers to siblings of [0]; these are still accessed by their 'l' and 'r' pointers. As the structure is folded, the number of children of each paren group should be reduced to just
 //   one. At this point the remaining element's 'l' and 'r' pointers will both be null, which means that it is in hierarchical form instead of linked form.
 
+//   After the tree has been fully generated and we have the root node, we have no further use for the parent pointers. This means that we can use subtree sharing to save memory. Once we're past
+//   the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
+//   (i.e. no parent pointer).
+
        syntax_node_inspect = fn('$0.inspect()'),  syntax_node_tostring = fn('$0 ? $0.serialize ? $0.serialize() : $0.toString() : ""'),
                syntax_node = extend(function (data) {this.data = data; this.length = 0; this.l = this.r = this.p = null;
-                                                     for (var i = 1, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) this.append(_.constructor === String ? new this.constructor(_) : _)},
+                                                     for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i) this.append(_.constructor === String ? new this.constructor(_) : _)},
                 {replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),                                           
                 reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
                   append: fn('(this[@length++] = $0).p = this'),                                    fold_r: fn('@r && @append(@r.unlink(this)), this'),  fold_rr: fn('@fold_r().fold_r()'),
                  sibling: fn('$0.p = @p, (@r = $0).l = this'),                                      unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
-                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),
+                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('this[@length++] = $0, this'),
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -407,7 +400,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     | qs[(foo(_), _ + bar(_))].s('_', [qs[x], qs[3 + 5], qs[foo.bar]])
 
                     each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
-                     map: function (f) {for (var n = new syntax_node(this.data), i = 0, l = this.length; i < l; ++i) n.append(f(this[i], i) || this[i]); return n},
+                     map: function (f) {for (var n = new syntax_node(this.data), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
                    reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
                     rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r},
 
@@ -415,6 +408,26 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                  parents: function ()  {var ps = [], n = this.p; while (n) ps.push(n = n.p); return ps},
 
                        s: function (data, xs) {var i = 0; return this.rmap(function (n) {return n.data === data && xs[i++]})},
+
+//     Structural transformation.
+//     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
+//     each of which is binary. JavaScript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
+//     .each() much more effectively.) Any binary operator can be transformed this way, and that is exactly what the flatten() method does. (flatten() returns a new tree; it doesn't modify the
+//     original.)
+
+//     The tree flattening operation looks like this for a left-associative binary operator:
+
+//     |        (+)
+//             /   \              (+)
+//          (+)     z     ->     / | \
+//         /   \                x  y  z
+//        x     y
+
+                 flatten: function () {var d = this.data;
+                                       return this.is_flat ? this : ! (has(parse_lr, d) && this.length) ? this.map(function (n) {return n.flatten()}) : se(has(parse_associates_right, d) ?
+                                         se(new this.constructor(d), bind(function (n) {for (var i = this; i.data === d; i = i[1]) n.push(i[0].flatten()); n.push(i.flatten())}, this)) :
+                                         se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1].flatten()); ns.push(i.flatten());
+                                                                                        for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this)), function () {this.is_flat = true})},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -431,7 +444,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                                                       has(parse_lr, op) ? map(syntax_node_tostring, [this[0], op, this[1]]).join(space) :
+                                                       has(parse_lr, op) ? map(syntax_node_tostring, this).join(space + op + space) :
                            has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
                                             has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[1].data !== '{' && this[2] && parse_accepts[op] === this[2].data ?
                                                                             op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
@@ -555,7 +568,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   should be in tree-array form.
 
       while (head.p) head = head.p;
-      return head;
+      return head.flatten();
     },
 
 // Macroexpansion.
@@ -707,6 +720,22 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                        method('expand_qs', function (t) {
                          var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
                          return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
-                       method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)})}) ();
+                       method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)});
+
+// Standard library.
+// Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
+
+// | caterwaul.configure(caterwaul.fn_macro);
+//   // Shorthand:
+//   caterwaul.configure('fn_macro');
+
+// You can also pass these libraries into a clone() call:
+
+// | var copy = caterwaul.clone('fn_macro', 'let_binding', function () {
+//     ...
+//   });
+
+
+                       }) ();
 
 // Generated by SDoc 

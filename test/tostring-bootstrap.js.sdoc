@@ -1,11 +1,9 @@
 Serialization via serialize()
 
-var n = function (s)    {return caterwaul.lex(s).join(' ')},
+var n = function (s)    {return caterwaul.lex(s).join(' ').replace(/\s+/g, ' ').replace(/;\s*\}/g, '}')},
     s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)},
     i = function (f)    {return eq(n(caterwaul.decompile(f).serialize()),
                                    n(f.toString()))}; //.replace(/\s+/g, ''))};
-
-Note. These tests will fail on Firefox and Rhino. They should work everywhere else.
 
 Hardcore test:
 
