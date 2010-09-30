@@ -11,6 +11,11 @@ if [[ $1 == clean ]]; then
   exit
 fi
 
+if [[ $1 == v8 ]]; then
+  no_rhino=yes
+  shift
+fi
+
 if [[ $1 == loc ]]; then
   echo "Total LOC/chars:   $(cat test/*.js caterwaul.js | wc -lm)"
   echo "Comment LOC/chars: $(grep '//' < caterwaul.js | wc -lm)"
@@ -27,12 +32,14 @@ for file in test/$1*.js; do
   else                    echo fail v8 $file >> .test-log
                           echo -e "\033[1;31mfail v8\033[0;0m: $file"; fi
 
-  cat $debug caterwaul.js lib/unit.js $file > tmp.js
-  rhino tmp.js
-  if [[ $? -eq 0 ]]; then echo pass rhino $file >> .test-log
-  else                    echo fail rhino $file >> .test-log
-                          echo -e "\033[1;31mfail rhino\033[0;0m: $file"; fi
-  rm -f tmp.js
+  if [[ -z "$no_rhino" ]]; then
+    cat $debug caterwaul.js lib/unit.js $file > tmp.js
+    rhino tmp.js
+    if [[ $? -eq 0 ]]; then echo pass rhino $file >> .test-log
+    else                    echo fail rhino $file >> .test-log
+                            echo -e "\033[1;31mfail rhino\033[0;0m: $file"; fi
+    rm -f tmp.js
+  fi
 done
 
 grep '^fail' .test-log && $0 clean
