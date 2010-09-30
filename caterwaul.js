@@ -643,8 +643,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // preserve JavaScript's behavior to keep things simple.
 
   compile = function (tree, environment) {var s = gensym();
-                                          return (new Function(s, 'return ' + tree.rmap(function (n) {
-                                            return has(environment, n.data) && new syntax_node('(', new syntax_node('.', new syntax_node(s), n))}).serialize()))(environment)},
+                                          return (new Function(s, 'return (' + tree.rmap(function (n) {
+                                            return has(environment, n.data) && new syntax_node('(', new syntax_node('.', new syntax_node(s), n))}).serialize() + ')'))(environment)},
 
 // Configurations.
 // Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
