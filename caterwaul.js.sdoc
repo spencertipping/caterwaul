@@ -242,7 +242,7 @@ much faster as well. Instead of guessing and backtracking as a recursive-descent
 example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
 we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
-    parse_reduce_order = map(hash, ['[ . ( [] ()', 'function', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
+    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
                                     '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue', 'var const',
                                     'if else try catch finally for switch with while do', ';']),
 
@@ -428,7 +428,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                        (has(parse_group, _) ? (grouping_stack.push(gs_top = parse_group[_]), parent = push(new syntax_node(_)), head = null) : push(new syntax_node(_)),
                         has(parse_inverse_order, _) && indexes[parse_inverse_order[_]].push(head || parent));
 
-  Second step, part 1: fold function calls, dots, and dereferences.
+  Second step, part 1: fold function literals, function calls, dots, and dereferences.
   I'm treating this differently from the generalized operator folding because of the syntactic inference required for call and dereference detection. Nothing has been folded at this point
   (with the exception of paren groups, which is appropriate), so if the node to the left of any ( or [ group is an operator, then the ( or [ is really a paren group or array literal. If, on
   the other hand, it is another value, then the group is a function call or a dereference. This folding goes left-to-right. The reason we also process dot operators is that they share the same
@@ -440,15 +440,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                                                \
                                                                                 bif <--> , <--> baz
 
-      for (var i = 0, i0 = indexes[0], l = i0.length, _ = null, _d = null, _l = null, _ld = null; _ = i0[i], _d = _ && _.data, _l = _ && _.l, _ld = _l && _l.data, i < l; ++i)
-        if (_d === '.')                                                                                                   _.fold_lr();
-   else if (has(parse_ambiguous_group, _d) && _l && (_ld === '.' || ! (has(lex_op, _ld) || has(parse_not_a_value, _ld)))) _l.wrap(new_node(new syntax_node(_d + parse_group[_d]))).p.fold_r();
+  This is actually merged into the for loop below, even though it happens before other steps do. See the 'ambiguous parse groups' section.
 
   Second step, part 2: fold operators.
   Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
   array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
 
-      for (var i = 1, l = indexes.length, forward = null, _ = null; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
+      for (var i = 0, l = indexes.length, forward = null, _ = null; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
         for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node = null, data = null; node = _[j], data = node && node.data, forward ? j < lj : j >= 0; j += inc)
 
     Binary node behavior.
@@ -456,6 +454,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     Operators in this class are considered to be 'fold_lr'; that is, they fold first their left sibling, then their right.
 
           if (has(parse_lr, data)) node.fold_lr();
+
+    Ambiguous parse groups.
+    As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that way
+    it reflects the precedence of dereferencing and invocation).
+
+     else if (has(parse_ambiguous_group, data) && node.l && (node.l.data === '.' ||
+                   ! (has(lex_op, node.l.data) || has(parse_not_a_value, node.l.data))))  node.l.wrap(new_node(new syntax_node(data + parse_group[data]))).p.fold_r();
 
     Unary left and right-fold behavior.
     Unary nodes have different fold directions. In this case, it just determines which side we grab the node from. I'm glad that JavaScript doesn't allow stuff like '++x++', which would make
