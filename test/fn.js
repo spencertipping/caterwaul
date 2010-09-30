@@ -4,6 +4,8 @@ var fn = caterwaul.clone('fn');
 
 fn(function () {
   eq(fn[x][x + 1](6), 7);
+  eq(fn[x, y][x + y](6, 7), 13);
+  eq(fn_[10](), 10);
 
   eq(let[y = 5] in y + 1, 6);
   eq(let[y = 5, a = 6] in y + a, 11);
