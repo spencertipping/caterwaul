@@ -345,7 +345,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                  collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
                  parents: function ()  {var ps = [], n = this.p; while (n) ps.push(n = n.p); return ps},
 
-                       s: function (data, xs) {var i = 0; return this.rmap(function (n) {return n.data === data && xs[i++]})},
+                       s: function (data, xs) {if (xs.constructor === Array) {var i = 0; return this.rmap(function (n) {return n.data === data && xs[i++]})}
+                                               else                          return this.rmap(function (n) {return n.data === data && xs})},
 
 //     Structural transformation.
 //     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
@@ -594,7 +595,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // | 1. Reassembly of different pieces (see above)
 //   2. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
-//   3. Performance bounds. This is optimized for the average case, but the pathological-worst-case performance is probably terrible.
+//   3. Performance bounds.
 
 // Macro vs. rmacro.
 // macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will want
@@ -623,13 +624,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Uses the straightforward brute-force algorithm to go through the source tree and expand macros. At first I tried to use indexes, but found that I couldn't think of a particularly good way to
 //   avoid double-expansion -- that is, problems like qs[qs[foo]] -- the outer must be expanded without the inner one. Most indexing strategies would not reliably (or if reliably, not profitably)
 //   index the tree in such a way as to encode containment. Perhaps at some point I'll find a faster macroexpander, especially if this one proves to be slow. At this point macroexpansion is by
-//   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree.
+//   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
+//   practice it's generally not quite so bad.)
 //   
-//   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility.
+//   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
 
-         macro_expand = function (t, macros, expanders) {
+//   The fourth parameter, 'context', is used to hand a 'this' reference to the macroexpander. This is necessary to get defmacro[] to work properly, and in general lets macros be side-effectful.
+//   (Not that you should be in the habit of defining side-effectful macros, but I certainly won't stop you.)
+
+         macro_expand = function (t, macros, expanders, context) {
                           return t.rmap (function (n) {for (var i = 0, l = macros.length, macro = null, match = null, replacement = null; i < l && (macro = macros[i]); ++i)
-                                                         if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(n, match))) return replacement})},
+                                                         if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
 
 // Environment-dependent compilation.
 // It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -718,15 +723,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Bootstrapping method behavior.
 //   Setting up the behavior(), method(), ref(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the ref()
-//   and shallow() methods are not core and are defined here. I'm also defining a 'configuration' function to make it clearer when an extension is being defined. For the moment it behaves
-//   identically to 'ref', but that might change in the future.
+//   and shallow() methods are not core and are defined here. I'm also defining a 'configuration' function to allow quick definition of new configurations. (These are loadable by their names when
+//   calling clone() or configure() -- see 'Standard library' below.)
 
-    behavior('ref').behavior('shallow', shallow_copy).behavior('configuration').
+    behavior('ref').behavior('shallow', shallow_copy).method('configuration', function (name, f) {this.configurations[name] = f; return this}).
 
 // Global Caterwaul setup.
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
-    shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).
+    shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
         ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).
 
      method('parse',     fn('@parse_lexed(@lex($0))')).
@@ -737,16 +742,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {return this.macroexpand(expander.apply(this, arguments))}, this))}).
      method('init',   function    (f, environment) {var expansion = this.expand(this.decompile(f)); return compile(expansion.tree, merge(expansion.environment, environment))}).
 
-     method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders)}).
+     method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('expand_qs',   function (t) {var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
-                                         return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function])}}).
+                                         return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function], this)}}).
 
 // Standard library.
 // Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
 
-// | caterwaul.configure(caterwaul.fn);
-//   // Shorthand:
-//   caterwaul.configure('fn');
+// | caterwaul.configure('fn');
+//   // Longhand access to the function:
+//   caterwaul.configurations.fn
 
 // You can also pass these libraries into a clone() call:
 
@@ -758,20 +763,48 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // idea.
 
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
-    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this[_]).call(this); else this(_).call(this);
-                                     return this}).
+    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this.configurations[_]).call(this);
+                                                                                                            else                          this(_).call(this);                      return this}).
 
 //   Function abbreviations (the 'fn' library).
 //   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. Also includes
 //   forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative. This
 //   means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
 
-    configuration('fn', function () {this.rmacro(qs[fn[_][_]],    function (vars, expression) {return qs[(function (_) {return _})].s('_', [vars, expression])}).
-                                          rmacro(qs[fn_[_]],      function (expression)       {return qs[(function () {return _})].s('_', [expression])}).
-                                          rmacro(qs[let[_] in _], function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
-                                                                                               return qs[fn[_][_].call(this, _)].s('_', [
-                                                                                                 vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
-                                                                                                 vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
-                                          rmacro(qs[_, where[_]], function (expression, vars) {return qs[(let[_] in (_))].s('_', [vars, expression])})})}) ();
+    configuration('fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[(function (_) {return _})].s('_', [vars, expression])}).
+                                          rmacro(qs[fn_[_]],       function       (expression) {return qs[(function  () {return _})].s('_', [expression])}).
+                                          rmacro(qs[let[_] in _],  function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
+                                                                                                return qs[fn[_][_].call(this, _)].s('_', [
+                                                                                                  vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
+                                                                                                  vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
+                                          rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in (_))].s('_', [vars, expression])}).
+                                          
+                                          rmacro(qs[_, when[_]],   function (expression, cond) {return qs[(_) && (_)].s('_', [cond, expression])}).
+                                          rmacro(qs[_, unless[_]], function (expression, cond) {return qs[(_) || (_)].s('_', [cond, expression])})}).
+
+//   Macro authoring tools (the 'defmacro' library).
+//   Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
+//   refers to the caterwaul function that is running. It is trivial to expand into 'null' and side-effectfully define a new macro on that caterwaul object.
+
+//   Another handy macro is 'with_gensyms', which lets you write hygienic macros. For example:
+
+//   | defmacro[forEach[_][_]][fn[xs, f][with_gensyms[i, l, xs][(function() {for (var i = 0, xs = _, l = xs.length, it; it = xs[i], it < l; ++it) {_}})()].s('_', [xs, f])]];
+
+//   This will prevent 'xs', 'l', and 'i' from being visible; here is a sample (truncated) macroexpansion:
+
+//   | forEach[[1, 2, 3]][console.log(it)]   ->  (function() {for (var _caterwaul_gensym_gesr8o7u_10fo11_ = 0, _caterwaul_gensym_gesr8o7u_10fo12_ = [1, 2, 3],
+//                                                                     _caterwaul_gensym_gesr8o7u_10fo13_ = _caterwaul_gensym_gesr8o7u_10fo12_.length, it;
+//                                                                 it = _caterwaul_gensym_gesr8o7u_10fo12_[_caterwaul_gensym_...], _caterwaul_gensym_... < ...; ...) {console.log(it)}})()
+
+//   Since nobody in their right mind would name a variable _caterwaul_gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to
+//   have gensym collisions. The probability of it is one-in-several-billion at least.)
+
+    configuration('defmacro', function () {this.rmacro(qs[defmacro[_][_]],     function (pattern, expansion) {var expanded = this.expand(expansion);
+                                                                                                              this.rmacro(pattern, this.compile(expanded.tree, expanded.environment));
+                                                                                                              return qs[null]}).
+                                                rmacro(qs[with_gensyms[_][_]], function    (vars, expansion) {if (vars.data !== ',') return expansion.s(vars.data, new this.syntax(this.gensym()));
+                                                                                                              for (var i = 0, vars = vars.flatten(), l = vars.length; i < l; ++i)
+                                                                                                                expansion = expansion.s(vars[i].data, new this.syntax(this.gensym()));
+                                                                                                              return qs[qs[_]].s('_', expansion)})})}) ();
 
 // Generated by SDoc 
