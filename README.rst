@@ -61,4 +61,31 @@ Caterwaul comes with some standard macro libraries. To get access to them::
 
       // Where-bindings (Haskell-style, sort of)
       q + w, where[q = 15, w = 5];      // Returns 20
+
+      // When and unless:
+      console.log(10), when[true];
+      console.log(10), unless[false];
     });
+
+Another library enables the ``defmacro[][]`` command::
+
+    var with_defmacro = caterwaul.clone('fn', 'defmacro');
+    with_defmacro(function () {
+      // Defining inline macros:
+      defmacro[foo[_]][fn[thing][qs[console.log(_)].s('_', thing)]];
+      foo[5];
+      foo[7];
+
+      // Using gensyms:
+      defmacro[forEach[_][_]]
+              [fn[array, body]
+                 [with_gensyms[i, l, xs][(function () {
+                  for (var i = 0, xs = _, l = xs.length, it; it = xs[i], i < l; ++i) {
+                    _
+                  }})()].s('_', [array, body])]];
+
+      // Logs 1, then 2, then 3:
+      forEach[[1, 2, 3]][console.log(it)];
+    });
+
+The Caterwaul source code and tests cover the uses of ``defmacro`` and ``with_gensyms`` in more detail.
