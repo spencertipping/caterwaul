@@ -77,7 +77,7 @@
 //   });
 
   var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},  qw = fn('$0.split(/\\s+/)'),
-  gensym = (function (n, m) {return function () {return '_caterwaul_gensym_' + n.toString(36) + '_' + (++m).toString(36) + '_'}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+  gensym = (function (n, m) {return function () {return '_gensym_' + n.toString(36) + '_' + (++m).toString(36) + '_'}})(+new Date(), Math.random() * (1 << 30) >>> 0),
       id = fn('$0'),
 
     bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
@@ -800,12 +800,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   This will prevent 'xs', 'l', and 'i' from being visible; here is a sample (truncated) macroexpansion:
 
-//   | forEach[[1, 2, 3]][console.log(it)]   ->  (function() {for (var _caterwaul_gensym_gesr8o7u_10fo11_ = 0, _caterwaul_gensym_gesr8o7u_10fo12_ = [1, 2, 3],
-//                                                                     _caterwaul_gensym_gesr8o7u_10fo13_ = _caterwaul_gensym_gesr8o7u_10fo12_.length, it;
-//                                                                 it = _caterwaul_gensym_gesr8o7u_10fo12_[_caterwaul_gensym_...], _caterwaul_gensym_... < ...; ...) {console.log(it)}})()
+//   | forEach[[1, 2, 3]][console.log(it)]   ->  (function() {for (var _gensym_gesr8o7u_10fo11_ = 0, _gensym_gesr8o7u_10fo12_ = [1, 2, 3],
+//                                                                     _gensym_gesr8o7u_10fo13_ = _gensym_gesr8o7u_10fo12_.length, it;
+//                                                                 it = _gensym_gesr8o7u_10fo12_[_gensym_...], _gensym_... < ...; ...) {console.log(it)}})()
 
-//   Since nobody in their right mind would name a variable _caterwaul_gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to
-//   have gensym collisions. The probability of it is one-in-several-billion at least.)
+//   Since nobody in their right mind would name a variable _gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to have gensym
+//   collisions. The probability of it is one-in-several-billion at least.)
 
 //   Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros.
 
