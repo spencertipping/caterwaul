@@ -312,7 +312,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                 reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
                   append: fn('(this[@length++] = $0).p = this'),                                    fold_r: fn('@r && @append(@r.unlink(this)), this'),  fold_rr: fn('@fold_r().fold_r()'),
                  sibling: fn('$0.p = @p, (@r = $0).l = this'),                                      unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
-                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('this[@length++] = $0, this'),
+                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('$0 && (this[@length++] = $0), this'),
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -365,11 +365,19 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     This flatten() method returns the nodes along the chain of associativity, always from left to right. It is shallow, since generally you only need a localized flat tree. That is, it doesn't
     descend into the nodes beyond the one specified by the flatten() call.
 
-                 flatten: function () {var d = this.data;
-                                       return ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
-                                         se(new this.constructor(d), bind(function (n) {for (var i = this; i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
-                                         se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
-                                                                                        for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+                 flatten: function () {var d = this.data; return ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                            se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                            se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                           for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+
+    Type detection and retrieval.
+    These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
+    otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
+
+               is_string: function () {return /['"]/.test(this.data.charAt(0))},               as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+               is_number: function () {return /\d/.test(this.data) && ! /^[\/\w'"]/.test(this.data)},  as_number: function () {return Number(this.data)},
+              is_boolean: function () {return this.data === 'true' || this.data === 'false'},         as_boolean: function () {return this.data === 'true'},
+               is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
 
     Inspection and syntactic serialization.
     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -732,14 +740,14 @@ Global Caterwaul setup.
 Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
     shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
-        ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).
+        ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).
 
      method('parse',     fn('@parse_lexed(@lex($0))')).
      method('decompile', fn('@parse($0.toString())')).
      method('expand',    fn('@expand_qs(@macroexpand($0))')).
      method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
 
-     method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {return this.macroexpand(expander.apply(this, arguments))}, this))}).
+     method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
      method('init',   function    (f, environment) {var expansion = this.expand(this.decompile(f)); return compile(expansion.tree, merge(expansion.environment, environment))}).
 
      method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
@@ -799,10 +807,28 @@ idea.
   Since nobody in their right mind would name a variable _caterwaul_gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to
   have gensym collisions. The probability of it is one-in-several-billion at least.)
 
+  Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros.
+
     configuration('defmacro', function () {this.rmacro(qs[defmacro[_][_]],     function (pattern, expansion) {var expanded = this.expand(expansion);
                                                                                                               this.rmacro(pattern, this.compile(expanded.tree, expanded.environment));
                                                                                                               return qs[null]}).
                                                 rmacro(qs[with_gensyms[_][_]], function    (vars, expansion) {if (vars.data !== ',') return expansion.s(vars.data, new this.syntax(this.gensym()));
                                                                                                               for (var i = 0, vars = vars.flatten(), l = vars.length; i < l; ++i)
                                                                                                                 expansion = expansion.s(vars[i].data, new this.syntax(this.gensym()));
-                                                                                                              return qs[qs[_]].s('_', expansion)})})}) ();
+                                                                                                              return qs[qs[_]].s('_', expansion)})}).
+
+  Divergence function syntax.
+  Rebase provides an infix function operator >$> that can be more readable, if more ambiguous, then Caterwaul's fn[][]. Enabling this configuration enables this notation from within Caterwaul.
+
+    configuration('dfn', function () {this.rmacro(qs[_ >$> _], function (vars, expansion) {return qs[function (_) {return _}].s('_', [vars.data === '(' ? vars[0] : vars, expansion])})}).
+
+  String interpolation.
+  Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
+  tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
+
+    configuration('string', function () {this.configure('fn').rmacro(qs[_], function (s) {
+                                          if (! s.is_string() || ! /#\{([^\}]+)\}/.test(s.data)) return false;
+                                          var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
+                                          s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
+                                          for (var i = 0, l = strings.length - 1; i < l; ++i) result.push(new this.syntax(q + strings[i] + q)).push(new this.syntax('(', this.parse(xs[i])));
+                                          return new this.syntax('(', result.push(new this.syntax(q + strings[strings.length - 1] + q)))})})}) ();
