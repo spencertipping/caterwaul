@@ -827,7 +827,7 @@ idea.
   tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
 
     configuration('string', function () {this.configure('fn').rmacro(qs[_], function (s) {
-                                          if (! s.is_string() || ! /#\{([^\}]+)\}/.test(s.data)) return false;
+                                          if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
                                           var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
                                           s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
                                           for (var i = 0, l = strings.length - 1; i < l; ++i) result.push(new this.syntax(q + strings[i] + q)).push(new this.syntax('(', this.parse(xs[i])));
