@@ -41,6 +41,7 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
   syn keyword jsVarBindingKeyword       const var contained
   syn keyword jsBindingKeyword          function catch contained
   syn match   jsBindingAssignment       /\w\+\s*=[^=]/ contains=jsOperator contained containedin=jsVarBinding
+  syn match   jsExtraBindingAssignment  /\w\+\s*=[^=]/ contains=jsOperator contained
 
 syn region    jsTernary                 matchgroup=jsTernaryOperator start=/?/ end=/:/ contains=TOP,jsColonLHS
 syn match     jsOperator                /[-+*^%&\|!~;=><,.]\{1,4\}/
@@ -55,8 +56,8 @@ syn keyword   jsPrototype               prototype constructor
 
 syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/     end=/]/ contains=TOP
 syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/fn\s*\[/     end=/]/ contains=jsOperator
-syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/    end=/]/ contains=jsOperator
-syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/  end=/]/ contains=jsOperator
+syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/    end=/]/ contains=jsOperator,jsExtraBindingAssignment
+syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/  end=/]/ contains=jsOperator,jsExtraBindingAssignment
 
 syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/fn_\s*\[/    end=/]/ contains=TOP
 syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/   end=/]/ contains=TOP
@@ -82,8 +83,6 @@ hi def link jsCaterwaulDfnSigil         Keyword
 hi def link jsCaterwaulQs               Special
 hi def link jsCaterwaulMacro            Special
 hi def link jsCaterwaulFn               Identifier
-hi def link jsCaterwaulLet              Identifier
-hi def link jsCaterwaulWhere            Identifier
 
 hi def link jsLineComment               Comment
 hi def link jsBlockComment              Comment
@@ -117,6 +116,7 @@ hi def link jsVarBindingConstruct       Keyword
 hi def link jsBindingConstruct          Special
 hi def link jsBindingKeyword            Keyword
 hi def link jsBindingAssignment         Type
+hi def link jsExtraBindingAssignment    Identifier
 hi def link jsParamBinding              Identifier
 
 hi def link jsReservedToplevel          Keyword
