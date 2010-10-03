@@ -43,7 +43,7 @@ Macros are specified by a pattern and an expansion function. For example, let's 
 
 The ``qs[]`` macro lets you quote syntax, and returns a syntax tree. ``_`` is used as a wildcard for pattern matching; the matched fragments of syntax are passed into the expander function in
 the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it out using ``qs[]`` again, but filled it in using
-the ``s()`` method (`s` stands for susbstitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in the template to be ``(function (variable)
+the ``s()`` method (`s` stands for substitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in the template to be ``(function (variable)
 {return expression}).call(this, value)``.
 
 Standard Macro Library
@@ -65,6 +65,12 @@ Caterwaul comes with some standard macro libraries. To get access to them::
       // When and unless:
       console.log(10), when[true];
       console.log(10), unless[false];
+    });
+
+    var with_string = caterwaul.clone('string');
+    with_string(function () {
+      // String interpolation with #{} blocks:
+      var s = '3 + 5 is #{3 + 5}';      // Now s is '3 + 5 is 8'
     });
 
 Another library enables the ``defmacro[][]`` command::
