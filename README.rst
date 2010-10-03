@@ -73,6 +73,13 @@ Caterwaul comes with some standard macro libraries. To get access to them::
       var s = '3 + 5 is #{3 + 5}';      // Now s is '3 + 5 is 8'
     });
 
+    var with_dfn = caterwaul.clone('dfn');
+    with_dfn(function () {
+      // Divergence-style inline functions:
+      var f = x >$> x + 1;
+      f(5);                             // Returns 6
+    });
+
 Another library enables the ``defmacro[][]`` command::
 
     var with_defmacro = caterwaul.clone('fn', 'defmacro');
