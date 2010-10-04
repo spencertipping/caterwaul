@@ -11,11 +11,14 @@ if [[ $1 == v8 ]]; then
   shift
 fi
 
+node lib/minify.js < caterwaul.js > caterwaul.min.js
+
 if [[ $1 == loc ]]; then
   echo "Total LOC/chars:   $(cat test/*.js caterwaul.js | wc -lm)"
   echo "Comment LOC/chars: $(grep '//' < caterwaul.js | wc -lm)"
   echo "Source LOC/chars:  $(grep -v '//' < caterwaul.js | grep -v '^$' | wc -lm)"
   echo "Test SLOC/chars:   $(cat test/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
+  echo "GZip bytes: $(gzip  -c9 caterwaul.min.js | wc -c)"
   exit
 fi
 

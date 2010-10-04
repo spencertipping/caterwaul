@@ -390,7 +390,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                 toString: fn('@inspect()'),
                  inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                               (this.r ? ' -> ' + this.r.inspect() : '')},
-               serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op) ? ' ' : '',
+               serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
