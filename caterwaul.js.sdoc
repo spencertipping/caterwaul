@@ -243,7 +243,7 @@ example of this is the () {} pair, which occurs in a bunch of different construc
 we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
     parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
-                                    '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue', 'var const',
+                                    '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue delete void', 'var const',
                                     'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
@@ -253,8 +253,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
    parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1}),
-         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),
-      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),     parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void'),
+         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}), parse_show = hash(';'),
+      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),     parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
            parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),  parse_invisible = hash('() [] i;'),
  parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),            parse_also_expression = hash('function'),
 
@@ -305,14 +305,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
   (i.e. no parent pointer).
 
-       syntax_node_inspect = fn('$0.inspect()'),  syntax_node_tostring = fn('$0 ? $0.serialize ? $0.serialize() : $0.toString() : ""'),
+       syntax_node_inspect = fn('$0 ? $0.inspect() : "(<>)"'),  syntax_node_tostring = fn('$0 ? $0.serialize ? $0.serialize() : $0.toString() : ""'),
                syntax_node = extend(function (data) {this.data = data; this.length = 0; this.l = this.r = this.p = null;
                                                      for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i) this.append(_.constructor === String ? new this.constructor(_) : _)},
-                {replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),                                           
-                reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@l && @append(@l.unlink(this)), this'),  fold_lr: fn('@fold_l().fold_r()'),
-                  append: fn('(this[@length++] = $0).p = this'),                                    fold_r: fn('@r && @append(@r.unlink(this)), this'),  fold_rr: fn('@fold_r().fold_r()'),
+                {replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),
+                reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@append(@l && @l.unlink(this))'),  fold_lr: fn('@fold_l().fold_r()'),
+                  append: fn('(this[@length++] = $0) && ($0.p = this), this'),                      fold_r: fn('@append(@r && @r.unlink(this))'),  fold_rr: fn('@fold_r().fold_r()'),
                  sibling: fn('$0.p = @p, (@r = $0).l = this'),                                      unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
-                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('$0 && (this[@length++] = $0), this'),
+                    wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('(this[@length++] = $0), this'),
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -340,7 +340,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                     each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
                      map: function (f) {for (var n = new syntax_node(this.data), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
                    reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
-                    rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r},
+                    rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r},
 
                  collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
                  parents: function ()  {var ps = [], n = this.p; while (n) ps.push(n = n.p); return ps},
@@ -394,7 +394,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                                                       has(parse_lr, op) ? map(syntax_node_tostring, this).join(space + op + space) :
+                                                       has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
                            has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
                                             has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[1].data !== '{' && this[2] && parse_accepts[op] === this[2].data ?
                                                                             op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
@@ -836,4 +836,11 @@ idea.
                                           s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
                                           for (var i = 0, l = xs.length; i < l; ++i) result.push(i < strings.length && new this.syntax(q + strings[i] + q)).
                                                                                             push(new this.syntax('(', this.parse(xs[i])));
-                                          return new this.syntax('(', result.push(xs.length < strings.length && new this.syntax(q + strings[strings.length - 1] + q)))})})}) ();
+                                          return new this.syntax('(', result.push(xs.length < strings.length && new this.syntax(q + strings[strings.length - 1] + q)))})}).
+
+  Code reconnaissance.
+  This is probably one of the coolest things about Caterwaul, especially on IE. It has the ability to annotate your source code and capture any value returned by any expression, including
+  figuring out when any expression produces an error. This approach works at the large-scale; by capturing every value over a span of time, you can then go back through the history
+  programmatically and pick out the ones of interest.
+
+    configuration('recon', function () {})}) ();

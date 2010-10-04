@@ -24,7 +24,7 @@ syn match     jsAssignment              /\w\+\s*=[^=]/ contains=jsOperator
 syn match     jsNumber                  /-\?\(\d*\.\d\+\|\d\+\.\d*\|\d\+\)\([eE][+-]\?\d\{1,3\}\)\?\|-\?0x[0-9A-Fa-f]\+\|-\?0[0-7]\+/
 syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"/ contains=jsStringEscape,jsCaterwaulEscape
 syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'/ contains=jsStringEscape,jsCaterwaulEscape
-syn region    jsRegexp                  matchgroup=jsQuote start=+/+ skip=+\\\\\|\\/+ end=+/[gims]*\s*$+ end=+/[gims]*\s*[-+*/^%&|=<>;.,)\]}]+me=e-1 oneline contains=jsStringEscape
+syn region    jsRegexp                  matchgroup=jsQuote start=+/[^ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*\s*$+ end=+/[gims]*\s*[-+*/^%&|=<>;.,)\]}]+me=e-1 oneline contains=jsStringEscape
   
   syn match   jsStringEscape            /\\\d\{3\}\|\\u[0-9A-Za-z]\{4\}\|\\[a-z"'\\]/ contained
   syn match   jsCaterwaulEscape         /#{[^}]\+}/ contains=TOP
@@ -41,7 +41,7 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
   syn keyword jsVarBindingKeyword       const var contained
   syn keyword jsBindingKeyword          function catch contained
   syn match   jsBindingAssignment       /\w\+\s*=[^=]/ contains=jsOperator contained containedin=jsVarBinding
-  syn match   jsExtraBindingAssignment  /\w\+\s*=[^=]/ contains=jsOperator contained
+  syn match   jsExtraBindingAssignment  /\w\+\s*=[^=]/ contains=jsOperator contained containedin=jsCaterwaulLet,jsCaterwaulWhere
 
 syn region    jsTernary                 matchgroup=jsTernaryOperator start=/?/ end=/:/ contains=TOP,jsColonLHS
 syn match     jsOperator                /[-+*^%&\|!~;=><,.]\{1,4\}/
@@ -56,8 +56,8 @@ syn keyword   jsPrototype               prototype constructor
 
 syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/           end=/]/ contains=TOP
 syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/fn\s*\[/           end=/]/ contains=jsOperator
-syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/          end=/]/ contains=jsOperator,jsExtraBindingAssignment
-syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/        end=/]/ contains=jsOperator,jsExtraBindingAssignment
+syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/          end=/]/ contains=TOP,jsBindingAssignment
+syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/        end=/]/ contains=TOP,jsBindingAssignment
 
 syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/fn_\s*\[/          end=/]/ contains=TOP
 syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/         end=/]/ contains=TOP

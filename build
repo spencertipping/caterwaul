@@ -1,13 +1,38 @@
 #!/bin/bash
 sdoc . lib test
 
+function start() {
+  echo starting $*
+}
+
+function pass-or-fail() {
+  if [[ $? -eq 0 ]]; then echo pass $* >> .test-log
+  else                    echo fail $* >> .test-log
+                          echo -e "\033[1;31mfail $*\033[0;0m:"; fi
+}
+
+function run-rhino() {
+  start rhino $*
+  cat "$@" > tmp.js
+  rhino tmp.js
+  pass-or-fail rhino $*
+  rm -f tmp.js
+}
+
+function run-v8() {
+  start v8 $*
+  d8 "$@"
+  pass-or-fail v8 $*
+}
+
 if [[ $1 == clean ]]; then
   rm -f test/*.js *.js
   exit
 fi
 
-if [[ $1 == v8 ]]; then
+if [[ $1 == fast || $1 == v8 ]]; then
   no_rhino=yes
+  no_min=yes
   shift
 fi
 
@@ -24,20 +49,10 @@ fi
 
 rm -f .test-log
 for file in test/$1*.js; do
-  echo $file
-  d8 caterwaul.js lib/unit.js $file
-  if [[ $? -eq 0 ]]; then echo pass v8 $file >> .test-log
-  else                    echo fail v8 $file >> .test-log
-                          echo -e "\033[1;31mfail v8\033[0;0m: $file"; fi
-
-  if [[ -z "$no_rhino" ]]; then
-    cat caterwaul.js lib/unit.js $file > tmp.js
-    rhino tmp.js
-    if [[ $? -eq 0 ]]; then echo pass rhino $file >> .test-log
-    else                    echo fail rhino $file >> .test-log
-                            echo -e "\033[1;31mfail rhino\033[0;0m: $file"; fi
-    rm -f tmp.js
-  fi
+                                          run-v8    caterwaul.js     lib/unit.js $file
+  [[ -z "$no_min" ]]                   && run-v8    caterwaul.min.js lib/unit.js $file
+  [[ -z "$no_rhino" ]]                 && run-rhino caterwaul.js     lib/unit.js $file
+  [[ -z "$no_rhino" && -z "$no_min" ]] && run-rhino caterwaul.min.js lib/unit.js $file
 done
 
 grep '^fail' .test-log && $0 clean

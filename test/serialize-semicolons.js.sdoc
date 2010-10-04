@@ -1,0 +1,4 @@
+Semicolon serialization test.
+
+eq(new caterwaul.syntax(';').inspect(), '(;)');
+eq(new caterwaul.syntax(';').serialize(), ';');

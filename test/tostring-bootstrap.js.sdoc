@@ -1,6 +1,6 @@
 Serialization via serialize()
 
-var n = function (s)    {return caterwaul.lex(s).join(' ').replace(/\s+/g, ' ').replace(/;\s*\}/g, '}')},
+var n = function (s)    {return caterwaul.lex(s).join(' ').replace(/\s+/g, ' ').replace(/;\s*\}/g, '}').replace(/^\s+|\s+$/g, '')},
     s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)},
     i = function (f)    {return eq(n(caterwaul.decompile(f).serialize()),
                                    n(f.toString()))}; //.replace(/\s+/g, ''))};
