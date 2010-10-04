@@ -742,10 +742,8 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
     shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
         ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).
 
-     method('parse',     fn('@parse_lexed(@lex($0))')).
-     method('decompile', fn('@parse($0.toString())')).
-     method('expand',    fn('@expand_qs(@macroexpand($0))')).
-     method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
+     method('parse',  fn('@parse_lexed(@lex($0))')).        method('decompile', fn('@parse($0.toString())')).
+     method('expand', fn('@expand_qs(@macroexpand($0))')).  method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
 
      method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
      method('init',   function    (f, environment) {var expansion = this.expand(this.decompile(f)); return compile(expansion.tree, merge(expansion.environment, environment))}).
@@ -773,6 +771,12 @@ idea.
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
     method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this.configurations[_]).call(this);
                                                                                                             else                          this(_).call(this);                      return this}).
+
+  The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting JavaScript runtimes such as SpiderMonkey. Firefox
+  failed the unit tests when ordinary parentheses were used because it requires disambiguation for expression-mode functions only at the statement level; thus syntax trees are not fully mobile
+  like they are ordinarily.
+
+    rmacro(parse(lex('qg[_]')), function (expression) {return new this.syntax('(', expression)}).
 
   Function abbreviations (the 'fn' library).
   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. Also includes

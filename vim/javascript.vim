@@ -54,14 +54,17 @@ syn keyword   jsBuiltinLiteral          true false null undefined
 syn keyword   jsBuiltinValue            this arguments
 syn keyword   jsPrototype               prototype constructor
 
-syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/     end=/]/ contains=TOP
-syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/fn\s*\[/     end=/]/ contains=jsOperator
-syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/    end=/]/ contains=jsOperator,jsExtraBindingAssignment
-syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/  end=/]/ contains=jsOperator,jsExtraBindingAssignment
+syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/           end=/]/ contains=TOP
+syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/fn\s*\[/           end=/]/ contains=jsOperator
+syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/          end=/]/ contains=jsOperator,jsExtraBindingAssignment
+syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/        end=/]/ contains=jsOperator,jsExtraBindingAssignment
 
-syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/fn_\s*\[/    end=/]/ contains=TOP
-syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/   end=/]/ contains=TOP
-syn region    jsCaterwaulUnless         matchgroup=jsCaterwaulMacro start=/unless\s*\[/ end=/]/ contains=TOP
+syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/fn_\s*\[/          end=/]/ contains=TOP
+syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/         end=/]/ contains=TOP
+syn region    jsCaterwaulUnless         matchgroup=jsCaterwaulMacro start=/unless\s*\[/       end=/]/ contains=TOP
+
+syn region    jsCaterwaulDefmacro       matchgroup=jsCaterwaulMacro start=/defmacro\s*\[/     end=/]/ contains=TOP
+syn region    jsCaterwaulWithGensyms    matchgroup=jsCaterwaulMacro start=/with_gensyms\s*\[/ end=/]/ contains=jsOperator
 
 syn match     jsCaterwaulDfnParens      /([A-Za-z0-9$_, ]*)\s*>\$>/ contains=jsOperator,jsCaterwaulDfnSigil,jsParens
 syn match     jsCaterwaulDfn            /\w\+\s*>\$>/               contains=jsOperator,jsCaterwaulDfnSigil
@@ -75,6 +78,9 @@ syn sync maxlines=100
 if main_syntax == "javascript"
   syn sync ccomment javaScriptComment
 endif
+
+hi def link jsCaterwaulDefmacro         Special
+hi def link jsCaterwaulWithGensyms      Identifier
 
 hi def link jsCaterwaulDfnParens        Identifier
 hi def link jsCaterwaulDfn              Identifier
