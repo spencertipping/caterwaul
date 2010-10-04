@@ -1,11 +1,6 @@
 #!/bin/bash
 sdoc . lib test
 
-if [[ $1 == debug ]]; then
-  debug="lib/divergence.js lib/divergence.rebase.js lib/divergence.debug.js lib/debug.js"
-  shift
-fi
-
 if [[ $1 == clean ]]; then
   rm -f test/*.js *.js
   exit
@@ -27,13 +22,13 @@ fi
 rm -f .test-log
 for file in test/$1*.js; do
   echo $file
-  d8 $debug caterwaul.js lib/unit.js $file
+  d8 caterwaul.js lib/unit.js $file
   if [[ $? -eq 0 ]]; then echo pass v8 $file >> .test-log
   else                    echo fail v8 $file >> .test-log
                           echo -e "\033[1;31mfail v8\033[0;0m: $file"; fi
 
   if [[ -z "$no_rhino" ]]; then
-    cat $debug caterwaul.js lib/unit.js $file > tmp.js
+    cat caterwaul.js lib/unit.js $file > tmp.js
     rhino tmp.js
     if [[ $? -eq 0 ]]; then echo pass rhino $file >> .test-log
     else                    echo fail rhino $file >> .test-log

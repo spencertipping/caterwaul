@@ -1,4 +1,0 @@
-Debugging definitions
-
-d.tracer = function (e) {var s = e.toString(); s.length < 1000 && print(s)};
-var preprocess = d.debug.trace;
