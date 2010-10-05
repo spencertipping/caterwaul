@@ -1,7 +1,7 @@
 // Caterwaul JS | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
-(function () {
+(function (f) {return f(f)}) (function (self) {
 
 // Introduction.
 // Caterwaul implements a very small Lisp in JavaScript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding
@@ -614,7 +614,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     this.macro(qs[literal[_]], fn[x][x]);
 //   });
 
-// While macro() is marginally faster than rmacro(), the difference isn't significant.
+// While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
 
 //   Matching.
 //   macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
@@ -740,7 +740,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
     shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
-        ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).
+        ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).ref('self', self).
+        ref('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match}).
 
      method('parse',  fn('@parse_lexed(@lex($0))')).        method('decompile', fn('@parse($0.toString())')).
      method('expand', fn('@expand_qs(@macroexpand($0))')).  method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
@@ -789,10 +790,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                                                                 return qs[fn[_][_].call(this, _)].s('_', [
                                                                                                   vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
                                                                                                   vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
-                                          rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in (_))].s('_', [vars, expression])}).
+                                          rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in qg[_])].s('_', [vars, expression])}).
                                           
-                                          rmacro(qs[_, when[_]],   function (expression, cond) {return qs[(_) && (_)].s('_', [cond, expression])}).
-                                          rmacro(qs[_, unless[_]], function (expression, cond) {return qs[(_) || (_)].s('_', [cond, expression])})}).
+                                          rmacro(qs[_, when[_]],   function (expression, cond) {return qs[qg[_] && qg[_]].s('_', [cond, expression])}).
+                                          rmacro(qs[_, unless[_]], function (expression, cond) {return qs[qg[_] || qg[_]].s('_', [cond, expression])})}).
 
 //   Macro authoring tools (the 'defmacro' library).
 //   Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
@@ -830,6 +831,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
 //   tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
 
+//   There is some weird stuff going on with splitting and bounds here. Most of it is IE6-related workarounds; IE6 has a buggy implementation of split() that fails to return elements inside match
+//   groups. It also fails to return leading and trailing zero-length strings (so, for example, splitting ':foo:bar:bif:' on /:/ would give ['foo', 'bar', 'bif'] in IE, vs. ['', 'foo', 'bar',
+//   'bif', ''] in sensible browsers). So there is a certain amount of hackery that happens to make sure that where there are too few strings empty ones get inserted, etc.
+
     configuration('string', function () {this.rmacro(qs[_], function (s) {
                                           if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
                                           var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
@@ -843,6 +848,128 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   figuring out when any expression produces an error. This approach works at the large-scale; by capturing every value over a span of time, you can then go back through the history
 //   programmatically and pick out the ones of interest.
 
-    configuration('recon', function () {})}) ();
+//   Recon works by post-processing your macroexpanded code. It traverses the expression tree inserting calls to a new hook function. This hook function records the calls that it receives,
+//   allowing you to browse the execution history. A more aggressive mode puts each expression in a try{} block so that errors can be pinpointed exactly. This mode isn't enabled by default,
+//   however, because it is much slower than just emitting trace calls.
+
+//   So, for example, basic transformation works like this (where f1 ... f4 are monitor functions):
+
+//   | var foo = function (x) {return x + 1};    =>   var foo = f1(function (x) {return f4(f2(x) + f3(1))});
+
+//   Under more aggressive transformation the code would become this:
+
+//   | var foo = function (x) {return x + 1};    =>   var foo = (function () {try {return f1(function (x) {
+//                                                                 return f4((function () {try {return ((function () {try {return f2(x)} catch (e) {e1(e); throw e}})() +
+//                                                                                                      (function () {try {return f3(1)} catch (e) {e2(e); throw e}})())}
+//                                                                                         catch (e) {e3(e); throw e}})());
+//                                                                 })}
+//                                                                 catch (e) {e4(e); throw e}})();
+
+//   It should be clear from this example that using aggressive error tracing is a much bigger deal than just using value tracing. Depending on your JS interpreter it could mean that your program
+//   becomes as much as 100x slower (and unfortunately it could also create stack overflows where there weren't any, since twice as many stack frames will be allocated). Also, you can triangulate
+//   the error position without wrapping everything in a try{} block. The way to do this is to look at the list of expressions that are still waiting to be evaluated. These, if followed
+//   backwards, lead directly to the error -- at least, provided that the error stops your program.
+
+//     Event log API.
+//     It's fairly straightforward to find out what happened in your program (presumably you have access to a shell of some sort at this point). All you have to do is refer to your caterwaul
+//     function's recon.log, like this:
+
+//     | caterwaul.recon.log.length
+
+//     You can also subscript the log as you would an array, e.g. recon.log[10], as well as querying it in various ways. Probably you'll want to query it:
+
+//     | caterwaul.recon.log.grep('_ + _')                 // Returns a sub-log of binary additions (the sub-log has the same interface as the main one, but fewer events)
+//       caterwaul.recon.log.grep('foo(5, _)', 10)         // Invocations of 'foo' on 5 and something else, returning ten events around each match for context
+//       caterwaul.recon.log.grep('let[x = _] in _')       // Grep patterns are macroexpanded for you, so this will match anything generated by let[x = _] in _ (underscores are preserved as wild)
+
+//     | ...log.grep(fn[e][e.value === undefined])         // Greps events instead of patterns, creating a sub-log of events that were mapped to truthy values
+//       ...log.grep(fn[e][e.value > 4], 100)              // Returns 100 context events around each match
+
+//     | ...log.between('++_', '_ < l')                    // Sub-log of each run of expressions starting with ++_ and ending with _ < l (the bounds are included)
+//       ...log.after('new _(foo)')                        // Sub-log of events that occurred strictly after the first match -- does not include the matching event
+//       ...log.after('new _(foo)', 10)                    // Sub-log of events that occurred strictly after the tenth match
+//       ...log.before('new _(bar)')                       // Sub-log of events that occurred strictly before the last match -- does not include the matching event
+//       ...log.before('new _(bar)', 10)                   // Sub-log of events that occurred strictly before the tenth match from the last
+
+//     | ...log.unpaired()                                 // Find events whose pair is unset -- this almost always indicates that an error occurred (or you used an escaping continuation, if your
+//                                                         // JS interpreter supports those)
+
+//     | ...log.first()                                    // A sub-log of the first event in the log
+//       ...log.first(50)                                  // A sub-log of the first 50 events
+//       ...log.last()                                     // A sub-log of the last event
+//       ...log.last(100)                                  // A sub-log of the last 100 events
+
+//     | ...log.each(f)                                    // Invokes f on each event and returns the log
+//       ...log.map(f)                                     // Invokes f on each event and returns an array of results
+
+//     The reason you can grep() on a string (which seems superfluous given the presence of qs[]) is that debugging is often done outside of caterwaul()ed functions, so qs[] is unavailable. The
+//     simplest way to specify syntax is with a string that is then parsed (we're not going for super-high-performance in a debug shell).
+
+//     Events contain several useful pieces of information. One is a reference to the syntax node that generated them (note that statement-level constructs such as 'if', 'for', etc. are not
+//     traced due to JavaScript's syntactic limitations). Another is a reference to the value that was produced (though it may have been modified since -- Caterwaul can't keep track of the
+//     original in the state it was in at the time of event generation). Finally, there is some event-specific information that is also tracked. This includes a sequence number (which is equal to
+//     the index in the original log; that is, caterwaul.recon.log[0].sequence === 0) and a time offset. The time offset is the number of milliseconds since the debugger was invoked on the
+//     function; it is not meaningful for profiling (since a bunch of extra machinery is running inside your code), but it does give you some indication of the real-time ordering of events, as
+//     well as indicating where large delays are (e.g. AJAX calls).
+
+//     | ...log[0].node            // A reference to the syntax node
+//       ...log[0].value           // A reference to the value
+//       ...log[0].pending         // Truthy if this event is a 'will be evaluated' event (see below)
+//       ...log[0].error           // Any error that was produced when evaluating the expression -- only available for aggressive tracing
+//       ...log[0].sequence        // The index of this event in the original log (for log[0], it will always be 0)
+//       ...log[0].time            // The number of milliseconds that elapsed between the original caterwaul() call and the creation of this event
+//       ...log[0].pair            // The complement event -- if this one is pending, then the pair contains the value, and vice versa
+
+//     There are a few things to note when working with events. The most important one is that an event is created not just when a value is generated; it also signifies when a value is, at some
+//     point, going to be generated. For example, given this expression:
+
+//     | x + y * z()
+
+//     These events will appear:
+
+//     | 1. x + y * z() will be evaluated        5. y will be evaluated          9. z = function () {return 20}
+//       2. x will be evaluated                  6. y = 10                      10. z() = 20
+//       3. x = 4                                7. z() will be evaluated       11. y * z() = 200
+//       4. y * z() will be evaluated            8. z will be evaluated         12. x + y * z() = 204
+
+//     The 'will be evaluated' events obviously don't have values. These instead are 'pending', such that log[0].pending === true. Here, the 'pair' properties are set like this:
+
+//     | 1 <-> 12, 2 <-> 3, 4 <-> 11, 5 <-> 6, 7 <-> 10, 8 <-> 9.
+
+//     Now let's suppose that z() threw an error instead of returning a number. The event stream would contain only events 1-9; anything after that would have been unwound by the exception. For
+//     cases like this, the unpaired() log method gives you the error trace:
+
+//     | ...log.unpaired()         -> sub-log of events 1, 4, and 7, which are:  x + y * z() will be evaluated
+//                                                                               y * z() will be evaluated
+//                                                                               z() will be evaluated
+
+//     Because you know that z evaluated successfully -- it was defined at the time of evaluation (otherwise it would also be unpaired), the cause must be the invocation of z. Ideally z is traced
+//     as well, so you can tell exactly what about it failed.
+
+//     Note that the 'recon' environment, once added to a caterwaul function, gets referenced instead of copied. In order to get a different recon environment, you have to use the 'recon'
+//     configuration again, like this:
+
+//     | var c1 = caterwaul.clone('recon');
+//       var c2 = c1.clone('recon');
+
+//     Configuring the annotator.
+//     The 'recon' configuration adds a function, caterwaul.recon, that performs the source code annotation. It's low-level; that is, it takes a syntax tree and returns an annotated syntax tree,
+//     so generally you won't use it directly. But all configuration is done by calling configuration methods on the function. So, for example, to enable aggressive annotation:
+
+//     | caterwaul.recon.aggressive(true);         // Incidentally, this returns caterwaul.recon so you can further configure it
+//       caterwaul.recon.aggressive()              // Returns the current state of the 'aggressive' setting
+
+//     Configuration options such as these determine the behavior of the caterwaul.recon annotator. I mentioned earlier that you don't use caterwaul.recon directly to annotate code; what happens
+//     instead is that the caterwaul function's 'init' method (which is what caterwaul() does when you use it as a function) is augmented to do this for you. So all you have to do is something
+//     like this:
+
+//     | var c = caterwaul.clone('recon');
+//       c.recon.aggressive(true);
+//       c(function () {...}) ();
+
+//     The third line automatically adds debugging annotations to the function and then invokes it.
+
+    configuration('recon', function () {var old_init = this.init, recon;
+                                        this.ref('recon', recon = function (tree) {  })})});
 
 // Generated by SDoc 

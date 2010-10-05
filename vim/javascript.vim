@@ -55,6 +55,7 @@ syn keyword   jsBuiltinValue            this arguments
 syn keyword   jsPrototype               prototype constructor
 
 syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/           end=/]/ contains=TOP
+syn region    jsCaterwaulQg             matchgroup=jsCaterwaulMacro start=/qg\s*\[/           end=/]/ contains=TOP
 syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/fn\s*\[/           end=/]/ contains=jsOperator
 syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/          end=/]/ contains=TOP,jsBindingAssignment
 syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/        end=/]/ contains=TOP,jsBindingAssignment
