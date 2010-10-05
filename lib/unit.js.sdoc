@@ -17,7 +17,7 @@ var aeq = function (xs, ys, message) {
 var test = function (f) {
   try {f()}
   catch (e) {
-    on_error(e);
+    on_error(e instanceof Error ? e.toString() : e);
     on_error('(Test failure for ' + f.toString() + ')');
   }
 };
