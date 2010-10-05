@@ -830,7 +830,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
 //   tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
 
-    configuration('string', function () {this.configure('fn').rmacro(qs[_], function (s) {
+    configuration('string', function () {this.rmacro(qs[_], function (s) {
                                           if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
                                           var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
                                           s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
