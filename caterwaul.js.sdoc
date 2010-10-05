@@ -742,7 +742,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
     shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
         ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).ref('self', self).
 
-     method('reinitialize', fn('$1 = $0(@self), $1($1)')).
+     method('reinitialize', fn('$1 = $0(@self), $1($1).deglobalize()')).
 
      method('parse',  fn('@parse_lexed(@lex($0))')).        method('decompile', fn('@parse($0.toString())')).
      method('expand', fn('@expand_qs(@macroexpand($0))')).  method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
@@ -1002,10 +1002,31 @@ idea.
     Something awesome: annotating Caterwaul itself.
     Caterwaul gives you a copy of its initialization function and lets you reinitialize the library with a transformation of itself. For example:
 
-    | caterwaul.reinitialize(caterwaul.clone('recon'))                  // Returns the new caterwaul, replacing the original global 'caterwaul' symbol
-      caterwaul.reinitialize(caterwaul.clone('recon')).deglobalize()    // Returns the new caterwaul but doesn't replace the original 'caterwaul' symbol
+    | caterwaul.reinitialize(caterwaul.clone('recon'))                  // Returns the new caterwaul, leaving the global 'caterwaul' symbol intact (as long as you didn't break deglobalize())
 
-    Doing this can be useful for debugging macros.
+    Doing this can be useful for debugging macros, configurations, or other things.
 
-    configuration('recon', function () {var old_init = this.init, recon = function (tree) { };
-                                        this.ref('recon', this.util.configurable(recon, 'aggressive'))})});
+    configuration('recon', function () {var old_init = this.init, recon = merge(function (tree) {return recon.annotate(tree)},
+
+      Annotation logic.
+      In a reasonably orthogonal language such as Lisp, annotating nodes is relatively trivial. However, JavaScript doesn't provide syntactic uniformity, so we have to work around some
+      constructs. This includes everything at the statement-level (e.g. if, for, var, etc.), any lvalues (though subcomponents of those lvalues can be annotated), and custom annotation for
+      function invocations. (This has to do with the fact that invocation context determines function binding.)
+
+      Specifically, here is the traversal pattern (where A is the annotation function and f is the hook):
+
+      | A(identifier)     ->    f(identifier)
+        A(x op y)         ->    f(A(x) op A(y))
+        A(op x)           ->    f(op A(x))
+        A(x.y(z))         ->    (function () {var _gensym_ = A(x); return A(_gensym_.y).call(_gensym_, z)})()
+        A(x[y](z))        ->    (function () {var _gensym_ = A(x); return A(_gensym_[y]).call(_gensym_, z)})()
+        A(x(y))           ->    A(rvalue)(A(rvalue))
+        A(if (v1) v2)     ->    if (A(v1)) A(v2)
+        A({n ...})        ->    {A(n.flatten())}
+        A(x [op]= y)      ->    x = A(y)
+        A(x.y [op]= z)    ->    A(x).y = A(z)
+        A(x[y] [op]= z)   ->    A(x)[y] = A(z)
+
+      {});
+
+                                        this.method('init', function (f) {return recon(old_init.call(this, f))}).ref('recon', this.util.configurable(recon, 'aggressive'))})});
