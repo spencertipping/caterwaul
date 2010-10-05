@@ -3,6 +3,8 @@ Unit testing library functions
 var already_failed = false;
 var on_error = function (e) {throw new Error(e)};
 
+var log = function (message) {print('Log: ' + message)};
+
 var eq = function (x, y, message) {
   if (x == y) return true;
   else        return on_error((message ? message + ': ' : '') + '\n' + x + '\n\n!==\n\n' + y);

@@ -4,6 +4,11 @@
     <title>Caterwaul Unit Tests</title>
     <script src='../lib/unit.js'></script>
     <script src='../caterwaul.min.js'></script>
+
+    <style>
+      #log {font-family: monospace}
+      #log div {border-bottom: solid 1px #ccc; padding: 10px}
+    </style>
   </head>
   <body>
     Any test failures will appear below.
@@ -16,6 +21,10 @@
         var d = document.createElement('div');
         d.appendChild(document.createTextNode(e));
         document.getElementById('log').appendChild(d);
+      };
+
+      log = function (message) {
+        on_error('Log: ' + message);
       };
     </script>
 
