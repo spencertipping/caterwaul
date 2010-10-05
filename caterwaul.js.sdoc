@@ -253,8 +253,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
    parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1}),
-         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}), parse_show = hash(';'),
-      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),     parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
+         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),
+      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
            parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),  parse_invisible = hash('() [] i;'),
  parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),            parse_also_expression = hash('function'),
 
@@ -381,6 +381,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                is_number: function () {return /\d/.test(this.data) && ! /^[\/\w'"]/.test(this.data)},  as_number: function () {return Number(this.data)},
               is_boolean: function () {return this.data === 'true' || this.data === 'false'},         as_boolean: function () {return this.data === 'true'},
                is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+
+       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
 
     Inspection and syntactic serialization.
     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -1035,23 +1037,26 @@ idea.
       qs[if(_)_], since that would be putting a statement-mode command ('if') into an expression context. (I could build the nodes using strings or something, but that's too much work;
       besides, using macros for this is inefficient anyway.)
 
-      {annotate: function (node) {return node && (node.length === 0 ? recon.wrap(node, node) :
-                                               /=$/.test(node.data) ? recon.wrap(node, new s(node.data, node[0].data === '[]' ? new s('[]', recon.annotate(node[0][0]),
-                                                                                                                                            new s('[', recon.annotate(node[0][1][0]))) :
-                                                                                                        node[0].data ===  '.' ? new s('.',  recon.annotate(node[0][0]), node[0][1]) : node[0],
-                                                                                                        recon.annotate(node[1]))) :
+      {annotate: function (node) {return node && (node.is_number() || node.is_string() || node.is_boolean() || node.is_regexp() || node.data === 'null' || node.data === 'undefined' ? node :
+                    node.length === 0  ?  recon.wrap(node, node) :
+                 /=$/.test(node.data)  ?  recon.wrap(node, new s(node.data, node[0].data === '[]' ? new s('[]', recon.annotate(node[0][0]), new s('[', recon.annotate(node[0][1][0]))) :
+                                                                            node[0].data ===  '.' ? new s('.',  recon.annotate(node[0][0]), node[0][1]) : node[0], recon.annotate(node[1]))) :
 
-node.data === '()' && node[0].data !== '[]' && node[0].data !== '.' ? recon.wrap(node, new s('()', recon.annotate(node[0]), new s('(', recon.annotate(node[1][0])))) :
+                   node.data === '()'  ?  recon.wrap(node, node[0].data !== '[]' && node[0].data !== '.' ?
+                                            new s('()', recon.annotate(node[0]), new s('(', recon.annotate(node[1][0]))) :
+                                            (function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].s('_',
+                                                                  [gensym, recon.annotate(node[0][0]), new s(node[0].data, gensym, node[0].data === '[]' ?
+                                                                     new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) : new s('.',  gensym, node[0][1])), gensym,
+                                                                   new s('(', recon.annotate(node[1][0]))])}) (new s(gensym()))) :
 
-                                                 node.data === '()' ? recon.wrap((function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].
-                                                                                   s('_', [gensym, recon.annotate(node[0][0]), new s(node[0].data, gensym,
-                                                                                           node[0].data === '[]' ? new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) :
-                                                                                                                   new s('.',  gensym, node[0][1])), gensym,
-                                                                                           new s('(', recon.annotate(node[1][0]))])}) (new s(gensym()))) :
+                  node.data === 'var'  ?  new s('var', node[0].data === ',' ? new s(',', node[0].flatten().map(function (n) {return n.data === '=' && new s(n.data, n[0], recon.annotate(n[1]))})) :
+                                                       node[0].data === '=' ? new s('=', node[0][0], node[0][1]) : node[0]) :
+             node.data === 'function' ||
+                node.data === 'catch'  ?  new s(node.data, node[0], recon.annotate(node[1])) :
 
-                                                null);
+              
 
-                                                                                       },
+                                          null)},
 
            wrap: function (node) {},
 
