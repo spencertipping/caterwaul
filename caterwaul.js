@@ -834,9 +834,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                           if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
                                           var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
                                           s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
-                                          for (var i = 0, l = xs.length; i < l; ++i) result.push(i < strings.length && new this.syntax(q + strings[i] + q)).
+                                          for (var i = 0, l = xs.length; i < l; ++i) result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).
                                                                                             push(new this.syntax('(', this.parse(xs[i])));
-                                          return new this.syntax('(', result.push(xs.length < strings.length && new this.syntax(q + strings[strings.length - 1] + q)))})}).
+                                          return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
 
 //   Code reconnaissance.
 //   This is probably one of the coolest things about Caterwaul, especially on IE. It has the ability to annotate your source code and capture any value returned by any expression, including
