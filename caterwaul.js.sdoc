@@ -843,4 +843,38 @@ idea.
   figuring out when any expression produces an error. This approach works at the large-scale; by capturing every value over a span of time, you can then go back through the history
   programmatically and pick out the ones of interest.
 
-    configuration('recon', function () {})}) ();
+  Recon works by post-processing your macroexpanded code. It traverses the expression tree inserting calls to a new hook function. This hook function records the calls that it receives,
+  allowing you to browse the execution history. A more aggressive mode puts each expression in a try{} block so that errors can be pinpointed exactly. This mode isn't enabled by default,
+  however, because it is much slower than just emitting trace calls.
+
+  So, for example, basic transformation works like this (where f1 ... f4 are monitor functions):
+
+  | var foo = function (x) {return x + 1};    =>   var foo = f1(function (x) {return f4(f2(x) + f3(1))});
+
+  Under more aggressive transformation the code would become this:
+
+  | var foo = function (x) {return x + 1};    =>   var foo = (function () {try {return f1(function (x) {
+                                                                return f4((function () {try {return ((function () {try {return f2(x)} catch (e) {e1(e); throw e}})() +
+                                                                                                     (function () {try {return f3(1)} catch (e) {e2(3); throw e}})())}
+                                                                                      catch (e) {e3(e); throw e}})());
+                                                                })}
+                                                                catch (e) {e4(e); throw e}});
+
+  It should be clear from this example that using aggressive error tracing is a much bigger deal than just using value tracing. Depending on your JS interpreter it could mean that your program
+  becomes as much as 100x slower (and unfortunately it could also create stack overflows where there weren't any -- consider this too).
+
+    Event API.
+    It's fairly straightforward to find out what happened in your program (presumably you have access to a shell of some sort at this point). All you have to do is refer to your caterwaul
+    function's recon.log, like this:
+
+    | caterwaul.recon.log.length
+
+    You can also subscript the log as you would an array, e.g. recon.log[10], as well as querying it in various ways. Probably you'll want to query it:
+
+    | caterwaul.recon.log.grep('_ + _')         // Returns a sub-log of binary additions (the sub-log has the same interface as the main one, but fewer events)
+
+
+
+    configuration('recon', function () {var old_init = this.init,
+                                               recon = this.recon = function (tree) {
+    })}) ();
