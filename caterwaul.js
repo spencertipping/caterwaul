@@ -727,7 +727,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                             behavior('method', g.behaviors.method);
                                                             for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})};
 
-  this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
+  return this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
 
 //   Bootstrapping method behavior.
 //   Setting up the behavior(), method(), ref(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the ref()
@@ -741,7 +741,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     shallow('compiler', {qs: parse(lex('qs[_]'))}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
         ref('syntax', syntax_node).ref('lex', lex).ref('parse_lexed', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).ref('self', self).
-        ref('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match}).
+
+     method('reinitialize', fn('$1 = $0(@self), $1($1)')).
 
      method('parse',  fn('@parse_lexed(@lex($0))')).        method('decompile', fn('@parse($0.toString())')).
      method('expand', fn('@expand_qs(@macroexpand($0))')).  method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
@@ -752,6 +753,35 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('expand_qs',   function (t) {var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
                                          return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function], this)}}).
+
+// Utility library.
+// Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the variables
+// I've defined above, since they get recompiled at the global scope. So anything that they need access to must be accessible on the Caterwaul function that is being configured; thus a 'util'
+// object that contains some useful stuff. For starters it contains some general-purpose methods:
+
+    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind,
+
+// It also has some design patterns that are useful for heavyweight (i.e. configurable) extensions.
+
+//   The 'configurable' design pattern.
+//   jQuery provides a great manipulation interface; getters and setters have the same names, and absence of a parameter to the method indicates that it's a getter. I'm shamelessly copying that
+//   pattern here, except that the state is also made available in an 'options' object, in case you need to peruse it directly. (Usual caveats about public data apply, of course -- use at your
+//   own peril. :) )
+
+//   So if you mark an object as being 'configurable', then it will get a bunch of standard-form getter/setter methods and an 'options' hash if one doesn't exist already. The format for saying
+//   that an object is configurable is:
+
+//   | caterwaul.util.configurable(object, 'option1', 'option2', {option3: function (new_value) {do_something()}, ...})            // Returns object after adding configuration interface
+
+//   All configuration functions are bound to the object, so they can be eta-reduced freely.
+
+    configurable: function (object) {var function_for = function (name, change) {return function (x) {if (x === undefined) return this.options[name];
+                                                                                                      else                 return this.options[name] = (change || id)(x), this}};
+                                     object.options || (object.options = {});
+                                     for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                       if (_.constructor === String) object[_] = bind(function_for(_), object);
+                                       else                          for (var k in _) if (_.hasOwnProperty(k)) object[k] = bind(function_for(k, _[k]), object);
+                                     return object}}).
 
 // Standard library.
 // Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -969,7 +999,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //     The third line automatically adds debugging annotations to the function and then invokes it.
 
-    configuration('recon', function () {var old_init = this.init, recon;
-                                        this.ref('recon', recon = function (tree) {  })})});
+//     Something awesome: annotating Caterwaul itself.
+//     Caterwaul gives you a copy of its initialization function and lets you reinitialize the library with a transformation of itself. For example:
+
+//     | caterwaul.reinitialize(caterwaul.clone('recon'))                  // Returns the new caterwaul, replacing the original global 'caterwaul' symbol
+//       caterwaul.reinitialize(caterwaul.clone('recon')).deglobalize()    // Returns the new caterwaul but doesn't replace the original 'caterwaul' symbol
+
+//     Doing this can be useful for debugging macros.
+
+    configuration('recon', function () {var old_init = this.init, recon = function (tree) { };
+                                        this.ref('recon', this.util.configurable(recon, 'aggressive'))})});
 
 // Generated by SDoc 
