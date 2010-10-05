@@ -1,4 +1,6 @@
 Semicolon serialization test.
 
-eq(new caterwaul.syntax(';').inspect(), '(;)');
-eq(new caterwaul.syntax(';').serialize(), ';');
+test(function () {
+  eq(new caterwaul.syntax(';').inspect(), '(;)');
+  eq(new caterwaul.syntax(';').serialize(), ';');
+});

@@ -1,39 +1,41 @@
 Paren/bracket lexing tests.
 
-var t = function (s)    {return aeq(caterwaul.lex(s), Array.prototype.slice.call(arguments, 1))},
-    s = function (s)    {return t(s, s)},
-    q = function (s, e) {return aeq(caterwaul.lex(s), e.split(/\s+/))},
-    Q = function (s)    {return q(s, s)};
+test(function () {
+  var t = function (s)    {return aeq(caterwaul.lex(s), Array.prototype.slice.call(arguments, 1))},
+      s = function (s)    {return t(s, s)},
+      q = function (s, e) {return aeq(caterwaul.lex(s), e.split(/\s+/))},
+      Q = function (s)    {return q(s, s)};
 
-Parens.
+  Parens.
 
-q('(3+5)', '( 3 + 5 )');
-q('(3-5)', '( 3 - 5 )');
-q('(3*5)', '( 3 * 5 )');
+  q('(3+5)', '( 3 + 5 )');
+  q('(3-5)', '( 3 - 5 )');
+  q('(3*5)', '( 3 * 5 )');
 
-c
-Q('( 3 + 5 )');
-Q('( 3 ) - 5');
-Q('3 * ( 5 )');
-Q('3 / ( 5 )');
-Q('( 4 ) % 5');
-Q('( 5 ^ 6 )');
-Q('( 6 & 7 )');
-Q('( 7 ) | 8');
+  c
+  Q('( 3 + 5 )');
+  Q('( 3 ) - 5');
+  Q('3 * ( 5 )');
+  Q('3 / ( 5 )');
+  Q('( 4 ) % 5');
+  Q('( 5 ^ 6 )');
+  Q('( 6 & 7 )');
+  Q('( 7 ) | 8');
 
-Brackets.
+  Brackets.
 
-c
-Q('return [ foo ]');
-Q('throw [ foo ]');
+  c
+  Q('return [ foo ]');
+  Q('throw [ foo ]');
 
-q('return[foo]', 'return [ foo ]');
-q('throw[foo]', 'throw [ foo ]');
+  q('return[foo]', 'return [ foo ]');
+  q('throw[foo]', 'throw [ foo ]');
 
-q('[1,2,3,4]', '[ 1 , 2 , 3 , 4 ]');
-q('+[1]', 'u+ [ 1 ]');
+  q('[1,2,3,4]', '[ 1 , 2 , 3 , 4 ]');
+  q('+[1]', 'u+ [ 1 ]');
 
-Braces.
+  Braces.
 
-q('{foo: bar}', '{ foo : bar }');
-q('{foo:{}}', '{ foo : { } }');
+  q('{foo: bar}', '{ foo : bar }');
+  q('{foo:{}}', '{ foo : { } }');
+});
