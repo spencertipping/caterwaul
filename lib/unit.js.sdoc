@@ -1,5 +1,6 @@
 Unit testing library functions
 
+var already_failed = false;
 var on_error = function (e) {throw new Error(e)};
 
 var eq = function (x, y, message) {
@@ -15,8 +16,10 @@ var aeq = function (xs, ys, message) {
 };
 
 var test = function (f) {
+  if (already_failed) return on_error('Already failed, so skipping test');
   try {f()}
   catch (e) {
+    already_failed = true;
     on_error(e instanceof Error ? e.toString() : e);
     on_error('(Test failure for ' + f.toString() + ')');
   }
