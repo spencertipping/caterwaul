@@ -22,7 +22,7 @@ var test = function (f) {
   try {f()}
   catch (e) {
     already_failed = true;
-    on_error(e instanceof Error ? e.description : e);
+    on_error(e instanceof Error ? e.toString() : e);
     on_error('(Test failure for ' + f.toString() + ')');
   }
 };

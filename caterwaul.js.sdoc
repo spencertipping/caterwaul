@@ -307,7 +307,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
        syntax_node_inspect = fn('$0 ? $0.inspect() : "(<>)"'),  syntax_node_tostring = fn('$0 ? $0.serialize ? $0.serialize() : $0.toString() : ""'),
                syntax_node = extend(function (data) {this.data = data; this.length = 0; this.l = this.r = this.p = null;
-                                                     for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i) this.append(_.constructor === String ? new this.constructor(_) : _)},
+                                                     for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                       for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                         this.append(it.constructor === String ? new this.constructor(it) : it)},
+
                 {replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),
                 reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@append(@l && @l.unlink(this))'),  fold_lr: fn('@fold_l().fold_r()'),
                   append: fn('(this[@length++] = $0) && ($0.p = this), this'),                      fold_r: fn('@append(@r && @r.unlink(this))'),  fold_rr: fn('@fold_r().fold_r()'),
@@ -1006,7 +1009,7 @@ idea.
 
     Doing this can be useful for debugging macros, configurations, or other things.
 
-    configuration('recon', function () {var old_init = this.init, recon = merge(function (tree) {return recon.annotate(tree)},
+    configuration('recon', function () {var old_init = this.init, s = this.syntax, hook_name = this.gensym(), gensym = this.gensym, recon = merge(function (tree) {return recon.annotate(tree)},
 
       Annotation logic.
       In a reasonably orthogonal language such as Lisp, annotating nodes is relatively trivial. However, JavaScript doesn't provide syntactic uniformity, so we have to work around some
@@ -1018,15 +1021,41 @@ idea.
       | A(identifier)     ->    f(identifier)
         A(x op y)         ->    f(A(x) op A(y))
         A(op x)           ->    f(op A(x))
-        A(x.y(z))         ->    (function () {var _gensym_ = A(x); return A(_gensym_.y).call(_gensym_, z)})()
-        A(x[y](z))        ->    (function () {var _gensym_ = A(x); return A(_gensym_[y]).call(_gensym_, z)})()
-        A(x(y))           ->    A(rvalue)(A(rvalue))
-        A(if (v1) v2)     ->    if (A(v1)) A(v2)
+        A(x.y(z))         ->    f((function () {var _gensym_ = A(x); return A(_gensym_.y).call(_gensym_, z)})())
+        A(x[y](z))        ->    f((function () {var _gensym_ = A(x); return A(_gensym_[y]).call(_gensym_, z)})())
+        A(x(y))           ->    A(x)(A(y))
+        A(if (x) y)       ->    if (A(x)) A(y)
         A({n ...})        ->    {A(n.flatten())}
         A(x [op]= y)      ->    x = A(y)
         A(x.y [op]= z)    ->    A(x).y = A(z)
         A(x[y] [op]= z)   ->    A(x)[y] = A(z)
+        ...
 
-      {});
+      Unfortunately it would be difficult to use macros to implement this mechanism. The reason has to do with quoting syntax; JavaScript's limitations mean that we can't say things like
+      qs[if(_)_], since that would be putting a statement-mode command ('if') into an expression context. (I could build the nodes using strings or something, but that's too much work;
+      besides, using macros for this is inefficient anyway.)
 
-                                        this.method('init', function (f) {return recon(old_init.call(this, f))}).ref('recon', this.util.configurable(recon, 'aggressive'))})});
+      {annotate: function (node) {return node && (node.length === 0 ? recon.wrap(node, node) :
+                                               /=$/.test(node.data) ? recon.wrap(node, new s(node.data, node[0].data === '[]' ? new s('[]', recon.annotate(node[0][0]),
+                                                                                                                                            new s('[', recon.annotate(node[0][1][0]))) :
+                                                                                                        node[0].data ===  '.' ? new s('.',  recon.annotate(node[0][0]), node[0][1]) : node[0],
+                                                                                                        recon.annotate(node[1]))) :
+
+node.data === '()' && node[0].data !== '[]' && node[0].data !== '.' ? recon.wrap(node, new s('()', recon.annotate(node[0]), new s('(', recon.annotate(node[1][0])))) :
+
+                                                 node.data === '()' ? recon.wrap((function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].
+                                                                                   s('_', [gensym, recon.annotate(node[0][0]), new s(node[0].data, gensym,
+                                                                                           node[0].data === '[]' ? new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) :
+                                                                                                                   new s('.',  gensym, node[0][1])), gensym,
+                                                                                           new s('(', recon.annotate(node[1][0]))])}) (new s(gensym()))) :
+
+                                                null);
+
+                                                                                       },
+
+           wrap: function (node) {},
+
+    environment: {}});
+
+                                        this.method('init', function (f) {return this.compile(recon(this.decompile(old_init.call(this, f))), this.recon.environment)}).
+                                                ref('recon', this.util.configurable(recon, 'aggressive'))})});
