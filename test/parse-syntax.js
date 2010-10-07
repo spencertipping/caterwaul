@@ -7,13 +7,13 @@ test(function () {
 
   p('if (foo) {bar}', '(if (( (foo)) ({ (bar)))');
   p('if (foo) bar', '(if (( (foo)) (bar))');
-  p('if (foo) bar()', '(if (( (foo)) (() (bar) (()))');
+  p('if (foo) bar()', '(if (( (foo)) (() (bar) (<>)))');
   p('if (foo) bar;', '(; (if (( (foo)) (bar)) (<>))');
   p('if (foo);', '(; (if (( (foo))) (<>))');
 
   p('for (var i = 0; i < 10; ++i) total += i;', '(; (for (( (; (; (var (= (i) (0))) (< (i) (10))) (u++ (i)))) (+= (total) (i))) (<>))');
   p('for (var i = 0; i < 10; ++i);', '(; (for (( (; (; (var (= (i) (0))) (< (i) (10))) (u++ (i))))) (<>))');
-  p('for (var k in foo) console.log(k);', '(; (for (( (var (in (k) (foo)))) (() (. (console) (log)) (( (k)))) (<>))');
+  p('for (var k in foo) console.log(k);', '(; (for (( (var (in (k) (foo)))) (() (. (console) (log)) (k))) (<>))');
   p('for (var k in foo) for (var j in k) k + j;', '(; (for (( (var (in (k) (foo)))) (for (( (var (in (j) (k)))) (+ (k) (j)))) (<>))');
   p('if(foo)for(bar);', '(; (if (( (foo)) (for (( (bar)))) (<>))');
 

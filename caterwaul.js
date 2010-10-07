@@ -1069,9 +1069,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       {annotate: function (node) {return node &&
                 (node.is_constant()        ? node :
                  node.is_empty()           ? recon.wrap(node, node) :
-                 node.left_is_lvalue()     ? recon.wrap(node, new s(node.data, node[0].data === '[]' ? new s('[]', recon.annotate(node[0][0]), new s('[', recon.annotate(node[0][1][0]))) :
-                                                                               node[0].data ===  '.' ? new s('.',  recon.annotate(node[0][0]), node[0][1]) : node[0], recon.annotate(node[1]))) :
-
+                 node.left_is_lvalue()     ? recon.wrap(node, node.change(0, node[0].data === '[]' ? node[0].map(recon.annotate) : node[0].data === '.' ?
+                                                                                                     node[0].compose_single(0, recon.annotate) : node[0]).compose_single(1, recon.annotate)) :
                  node.is_invocation()      ? recon.wrap(node, node.is_contextualized_invocation() ?
                                                new s(node.data, recon.annotate(node[0]), new s('(', recon.annotate(node[1][0]))) :
                                                (function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].s('_',
@@ -1082,10 +1081,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                  node.has_lvalue_list()    ? new s(node.data, node[0].data === ',' ? new s(',', node[0].flatten().map(function (n) {return n.data === '=' && new s(n.data, n[0], recon.annotate(n[1]))})) :
                                                               node[0].data === '=' ? new s('=', node[0][0], node[0][1]) : node[0]) :
                  node.has_parameter_list() ? new s(node.data, node[0], recon.annotate(node[1])) :
-
-//               
-
-                                          null)},
+                                             null)},
 
            wrap: function (node) {},
 

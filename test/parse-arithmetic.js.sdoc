@@ -50,8 +50,8 @@ test(function () {
 
   p('foo.bar', '(. (foo) (bar))');
   p('foo.bar.bif', '(. (. (foo) (bar)) (bif))');
-  p('foo().bar.bif', '(. (. (() (foo)) (bar)) (bif))');
-  p('foo().bar().bif', '(. (() (. (() (foo)) (bar))) (bif))');
-  p('foo().bar().bif()', '(() (. (() (. (() (foo)) (bar))) (bif)))');
-  p('foo().bar().bif()()', '(() (() (. (() (. (() (foo)) (bar))) (bif))))');
+  p('foo().bar.bif', '(. (. (() (foo) (<>)) (bar)) (bif))');
+  p('foo().bar().bif', '(. (() (. (() (foo) (<>)) (bar)) (<>)) (bif))');
+  p('foo().bar().bif()', '(() (. (() (. (() (foo) (<>)) (bar)) (<>)) (bif)) (<>))');
+  p('foo().bar().bif()()', '(() (() (. (() (. (() (foo) (<>)) (bar)) (<>)) (bif)) (<>)) (<>))');
 });

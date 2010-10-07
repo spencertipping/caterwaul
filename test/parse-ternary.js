@@ -9,7 +9,7 @@ test(function () {
   p('(3)?4:5', '(? (( (3)) (4) (5))');
   p('3?(4):5', '(? (3) (( (4)) (5))');
 
-  p('var x = cond() === false ? y === true : y === false', '(var (= (x) (? (=== (() (cond) (()) (false)) (=== (y) (true)) (=== (y) (false)))))');
+  p('var x = cond() === false ? y === true : y === false', '(var (= (x) (? (=== (() (cond) (<>)) (false)) (=== (y) (true)) (=== (y) (false)))))');
 
   s('var x = foo() ? (foo + bar)() : (t + u)()', 'var x=foo()?(foo+bar)():(t+u)()');
 });
