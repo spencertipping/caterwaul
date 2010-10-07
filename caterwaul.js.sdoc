@@ -253,9 +253,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
    parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1}),
-         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),
-      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),  parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
-           parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),  parse_invisible = hash('() [] i;'),
+         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
+      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),            parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
+           parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),  parse_invisible = hash('i;'),
  parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),            parse_also_expression = hash('function'),
 
   Syntax data structures.
@@ -351,6 +351,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                        s: function (data, xs) {if (xs.constructor === Array) {var i = 0; return this.rmap(function (n) {return n.data === data && xs[i++]})}
                                                else                          return this.rmap(function (n) {return n.data === data && xs})},
 
+        repopulated_with: function (xs)   {return new this.constructor(this.data, xs)},
+                  change: function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
+          compose_single: function (i, f) {return this.change(i, f(this[i]))},
+
     Structural transformation.
     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
     each of which is binary. JavaScript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
@@ -377,12 +381,20 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
     otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
 
+    Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
+    eta-reduced (if it were, then the 'this' binding would be lost).
+
                is_string: function () {return /['"]/.test(this.data.charAt(0))},               as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /\d/.test(this.data) && ! /^[\/\w'"]/.test(this.data)},  as_number: function () {return Number(this.data)},
               is_boolean: function () {return this.data === 'true' || this.data === 'false'},         as_boolean: function () {return this.data === 'true'},
                is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
+
+                is_empty: fn('!@length'),  is_constant: fn('@is_number() || @is_string() || @is_boolean() || @is_regexp() || @data === "null" || @data === "undefined"'),
+          left_is_lvalue: fn('/=$/.test(@data) || /++$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
+         has_lvalue_list: fn('@data === "var" || @data === "const"'),                             is_dereference: fn('@data === "." || @data === "[]"'),
+           is_invocation: fn('@data === "()"'),                                     is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
 
     Inspection and syntactic serialization.
     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -397,6 +409,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                               (this.r ? ' -> ' + this.r.inspect() : '')},
                serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
                                             s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+                                               has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
                                                   has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                                     has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                        has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
@@ -429,7 +442,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   all left-associative operators; right-associative operators preserve their hierarchical folding.
 
     parse = function (ts) {
-      var grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(parse_k_empty, parse_reduce_order), all_nodes = [],
+      var grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(parse_k_empty, parse_reduce_order), all_nodes = [], invocation_nodes = [],
           new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head.sibling(head = n) : (head = n.append_to(parent)), new_node(n)};
 
   First step: group and index.
@@ -471,10 +484,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     Ambiguous parse groups.
     As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that way
-    it reflects the precedence of dereferencing and invocation).
+    it reflects the precedence of dereferencing and invocation). The only change we need to make is to discard the explicit parenthetical or square-bracket grouping for invocations or
+    dereferences, respectively. It doesn't make much sense to have a doubly-nested structure, where we have a node for invocation and another for the group on the right-hand side of that
+    invocation. Better is to modify the group in-place to represent an invocation.
+
+    We can't solve this problem here, but we can solve it after the parse has finished. I'm pushing these invocation nodes onto an index for the end.
 
      else if (has(parse_ambiguous_group, data) && node.l && (node.l.data === '.' ||
-                   ! (has(lex_op, node.l.data) || has(parse_not_a_value, node.l.data))))  node.l.wrap(new_node(new syntax_node(data + parse_group[data]))).p.fold_r();
+                   ! (has(lex_op, node.l.data) || has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l.wrap(new_node(new syntax_node(data + parse_group[data]))).p.fold_r());
 
     Unary left and right-fold behavior.
     Unary nodes have different fold directions. In this case, it just determines which side we grab the node from. I'm glad that JavaScript doesn't allow stuff like '++x++', which would make
@@ -530,6 +547,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       for (var i = all_nodes.length - 1, _ = null; _ = all_nodes[i], i >= 0; --i)  _.r && _.wrap(new syntax_node('i;')).p.fold_r();
 
   Fourth step.
+  Flatten out all of the invocation nodes. As explained earlier, they are nested such that the useful data on the right is two levels down. We need to grab the grouping construct on the
+  right-hand side and remove it so that only the invocation or dereference node exists. During the parse phase we built an index of all of these invocation nodes, so we can iterate through
+  just those now. I'm preserving the 'p' pointers, though they're probably not useful beyond here.
+
+      for (var i = 0, l = invocation_nodes.length, _, child; _ = invocation_nodes[i], i < l; ++i) (child = _[1] = _[1][0]) && (child.p = _);
+
+  Fifth step.
   Traverse all the way to the top of the tree and return the root node. There will be no right linkages (which, if I've done my job correctly, means no left linkages either), and everything
   should be in tree-array form.
 
@@ -878,6 +902,11 @@ idea.
                                                                                             push(new this.syntax('(', this.parse(xs[i])));
                                           return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
 
+  Standard configuration.
+  This loads all of the production-use extensions. Nothing debugging-related is loaded here, just all of the included configurations that let you do cool macro stuff.
+
+    configuration('std', function () {this.configure('fn', 'dfn', 'defmacro', 'string')}).
+
   Code reconnaissance.
   This is probably one of the coolest things about Caterwaul, especially on IE. It has the ability to annotate your source code and capture any value returned by any expression, including
   figuring out when any expression produces an error. This approach works at the large-scale; by capturing every value over a span of time, you can then go back through the history
@@ -1037,22 +1066,22 @@ idea.
       qs[if(_)_], since that would be putting a statement-mode command ('if') into an expression context. (I could build the nodes using strings or something, but that's too much work;
       besides, using macros for this is inefficient anyway.)
 
-      {annotate: function (node) {return node && (node.is_number() || node.is_string() || node.is_boolean() || node.is_regexp() || node.data === 'null' || node.data === 'undefined' ? node :
-                    node.length === 0  ?  recon.wrap(node, node) :
-                 /=$/.test(node.data)  ?  recon.wrap(node, new s(node.data, node[0].data === '[]' ? new s('[]', recon.annotate(node[0][0]), new s('[', recon.annotate(node[0][1][0]))) :
-                                                                            node[0].data ===  '.' ? new s('.',  recon.annotate(node[0][0]), node[0][1]) : node[0], recon.annotate(node[1]))) :
+      {annotate: function (node) {return node &&
+                (node.is_constant()        ? node :
+                 node.is_empty()           ? recon.wrap(node, node) :
+                 node.left_is_lvalue()     ? recon.wrap(node, new s(node.data, node[0].data === '[]' ? new s('[]', recon.annotate(node[0][0]), new s('[', recon.annotate(node[0][1][0]))) :
+                                                                               node[0].data ===  '.' ? new s('.',  recon.annotate(node[0][0]), node[0][1]) : node[0], recon.annotate(node[1]))) :
 
-                   node.data === '()'  ?  recon.wrap(node, node[0].data !== '[]' && node[0].data !== '.' ?
-                                            new s('()', recon.annotate(node[0]), new s('(', recon.annotate(node[1][0]))) :
-                                            (function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].s('_',
-                                                                  [gensym, recon.annotate(node[0][0]), new s(node[0].data, gensym, node[0].data === '[]' ?
-                                                                     new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) : new s('.',  gensym, node[0][1])), gensym,
-                                                                   new s('(', recon.annotate(node[1][0]))])}) (new s(gensym()))) :
+                 node.is_invocation()      ? recon.wrap(node, node.is_contextualized_invocation() ?
+                                               new s(node.data, recon.annotate(node[0]), new s('(', recon.annotate(node[1][0]))) :
+                                               (function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].s('_',
+                                                                     [gensym, recon.annotate(node[0][0]), new s(node[0].data, gensym, node[0].data === '[]' ?
+                                                                        new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) : new s('.',  gensym, node[0][1])), gensym,
+                                                                      new s('(', recon.annotate(node[1][0]))])}) (new s(gensym()))) :
 
-                  node.data === 'var'  ?  new s('var', node[0].data === ',' ? new s(',', node[0].flatten().map(function (n) {return n.data === '=' && new s(n.data, n[0], recon.annotate(n[1]))})) :
-                                                       node[0].data === '=' ? new s('=', node[0][0], node[0][1]) : node[0]) :
-             node.data === 'function' ||
-                node.data === 'catch'  ?  new s(node.data, node[0], recon.annotate(node[1])) :
+                 node.has_lvalue_list()    ? new s(node.data, node[0].data === ',' ? new s(',', node[0].flatten().map(function (n) {return n.data === '=' && new s(n.data, n[0], recon.annotate(n[1]))})) :
+                                                              node[0].data === '=' ? new s('=', node[0][0], node[0][1]) : node[0]) :
+                 node.has_parameter_list() ? new s(node.data, node[0], recon.annotate(node[1])) :
 
               
 
