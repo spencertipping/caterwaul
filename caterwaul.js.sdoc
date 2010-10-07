@@ -819,8 +819,8 @@ idea.
   forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative. This
   means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
 
-    configuration('fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[(function (_) {return _})].s('_', [vars, expression])}).
-                                          rmacro(qs[fn_[_]],       function       (expression) {return qs[(function  () {return _})].s('_', [expression])}).
+    configuration('fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[qg[function (_) {return _}]].s('_', [vars, expression])}).
+                                          rmacro(qs[fn_[_]],       function       (expression) {return qs[qg[function  () {return _}]].s('_', [expression])}).
                                           rmacro(qs[let[_] in _],  function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
                                                                                                 return qs[fn[_][_].call(this, _)].s('_', [
                                                                                                   vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
@@ -860,7 +860,7 @@ idea.
   Divergence function syntax.
   Rebase provides an infix function operator >$> that can be more readable, if more ambiguous, then Caterwaul's fn[][]. Enabling this configuration enables this notation from within Caterwaul.
 
-    configuration('dfn', function () {this.rmacro(qs[_ >$> _], function (vars, expansion) {return qs[function (_) {return _}].s('_', [vars.data === '(' ? vars[0] : vars, expansion])})}).
+    configuration('dfn', function () {this.rmacro(qs[_ >$> _], function (vars, expansion) {return qs[qg[function (_) {return _}]].s('_', [vars.data === '(' ? vars[0] : vars, expansion])})}).
 
   String interpolation.
   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
