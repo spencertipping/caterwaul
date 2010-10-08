@@ -1,3 +1,6 @@
+Caterwaul JS Recon module | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
 Code reconnaissance.
 This is probably one of the coolest things about Caterwaul, especially on IE. It has the ability to annotate your source code and capture any value returned by any expression, including
 figuring out when any expression produces an error. This approach works at the large-scale; by capturing every value over a span of time, you can then go back through the history
@@ -131,7 +134,7 @@ backwards, lead directly to the error -- at least, provided that the error stops
 
   Doing this can be useful for debugging macros, configurations, or other things.
 
-  caterwaul.configuration('recon', function () {this.clone('std')(function () {
+  caterwaul.configuration('recon', caterwaul.clone('std')(function () {
     var old_init = this.init, s = this.syntax, hook_name = this.gensym(), gensym = this.gensym, recon = merge(function (tree) {return recon.annotate(tree)},
 
     Annotation logic.
@@ -180,4 +183,4 @@ backwards, lead directly to the error -- at least, provided that the error stops
   environment: {}});
 
                                       this.method('init', function (f) {return this.compile(recon(this.decompile(old_init.call(this, f))), this.recon.environment)}).
-                                              ref('recon', this.util.configurable(recon, 'aggressive'))})});
+                                              ref('recon', this.util.configurable(recon, 'aggressive'))}));

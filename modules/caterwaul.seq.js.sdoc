@@ -1,0 +1,55 @@
+Caterwaul JS sequence library | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Sequence metaclass.
+Sequences provide some methods such as 'grep', and selectors such as 'before' and 'after', whose matching parameters can mean very different things depending on what the sequence is used for.
+As such, you can instantiate the sequence metaclass into a regular class to provide a sequence with well-defined behavior for element matching. For example:
+
+| var seq        = caterwaul.util.seq;
+  var seq_of_int = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? x === pattern :
+                                                         pattern.constructor === Function ? pattern(x) : false]});
+  var seq_modulo = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? ! (x % pattern) : ...]});
+
+| var threes     = seq_of_int.from([1, 2, 3, 4, 5, 4, 3, 2, 1]).grep(3);
+  var evens      = seq_modulo.from([1, 2, 3, 4, 5, 6, 7, 8, 9]).grep(2);
+
+In addition to providing utility as classes, there are also some nice macros that come with sequences. You get comprehensions, generators, and side-effectful and pure traversal. Here are some
+examples (using 'std', 'seq.ana', 'seq.comp', 'seq.cons', and 'seq.iter'):
+
+| var naturals = ana[x + 1](0);
+  naturals.length             // -> Infinity
+  naturals.at(0)              // -> 0
+  naturals.at(1)              // -> 1
+
+| var to_10 = naturals.before(10);
+  to_10.length                // -> 10
+  to_10.at(0)                 // -> 0
+  to_10.at(9)                 // -> 9
+  to_10.at(10)                // -> undefined
+
+| var odds = naturals.grep(fn[x][x & 1]);
+  odds.length                 // -> Infinity
+  odds.at(0)                  // -> 1
+  odds.at(1)                  // -> 3
+
+| var times_3 = x * 3 <s< naturals;
+  times_3.length              // -> Infinity
+  times_3.at(0)               // -> 0
+  times_3.at(1)               // -> 3
+
+| var depth_first_cartesian_product = (([x, y] <s< naturals, where[y = x]) <s< naturals).flatten();
+  depth_first_cartesian_product.length          // -> Infinity
+  depth_first_cartesian_product.at(0)           // -> [0, 0]
+  depth_first_cartesian_product.at(1)           // -> [1, 0]
+
+| var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(1);
+  primes.length                                 // -> Infinity
+  primes.at(0)                                  // -> 2
+  primes.at(1)                                  // -> 3
+  primes.at(2)                                  // -> 5
+
+| var fibonacci = ana[this.at(n - 1) + this.at(n - 2)] (naturals.before(2));    // More compactly: ana[$(-1) + $(-2)] ([0, 1]);
+  fibonacci.length                              // -> Infinity
+  fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+
+More soon
