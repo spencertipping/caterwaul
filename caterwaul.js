@@ -761,9 +761,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Bootstrapping method behavior.
 //   Setting up the behavior(), method(), ref(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the ref()
 //   and shallow() methods are not core and are defined here. I'm also defining a 'configuration' function to allow quick definition of new configurations. (These are loadable by their names when
-//   calling clone() or configure() -- see 'Standard library' below.)
+//   calling clone() or configure() -- see 'Standard library' below.) A complement method, 'tconfiguration', is also available. This transforms the configuration function before storing it in the
+//   table, enabling you to use things like 'qs[]' without manually transforming stuff. The downside is that you lose closure state and can't bind variables.
 
-    behavior('ref').behavior('shallow', shallow_copy).method('configuration', function (name, f) {this.configurations[name] = f; return this}).
+    behavior('ref').behavior('shallow', shallow_copy).method('configuration',  function (name, f) {this.configurations[name] = f; return this}).
+                                                      method('tconfiguration', function (name, f) {this.configurations[name] = this(f); return this}).
 
 // Global Caterwaul setup.
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
@@ -777,7 +779,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      method('expand', fn('@expand_qs(@macroexpand($0))')).  method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
 
      method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
-     method('init',   function    (f, environment) {var expansion = this.expand(this.decompile(f)); return compile(expansion.tree, merge(expansion.environment, environment))}).
+     method('init',   function       (bindings, f) {var expansion = this.expand(this.decompile(f || bindings)); return compile(expansion.tree, merge(expansion.environment, f ? bindings : {}))}).
 
      method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('expand_qs',   function (t) {var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
@@ -785,8 +787,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // Utility library.
 // Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the variables
-// I've defined above, since they get recompiled at the global scope. So anything that they need access to must be accessible on the Caterwaul function that is being configured; thus a 'util'
-// object that contains some useful stuff. For starters it contains some general-purpose methods:
+// I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function that is
+// being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
 
     shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind,
 
@@ -826,11 +828,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   });
 
 // Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
-// idea.
+// idea. Named configurations, on the other hand, are not explicitly transformed; so when you define a custom configuration in a named way, you will want to manually transform it. (The reason for
+// this is that we don't want to force the configuration author to lose closure state, since it's arguably more important in a library setting than an end-user setting.)
 
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
-    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this(this.configurations[_]).call(this);
-                                                                                                            else                          this(_).call(this);                      return this}).
+    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this.configurations[_].call(this);
+                                                                                                            else                          this(_).call(this);                return this}).
 
 //   The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting JavaScript runtimes such as SpiderMonkey. Firefox
 //   failed the unit tests when ordinary parentheses were used because it requires disambiguation for expression-mode functions only at the statement level; thus syntax trees are not fully mobile
@@ -843,16 +846,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative. This
 //   means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
 
-    configuration('fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[qg[function (_) {return _}]].s('_', [vars, expression])}).
-                                          rmacro(qs[fn_[_]],       function       (expression) {return qs[qg[function  () {return _}]].s('_', [expression])}).
-                                          rmacro(qs[let[_] in _],  function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
-                                                                                                return qs[fn[_][_].call(this, _)].s('_', [
-                                                                                                  vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
-                                                                                                  vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
-                                          rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in qg[_])].s('_', [vars, expression])}).
-                                          
-                                          rmacro(qs[_, when[_]],   function (expression, cond) {return qs[qg[_] && qg[_]].s('_', [cond, expression])}).
-                                          rmacro(qs[_, unless[_]], function (expression, cond) {return qs[qg[_] || qg[_]].s('_', [cond, expression])})}).
+    tconfiguration('fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[qg[function (_) {return _}]].s('_', [vars, expression])}).
+                                           rmacro(qs[fn_[_]],       function       (expression) {return qs[qg[function  () {return _}]].s('_', [expression])}).
+                                           rmacro(qs[let[_] in _],  function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
+                                                                                                 return qs[fn[_][_].call(this, _)].s('_', [
+                                                                                                   vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
+                                                                                                   vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
+                                           rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in qg[_])].s('_', [vars, expression])}).
+
+                                           rmacro(qs[_, when[_]],   function (expression, cond) {return qs[qg[_] && qg[_]].s('_', [cond, expression])}).
+                                           rmacro(qs[_, unless[_]], function (expression, cond) {return qs[qg[_] || qg[_]].s('_', [cond, expression])})}).
 
 //   Macro authoring tools (the 'defmacro' library).
 //   Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
@@ -873,18 +876,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros.
 
-    configuration('defmacro', function () {this.rmacro(qs[defmacro[_][_]],     function (pattern, expansion) {var expanded = this.expand(expansion);
-                                                                                                              this.rmacro(pattern, this.compile(expanded.tree, expanded.environment));
-                                                                                                              return qs[null]}).
-                                                rmacro(qs[with_gensyms[_][_]], function    (vars, expansion) {if (vars.data !== ',') return expansion.s(vars.data, new this.syntax(this.gensym()));
-                                                                                                              for (var i = 0, vars = vars.flatten(), l = vars.length; i < l; ++i)
-                                                                                                                expansion = expansion.s(vars[i].data, new this.syntax(this.gensym()));
-                                                                                                              return qs[qs[_]].s('_', expansion)})}).
+    tconfiguration('defmacro', function () {this.rmacro(qs[defmacro[_][_]],     function (pattern, expansion) {var expanded = this.expand(expansion);
+                                                                                                               this.rmacro(pattern, this.compile(expanded.tree, expanded.environment));
+                                                                                                               return qs[null]}).
+                                                 rmacro(qs[with_gensyms[_][_]], function    (vars, expansion) {if (vars.data !== ',') return expansion.s(vars.data, new this.syntax(this.gensym()));
+                                                                                                               for (var i = 0, vars = vars.flatten(), l = vars.length; i < l; ++i)
+                                                                                                                 expansion = expansion.s(vars[i].data, new this.syntax(this.gensym()));
+                                                                                                               return qs[qs[_]].s('_', expansion)})}).
 
 //   Divergence function syntax.
 //   Rebase provides an infix function operator >$> that can be more readable, if more ambiguous, then Caterwaul's fn[][]. Enabling this configuration enables this notation from within Caterwaul.
 
-    configuration('dfn', function () {this.rmacro(qs[_ >$> _], function (vars, expansion) {return qs[qg[function (_) {return _}]].s('_', [vars.data === '(' ? vars[0] : vars, expansion])})}).
+    tconfiguration('dfn', function () {this.rmacro(qs[_ >$> _], function (vars, expansion) {return qs[qg[function (_) {return _}]].s('_', [vars.data === '(' ? vars[0] : vars, expansion])})}).
 
 //   String interpolation.
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -894,13 +897,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   groups. It also fails to return leading and trailing zero-length strings (so, for example, splitting ':foo:bar:bif:' on /:/ would give ['foo', 'bar', 'bif'] in IE, vs. ['', 'foo', 'bar',
 //   'bif', ''] in sensible browsers). So there is a certain amount of hackery that happens to make sure that where there are too few strings empty ones get inserted, etc.
 
-    configuration('string', function () {this.rmacro(qs[_], function (s) {
-                                          if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
-                                          var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
-                                          s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
-                                          for (var i = 0, l = xs.length; i < l; ++i) result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).
-                                                                                            push(new this.syntax('(', this.parse(xs[i])));
-                                          return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
+    tconfiguration('string', function () {this.rmacro(qs[_], function (s) {
+                                           if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
+                                           var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
+                                           s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
+                                           for (var i = 0, l = xs.length; i < l; ++i) result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).
+                                                                                             push(new this.syntax('(', this.parse(xs[i])));
+                                           return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
 
 //   Standard configuration.
 //   This loads all of the production-use extensions.
