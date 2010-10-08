@@ -392,9 +392,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
 
                 is_empty: fn('!@length'),  is_constant: fn('@is_number() || @is_string() || @is_boolean() || @is_regexp() || @data === "null" || @data === "undefined"'),
-          left_is_lvalue: fn('/=$/.test(@data) || /++$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
-         has_lvalue_list: fn('@data === "var" || @data === "const"'),                             is_dereference: fn('@data === "." || @data === "[]"'),
-           is_invocation: fn('@data === "()"'),                                     is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
+          left_is_lvalue: fn('/=$/.test(@data) || /\\+\\+$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
+         has_lvalue_list: fn('@data === "var" || @data === "const"'),                                 is_dereference: fn('@data === "." || @data === "[]"'),
+           is_invocation: fn('@data === "()"'),                                         is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
 
     Inspection and syntactic serialization.
     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
