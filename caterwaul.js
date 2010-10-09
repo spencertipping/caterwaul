@@ -790,7 +790,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function that is
 // being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
 
-    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind,
+    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map,
 
 // It also has some design patterns that are useful for heavyweight (i.e. configurable) extensions.
 
