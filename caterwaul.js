@@ -897,12 +897,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   groups. It also fails to return leading and trailing zero-length strings (so, for example, splitting ':foo:bar:bif:' on /:/ would give ['foo', 'bar', 'bif'] in IE, vs. ['', 'foo', 'bar',
 //   'bif', ''] in sensible browsers). So there is a certain amount of hackery that happens to make sure that where there are too few strings empty ones get inserted, etc.
 
+//   Another thing that has to happen is that we need to take care of any backslash-quote sequences in the expanded source. The reason is that while generally it's safe to assume that the user
+//   didn't put any in, Firefox rewrites strings to be double-quoted, escaping any double-quotes in the process. So in this case we need to find \" and replace them with ".
+
     tconfiguration('string', function () {this.rmacro(qs[_], function (s) {
                                            if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
-                                           var q = s.data.charAt(0), s = s.as_escaped_string(), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+');
+                                           var q = s.data.charAt(0), s = s.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [],
+                                                                result = new this.syntax('+');
                                            s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
                                            for (var i = 0, l = xs.length; i < l; ++i) result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).
-                                                                                             push(new this.syntax('(', this.parse(xs[i])));
+                                                                                             push(new this.syntax('(', this.parse(xs[i].replace(eq, q))));
                                            return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
 
 //   Standard configuration.
