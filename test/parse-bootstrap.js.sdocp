@@ -1,0 +1,1 @@
+sdocp('test/parse-bootstrap.js.sdoc', 'Bootstrap parsing: Can it parse itself without blowing up?\n\ntest(function () {\n  caterwaul.decompile(caterwaul.lex);\n  caterwaul.decompile(caterwaul.parse);\n});\n');
