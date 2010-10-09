@@ -1,5 +1,5 @@
 #!/bin/bash
-sdoc . lib test
+sdoc -p . lib test
 
 function start() {
   echo starting $*
