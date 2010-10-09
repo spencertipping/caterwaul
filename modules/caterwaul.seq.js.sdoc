@@ -20,12 +20,14 @@ examples (using 'std', 'seq.ana', 'seq.comp', 'seq.cons', and 'seq.iter'):
   naturals.length             // -> Infinity
   naturals.at(0)              // -> 0
   naturals.at(1)              // -> 1
+  naturals.force()            // throws error: can't force infinite stream
 
 | var to_10 = naturals.before(10);
   to_10.length                // -> 10
   to_10.at(0)                 // -> 0
   to_10.at(9)                 // -> 9
   to_10.at(10)                // -> undefined
+  to_10.force()               // -> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 | var odds = naturals.grep(fn[x][x & 1]);
   odds.length                 // -> Infinity
@@ -52,4 +54,6 @@ examples (using 'std', 'seq.ana', 'seq.comp', 'seq.cons', and 'seq.iter'):
   fibonacci.length                              // -> Infinity
   fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
 
-More soon
+| var custom1 = 1 |s| (2 |s| (3 |s| null));
+  var custom2 = 4 |s| (5 |s| null);
+  (custom1 |s| custom2).length                  // -> 5
