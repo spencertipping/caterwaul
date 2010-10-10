@@ -5,25 +5,28 @@ function start() {
   echo starting $*
 }
 
-function pass-or-fail() {
-  local return_code=$?
-  if [[ $? -eq 0 ]]; then echo pass $* >> .test-log
-  else                    echo fail $* >> .test-log
-                          echo -e "\033[1;31mfail $*\033[0;0m:"; fi
-  return $return_code
+function fail() {
+  echo fail $* >> .test-log
+  echo -e "\033[1;31mfail $*\033[0;0m:"
+  return 1
+}
+
+function pass() {
+  echo pass $* >> .test-log
 }
 
 function run-rhino() {
   start rhino $*
   egrep -vh '^\s*//' "$@" > tmp.js
-  rhino tmp.js
-  pass-or-fail rhino $* && rm -f tmp.js
+  rhino tmp.js || fail rhino $* || return 1
+  rm -f tmp.js
+  pass rhino $*
 }
 
 function run-v8() {
   start v8 $*
-  d8 "$@"
-  pass-or-fail v8 $*
+  d8 "$@" || fail v8 $* || return 1
+  pass v8 $*
 }
 
 if [[ $1 == clean ]]; then

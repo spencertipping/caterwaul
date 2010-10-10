@@ -1,0 +1,12 @@
+Observed failure case:
+for (var k in hash) /foo/.test(k) || ...
+
+The problem here is that the lexer assumes that the parens surrounding the for-loop condition end an expression; there needs to be a lexer workaround for block-accepting keywords like this.
+
+test(function () {
+  caterwaul.lex('for (var k in hash) /foo/.test(k) && bar()');
+  caterwaul.lex('if (k in hash) /foo/.test(k) && bar(); else /foo/.test(k) && bar()');
+  caterwaul.lex('if (k in hash) /foo/.test(k) && bar()');
+  caterwaul.lex('while (k in hash) /foo/.test(k) && bar()');
+  caterwaul.lex('with (k) /foo/.test(k) && toString()');
+});
