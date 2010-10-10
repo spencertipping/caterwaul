@@ -25,4 +25,13 @@ var test = function (f) {
     on_error(e instanceof Error ? e.toString() : e);
     on_error('(Test failure for ' + f.toString() + ')');
   }
+
+  try {
+    caterwaul = caterwaul.reinitialize(caterwaul);
+    f();
+  } catch (e) {
+    already_failed = true;
+    on_error(e instanceof Error ? e.toString() : e);
+    on_error('(Test failure for ' + f.toString() + ')');
+  }
 };

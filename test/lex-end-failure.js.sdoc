@@ -1,9 +1,9 @@
 Mysterious 'end()' bug -- caused by a lexer bug that interpreted '.e' as a number in scientific notation
 
 test(function () {
-  var l = caterwaul.lex;
+  var p = caterwaul.parse;
 
-  aeq(l('foo.bar()'), ['foo', '.', 'bar', '(', ')']);
-  aeq(l('foo.e()'), ['foo', '.', 'e', '(', ')']);
-  aeq(l('foo.end()'), ['foo', '.', 'end', '(', ')']);
+  eq(p('foo.bar()').inspect(), '(() (. (foo) (bar)) (<>))');
+  eq(p('foo.e()').inspect(), '(() (. (foo) (e)) (<>))');
+  eq(p('foo.end()').inspect(), '(() (. (foo) (end)) (<>))');
 });
