@@ -8,6 +8,8 @@ Caterwaul is the replacement for Divergence. It fixes a number of issues (see th
 destructuring-bind syntactic macros. It also, unlike Divergence, has a proper test suite and runs on IE6. (Please visit the `test page <http://spencertipping.com/caterwaul/test>`_, and let me
 know if anything fails. My goal is to make this project completely cross-browser, at least starting with IE6.)
 
+Online documentation is available at `http://spencertipping.com/caterwaul/caterwaul.html`_.
+
 Using Caterwaul
 ---------------
 
@@ -31,7 +33,7 @@ Defining Macros
 
 Macros are specified by a pattern and an expansion function. For example, let's define a macro that introduces the syntax ``let (x = y) in z`` into JavaScript::
 
-    var with_let = caterwaul.clone(function () {
+    var with_let = caterwaul.clone('qs', function () {
       this.macro(qs[let(_ = _) in _], function (variable, value, expression) {
         return qs[(function (_) {return _}).call(this, _)].s('_', [variable, expression, value]);
       });
@@ -41,10 +43,10 @@ Macros are specified by a pattern and an expansion function. For example, let's 
       let(x = 5) in alert(x);           // alerts 5
     });
 
-The ``qs[]`` macro lets you quote syntax, and returns a syntax tree. ``_`` is used as a wildcard for pattern matching; the matched fragments of syntax are passed into the expander function in
-the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it out using ``qs[]`` again, but filled it in using
-the ``s()`` method (`s` stands for substitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in the template to be ``(function (variable)
-{return expression}).call(this, value)``.
+The ``qs[]`` macro lets you quote syntax, and returns a syntax tree (we need to include ``'qs'`` to enable it). ``_`` is used as a wildcard for pattern matching; the matched fragments of
+syntax are passed into the expander function in the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it
+out using ``qs[]`` again, but filled it in using the ``s()`` method (`s` stands for substitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in
+the template to be ``(function (variable) {return expression}).call(this, value)``.
 
 Standard Macro Library
 ----------------------
@@ -82,7 +84,7 @@ Caterwaul comes with some standard macro libraries. To get access to them::
 
 Another library enables the ``defmacro[][]`` command::
 
-    var with_defmacro = caterwaul.clone('fn', 'defmacro');
+    var with_defmacro = caterwaul.clone('qs', 'fn', 'defmacro');
     with_defmacro(function () {
       // Defining inline macros:
       defmacro[foo[_]][fn[thing][qs[console.log(_)].s('_', thing)]];
@@ -100,5 +102,7 @@ Another library enables the ``defmacro[][]`` command::
       // Logs 1, then 2, then 3:
       forEach[[1, 2, 3]][console.log(it)];
     });
+
+Generally you should use the ``'std'`` library, which includes all of the ones that ship with Caterwaul.
 
 The Caterwaul source code and tests cover the uses of ``defmacro`` and ``with_gensyms`` in more detail.
