@@ -18,20 +18,9 @@ var aeq = function (xs, ys, message) {
 };
 
 var test = function (f) {
-  if (already_failed) return on_error('Already failed, so skipping test');
-  try {f()}
-  catch (e) {
-    already_failed = true;
-    on_error(e instanceof Error ? e.toString() : e);
-    on_error('(Test failure for ' + f.toString() + ')');
-  }
+  f()
 
-  try {
-    caterwaul = caterwaul.reinitialize(caterwaul);
-    f();
-  } catch (e) {
-    already_failed = true;
-    on_error(e instanceof Error ? e.toString() : e);
-    on_error('(Test failure for ' + f.toString() + ')');
-  }
+  print('Reinitializing');
+  caterwaul = caterwaul.reinitialize(caterwaul);
+  f();
 };

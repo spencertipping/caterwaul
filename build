@@ -18,14 +18,14 @@ function pass() {
 function run-rhino() {
   start rhino $*
   egrep -vh '^\s*//' "$@" > tmp.js
-  rhino tmp.js || fail rhino $* || return 1
+  rhino -O 9 -debug tmp.js || fail rhino $* || return 1
   rm -f tmp.js
   pass rhino $*
 }
 
 function run-v8() {
   start v8 $*
-  d8 "$@" || fail v8 $* || return 1
+  d8 --trace_exception --debug_info "$@" || fail v8 $* || return 1
   pass v8 $*
 }
 
