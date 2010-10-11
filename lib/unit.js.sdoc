@@ -19,8 +19,6 @@ var aeq = function (xs, ys, message) {
 
 var test = function (f) {
   f()
-
-  print('Reinitializing');
   caterwaul = caterwaul.reinitialize(caterwaul);
   f();
 };
