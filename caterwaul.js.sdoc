@@ -1014,4 +1014,4 @@ this is that we don't want to force the configuration author to lose closure sta
   Standard configuration.
   This loads all of the production-use extensions.
 
-    configuration('std', function () {this.configure('qs', 'fn', 'dfn', 'defmacro', 'string')})});
+    configuration('std', function () {this.configure('qs', 'qg', 'fn', 'dfn', 'defmacro', 'string')})});
