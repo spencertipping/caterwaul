@@ -183,8 +183,6 @@
 //     the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.) If a mapping function
 //     returns something falsy, it will have exactly the same effect as returning the node without modification.
 
-//     Reparenting is done automatically. That is, any node returned by a mapping function, regardless of its original parent, will be reparented into the correct node by map() or rmap().
-
 //     The s() function maps the tree into a new one, where each node whose data is the given value is replaced by a successive entry in the array. The array wraps back to the beginning if you
 //     hit the end. (Alternatively, if you provide a non-array as the second parameter, then each matching entry is replaced by the second parameter as-is.) It's designed to emulate
 //     quasiquotation, like this:
@@ -312,7 +310,7 @@
 //   In this case, (condition) will be incorrectly inferred to be a regular expression (since the close-paren terminates an expression, usually), and /foo/ will be interpreted as division by foo. 
 
 //   We mark the position before a token and then just increment the position. The token, then, can be retrieved by taking a substring from the mark to the position. This eliminates the need for
-//   intermediate concatenations. In a couple of cases I've gone ahead and done them anyway -- these are for operators, where we grab the longest contiguous substring that is defined. I'm not to
+//   intermediate concatenations. In a couple of cases I've gone ahead and done them anyway -- these are for operators, where we grab the longest contiguous substring that is defined. I'm not too
 //   worried about the O(n^2) complexity due to concatenation; they're bounded by four characters.
 
 //   OK, so why use charAt() instead of regular expressions? It's a matter of asymptotic performance. V8 implements great regular expressions (O(1) in the match length for the (.*)$ pattern), but
@@ -510,7 +508,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //                                                                                  \
 //                                                                                   bif <--> , <--> baz
 
-//     This is actually merged into the for loop below, even though it happens before other steps do. See the 'ambiguous parse groups' section.
+//     This is actually merged into the for loop below, even though it happens before other steps do (see 'Ambiguous parse groups').
 
 //     Second step: fold operators.
 //     Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
