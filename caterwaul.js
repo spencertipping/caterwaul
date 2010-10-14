@@ -204,6 +204,16 @@
                   change: function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
           compose_single: function (i, f) {return this.change(i, f(this[i]))},
 
+//     General-purpose traversal.
+//     This is a SAX-style traversal model, useful for analytical or scope-oriented tree traversal. You specify a callback function that is invoked in pre-post-order on the tree (you get events
+//     for entering and exiting each node, including leaves). Each time a node is entered, the callback is invoked with an object of the form {entering: node}, where 'node' is the syntax node
+//     being entered. Each time a node is left, the callback is invoked with an object of the form {exiting: node}. The return value of the function is not used. Any null nodes are not traversed,
+//     since they would fail any standard truthiness tests for 'entering' or 'exiting'.
+
+                traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
+
+//     There are more traversal methods defined later on. See 'Scope-annotated traversal' below, for example.
+
 //     Structural transformation.
 //     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
 //     each of which is binary. JavaScript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
@@ -244,6 +254,14 @@
           left_is_lvalue: fn('/=$/.test(@data) || /\\+\\+$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
          has_lvalue_list: fn('@data === "var" || @data === "const"'),                                 is_dereference: fn('@data === "." || @data === "[]"'),
            is_invocation: fn('@data === "()"'),                                         is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
+
+//     Scope-annotated traversal.
+//     It's often helpful to have a list of currently-defined locals when traversing a syntax tree. This high-level function manages that for you; in addition to entering/exiting events, you also
+//     get a scope object that contains a mapping from each currently-defined local to the function() node that it belongs to. (It also handles variable shadowing correctly.)
+
+//     The scoped_traverse function takes an optional second parameter that is the surrounding scope. If not provided, it assumes that there are no variables in the surrounding scope.
+
+         scoped_traverse: function (f, scope) {},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -788,6 +806,25 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   This function, when mapped into a new environment, always returns 10. The reason is that the 'return r' statement will be rewritten as 'return gensym.r', whereas the eval() won't have its
 //   code transformed. (It is technically possible to detect calls to eval() and transform their code accordingly, since eval() is dynamically scoped and you can't call it under a different name.
 //   I'm not going to go to the trouble, though.)
+
+//   Exact rules of variable scoping.
+//   Each function creates a new scoped region, and functions are the only way that it's possible to create scope. All 'var' statements take effect as if they resided in the beginning of the
+//   function; so, for example:
+
+//   | var x = 5;
+//     (function () {
+//       var x = x;
+//       return x;
+//     }) ()               // what does this equal?
+
+//   The result here is undefined because the 'var x' takes effect before evaluating the 'x' on the right-hand side of the assignment. In fact, the same is true of this function:
+
+//   | (function () {return x; var x})()   // -> undefined
+
+//   Obviously similar things happen with formal parameters. If you have a function that takes 'x', 'x' inside the function will either be an argument or will be undefined; but it is a local
+//   variable. (The only thing to note here is that local variables defined earlier are accessible to later definitions, which makes sense if you think about it in terms of initialization order.)
+
+//   
 
   compile = function (tree, environment) {var s = gensym();
                                           return (new Function(s, 'return (' + tree.rmap(function (n) {
