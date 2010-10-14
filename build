@@ -1,6 +1,9 @@
 #!/bin/bash
 sdoc -p . lib test
 
+no_rhino=yes
+echo 'Note: Not using Rhino due to stack overflow.'
+
 function start() {
   echo starting $*
 }
