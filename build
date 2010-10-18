@@ -28,7 +28,9 @@ function run-rhino() {
 
 function run-v8() {
   start v8 $*
-  d8 --trace_exception --debug_info "$@" || fail v8 $* || return 1
+  egrep -vh '^\s*//' "$@" > tmp.js
+  node "$@" || fail v8 $* || return 1
+  rm -f tmp.js
   pass v8 $*
 }
 
@@ -43,6 +45,7 @@ if [[ $1 == fast || $1 == v8 ]]; then
   shift
 fi
 
+rm -f caterwaul.min.js
 cp caterwaul.js caterwaul.min.js
 
 if [[ $1 == loc ]]; then
