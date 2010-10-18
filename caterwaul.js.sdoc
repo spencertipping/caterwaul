@@ -169,7 +169,7 @@ nodes. At the end of folding there is only one child per paren-group.
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
-    reach and rmap, perform the process recusrively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
+    reach and rmap, perform the process recursively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
     function passed to rmap() returns the node verbatim then its children are traversed. If it returns a distinct node, however, then traversal doesn't descend into the children of the newly
     returned tree but rather continues as if the original node had been a leaf. For example:
 
@@ -195,7 +195,6 @@ nodes. At the end of folding there is only one child per paren-group.
                     rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r},
 
                  collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-                 parents: function ()  {var ps = [], n = this.p; while (n) ps.push(n = n.p); return ps},
 
                        s: function (data, xs) {if (xs.constructor === Array) {var i = 0; return this.rmap(function (n) {return n.data === data && xs[i++ % xs.length]})}
                                                else                          return this.rmap(function (n) {return n.data === data && xs})},
