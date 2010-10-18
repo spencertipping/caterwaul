@@ -1,4 +1,5 @@
 #!/bin/bash
+rm -f caterwaul.js
 sdoc -p . lib test
 
 no_rhino=yes
@@ -46,7 +47,7 @@ if [[ $1 == fast || $1 == v8 ]]; then
 fi
 
 rm -f caterwaul.min.js
-cp caterwaul.js caterwaul.min.js
+node lib/minify.js < caterwaul.js > caterwaul.min.js
 
 if [[ $1 == loc ]]; then
   echo "Total LOC/chars:   $(cat test/*.js caterwaul.js | wc -lm)"

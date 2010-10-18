@@ -1,0 +1,13 @@
+Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
+This won't do identifier packing, but it will provide decent minification by removing comments and most whitespace.
+
+eval(require('fs').readFileSync('caterwaul.js', 'utf8'));
+
+var stdin = process.openStdin();
+var code  = '';
+stdin.setEncoding('utf8');
+stdin.on('data', function (chunk) {code += chunk});
+stdin.on('end',  function      () {
+  var tree = caterwaul.parse(code);
+  process.stdout.write(tree.serialize());
+});
