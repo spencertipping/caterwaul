@@ -1,59 +1,90 @@
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-Sequence metaclass.
-Sequences provide some methods such as 'grep', and selectors such as 'before' and 'after', whose matching parameters can mean very different things depending on what the sequence is used for.
-As such, you can instantiate the sequence metaclass into a regular class to provide a sequence with well-defined behavior for element matching. For example:
+Introduction.
+JavaScript lacks a robust lazy sequence library. Most of its sequence-manipulation constructs are side-effectful, which means that they take up a lot of code-space and don't compose well in
+expressions. This library is designed to provide first-class sequence macros/classes to (hopefully) obviate the need for 'for' loops and similar JavaScript statement-level constructs.
 
-| var seq        = caterwaul.util.seq;
-  var seq_of_int = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? x === pattern :
-                                                         pattern.constructor === Function ? pattern(x) : false]});
-  var seq_modulo = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? ! (x % pattern) : ...]});
+  Sequence metaclass.
+  Sequences provide some methods such as 'grep', and selectors such as 'before' and 'after', whose matching parameters can mean very different things depending on what the sequence is used
+  for. As such, you can instantiate the sequence metaclass into a regular class to provide a sequence with well-defined behavior for element matching. For example:
 
-| var threes     = seq_of_int.from([1, 2, 3, 4, 5, 4, 3, 2, 1]).grep(3);
-  var evens      = seq_modulo.from([1, 2, 3, 4, 5, 6, 7, 8, 9]).grep(2);
+  | var seq        = caterwaul.util.seq;
+    var seq_of_int = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? x === pattern :
+                                                           pattern.constructor === Function ? pattern(x) : false]});
+    var seq_modulo = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? ! (x % pattern) : ...]});
 
-In addition to providing utility as classes, there are also some nice macros that come with sequences. You get comprehensions, generators, and side-effectful and pure traversal. Here are some
-examples (using 'std', 'seq.ana', 'seq.comp', 'seq.cons', and 'seq.iter'):
+  | var threes     = seq_of_int.from([1, 2, 3, 4, 5, 4, 3, 2, 1]).grep(3);
+    var evens      = seq_modulo.from([1, 2, 3, 4, 5, 6, 7, 8, 9]).grep(2);
 
-| var naturals = ana[x + 1](0);
-  naturals.length             // -> Infinity
-  naturals.at(0)              // -> 0
-  naturals.at(1)              // -> 1
-  naturals.force()            // throws error: can't force infinite stream
+  Macros and sequence construction.
+  In addition to providing utility as classes, there are also some nice macros that come with sequences. You get comprehensions, generators, and side-effectful and pure traversal. Here are
+  some examples (using 'std', 'seq.ana', 'seq.comp', 'seq.cons', and 'seq.iter'):
 
-| var to_10 = naturals.before(10);
-  to_10.length                // -> 10
-  to_10.at(0)                 // -> 0
-  to_10.at(9)                 // -> 9
-  to_10.at(10)                // -> undefined
-  to_10.force()               // -> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  | var naturals = ana[x + 1](0);
+    naturals.length             // -> Infinity
+    naturals.size()             // -> Infinity
+    naturals.at(0)              // -> 0
+    naturals.at(1)              // -> 1
+    naturals.force()            // throws error: can't force infinite stream
 
-| var odds = naturals.grep(fn[x][x & 1]);
-  odds.length                 // -> Infinity
-  odds.at(0)                  // -> 1
-  odds.at(1)                  // -> 3
+  | var to_10 = naturals.first(10);
+    to_10.length                // -> 10
+    to_10.at(0)                 // -> 0
+    to_10.at(9)                 // -> 9
+    to_10.at(-1)                // -> 9
+    to_10.at(10)                // -> undefined
+    to_10.force()               // -> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-| var times_3 = x * 3 <s< naturals;
-  times_3.length              // -> Infinity
-  times_3.at(0)               // -> 0
-  times_3.at(1)               // -> 3
+  | var to_20 = to_10.first(20);
+    to_20.length                // -> 20 (length is an upper bound, not a promise)
+    to_20.force()               // -> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-| var depth_first_cartesian_product = (([x, y] <s< naturals, where[y = x]) <s< naturals).flatten();
-  depth_first_cartesian_product.length          // -> Infinity
-  depth_first_cartesian_product.at(0)           // -> [0, 0]
-  depth_first_cartesian_product.at(1)           // -> [1, 0]
+  | var odds = naturals.grep(fn[x][x & 1]);
+    odds.length                 // -> Infinity
+    odds.at(0)                  // -> 1
+    odds.at(1)                  // -> 3
 
-| var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(1);
-  primes.length                                 // -> Infinity
-  primes.at(0)                                  // -> 2
-  primes.at(1)                                  // -> 3
-  primes.at(2)                                  // -> 5
+  | var times_3 = x * 3 <s< naturals;
+    times_3.length              // -> Infinity
+    times_3.at(0)               // -> 0
+    times_3.at(1)               // -> 3
 
-| var fibonacci = ana[this.at(n - 1) + this.at(n - 2)] (naturals.before(2));    // More compactly: ana[$(-1) + $(-2)] ([0, 1]);
-  fibonacci.length                              // -> Infinity
-  fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+  | var depth_first_cartesian_product = (([x, y] <s< naturals, where[y = x]) <s< naturals).flatten();
+    depth_first_cartesian_product.length          // -> Infinity
+    depth_first_cartesian_product.at(0)           // -> [0, 0]
+    depth_first_cartesian_product.at(1)           // -> [1, 0]
 
-| var custom1 = 1 |s| (2 |s| (3 |s| null));
-  var custom2 = 4 |s| (5 |s| null);
-  (custom1 |s| custom2).length                  // -> 5
+  | var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(1);
+    primes.length                                 // -> Infinity
+    primes.at(0)                                  // -> 2
+    primes.at(1)                                  // -> 3
+    primes.at(2)                                  // -> 5
+
+  | var fibonacci = ana[this.at(n - 1) + this.at(n - 2)] (naturals.before(2));    // More compactly: ana[$(-1) + $(-2)] ([0, 1]);
+    fibonacci.length                              // -> Infinity
+    fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+
+  | var custom1 = 1 |s| (2 |s| (3 |s| null));
+    var custom2 = 4 |s| (5 |s| null);
+    (custom1 |s| custom2).length                  // -> 5
+
+  Traversal.
+  Side-effectful traversal can be achieved by using the each() method (which takes a JavaScript function), or by using the <se< or >se> macros, which take a block of code. each() does not
+  rewrite your code, but <se< and >se> do. These macros optimize the rewritten form like this (with gensym details elided):
+
+  | console.log(x) <se< naturals.between(1, 10);
+    // becomes:
+    (function (_gensym_seq) {
+      for (var _gensym_i = 0, _gensym_l = _gensym_seq.length, x; x = _gensym_seq.at(_gensym_i), _gensym_i < _gensym_l; ++_gensym_i)
+        console.log(x);
+      return _gensym_seq;
+    }) (naturals.between(1, 10));
+
+  Because '<' and '>' are left-associative, you can use the right-handed >se> to write sequences of side-effects:
+
+  | sequence >se> foo(x) >se> bar(x) >se> bif(x);
+    foo(x) <se< bar(x) <se< bif(x) <se< sequence        // <- Won't do what you want!
+
+  Other traversal functions include <sm< and >sm> (map), <sfm< and >sfm> (flatmap), <sc< and >sc> (fold, 'c' stands for catamorphism), and <smf< and >smf> (map-filter -- returns a map across
+  your function for elements for which your function returns non-undefined).
