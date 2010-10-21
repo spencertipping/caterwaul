@@ -1,0 +1,1 @@
+sdocp('test/op.fn.js.sdoc', 'Op-fn promotion tests.\n\ntest(function () {\n  caterwaul.clone(\'std\')(function () {\n    var f = $+$;\n    eq(f(3, 4), 7);\n\n    var g = $<$;\n    eq(g(3, 4), true);\n    eq(g(4, 3), false);\n  }) ();\n});\n');

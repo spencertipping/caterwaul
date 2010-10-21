@@ -1,0 +1,12 @@
+Op-fn promotion tests.
+
+test(function () {
+  caterwaul.clone('std')(function () {
+    var f = $+$;
+    eq(f(3, 4), 7);
+
+    var g = $<$;
+    eq(g(3, 4), true);
+    eq(g(4, 3), false);
+  }) ();
+});
