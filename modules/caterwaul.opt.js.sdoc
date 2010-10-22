@@ -1,0 +1,59 @@
+Caterwaul optimization library | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+JavaScript JIT technology has come a long way, but there are some optimizations that it still isn't very good at performing. One is loop unrolling, which can have a large impact on execution
+speed. Another is function inlining, which may be coming soon but for now also makes a difference. This library provides macros to transform well-factored code into high-performance code.
+
+Loop unrolling.
+This is probably the most straightforward family of optimizations in the library. If you're using the 'seq' library for iteration, then you will already benefit from these macros; but you can
+also use them directly, like this:
+
+| // Slow for loop:
+  for (var i = 0, total = 0; i < xs.length; ++i) {
+    console.log(xs[i]);
+    total += xs[i];
+  }
+
+| // Using the iter[] macro (notice the superimposing of type information):
+  iter[x in array(xs), total = 0][
+    console.log(x),
+    total += x
+  ];
+
+| // iter[] generates this code:
+  (function (_gensym_xs) {
+    var _gensym_iterations = _gensym_xs.length;
+    var _gensym_rounds     = _gensym_iterations >>> 3;
+    var _gensym_extra      = _gensym_iterations & 7;
+    var total = 0;
+    for (var _gensym_i = 0, x; x = _gensym_xs[_gensym_i], _gensym_i < _gensym_extra; ++i)
+      console.log(x), total += x;
+    for (var _gensym_i = 0, _gensym_offset = 0, x; _gensym_i < _gensym_rounds; ++i) {
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+      x = _gensym_xs[_gensym_offset++]; console.log(x), total += x;
+    }
+  }) (xs);
+
+  Configuration.
+  You can change the level of unrolling on a per-loop basis or globally (though generally there isn't a good reason to). It must always be a power of two. To change it for a specific loop:
+
+  | iter[x in array(xs), unroll(4)][...];
+
+  To change it globally:
+
+  | caterwaul.opt.unroll(4);
+
+  Obviously you can also change it to huge values such as 32 or 64. The benefits decrease exponentially, however, so you will probably never need to do this. (Your code will also use
+  exponentially more memory and CPU cache, so at some point it actually slows things down.)
+
+  Caveats.
+  Caterwaul's optimizer is not smart about identifying loop invariants or non-side-effectful things about loops. In other words, it really exists only for the purpose of taking the work out of
+  unrolling things or doing similarly mechanical low-level optimization. It also does not optimize algorithms or any other high-level aspects of your code that generally have a more
+  significant performance impact than low-level stuff like loop unrolling.
