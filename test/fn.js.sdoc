@@ -3,7 +3,7 @@ Caterwaul fn standard library tests
 test(function () {
   var fn = caterwaul.clone('fn');
 
-  fn(function () {
+  fn(function (eq) {
     eq(fn[x][x + 1](6), 7);
     eq(fn[x, y][x + y](6, 7), 13);
     eq(fn_[10](), 10);
@@ -19,5 +19,5 @@ test(function () {
 
     eq(5, unless[true], true);
     eq(5, unless[false], 5);
-  }) ();
+  }) (eq);
 });

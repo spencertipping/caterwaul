@@ -1,1 +1,1 @@
-sdocp('test/string.js.sdoc', 'String interpolation tests.\n\ntest(function () {\n  caterwaul.clone(\'string\')(function () {\n    eq(\'foo\', \'foo\');\n    eq(\'foo#{3 + 5}\', \'foo8\');\n    eq(\'foo#{10 + 1}#{4 + 5}#{3 + 3}\', \'foo1196\');\n  }) ();\n});\n');
+sdocp('test/string.js.sdoc', 'String interpolation tests.\n\ntest(function () {\n  caterwaul.clone(\'string\')(function (eq) {\n    eq(\'foo\', \'foo\');\n    eq(\'foo#{3 + 5}\', \'foo8\');\n    eq(\'foo#{10 + 1}#{4 + 5}#{3 + 3}\', \'foo1196\');\n  }) (eq);\n});\n');

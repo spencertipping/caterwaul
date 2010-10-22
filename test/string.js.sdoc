@@ -1,9 +1,9 @@
 String interpolation tests.
 
 test(function () {
-  caterwaul.clone('string')(function () {
+  caterwaul.clone('string')(function (eq) {
     eq('foo', 'foo');
     eq('foo#{3 + 5}', 'foo8');
     eq('foo#{10 + 1}#{4 + 5}#{3 + 3}', 'foo1196');
-  }) ();
+  }) (eq);
 });

@@ -3,7 +3,7 @@ Caterwaul defmacro standard library tests
 test(function () {
   var c = caterwaul.clone('qs', 'qg', 'fn', 'defmacro');
 
-  c(function () {
+  c(function (eq) {
     eq(defmacro[foo][fn_[qs[bar]]], null);
     var bar = 6;
     eq(foo, 6);
@@ -18,5 +18,5 @@ test(function () {
     var count = 0;
     loop[eq(it, ++count)].over[[1, 2, 3, 4, 5]];
     eq(count, 5);
-  }) ();
+  }) (eq);
 });

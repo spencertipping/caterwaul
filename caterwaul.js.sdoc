@@ -902,8 +902,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
     shallow('compiler', {qs: parse('qs[_]'), expand_qs: false}).shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
         ref('syntax', syntax_node).ref('parse', parse).ref('compile', compile).ref('gensym', gensym).ref('map', map).ref('self', self).
 
-     method('reinitialize', fn('$1 = $0(@self), $1($1).deglobalize()')). method('decompile', fn('@parse($0.toString())')).
-     method('expand',       fn('@expand_qs(@macroexpand($0))')).         method('macro',     fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
+     method('decompile', fn('@parse($0.toString())')).method('expand', fn('@expand_qs(@macroexpand($0))')).method('macro', fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
 
      method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
      method('init',   function       (bindings, f) {var expansion = this.expand(this.decompile(f || bindings)); return compile(expansion.tree, merge(expansion.environment, f ? bindings : {}))}).
@@ -912,6 +911,10 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
      method('expand_qs',   function (t) {if (! this.compiler.expand_qs) return {environment: {}, tree: t};
                                          var environment = {}, quote_function = function (tree) {return se(gensym(), function (s) {environment[s] = tree; return new syntax_node(s)})};
                                          return {environment: environment, tree: macro_expand(t, [this.compiler.qs], [quote_function], this)}}).
+
+     method('reinitialize', function(transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+                                                                       erase_configurations || (result.configurations = this.configurations);
+                                                                       return result}).
 
 Utility library.
 Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the variables
@@ -1056,8 +1059,8 @@ this is that we don't want to force the configuration author to lose closure sta
 
   | xs.fold($+$)
 
-    tconfiguration('qs qg fn', 'op.fn', function () {for (var ops = qw('+ - * / & | ^ && || % < > << >> >>> , in instanceof'), i = 0, l = ops.length, op; op = ops[i], i < l; ++i)
-                                                       this.macro(new this.syntax(op, '$', '$'), fn_[qs[qg[function (x, y) {return _}]].s('_', new this.syntax(op, 'x', 'y'))])}).
+    tconfiguration('qs fn', 'op.fn', function () {for (var ops = this.util.qw('+ - * / & | ^ && || % < > << >> >>> == === <= >= != !== [] () , in instanceof'), i = 0, l = ops.length; i < l; ++i)
+                                                    let[op = ops[i]] in this.rmacro(new this.syntax(op, '$', '$'), fn_[qs[fn[x, y][_]].s('_', new this.syntax(op, 'x', 'y'))])}).
 
   Standard configuration.
   This loads all of the production-use extensions.
