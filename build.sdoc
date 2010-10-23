@@ -98,11 +98,16 @@ Trivial build rules that don't actually do anything, but exist to provide inform
 Main loop.
 There are only a few things that the main loop provides, mainly to keep the interface simple.
 
-  command=$1
-  shift
-  case $command in
-    unit)    unit "$@" ;;
-    package) package "$@" ;;
-    loc)     loc "$@" ;;
-    *)       echo "usage: $0 {unit|package|loc}"
-  esac
+  if [[ build.sdoc -nt build ]]; then
+    sdoc -p build.sdoc
+    $0 "$@"
+  else
+    command=$1
+    shift
+    case $command in
+      unit)    unit "$@" ;;
+      package) package "$@" ;;
+      loc)     loc "$@" ;;
+      *)       echo "usage: $0 {unit|package|loc}"
+    esac
+  fi
