@@ -8,7 +8,8 @@ Caterwaul is the replacement for Divergence. It fixes a number of issues (see th
 destructuring-bind syntactic macros. It also, unlike Divergence, has a proper test suite and runs on IE6. (Please visit the `test page <http://spencertipping.com/caterwaul/test>`_, and let me
 know if anything fails. My goal is to make this project completely cross-browser, at least starting with IE6.)
 
-Online documentation is available at http://spencertipping.com/caterwaul/caterwaul.html.
+Online documentation is available at http://spencertipping.com/caterwaul/caterwaul.html, and you can experiment with Caterwaul by using the `online compiler
+<http://spencertipping.com/caterwaul/compiler>`_.
 
 Using Caterwaul
 ---------------
