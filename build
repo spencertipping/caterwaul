@@ -52,6 +52,13 @@ if [[ $1 == full ]]; then
   shift
 fi
 
+if [[ $1 == stable ]]; then
+  stable=yes
+  version=$2
+  shift
+  shift
+fi
+
 rm -f caterwaul.min.js
 node lib/minify.js < caterwaul.js > caterwaul.min.js
 
@@ -71,6 +78,12 @@ for file in test/$1*.js modules/*.test/$1*.js; do
   [[ -z "$no_rhino" && -z "$no_full" ]] && run-rhino caterwaul.js     modules/*.js lib/unit.js $file
   [[ -z "$no_rhino" && -z "$no_min" ]]  && run-rhino caterwaul.min.js modules/*.js lib/unit.js $file
 done
+
+if [[ ! -z "$stable" ]]; then
+  mkdir -p stable/$version
+  cp caterwaul.min.js stable/$version
+  cp modules/*.min.js stable/$version
+fi
 
 grep '^fail' .test-log && $0 clean
 echo
