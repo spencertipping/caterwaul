@@ -105,9 +105,10 @@ There are only a few things that the main loop provides, mainly to keep the inte
     command=$1
     shift
     case $command in
-      unit)    unit "$@" ;;
-      package) package "$@" ;;
-      loc)     loc "$@" ;;
-      *)       echo "usage: $0 {unit|package|loc}"
+      unit)     unit "$@" ;;
+      generate) generate "$@" ;;
+      package)  package "$@" ;;
+      loc)      loc "$@" ;;
+      *)        echo "usage: $0 {unit|package|loc}" ;;
     esac
   fi

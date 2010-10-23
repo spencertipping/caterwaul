@@ -65,3 +65,8 @@ also use them directly.
                                                 for (var j = 0; j < rs; ++j) {_i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++; _body_;
                                                                               _i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++; _body_}}](_iterations_)].
     s('_i_', variable).s('_body_', body).s('_iterations_', iterations)])});
+
+Opt module collection.
+Loading the 'opt' configuration will enable all of the individual macros in the optimization library.
+
+  caterwaul.configuration('opt', function () {this.configure('opt.unroll')});
