@@ -7,42 +7,53 @@
 
 // Loop unrolling.
 // This is probably the most straightforward family of optimizations in the library. If you're using the 'seq' library for iteration, then you will already benefit from these macros; but you can
-// also use them directly, like this:
+// also use them directly.
 
-// | // Slow for loop:
-//   for (var i = 0, total = 0; i < xs.length; ++i) {
-//     console.log(xs[i]);
-//     total += xs[i];
-//   }
+//   Counting loops.
+//   Loop unrolling is designed to optimize the most common use of 'for' loops, a loop from zero to some upper boundary. For example:
 
-// | // Using the unroll[] macro (notice the superimposing of type information):
-//   var total = 0;
-//   var x;
-//   opt.unroll[i, xs.length][
-//     x = xs[i],
-//     console.log(x),
-//     total += x
-//   ];
-
-// | // Here's the generated code (reformatted for readability):
-//   var total = 0;
-//   var x;
-//   (function (_gensym_iterations) {
-//     var _gensym_rounds = _gensym_iterations >>> 3;
-//     var _gensym_extra  = _gensym_iterations & 7;
-//     for (var i = 0; i < _gensym_extra; ++i)
-//       x = xs[i], console.log(x), total += x;
-//     for (var _gensym_i = 0; _gensym_i < _gensym_rounds; ++_gensym_i) {
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
-//       i++; x = _gensym_xs[i], console.log(x), total += x;
+//   | for (var i = 0, total = 0; i < xs.length; ++i) {
+//       console.log(xs[i]);
+//       total += xs[i];
 //     }
-//   }) (xs.length);
+
+//   Using opt.unroll.
+//   The opt.unroll macro takes two bracketed expressions. The first describes the loop parameters and the second is the body to be executed on each iteration. The loop parameters are the
+//   variable representing the index, and its upper bound. (At present there is no way to specify a lower loop bound, nor custom incrementing. This may be added later.)
+
+//   Note that there isn't a good way to break out of a loop that's running. Using 'break' directly is illegal because of JavaScript's syntax rules. In the future there will be some mechanism
+//   that supports break and perhaps continue, in some form or another.
+
+//   Here is the unrolled version of the for loop described in 'Counting loops':
+
+//   | var total = 0;
+//     var x;
+//     opt.unroll[i, xs.length][
+//       x = xs[i],
+//       console.log(x),
+//       total += x
+//     ];
+
+//   And here is the generated code, reformatted for readability:
+
+//   | var total = 0;
+//     var x;
+//     (function (_gensym_iterations) {
+//       var _gensym_rounds = _gensym_iterations >>> 3;
+//       var _gensym_extra  = _gensym_iterations & 7;
+//       for (var i = 0; i < _gensym_extra; ++i)
+//         x = xs[i], console.log(x), total += x;
+//       for (var _gensym_i = 0; _gensym_i < _gensym_rounds; ++_gensym_i) {
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//         i++; x = _gensym_xs[i], console.log(x), total += x;
+//       }
+//     }) (xs.length);
 
 //   Caveats.
 //   Caterwaul's optimizer is not smart about identifying loop invariants or non-side-effectful things about loops. In other words, it really exists only for the purpose of taking the work out of
