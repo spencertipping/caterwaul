@@ -985,7 +985,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   failed the unit tests when ordinary parentheses were used because it requires disambiguation for expression-mode functions only at the statement level; thus syntax trees are not fully mobile
 //   like they are ordinarily.
 
-    tconfiguration('qs', 'qg', function () {this.rmacro(qs[qg[_]], function (expression) {return new this.syntax('(', expression)})}).
+    tconfiguration('qs', 'std.qg', function () {this.rmacro(qs[qg[_]], function (expression) {return new this.syntax('(', expression)})}).
 
 //   Function abbreviations (the 'fn' library).
 //   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. Also includes
@@ -993,16 +993,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
 
 
-    tconfiguration('qs qg', 'fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[qg[function (_) {return _}]].s('_', [vars, expression])}).
-                                                    rmacro(qs[fn_[_]],       function       (expression) {return qs[qg[function  () {return _}]].s('_', [expression])}).
-                                                    rmacro(qs[let[_] in _],  function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
-                                                                                                          return qs[fn[_][_].call(this, _)].s('_', [
-                                                                                                            vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
-                                                                                                            vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
-                                                    rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in qg[_])].s('_', [vars, expression])}).
+    tconfiguration('qs std.qg', 'std.fn', function () {this.rmacro(qs[fn[_][_]],     function (vars, expression) {return qs[qg[function (_) {return _}]].s('_', [vars, expression])}).
+                                                            rmacro(qs[fn_[_]],       function       (expression) {return qs[qg[function  () {return _}]].s('_', [expression])}).
+                                                            rmacro(qs[let[_] in _],  function (vars, expression) {if (vars.data === ',') vars = vars.flatten();
+                                                                                                                  return qs[fn[_][_].call(this, _)].s('_', [
+                                                                                                                    vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
+                                                                                                                    vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])}).
+                                                            rmacro(qs[_, where[_]],  function (expression, vars) {return qs[(let[_] in qg[_])].s('_', [vars, expression])}).
 
-                                                    rmacro(qs[_, when[_]],   function (expression, cond) {return qs[qg[_] && qg[_]].s('_', [cond, expression])}).
-                                                    rmacro(qs[_, unless[_]], function (expression, cond) {return qs[qg[_] || qg[_]].s('_', [cond, expression])})}).
+                                                            rmacro(qs[_, when[_]],   function (expression, cond) {return qs[qg[_] && qg[_]].s('_', [cond, expression])}).
+                                                            rmacro(qs[_, unless[_]], function (expression, cond) {return qs[qg[_] || qg[_]].s('_', [cond, expression])})}).
 
 //   Macro authoring tools (the 'defmacro' library).
 //   Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
@@ -1023,17 +1023,19 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros.
 
-    tconfiguration('qs fn', 'defmacro', function () {this.rmacro(qs[defmacro[_][_]],  fn[pattern, expansion][let[expanded = this.expand(expansion)] in
-                                                                                                             (this.rmacro(pattern, this.compile(expanded.tree, expanded.environment)), qs[null])]).
-                                                          rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][vars.data !== ',' ?
-                                                                                                               expansion.s(vars.data, new this.syntax(this.gensym())) :
-                                                                                                               vars.flatten().each(fn[v][expansion = expansion.s(v.data, new s(g()))]),
-                                                                                                             qs[qs[_]].s('_', expansion), where[g = this.gensym, s = this.syntax]])}).
+    tconfiguration('qs std.fn', 'std.defmacro', function () {this.rmacro(qs[defmacro[_][_]], fn[pattern, expansion][let[expanded = this.expand(expansion)] in
+                                                                                               (this.rmacro(pattern, this.compile(expanded.tree, expanded.environment)), qs[null])])}).
+
+    tconfiguration('qs std.fn', 'std.with_gensyms', function () {this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][vars.data !== ',' ?
+                                                                                                       expansion.s(vars.data, new this.syntax(this.gensym())) :
+                                                                                                       vars.flatten().each(fn[v][expansion = expansion.s(v.data, new s(g()))]),
+                                                                                                     qs[qs[_]].s('_', expansion), where[g = this.gensym, s = this.syntax]])}).
 
 //   Divergence function syntax.
 //   Rebase provides an infix function operator >$> that can be more readable, if more ambiguous, then Caterwaul's fn[][]. Enabling this configuration enables this notation from within Caterwaul.
 
-    tconfiguration('qs qg fn', 'dfn', function () {this.rmacro(qs[_ >$> _], fn[vars, expansion][qs[qg[function (_) {return _}]].s('_', [vars.data === '(' ? vars[0] : vars, expansion])])}).
+    tconfiguration('qs std.qg std.fn', 'std.dfn', function () {this.rmacro(qs[_ >$> _],
+                                                                           fn[vars, expansion][qs[qg[function (_) {return _}]].s('_', [vars.data === '(' ? vars[0] : vars, expansion])])}).
 
 //   String interpolation.
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -1046,14 +1048,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Another thing that has to happen is that we need to take care of any backslash-quote sequences in the expanded source. The reason is that while generally it's safe to assume that the user
 //   didn't put any in, Firefox rewrites strings to be double-quoted, escaping any double-quotes in the process. So in this case we need to find \" and replace them with ".
 
-    tconfiguration('qs', 'string', function () {this.rmacro(qs[_], function (s) {
-                                                if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
-                                                var q = s.data.charAt(0), s = s.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [],
-                                                                     result = new this.syntax('+');
-                                                s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
-                                                for (var i = 0, l = xs.length; i < l; ++i) result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).
-                                                                                                  push(new this.syntax('(', this.parse(xs[i].replace(eq, q))));
-                                                return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
+    tconfiguration('qs', 'std.string', function () {this.rmacro(qs[_], function (s) {
+                                                    if (! s.is_string() || ! /#\{[^\}]+\}/.test(s.data)) return false;
+                                                    var q = s.data.charAt(0), s = s.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [],
+                                                                         result = new this.syntax('+');
+                                                    s.replace(/#\{([^\}]+)\}/g, function (_, s) {xs.push(s)});
+                                                    for (var i = 0, l = xs.length; i < l; ++i) result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).
+                                                                                                      push(new this.syntax('(', this.parse(xs[i].replace(eq, q))));
+                                                    return new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))})}).
 
 //   Operator promotion.
 //   Languages like ML and Haskell (and of course Lisps) let you use operators in a first-class way. JavaScript doesn't normally do this, but it's arguably an important feature in a language. The
@@ -1068,12 +1070,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   | xs.fold($+$)
 
-    tconfiguration('qs fn', 'op.fn', function () {for (var ops = this.util.qw('+ - * / & | ^ && || % < > << >> >>> == === <= >= != !== [] () , in instanceof'), i = 0, l = ops.length; i < l; ++i)
-                                                    let[op = ops[i]] in this.rmacro(new this.syntax(op, '$', '$'), fn_[qs[fn[x, y][_]].s('_', new this.syntax(op, 'x', 'y'))])}).
+    tconfiguration('qs std.fn', 'std.op.fn', function () {for (var ops = this.util.qw('+ - * / & | ^ && || % < > << >> >>> == === <= >= != !== [] () , in instanceof'),
+                                                                     i = 0, l = ops.length; i < l; ++i)
+                                                            let[op = ops[i]] in this.rmacro(new this.syntax(op, '$', '$'), fn_[qs[fn[x, y][_]].s('_', new this.syntax(op, 'x', 'y'))])}).
 
 //   Standard configuration.
 //   This loads all of the production-use extensions.
 
-    configuration('std', function () {this.configure('qs', 'qg', 'fn', 'dfn', 'op.fn', 'defmacro', 'string')})});
+    configuration('std', function () {this.configure('qs', 'std.qg', 'std.fn', 'std.dfn', 'std.op.fn', 'std.defmacro', 'std.with_gensyms', 'std.string')})});
 
 // Generated by SDoc 
