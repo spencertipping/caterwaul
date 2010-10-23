@@ -954,13 +954,13 @@ It also has some design patterns that are useful for heavyweight (i.e. configura
 Standard library.
 Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
 
-| caterwaul.configure('fn');
+| caterwaul.configure('std.fn');
   // Longhand access to the function:
-  caterwaul.configurations.fn
+  caterwaul.configurations['std.fn']
 
 You can also pass these libraries into a clone() call:
 
-| var copy = caterwaul.clone('fn', 'some_other_library', function () {
+| var copy = caterwaul.clone('std.fn', 'some_other_library', function () {
     ...
   });
 
