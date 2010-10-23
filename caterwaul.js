@@ -248,11 +248,17 @@
                is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},
 
                 is_empty: fn('!@length'),  is_constant: fn('@is_number() || @is_string() || @is_boolean() || @is_regexp() || @data === "null" || @data === "undefined"'),
           left_is_lvalue: fn('/=$/.test(@data) || /\\+\\+$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
          has_lvalue_list: fn('@data === "var" || @data === "const"'),                                 is_dereference: fn('@data === "." || @data === "[]"'),
            is_invocation: fn('@data === "()"'),                                         is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
+
+            is_invisible: function () {return has(parse_invisible, this.data)},                   is_binary_operator: function () {return has(parse_lr, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},                    is_postfix_unary_operator: function () {return has(parse_l, this.data)},
+
+                 accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
 
 //     Scope-annotated traversal.
 //     It's often helpful to have a list of currently-defined locals when traversing a syntax tree. This high-level function manages that for you; in addition to entering/exiting events, you also
@@ -963,8 +969,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // this is that we don't want to force the configuration author to lose closure state, since it's arguably more important in a library setting than an end-user setting.)
 
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
-    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i) if (_.constructor === String) this.configurations[_].call(this);
-                                                                                                            else                          this(_).call(this);                return this}).
+    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                       if (_.constructor === String) if (this.configurations[_]) this.configurations[_].call(this);
+                                                                     else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
+                                       else                          this(_).call(this);
+                                     return this}).
 
 //   Qs library.
 //   You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'.

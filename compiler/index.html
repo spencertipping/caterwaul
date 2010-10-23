@@ -5,10 +5,17 @@
     <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'></script>
     <script src='../caterwaul.min.js'></script>
     <script src='../modules/caterwaul.opt.min.js'></script>
+    <script src='../modules/caterwaul.format.min.js'></script>
 
     <script>
       $(caterwaul.clone('std')(function () {
-        $('#compile').click(fn_[$('#output').val(caterwaul.clone('std', 'opt')($('#code').val()).toString())]);
+        var c = caterwaul.clone('std', 'opt', 'format');
+
+        let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e}},
+                   serialize = fn[tree][$('#minify').is(':checked') ? tree.serialize() : c.format(tree)]] in
+        $('#code').keyup(let[timeout = null] in
+                         fn_[timeout && clearTimeout(timeout),
+                             timeout = setTimeout(fn_[$('#output').val(let[code = $('#code').val()] in (code && (parse_errors_for(code) || serialize(c.expand(c.parse(code)).tree))) || '')], 200)]);
       }));
     </script>
 
@@ -19,7 +26,7 @@
   </head>
   <body>
     <table>
-      <tr><td><button id='compile'>Compile</button></td></tr>
+      <tr><td><label for='minify'>Minify</label><input type='checkbox' id='minify'/></td></tr>
       <tr><td><textarea id='code'></textarea></td>
           <td><textarea id='output' readonly='yes'></textarea></td></tr>
     </table>
