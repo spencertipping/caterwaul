@@ -75,8 +75,9 @@ Caterwaul is versioned in the stable/ directory. All production-worthy (i.e. min
     git add stable/$1
     git commit -am "Automatic commit for version $1"
     git tag version-$1
-    cp .git/refs/heads/master stable/$1/
+    cp .git/refs/heads/master stable/$1/commit-id
     tar -cj stable/$1 > stable/$1.tar.bz2
+    git commit -am "Automatic commit for version $1 deployment"
   }
 
 Informational stuff.
