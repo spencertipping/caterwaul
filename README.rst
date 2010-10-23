@@ -5,7 +5,7 @@ A Lisp for JavaScript
 ---------------------
 
 Caterwaul is the replacement for Divergence. It fixes a number of issues (see the source for details) and takes a more direct approach towards extending JavaScript by encoding quotation and
-destructuring-bind syntactic macros. It also, unlike Divergence, has a proper test suite and runs on IE6. (Please visit the `test page <http://spencertipping.com/caterwaul/test>`_, and let me
+destructuring-bind syntactic macros. It also, unlike Divergence, has a proper test suite and runs on IE6. (Please visit the `test page <http://spencertipping.com/caterwaul/test>`_ and let me
 know if anything fails. My goal is to make this project completely cross-browser, at least starting with IE6.)
 
 Online documentation is available at http://spencertipping.com/caterwaul/caterwaul.html, and you can experiment with Caterwaul by using the `online compiler
@@ -54,7 +54,7 @@ Standard Macro Library
 
 Caterwaul comes with some standard macro libraries. To get access to them::
 
-    var with_fn = caterwaul.clone('fn');
+    var with_fn = caterwaul.clone('std.fn');
     with_fn(function () {
       // Function creation:
       var x = fn[y][y + 1](6);          // Now x is 7
@@ -70,13 +70,13 @@ Caterwaul comes with some standard macro libraries. To get access to them::
       console.log(10), unless[false];
     });
 
-    var with_string = caterwaul.clone('string');
+    var with_string = caterwaul.clone('std.string');
     with_string(function () {
       // String interpolation with #{} blocks:
       var s = '3 + 5 is #{3 + 5}';      // Now s is '3 + 5 is 8'
     });
 
-    var with_dfn = caterwaul.clone('dfn');
+    var with_dfn = caterwaul.clone('std.dfn');
     with_dfn(function () {
       // Divergence-style inline functions:
       var f = x >$> x + 1;
@@ -85,7 +85,7 @@ Caterwaul comes with some standard macro libraries. To get access to them::
 
 Another library enables the ``defmacro[][]`` command::
 
-    var with_defmacro = caterwaul.clone('qs', 'fn', 'defmacro');
+    var with_defmacro = caterwaul.clone('qs', 'std.fn', 'std.defmacro');
     with_defmacro(function () {
       // Defining inline macros:
       defmacro[foo[_]][fn[thing][qs[console.log(_)].s('_', thing)]];
@@ -104,6 +104,6 @@ Another library enables the ``defmacro[][]`` command::
       forEach[[1, 2, 3]][console.log(it)];
     });
 
-Generally you should use the ``'std'`` library, which includes all of the ones that ship with Caterwaul.
+Generally you would use the ``'std'`` library, which includes all of the standard macros that ship with Caterwaul.
 
 The Caterwaul source code and tests cover the uses of ``defmacro`` and ``with_gensyms`` in more detail.
