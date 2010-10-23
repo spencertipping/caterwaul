@@ -1027,7 +1027,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                                                                (this.rmacro(pattern, this.compile(expanded.tree, expanded.environment)), qs[null])])}).
 
     tconfiguration('qs std.fn', 'std.with_gensyms', function () {this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][vars.data !== ',' ?
-                                                                                                       expansion.s(vars.data, new this.syntax(this.gensym())) :
+                                                                                                       (expansion = expansion.s(vars.data, new this.syntax(this.gensym()))) :
                                                                                                        vars.flatten().each(fn[v][expansion = expansion.s(v.data, new s(g()))]),
                                                                                                      qs[qs[_]].s('_', expansion), where[g = this.gensym, s = this.syntax]])}).
 
