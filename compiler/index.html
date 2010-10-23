@@ -13,7 +13,7 @@
 
         let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e}},
                    serialize = fn[tree][$('#minify').is(':checked') ? tree.serialize() : c.format(tree)]] in
-        $('#code').keyup(let[timeout = null] in
+        $('#code').keyup(let[timeout = null, c = caterwaul.clone('std', 'opt', 'format')] in
                          fn_[timeout && clearTimeout(timeout),
                              timeout = setTimeout(fn_[$('#output').val(let[code = $('#code').val()] in (code && (parse_errors_for(code) || serialize(c.expand(c.parse(code)).tree))) || '')], 200)]);
       }));
