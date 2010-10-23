@@ -22,17 +22,25 @@
     </script>
 
     <style>
-      body {width: 900px; margin-left: auto; margin-right: auto}
+      body {width: 900px; margin-left: auto; margin-right: auto; font-family: sans-serif; font-size: 10pt}
+      h1, h2, h3, h4, h5, h6 {font-weight: normal; color: #f70}
+      h1   {font-size: 16pt}
+      h2   {font-size: 14pt}
       textarea {border: none; background: #eee; width: 440px; height: 5000px}
     </style>
   </head>
   <body>
+    <h1>Caterwaul Offline Compiler</h1>
+    <p>Caterwaul is designed to be used online -- that is, live in the user's browser -- but you can also compile code ahead-of-time.</p>
+    <div>
+      <h2>Compiler options</h2>
+      <div><label for='minify'>Condensed output</label><input type='checkbox' id='minify'/></div>
+      <div><label for='std'>Standard macros ('std' module)</label><input type='checkbox' checked='checked' id='std'/></div>
+      <div><label for='opt'>Optimization macros ('opt' module)</label><input type='checkbox' checked='checked' id='opt'/></div>
+    </div>
     <table>
-      <tr><td><label for='minify'>Condensed output</label><input type='checkbox' id='minify'/>
-              <label for='std'>Include 'std'</label><input type='checkbox' checked='checked' id='std'/>
-              <label for='opt'>Include 'opt'</label><input type='checkbox' checked='checked' id='opt'/></td></tr>
-      <tr><td><textarea id='code'></textarea></td>
-          <td><textarea id='output' readonly='yes'></textarea></td></tr>
+      <tr><td><h2>Source</h2><textarea id='code'></textarea></td>
+          <td><h2>Compiled</h2><textarea id='output' readonly='yes'></textarea></td></tr>
     </table>
   </body>
 </html>
