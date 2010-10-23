@@ -12,11 +12,12 @@
         var c = caterwaul.clone('std', 'opt', 'format');
 
         let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e}},
-                   serialize = fn[tree][$('#minify').is(':checked') ? tree.serialize() : c.format(tree)]] in
-        $('#code').keyup(let[timeout = null] in
-                         fn_[timeout && clearTimeout(timeout),
-                             timeout = setTimeout(fn_[$('#output').val(let[code = $('#code').val(), c = caterwaul.clone('std', 'opt', 'format')] in
-                                                                       (code && (parse_errors_for(code) || serialize(c.expand(c.parse(code)).tree))) || '')], 200)]);
+                   serialize = fn[tree][$('#minify').is(':checked') ? tree.serialize() : c.format(tree)],
+            create_caterwaul = fn_[let[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone()] in
+                                   (let[c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1] in c2)]] in
+        (let[recompile = fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(c.expand(c.parse(code)).tree))) || '')]] in
+         ($('#code').keyup(let[timeout = null] in fn_[timeout && clearTimeout(timeout), timeout = setTimeout(recompile, 200)]),
+          $('input').change(recompile)));
       }));
     </script>
 
@@ -27,7 +28,9 @@
   </head>
   <body>
     <table>
-      <tr><td><label for='minify'>Minify</label><input type='checkbox' id='minify'/></td></tr>
+      <tr><td><label for='minify'>Condensed output</label><input type='checkbox' id='minify'/>
+              <label for='std'>Include 'std'</label><input type='checkbox' checked='checked' id='std'/>
+              <label for='opt'>Include 'opt'</label><input type='checkbox' checked='checked' id='opt'/></td></tr>
       <tr><td><textarea id='code'></textarea></td>
           <td><textarea id='output' readonly='yes'></textarea></td></tr>
     </table>
