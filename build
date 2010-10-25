@@ -95,6 +95,8 @@
     echo "module SLOC/chars:        $(cat modules/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
     echo "module comment LOC/chars: $(cat modules/*.js | grep '//' | wc -lm)"
     echo "module test SLOC/chars:   $(cat modules/*.test/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
+
+    generate
   }
 
 # Main loop.
