@@ -248,15 +248,15 @@
                is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
-    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},            is_null_or_undefined: fn('@data === "null" || @data === "undefined"'),
 
-                is_empty: fn('!@length'),  is_constant: fn('@is_number() || @is_string() || @is_boolean() || @is_regexp() || @data === "null" || @data === "undefined"'),
+                is_empty: fn('!@length'),  is_constant: fn('@is_number() || @is_string() || @is_boolean() || @is_regexp() || @is_null_or_undefined()'),
           left_is_lvalue: fn('/=$/.test(@data) || /\\+\\+$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
          has_lvalue_list: fn('@data === "var" || @data === "const"'),                                 is_dereference: fn('@data === "." || @data === "[]"'),
            is_invocation: fn('@data === "()"'),                                         is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
 
             is_invisible: function () {return has(parse_invisible, this.data)},                   is_binary_operator: function () {return has(parse_lr, this.data)},
-is_prefix_unary_operator: function () {return has(parse_r, this.data)},                    is_postfix_unary_operator: function () {return has(parse_l, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},                    is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
 
                  accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
 
