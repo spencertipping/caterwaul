@@ -58,13 +58,14 @@ syn keyword   jsPrototype               prototype constructor
 
 syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/           end=/]/ contains=TOP
 syn region    jsCaterwaulQg             matchgroup=jsCaterwaulMacro start=/qg\s*\[/           end=/]/ contains=TOP
-syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/fn\s*\[/           end=/]/ contains=jsOperator
+syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/f[nb]\s*\[/        end=/]/ contains=jsOperator
 syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/          end=/]/ contains=TOP,jsBindingAssignment
 syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/        end=/]/ contains=TOP,jsBindingAssignment
 
-syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/fn_\s*\[/          end=/]/ contains=TOP
+syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/f[nb]_\s*\[/       end=/]/ contains=TOP
 syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/         end=/]/ contains=TOP
 syn region    jsCaterwaulUnless         matchgroup=jsCaterwaulMacro start=/unless\s*\[/       end=/]/ contains=TOP
+syn region    jsCaterwaulCompileEval    matchgroup=jsCaterwaulMacro start=/compile_eval\s*\[/ end=/]/ contains=TOP
 
 syn region    jsCaterwaulDefmacro       matchgroup=jsCaterwaulMacro start=/defmacro\s*\[/     end=/]/ contains=TOP
 syn region    jsCaterwaulWithGensyms    matchgroup=jsCaterwaulMacro start=/with_gensyms\s*\[/ end=/]/ contains=jsOperator
