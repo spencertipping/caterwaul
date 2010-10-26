@@ -12,8 +12,8 @@
         var c = caterwaul.clone('std', 'opt', 'format');
 
         var recompile = let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e.toString()}},
-                              try_to_compile = function (c, code) {try {return c.macroexpand(c.parse(code)).tree} catch (e) {return e.toString()}},
-                                   serialize = fn[tree][tree && tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() : c.format(tree)],
+                              try_to_compile = function (c, code) {try {return c.macroexpand(c.parse(code))} catch (e) {return e.toString()}},
+                                   serialize = fn[tree][tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() : c.format(tree)],
                             create_caterwaul = fn_[let[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone()] in
                                                    (let[c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1] in c2)]] in
         fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(try_to_compile(c, code)))) || '')];
