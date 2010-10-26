@@ -1,7 +1,7 @@
 Macro definition tests.
 
 test(function () {
-  var c = caterwaul.clone('qs', function () {
+  var c = caterwaul.clone('std.qs', function () {
     this.rmacro(qs[fn[_][_]], function (params, expression) {return qs[function (_) {return _}].s('_', [params, expression])});
   });
 

@@ -1,7 +1,7 @@
-// Caterwaul fn standard library tests
+// Caterwaul fn, bind, and cond standard library tests
 
 test(function () {
-  var fn = caterwaul.clone('std.fn');
+  var fn = caterwaul.clone('std.fn', 'std.bind', 'std.cond');
 
   fn(function (eq) {
     eq(fn[x][x + 1](6), 7);
@@ -17,7 +17,7 @@ test(function () {
     eq(5, when[true], 5);
     eq(5, when[false], false);
 
-    eq(5, unless[true], true);
+    eq(5, unless[true], false);
     eq(5, unless[false], 5);
   }) (eq);
 });

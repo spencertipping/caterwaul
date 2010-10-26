@@ -1,3 +1,0 @@
-Finish compile() function (it currently doesn't handle variable scoping)
-  Actually, this may not be an issue. This could perhaps be better handled by using a literal value API -- that is, syntax trees can have hard references into their surrounding environments,
-  and when the function gets compiled it then closes over these values. Gensyms make this doable with the current interface.

@@ -85,7 +85,8 @@
 
   loc() {
     generate
-    echo "core gzip bytes: $(gzip -c9 caterwaul.min.js | wc -c)"
+    echo "core gzip bytes:    $(gzip -c9 caterwaul.min.js | wc -c)"
+    echo "core compact bytes: $(cat caterwaul.min.js | wc -c)"
 
     rm -f *.min.js modules/*.min.js
     echo "total LOC/chars:          $(cat test/*.js modules/*.js modules/*.test/*.js caterwaul.js | wc -lm)"

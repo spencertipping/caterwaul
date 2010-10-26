@@ -11,7 +11,7 @@
   caterwaul.tconfiguration('std', 'format', function () {
     var n_spaces = fn[n][n ? ' #{n_spaces(n - 1)}' : ''];
 
-    this.ref('format', function (tree, indentation) {
+    this.field('format', function (tree, indentation) {
       var spaces = n_spaces(indentation << 1), c = this, op = tree.data, map = caterwaul.util.map,
        serialize = fn[n][fn[x][x ? x.constructor === String ? x : c.format(x, (indentation || 0) + (n || 0)) : '']];
 
