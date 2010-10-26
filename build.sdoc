@@ -54,7 +54,7 @@ packaging process.
     generate
     rm -f .test-log
     for file in test/$1*.js modules/*.test/$1*.js; do
-      run-node caterwaul.js     modules/*.min.js lib/unit.js $file
+      run-node caterwaul.js     modules/*.min.js lib/unit.js $file &&
       run-node caterwaul.min.js modules/*.min.js lib/unit.js $file
     done
     grep '^fail' .test-log && return 1
