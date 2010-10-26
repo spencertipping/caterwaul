@@ -12,7 +12,7 @@
         var c = caterwaul.clone('std', 'opt', 'format');
 
         var recompile = let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e.toString()}},
-                              try_to_compile = function (c, code) {try {return c.expand(c.parse(code)).tree} catch (e) {return e.toString()}},
+                              try_to_compile = function (c, code) {try {return c.macroexpand(c.parse(code)).tree} catch (e) {return e.toString()}},
                                    serialize = fn[tree][tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() : c.format(tree)],
                             create_caterwaul = fn_[let[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone()] in
                                                    (let[c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1] in c2)]] in
@@ -44,6 +44,8 @@
     <h3>Standard macro library</h3>
     <ul><li><code><a href='javascript:void(0)'>let[x = 5] in x + 2;</a></code></li>
         <li><code><a href='javascript:void(0)'>fn[x][x + 1];</a></code></li>
+        <li><code><a href='javascript:void(0)'>fb[x][this(x)];</a></code></li>
+        <li><code><a href='javascript:void(0)'>fb_[this.method()];</a></code></li>
         <li><code><a href='javascript:void(0)'>fn_[this];</a></code></li>
         <li><code><a href='javascript:void(0)'>x + y, where[x = 6, y = 10];</a></code></li>
         <li><code><a href='javascript:void(0)'>console.log(x), when[x &gt; 0];</a></code></li>
