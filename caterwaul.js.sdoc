@@ -172,6 +172,12 @@ nodes. At the end of folding there is only one child per paren-group.
         sibling: fn('$0.p = @p, (@r = $0).l = this'),                                      unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
            wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('(this[@length++] = $0), this'),
 
+    Identification.
+    You can request that a syntax node identify itself, in which case it will give you a string identifier if it hasn't already. The identity is not determined until the first time it is
+    requested, and after that it is stable.
+
+      id: function () {return this.id || (this.id = gensym())},
+
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
     reach and rmap, perform the process recursively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
@@ -217,16 +223,49 @@ nodes. At the end of folding there is only one child per paren-group.
     being entered. Each time a node is left, the callback is invoked with an object of the form {exiting: node}. The return value of the function is not used. Any null nodes are not traversed,
     since they would fail any standard truthiness tests for 'entering' or 'exiting'.
 
+      traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
+
       Scope-annotated traversal.
       It's often helpful to have a list of currently-defined locals when traversing a syntax tree. This high-level function manages that for you; in addition to entering/exiting events, you
       also get a scope object that contains a mapping from each currently-defined local to the function() node that it belongs to. (It also handles variable shadowing correctly.)
 
-      The scoped_traverse function takes an optional second parameter that is the surrounding scope. If not provided, it assumes that there are no variables in the surrounding scope.
+      There are a few different formats that would work for this purpose. The issue from the inside of this function is that we want to spend a minimal amount of time building these
+      structures; the worst-case scenario becomes O(n^2) for n levels of scoping if we always create new objects. Rather than doing that, it's more efficient to construct a linked scope chain
+      much in the same way that a JavaScript interpreter would.
 
-               traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
-        scoped_traverse: function (f, scope) {},
+      This means that we'll need a structure like this:
 
-    There are more traversal methods defined later on. See 'Scope-annotated traversal' below, for example.
+      |          child 1    child 2.1
+               /          /
+        parent -- child 2 -- child 2.2  ...
+               \
+                 child 3
+
+      Each node will have a 'parent' reference that points to the enclosing scope. The variables defined wtihin a scope are stored in the 'variables' attribute. So each node will have this
+      structure:
+
+      | {parent: <a-scope-node>, variables: {v1: <this-scope-node>, v2: <this-scope-node>, ...}, children: {<function-node-id>: {<scope-node>}}}
+
+      We use the id() method defined in 'Identification' to allow the function nodes to be used as hash keys.
+
+      The scoped_traverse function runs in two parts. First, it goes through the whole tree building up the scope objects, and then it runs through a second time calling the callback on each
+      node, now annotated. When the callback is invoked transitioning into or out of a function (i.e. {entering: function_node} or {exiting: function_node}), the scope will always be the one
+      inside the function, not the one in which the function is defined. If you want the outer scope, you can use the .parent attribute of the scope node. The 'global' scope (i.e. the
+      outermost one) will have a null parent.
+
+        scoped_traverse: function (f) {var new_scope = function (parent) {return {parent: parent || null, variables: {}, children: {}}},
+                                               scope = new_scope();
+
+          this.traverse(function (t) {var n = t.entering, formals = null;
+            n ? (n.data === 'function' ?  (scope = scope.children[n.id()] = new_scope(scope), formals = n[0].data === '(' ? n[0][0] : n[1][0],
+                                           formals.data === ',' ? formals.flatten().each(function (v) {scope.variables[v.data] = scope}) : scope.variables[formals.data] = scope) :
+                     n.data === 'var'  && (n[0].data === ',' ? n[0].flatten().each(function (v) {scope.variables[v.data === '=' ? v[0].data : v.data] = scope}) :
+                                                               (scope.variables[n[0].data === '=' || n[0].data === 'in' ? n[0][0].data : n[0].data] = scope))) :
+                t.exiting.data === 'function' && (scope = scope.parent)});
+
+          return this.traverse(function (node) {if (node.entering && node.entering.data === 'function') scope = scope.children[node.entering.id()];
+                                                f(node, scope);
+                                                if (node.exiting  && node.exiting.data  === 'function') scope = scope.parent})},
 
     Structural transformation.
     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
