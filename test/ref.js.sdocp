@@ -1,0 +1,1 @@
+sdocp('test/ref.js.sdoc', 'Caterwaul fn, bind, and cond standard library tests\n\ntest(function () {\n  var fn = caterwaul.clone(\'std.ref\');\n  fn.foo = \'bar\';\n\n  fn(function (eq) {\n    eq(this[caterwaul].foo, \'bar\');\n    this[caterwaul].foo = \'bif\';\n  }) (eq);\n\n  eq(fn.foo, \'bif\');\n});\n');

@@ -1,0 +1,16 @@
+Error handling macros | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+JavaScript's error handling is clunky to use, especially from inside an expression context. These macros abstract that away and let you handle errors in various ways. The simplest macro is
+probably quietly[], which silently ignores any errors. (It just returns false instead of whatever the expression would have returned.) Slightly more complex is safely[][], which takes two
+forms. The first is evaluated, and the result returned if there are no errors. If there is an error, then the second is evaluated in a context where 'error' is bound to the error object, and
+that result is returned.
+
+Also provided is an expression-mode throw, which lets you throw errors without returning to statement syntax. This is written !![x], where x is the expression to be thrown.
+
+caterwaul.tconfiguration('std', 'error', function () {
+  this.rmacro(qs[safely[_][_]], fn[expression, handler][qs[qg[function () {try {return _} catch (error) {return _}}]()].s('_', [expression, handler])]);
+  this.rmacro(qs[quietly[_]],   fn[expression]         [qs[qg[function () {try {return _} catch (error) {return false}}]()].s('_', expression)]);
+  this.rmacro(qs[!![_]],        fn[expression]         [qs[qg[function () {throw _}]()].s('_', expression)]);
+});

@@ -1036,6 +1036,13 @@ configuration multiple times (though you're probably doing something wrong if yo
     tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
       this.macro(qs[compile_eval[_]], fn[expression][this.compile(this.macroexpand(qs[fn_[_]].s('_', expression))).call(this)])}).
 
+  Self-reference (the 'ref' module).
+  Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
+  possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing this[caterwaul]. The expression is replaced by a closure variable that will refer to
+  whichever Caterwaul function was used to transform the code.
+
+    tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[this[caterwaul]], fn_[new this.ref(this)])}).
+
   Divergence function syntax.
   Rebase provides an infix function operator >$> that can be more readable, if more ambiguous, then Caterwaul's fn[][]. Enabling this configuration enables this notation from within Caterwaul.
 
@@ -1084,4 +1091,4 @@ configuration multiple times (though you're probably doing something wrong if yo
   Standard configuration.
   This loads all of the production-use extensions.
 
-    configuration('std', function () {this.configure(this.util.qw('std.qs std.qg std.bind std.cond std.fn std.dfn std.op.fn std.defmacro std.with_gensyms std.compile_eval std.string'))})});
+    configuration('std', function () {this.configure(this.util.qw('std.qs std.qg std.bind std.cond std.fn std.dfn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string'))})});
