@@ -16,56 +16,68 @@
     <link href='http://fonts.googleapis.com/css?family=PT+Sans&subset=latin' rel='stylesheet'/>
 
     <style>
-      body {background: #222; color: white; font-family: 'Neuton', serif; width: 800px; margin: auto; margin-bottom: 200px}
-      #header {margin-top: 100px}
-      #header h1, #header h2 {font-family: 'Neuton', serif; text-transform: uppercase; font-weight: normal; float: left}
-      #header h1 {color: #eee; border-right: solid 4px #444; padding-right: 10px; font-size: 24pt}
-      #header h2 {color: #888; text-transform: lowercase; margin-top: 40px; margin-left: 10px; font-size: 18pt}
+      body {background: #222; color: white; font-family: 'Neuton', serif; margin: auto; width: 800px; margin-top: 100px}
 
-      .section     {clear: both; padding-top: 60px}
-      .section h1  {color: #888; font-family: 'Neuton', serif; font-weight: normal; font-size: 16pt; border-bottom: solid 10px #444; margin-bottom: 50px}
-      .section p   {font-size: 10pt; font-family: 'Neuton', sans-serif; text-align: justify; float: right; width: 400px; clear: both}
-      .section pre {font-family: 'Droid Sans Mono'; font-weight: bold; font-size: 9pt; border-right: solid 4px #444; padding: 0 10px; margin: 30px 0; float: right; clear: right}
-      .section a   {text-decoration: none; color: #aaa}
+      #title, #subtitle {font-family: 'Neuton', serif; text-transform: uppercase; font-weight: normal}
+      #title            {color: #eee; border-right: solid 4px #444; padding-right: 10px; font-size: 24pt; text-align: right; display: inline}
+      #subtitle         {color: #888; text-transform: lowercase; font-size: 18pt}
+
+      #right            {float: right; width: 500px; margin-left: 10px}
+      #header           {text-align: right}
+
+      .section          {clear: both; padding-top: 60px}
+      .section h1       {color: #888; font-family: 'Neuton', serif; font-weight: normal; font-size: 16pt; border-bottom: solid 10px #444; margin-bottom: 50px}
+      .section p        {font-size: 10pt; font-family: 'Neuton', sans-serif; text-align: justify}
+      .section pre      {font-family: 'Droid Sans Mono'; font-weight: bold; font-size: 9pt; border-left: solid 4px #444; padding: 0 10px; margin: 30px 0}
+
+      a                 {text-decoration: none; color: #aaa}
+      a:hover           {color: #f70}
+      a.git-link        {color: #aaa; font-family: 'Droid Sans Mono'}
     </style>
   </head>
   <body>
-    <div id='header'><h1>Caterwaul</h1><h2>Javascript without the noise</h2></div>
+    <div id='right'>
+      <h2 id='subtitle'>Javascript without the noise</h2>
 
-    <div class='section'>
-      <h1>Introduction</h1>
-      <p>Caterwaul is a Javascript-to-Javascript compiler implemented in Javascript. If this sounds pointless (it probably does), think of it as a way to convert Javascript that you wouldn't
-         write into Javascript that you would. For example, nobody would write this:</p>
-      <pre>let[x = 5] in x + 1</pre>
-      <p>Using Caterwaul, however, you can define alternative meaning for certain forms. Caterwaul's standard macro library transforms the above code into this:</p>
-      <pre>(function (x) {return x + 1}).call(this, 5)</pre>
-      <p>Caterwaul's transformation system is Turing-complete (it is very similar to Lisp macros, but slightly more expressive), and you can define macros that run arbitrary Javascript
-         functions when they are invoked.</p>
-    </div>
+      <div class='section'>
+        <h1>Introduction</h1>
+        <p>Caterwaul is a Javascript-to-Javascript compiler implemented in Javascript. If this sounds pointless (it probably does), think of it as a way to convert Javascript that you wouldn't
+           write into Javascript that you would. For example, nobody would write this:</p>
+        <pre>let[x = 5] in x + 1</pre>
+        <p>Using Caterwaul, however, you can define transformations for certain forms. Caterwaul's standard macro library transforms the above code into this:</p>
+        <pre>(function (x) {return x + 1}).call(this, 5)</pre>
+        <p>Caterwaul's transformation system is Turing-complete (it is very similar to Lisp macros, but slightly more expressive), and you can define macros that run arbitrary Javascript
+           functions when they are invoked.</p>
+      </div>
 
-    <div class='section'>
-      <h1>Getting Started</h1>
-      <p>It's really easy to use Caterwaul. All you need to do for client-side code is drop this script tag into your code:</p>
-      <pre>&lt;script src='http://spencertipping.com/caterwaul/caterwaul.min.js'&gt;&lt;/script&gt;</pre>
-      <p>(You should probably mirror this script locally just in case my web host goes down.) After that you can wrap any top-level function (i.e. a function that isn't a closure) in a
-         caterwaul call, like this:</p>
-      <pre>caterwaul.clone('std')(function () {
+      <div class='section'>
+        <h1>Getting Started</h1>
+        <p>It's really easy to use Caterwaul. All you need to do for client-side code is drop this script tag into your code:</p>
+        <pre>&lt;script src='http://spencertipping.com/caterwaul/caterwaul.min.js'&gt;&lt;/script&gt;</pre>
+        <p>(You should probably mirror this script locally just in case my web host goes down.) After that you can wrap any top-level function (i.e. a function that isn't a closure) in a
+           caterwaul call, like this:</p>
+        <pre>caterwaul.clone('std')(function () {
   let[x = 5] in alert('x is #{x}');
 })();</pre>
-      <p>Caterwaul supports a bunch of cool macros and code transformations. Check out the <a href='compiler/'>Caterwaul offline compiler</a> (which runs in your browser) for examples.</p>
+        <p>Caterwaul supports a bunch of cool macros and code transformations. Check out the <a href='compiler/'>Caterwaul offline compiler</a> (which runs in your browser) for examples.</p>
+      </div>
+
+      <div class='section'>
+        <h1>Technical Documentation</h1>
+        <p>Caterwaul is written using <a href='http://spencertipping.com/sdoc/sdoc.html'>SDoc</a>, which I'm hoping gives me an excuse not to write real documentation. What I've got so far is up
+           at <a href='http://spencertipping.com/caterwaul/caterwaul.html'>the Caterwaul annotated source code</a>. A bit more information is available from the <a
+           href='http://github.com/spencertipping/caterwaul'>Git repository</a>.</p>
+      </div>
+
+      <div class='section'>
+        <h1>Download</h1>
+        <p>Caterwaul is freely available under the MIT license. You can use it without downloading, or you can download one of the <a href='stable/'>stable releases</a>. You can also clone the
+           <a href='http://github.com/spencertipping/caterwaul'>Git repository</a> to stay on the bleeding edge.</p>
+      </div>
     </div>
 
-    <div class='section'>
-      <h1>Technical Documentation</h1>
-      <p>Caterwaul is written using <a href='http://spencertipping.com/sdoc/sdoc.html'>SDoc</a>, which I'm hoping gives me an excuse not to write real documentation. What I've got so far is up
-         at <a href='http://spencertipping.com/caterwaul/caterwaul.html'>http://spencertipping.com/caterwaul/caterwaul.html</a>. A bit more information is available from the <a
-         href='http://github.com/spencertipping/caterwaul'>Git repository</a>.</p>
-    </div>
-
-    <div class='section'>
-      <h1>Download</h1>
-      <p>Caterwaul is freely available under the MIT license. You can use it without downloading, or you can download one of the <a href='stable/'>stable releases</a>. You can also clone the
-         <a href='http://github.com/spencertipping/caterwaul'>Git repository</a> to stay on the bleeding edge.</p>
+    <div id='header'>
+      <h1 id='title'>Caterwaul</h1>
     </div>
   </body>
 </html>
