@@ -11,7 +11,6 @@ Also provided is an expression-mode throw, which lets you throw errors without r
 doesn't let you use the word 'throw', so an alternative word was needed.)
 
 caterwaul.tconfiguration('std', 'error', function () {
-  this.rmacro(qs[error.safely[_][_]], fn[expression, handler][qs[qg[function () {try {return _} catch (error) {return _}}]()].s('_', [expression, handler])]);
-  this.rmacro(qs[error.quietly[_]],   fn[expression]         [qs[qg[function () {try {return _} catch (error) {return false}}]()].s('_', expression)]);
-  this.rmacro(qs[error.fail[_]],      fn[expression]         [qs[qg[function () {throw _}]()].s('_', expression)]);
-});
+  this.rmacro(qs[error.safely[_][_]], fn[expression, handler][qs[qg[function () {try {return _} catch (error) {return _}}]()].s('_', [expression, handler])]).
+       rmacro(qs[error.quietly[_]],   fn[expression]         [qs[qg[function () {try {return _} catch (error) {return false}}]()].s('_', expression)]).
+       rmacro(qs[error.fail[_]],      fn[expression]         [qs[qg[function () {throw _}]()].s('_', expression)])});
