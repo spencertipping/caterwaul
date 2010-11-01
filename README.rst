@@ -34,17 +34,21 @@ Defining Macros
 
 Macros are specified by a pattern and an expansion function. For example, let's define a macro that introduces the syntax ``let (x = y) in z`` into JavaScript::
 
-    var with_let = caterwaul.clone('qs', function () {
-      this.macro(qs[let(_ = _) in _], function (variable, value, expression) {
-        return qs[(function (_) {return _}).call(this, _)].s('_', [variable, expression, value]);
-      });
+    var with_let = caterwaul.clone('std.qs', function () {
+      this.macro(
+        qs[let(_ = _) in _],            // The syntax form we want to match (_ is a wildcard)
+
+        // The function we use to generate its replacement (the _ values are passed in as parameters)
+        function (variable, value, expression) {
+          return qs[(function (_) {return _}).call(this, _)].s('_', [variable, expression, value]);
+        });
     });
 
     with_let(function () {
       let(x = 5) in alert(x);           // alerts 5
     });
 
-The ``qs[]`` macro lets you quote syntax, and returns a syntax tree (we need to include ``'qs'`` to enable it). ``_`` is used as a wildcard for pattern matching; the matched fragments of
+The ``qs[]`` macro lets you quote syntax, and returns a syntax tree (we need to include ``'std.qs'`` to enable it). ``_`` is used as a wildcard for pattern matching; the matched fragments of
 syntax are passed into the expander function in the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it
 out using ``qs[]`` again, but filled it in using the ``s()`` method (`s` stands for substitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in
 the template to be ``(function (variable) {return expression}).call(this, value)``.
