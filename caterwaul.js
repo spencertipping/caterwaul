@@ -201,7 +201,7 @@
 //     | qs[(foo(_), _ + bar(_))].s('_', [qs[x], qs[3 + 5], qs[foo.bar]])
 
       each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
-       map: function (f) {for (var n = new syntax_node(this.data), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+       map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
      reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
       rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r},
 
@@ -319,7 +319,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     need a mapping of symbols to these references, which is what the bindings() method returns. (It also collects references for all descendant nodes.) It takes an optional argument to
 //     populate, in case you already had a hash set aside for bindings -- though it always returns the hash.
 
-      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n instanceof ref) result[n.data] = n.value}); return result},
+      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.value) result[n.data] = n.value}); return result},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
@@ -353,15 +353,17 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    ref = extend(function (value) {this.value = value; this.data = gensym()}, {length: 0}, node_methods),
+    ref = extend(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                   else                                   {this.value = value;       this.data = gensym()}}, {length: 0}, node_methods),
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype:
 
-    syntax_node = extend(function (data) {this.data = data; this.length = 0; this.l = this.r = this.p = null;
-                                          for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                            for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                              this.append(it.constructor === String ? new this.constructor(it) : it)}, node_methods),
+    syntax_node = extend(function (data) {if (data instanceof this.constructor) {this.data = data.data; this.length = 0; this.l = this.r = this.p = null}
+                                          else {this.data = data; this.length = 0; this.l = this.r = this.p = null;
+                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                  for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                    this.append(it.constructor === String ? new this.constructor(it) : it)}}, node_methods),
 
 // Parsing.
 // There are two distinct parts to parsing JavaScript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
@@ -891,8 +893,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
      method('decompile', fn('@parse($0.toString())')).method('macro', fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
 
-     method('rmacro', function (pattern, expander) {return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
      method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).
+     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('caterwaul.rmacro: Cannot define macro with non-function expander');
+                                                    else return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
 
      method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();

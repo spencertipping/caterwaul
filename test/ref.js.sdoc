@@ -1,13 +1,33 @@
-Caterwaul fn, bind, and cond standard library tests
+Caterwaul ref library tests
 
 test(function () {
-  var fn = caterwaul.clone('std.ref');
+  var fn = caterwaul.clone('std');
   fn.foo = 'bar';
 
-  fn(function (eq) {
+  var returned_this = fn(function (eq) {
     eq(this[caterwaul].foo, 'bar');
     this[caterwaul].foo = 'bif';
+    return this[caterwaul];
   }) (eq);
 
+  fn.macro(fn.parse('foo'), function () {return new this.ref('foo')});
+  var macro_value = fn(function (eq) {
+    return foo;
+  }) (eq);
+  eq(macro_value, 'foo');
+
+  fn.rmacro(fn.parse('bar'), function () {return new this.ref('bar')});
+  var rmacro_value = fn(function (eq) {
+    return bar;
+  }) (eq);
+  eq(rmacro_value, 'bar');
+
+  var defmacro_value = fn(function (eq) {
+    defmacro[bif][fn_[new this.ref('bif')]];
+    return bif;
+  }) (eq);
+  eq(defmacro_value, 'bif');
+
   eq(fn.foo, 'bif');
+  eq(returned_this, fn);
 });
