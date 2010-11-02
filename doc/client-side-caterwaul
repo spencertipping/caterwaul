@@ -1,0 +1,1846 @@
+#!/usr/bin/perl
+
+=head1 Self-modifying Perl script
+
+=head2 Original implementation by Spencer Tipping L<http://spencertipping.com>
+
+The prototype for this script is licensed under the terms of the MIT source code license.
+However, this script in particular may be under different licensing terms. To find out how
+this script is licensed, please contact whoever sent it to you. Alternatively, you may
+run it with the 'license' argument if they have specified a license that way.
+
+You should not edit this file directly. For information about how it was constructed, go
+to L<http://spencertipping.com/#section=self-modifying-perl>. For quick usage guidelines, run
+this script with the 'usage' argument.
+=cut
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value;
+    $delegate->($name, $value);
+  };
+}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result;
+}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name");
+};
+
+meta::meta('configure', <<'__25976e07665878d3fae18f050160343f');
+# A function to configure transients. Transients can be used to store any number of
+# different things, but one of the more common usages is type descriptors.
+
+sub meta::configure {
+  my ($datatype, %options) = @_;
+  $transient{$_}{$datatype} = $options{$_} for keys %options;
+}
+__25976e07665878d3fae18f050160343f
+
+meta::meta('externalize', <<'__9141b4e8752515391385516ae94b23b5');
+# Function externalization. Data types should call this method when defining a function
+# that has an external interface.
+
+sub meta::externalize {
+  my ($name, $attribute, $implementation) = @_;
+  $externalized_functions{$name} = $attribute;
+  *{"::$name"} = $implementation || $attribute;
+}
+__9141b4e8752515391385516ae94b23b5
+
+meta::meta('externalize_template', <<'__1e90e7ccb5fea1d498bbaaa6e7e43851');
+sub meta::externalize_template {
+  my ($name, $implementation) = @_;
+  meta::externalize "template::$name", "template::$name", $implementation;
+}
+__1e90e7ccb5fea1d498bbaaa6e7e43851
+
+meta::meta('functor::code-templates', <<'__8438e73e45c87188c8b46d0c43eb4971');
+package code;
+
+# Templates for generating named source files.
+sub template {
+  my ($name, $implementation) = @_;
+  $implementation ||= sub {
+    my ($line, $block) = @_;
+    my $append         = $line =~ s/^\h*>>\h*//o;
+
+    $line =~ s/\s+.*$//o;
+    file::write(&{'::source-directory'}() . "/$line", ($append && "\n") . $block, mkpath => 1, append => $append);
+    "\\lstset{caption={$line" . ($append && ' (continued)') . "},name={$line}}\\begin{${name}code}\n$block \\end{${name}code}";
+  };
+
+  meta::externalize_template $name, $implementation;
+}
+__8438e73e45c87188c8b46d0c43eb4971
+
+meta::meta('functor::editable', <<'__bbfdc65c8d51695de1cd6050232555bd');
+# An editable type. This creates a type whose default action is to open an editor
+# on whichever value is mentioned. This can be changed using different flags.
+
+sub meta::functor::editable {
+  my ($typename, %options) = @_;
+
+  meta::configure $typename, %options;
+  meta::define_form $typename, sub {
+    my ($name, $value) = @_;
+
+    $options{on_bind} && &{$options{on_bind}}($name, $value);
+
+    meta::externalize $options{prefix} . $name, "${typename}::$name", sub {
+      my $attribute             = "${typename}::$name";
+      my ($command, @new_value) = @_;
+
+      return &{$options{default}}(retrieve($attribute))                                    if ref $options{default} eq 'CODE'                                          and not defined $command;
+      return edit($attribute)                                                              if $command eq 'edit'                      or $options{default} eq 'edit'   and not defined $command;
+      return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
+      return retrieve($attribute);
+    };
+  };
+}
+__bbfdc65c8d51695de1cd6050232555bd
+
+meta::meta('functor::tex-templates', <<'__34a5da8558897a4388fc22ed4b0c3c6b');
+package tex;
+
+# A wrapper for TeX templates. The idea is always the same, so I'm abstracting out the
+# common externalization logic here.
+sub template_for(&) {
+  my ($implementation) = @_;
+  sub {
+    my %names = @_;
+    for my $name (keys %names) {
+      ::meta::externalize_template $name, sub {
+        &$implementation($names{$name}, @_);
+      };
+    }
+  };
+}
+
+sub id {
+  map {$_ => $_} @_;
+}
+
+# Creates a one-line or multiline template based on normal TeX syntax. It's a straight
+# transfer into TeX with no preprocessing.
+*template = template_for {
+  my ($name, $line, $block) = @_;
+  $block ? "\\begin{$name}\n$block\n\\end{$name}" : "\\$name\{$line\}";
+};
+
+# Creates a labeled one-line template. This is just like normal TeX, but assumes the
+# specification of a label name after a pipe character.
+*labeled_template = template_for {
+  my ($name, $line, undef) = @_;
+  my ($real_stuff, $label) = split /\h*\|\h*/, $line;
+  "\\$name\{$real_stuff\}" . ($label && "\\label{$label}");
+};
+__34a5da8558897a4388fc22ed4b0c3c6b
+
+meta::meta('template::code', 'code::template $_ for qw/java cpp asm javascript html resource/;');
+meta::meta('template::document', 'tex::template tex::id(qw/document tableofcontents maketitle title author date abstract documentclass verbatim/);');
+meta::meta('template::enumeration', 'tex::template tex::id(qw/enumerate itemize description item/);');
+meta::meta('template::math', <<'__2ea173a12f781eec97f4a0d3bfe80f75');
+tex::template align => 'align*', nalign => 'align';
+tex::template tex::id(qw/theorem proof lemma corollary conjecture definition proposition/);
+__2ea173a12f781eec97f4a0d3bfe80f75
+
+meta::meta('template::quotations', 'tex::template tex::id(qw/quotation quote/);');
+meta::meta('template::sections', <<'__0bf14cbc6a0e77d9b82dd185d8d8a9a0');
+tex::labeled_template(s1 => 'section', s2 => 'subsection', s3 => 'subsubsection', s4 => 'paragraph', s5 => 'subparagraph');
+tex::labeled_template(sc => 'chapter', sp => 'part');
+__0bf14cbc6a0e77d9b82dd185d8d8a9a0
+
+meta::meta('type::bootstrap', <<'__297d03fb32df03b46ea418469fc4e49e');
+# Bootstrap attributes don't get executed. The reason for this is that because
+# they are serialized directly into the header of the file (and later duplicated
+# as regular data attributes), they will have already been executed when the
+# file is loaded.
+
+meta::configure 'bootstrap', extension => '.pl', inherit => 1;
+meta::define_form 'bootstrap', sub {};
+__297d03fb32df03b46ea418469fc4e49e
+
+meta::meta('type::configuration', <<'__d67e10a128e6b1d958c5b9d3bbe25aa4');
+meta::functor::editable 'configuration', inherit => 0, extension => '.conf', default => sub {
+  # Any lines starting with #, with or without leading whitespace, are treated as comments.
+  # Comments are not parsed in option text; that is, you could specify an option that contained
+  # a # and the # and following text would be considered part of that option.
+  my ($data) = @_;
+  my @options = grep /:/o && ! /^\h*#/o && ! /^\h*$/o, split(/\v+/o, $data);
+  s/^\h+//o for @options;
+  my @key_values = map split(/\s*:\s*/o, $_, 2), @options;
+  $key_values[$_ << 1] and $key_values[$_ << 1] =~ s/\s/_/go for 0 .. @key_values >> 1;
+  $key_values[$_ << 1] and $key_values[$_ << 1] = lc $key_values[$_ << 1] for 0 .. @key_values >> 1;
+  @key_values;
+};
+__d67e10a128e6b1d958c5b9d3bbe25aa4
+
+meta::meta('type::data', 'meta::functor::editable \'data\', extension => \'\', inherit => 0, default => \'cat\';');
+meta::meta('type::function', <<'__d93b3cc15693707dac518e3d6b1f5648');
+meta::configure 'function', extension => '.pl', inherit => 1;
+meta::define_form 'function', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "function::$name", meta::eval_in("sub {\n$value\n}", "function::$name");
+};
+__d93b3cc15693707dac518e3d6b1f5648
+
+meta::meta('type::inc', <<'__c95915391b969734305f2f492d5ca8e3');
+meta::configure 'inc', inherit => 1, extension => '.pl';
+meta::define_form 'inc', sub {
+  use File::Path 'mkpath';
+  use File::Basename qw/basename dirname/;
+
+  my ($name, $value) = @_;
+  my $tmpdir   = basename($0) . '-' . $$;
+  my $filename = "/tmp/$tmpdir/$name";
+
+  push @INC, "/tmp/$tmpdir" unless grep /^\/tmp\/$tmpdir$/, @INC;
+
+  mkpath(dirname($filename));
+  unless (-e $filename) {
+    open my $fh, '>', $filename;
+    print $fh $value;
+    close $fh;
+  }
+};
+__c95915391b969734305f2f492d5ca8e3
+
+meta::meta('type::internal_function', <<'__34abb44c67c7e282569e28ef6f4d62ab');
+meta::configure 'internal_function', extension => '.pl', inherit => 1;
+meta::define_form 'internal_function', sub {
+  my ($name, $value) = @_;
+  *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
+};
+__34abb44c67c7e282569e28ef6f4d62ab
+
+meta::meta('type::library', <<'__a9c0193f297bbc96a78eb5e27727fd30');
+meta::configure 'library', extension => '.pl', inherit => 1;
+meta::define_form 'library', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "library::$name");
+  meta::externalize $name, "library::$name", sub {
+    edit("library::$name");
+  };
+};
+__a9c0193f297bbc96a78eb5e27727fd30
+
+meta::meta('type::message_color', <<'__794bf137c425293738f07636bcfb5c55');
+meta::configure 'message_color', extension => '', inherit => 1;
+meta::define_form 'message_color', sub {
+  my ($name, $value) = @_;
+  terminal::color($name, $value);
+};
+__794bf137c425293738f07636bcfb5c55
+
+meta::meta('type::meta', <<'__640f25635ce2365b0648962918cf9932');
+# This doesn't define a new type. It customizes the existing 'meta' type
+# defined in bootstrap::initialization. Note that horrible things will
+# happen if you redefine it using the editable functor.
+
+meta::configure 'meta', extension => '.pl', inherit => 1;
+__640f25635ce2365b0648962918cf9932
+
+meta::meta('type::note', 'meta::functor::editable \'note\', extension => \'\', inherit => 0, default => \'edit\';');
+meta::meta('type::parent', <<'__607e9931309b1b595424bedcee5dfa45');
+meta::define_form 'parent', \&meta::bootstrap::implementation;
+meta::configure 'parent', extension => '', inherit => 1;
+__607e9931309b1b595424bedcee5dfa45
+
+meta::meta('type::resource', 'meta::functor::editable \'resource\', extension => \'.cltex\', inherit => 1, default => \'edit\';');
+meta::meta('type::section', 'meta::functor::editable \'section\', extension => \'.cltex\', inherit => 0, default => \'edit\';');
+meta::meta('type::state', <<'__c1f29670be26f1df6100ffe4334e1202');
+# Allows temporary or long-term storage of states. Nothing particularly insightful
+# is done about compression, so storing alternative states will cause a large
+# increase in size. Also, states don't contain other states -- otherwise the size
+# increase would be exponential.
+
+# States are created with the save-state function.
+
+meta::configure 'state', inherit => 0, extension => '.pl';
+meta::define_form 'state', \&meta::bootstrap::implementation;
+__c1f29670be26f1df6100ffe4334e1202
+
+meta::meta('type::template', <<'__25f4d6eafb1d3eea6d5d3d9a71a5623e');
+meta::configure 'template', extension => '.pl', inherit => 1;
+meta::define_form 'template', sub {
+  my ($name, $value) = @_;
+  meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
+};
+__25f4d6eafb1d3eea6d5d3d9a71a5623e
+
+meta::meta('type::vim_highlighter', 'meta::functor::editable \'vim_highlighter\', extension => \'.vim\', inherit => 1, default => \'edit\';');
+meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
+meta::bootstrap('initialization', <<'__baa43e5e8e6e1cd76d4e2de828ceaa4d');
+#!/usr/bin/perl
+
+=head1 Self-modifying Perl script
+
+=head2 Original implementation by Spencer Tipping L<http://spencertipping.com>
+
+The prototype for this script is licensed under the terms of the MIT source code license.
+However, this script in particular may be under different licensing terms. To find out how
+this script is licensed, please contact whoever sent it to you. Alternatively, you may
+run it with the 'license' argument if they have specified a license that way.
+
+You should not edit this file directly. For information about how it was constructed, go
+to L<http://spencertipping.com/#section=self-modifying-perl>. For quick usage guidelines, run
+this script with the 'usage' argument.
+=cut
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value;
+    $delegate->($name, $value);
+  };
+}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result;
+}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name");
+};
+
+__baa43e5e8e6e1cd76d4e2de828ceaa4d
+
+meta::data('default-action', 'shell');
+meta::data('license', <<'__3c6177256de0fddb721f534c3ad8c0ee');
+MIT License
+Copyright (c) 2010 Spencer Tipping
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+__3c6177256de0fddb721f534c3ad8c0ee
+
+meta::data('name', 'client-side-caterwaul');
+meta::data('output-dir', '/tmp');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.hwP_/document.pdf');
+meta::data('pdf-reader', '/usr/bin/evince');
+meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
+meta::data('quiet', '1');
+meta::data('source-directory', '.');
+meta::data('table-of-contents', '1');
+meta::data('tex-command', 'latex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
+meta::data('watching', '0');
+meta::function('cat', 'join "\\n", retrieve(@_);');
+meta::function('child', <<'__3eeb4b4fd37a502b53f0008e7835b5de');
+my ($child_name) = @_;
+
+# Make the child inherit from this object. The easiest way to do that is to
+# grab $0, which is presumably executable, and have the child update from it.
+hypothetically(sub {
+  associate('data::name', $child_name);
+  clone($child_name);
+});
+
+enable();
+qx($child_name update-from $0 -nu);
+disable();
+__3eeb4b4fd37a502b53f0008e7835b5de
+
+meta::function('clean', <<'__1269c1a312062a1598dcde16eb6134e2');
+my $output_directory = &{'pdf-output-file'}();
+$output_directory =~ s+/.*++g;
+unlink <$output_directory/*>;
+rmdir $output_directory;
+__1269c1a312062a1598dcde16eb6134e2
+
+meta::function('clone', <<'__5a30a4ba6293e250ed22884d609e4781');
+for (grep length, @_) {
+  file::write($_, serialize(), noclobber => 1);
+  chmod(0700, $_);
+}
+__5a30a4ba6293e250ed22884d609e4781
+
+meta::function('compile', <<'__59d02438dafea67f3f12c2b74f4a8bfb');
+my $tex_command         = &{'tex-command'}();
+my $pdftex_command      = &{'pdftex-command'}();
+my $filename            = 'document';
+
+my $contents            = tex();
+my $output_directory    = &{'output-dir'}();
+chomp $output_directory;
+
+my $temporary_directory = temporary_name();
+$temporary_directory =~ s+^.*/++;
+$temporary_directory = "$output_directory/$temporary_directory";
+
+$tex_command    =~ s/__TEMPORARY_DIRECTORY__/$temporary_directory/g;
+$tex_command    =~ s+__INPUT_FILE__+$temporary_directory/$filename.tex+g;
+
+$pdftex_command =~ s/__TEMPORARY_DIRECTORY__/$temporary_directory/g;
+$pdftex_command =~ s+__INPUT_FILE__+$temporary_directory/$filename.tex+g;
+
+mkdir $temporary_directory;
+file::write("$temporary_directory/$filename.tex", $contents);
+
+my $result = &{'table-of-contents'}() ? system($tex_command) || system($tex_command) || system($pdftex_command) : system($pdftex_command);
+
+associate('data::pdf-output-file', "$temporary_directory/$filename.pdf", execute => 1);
+$result;
+__59d02438dafea67f3f12c2b74f4a8bfb
+
+meta::function('cp', <<'__d33fe9aa270eeee6dcc3ee445447a6a7');
+my ($from, $to) = @_;
+my $exists = exists $data{$from};
+associate($to, retrieve($from)) if $exists;
+die "No such attribute $from" unless $exists;
+retrieve($from);
+__d33fe9aa270eeee6dcc3ee445447a6a7
+
+meta::function('create', <<'__97e5444422f5f6087371f59ddc3e1b8c');
+my ($name, $value) = @_;
+
+return edit($name) if exists $data{$name};
+
+if (defined $value) {
+  associate($name, $value);
+} else {
+  associate($name, '');
+  edit($name);
+}
+__97e5444422f5f6087371f59ddc3e1b8c
+
+meta::function('current-state', <<'__d83ae43551c0f58d1d0ce576402a315a');
+my @valid_keys   = grep ! /^state::/, sort keys %data;
+my @ordered_keys = (grep(/^meta::/, @valid_keys), grep(! /^meta::/, @valid_keys));
+join "\n", map serialize_single($_), @ordered_keys;
+__d83ae43551c0f58d1d0ce576402a315a
+
+meta::function('disable', 'chmod_self(sub {$_[0] & 0666});');
+meta::function('edit', <<'__6912fb43aad413e79cbf45e134866b6e');
+my ($name, %options) = @_;
+my $extension = $transient{extension}{namespace($name)} || '';
+
+die "Attribute $name does not exist." unless exists $data{$name};
+associate($name, invoke_editor_on($data{$name} || "# Attribute $name", %options, attribute => $name, extension => $extension),
+          execute => $name !~ /^internal::/ && $name !~ /^bootstrap::/);
+save();
+__6912fb43aad413e79cbf45e134866b6e
+
+meta::function('enable', 'chmod_self(sub {$_[0] | $_[0] >> 2});');
+meta::function('export', <<'__6c445eea603f9863df0f8db445fd708e');
+# Exports data into a text file.
+#   export attr1 attr2 attr3 ... file.txt
+
+my $name = pop @_;
+my @attributes = @_;
+
+if (@attributes) {
+  my $file = join "\n", map cat($_), @attributes;
+  file::write($name, $file);
+} else {
+  die 'Not enough arguments';
+}
+__6c445eea603f9863df0f8db445fd708e
+
+meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
+meta::function('grep', <<'__ccbc55153c3f45db829686632273b93b');
+# Looks through attributes for a pattern. Usage is grep pattern [options], where
+# [options] is the format as provided to select_keys.
+
+my $pattern              = shift @_ or die 'Must specify a pattern to search for';
+my ($options, @criteria) = separate_options(@_);
+my @attributes           = select_keys(%$options, '--criteria' => join('|', @criteria));
+my $color                = $$options{'-c'};
+
+my @matching_attributes;
+my @matching_line_numbers;
+my @matching_lines;
+
+for my $k (@attributes) {
+  my @lines = split /\n/, retrieve($k);
+  for (0 .. $#lines) {
+    next unless $lines[$_] =~ /$pattern/;
+
+    $lines[$_] =~ s/($pattern)/\033[1;31m\1\033[0;0m/g if $color;
+
+    push @matching_attributes,   $k;
+    push @matching_line_numbers, $_ + 1;
+    push @matching_lines,        $lines[$_];
+  }
+}
+
+if ($color) {
+  s/^/\033[1;34m/o                    for @matching_attributes;
+  s/^/\033[1;32m/o && s/$/\033[0;0m/o for @matching_line_numbers;
+}
+
+table_display([@matching_attributes], [@matching_line_numbers], [@matching_lines]);
+__ccbc55153c3f45db829686632273b93b
+
+meta::function('hash', <<'__7c4145cf6e97dfb9ab04a613866751d3');
+my ($data) = @_;
+fast_hash($data);
+__7c4145cf6e97dfb9ab04a613866751d3
+
+meta::function('import', <<'__84d29edfe7ad2119465fdcf7d037ed1c');
+my $name  = pop @_;
+my @files = @_;
+
+if (@files) {
+  my $files = join "", map {file::read ($_)} @files;
+  associate ($name, $files); 
+}
+else {
+  associate($name, join('', <STDIN>));
+}
+__84d29edfe7ad2119465fdcf7d037ed1c
+
+meta::function('import-bundle', <<'__4c7139ed5c9f65f38a33cf8f8a6cae27');
+eval join '', <STDIN>;
+die $@ if $@;
+__4c7139ed5c9f65f38a33cf8f8a6cae27
+
+meta::function('load-state', <<'__878f141333993ead4d272027ad301eee');
+my ($state_name) = @_;
+my $state = retrieve("state::$state_name");
+
+terminal::message('state', 'Saving current state into _...');
+&{'save-state'}('_');
+
+terminal::message('state', 'Removing attributes from %data and unexternalizing functions...');
+delete $data{$_} for grep ! /^state::/ && ! /^internal::runtime$/, keys %data;
+%externalized_functions = ();
+
+terminal::message('state', "Restoring state $state_name...");
+eval($state);
+terminal::message('error', $@) if $@;
+reload();
+verify();
+__878f141333993ead4d272027ad301eee
+
+meta::function('lock', 'chmod_self(sub {$_[0] & 0555});');
+meta::function('ls', <<'__ffe7609f16d647b7eb9ed9693dd12c23');
+my ($options, @criteria) = separate_options(@_);
+
+my ($all, $shadows, $dereference, $sizes, $flags) = @$options{qw(-a -s -d -z -l)};
+$all   ||= $dereference;
+$sizes ||= $flags;
+
+return table_display([grep ! defined $data{$externalized_functions{$_}}, sort keys %externalized_functions]) if $shadows;
+
+my $criteria    = join('|', @criteria);
+my @definitions = select_keys('--criteria' => $criteria, %$options);
+
+my %inverses  = map {$externalized_functions{$_} => $_} keys %externalized_functions;
+my @externals = map $inverses{$_}, @definitions;
+my @sizes     = map sprintf('%6d %6d', length(serialize_single($_)), length(retrieve($_))), @definitions if $sizes;
+
+my %flag_hashes = map {$_ => {map {$_ => 1} select_keys("-$_" => 1)}} qw(m u i) if $flags;
+my @flags       = map {my $k = $_; join '', map($flag_hashes{$_}{$k} ? $_ : '-', sort keys %flag_hashes)} @definitions if $flags;
+
+join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [grep length, @externals], $dereference ? ([@externals]) : (),
+                                                    $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : ());
+__ffe7609f16d647b7eb9ed9693dd12c23
+
+meta::function('ls-a', 'ls(\'-ad\', @_);');
+meta::function('make', <<'__9a3d7e3c7e0017f4c9b239f3858aaf03');
+compile() || view();
+clean();
+__9a3d7e3c7e0017f4c9b239f3858aaf03
+
+meta::function('mv', <<'__09f350db8406303ade06d229477d79ad');
+my ($from, $to) = @_;
+my $destination_namespace = namespace($to);
+
+die "'$from' does not exist" unless exists $data{$from};
+die "The namepsace '$destination_namespace' does not exist" unless $datatypes{$destination_namespace};
+
+associate($to, retrieve($from));
+rm($from);
+__09f350db8406303ade06d229477d79ad
+
+meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
+# Creates a note with a given name, useful for jotting things down.
+create("note::$_[0]");
+__bcbfeac6dd2112f47296265444570a6e
+
+meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
+meta::function('perl', <<'__f2b57dd342923797e8e2287c3095803f');
+my $result = eval(join ' ', @_);
+$@ ? terminal::message('error', $@) : $result;
+__f2b57dd342923797e8e2287c3095803f
+
+meta::function('preprocess', <<'__66e539d29e9afa903569efad0eb7c886');
+# Implements a simple preprocessing language.
+# Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
+# but not spanning multiple lines. The other is 'block form', which gives you access to both one-line
+# arguments and a block of lines. The line parameters are passed in verbatim, and the block is
+# indentation-adjusted and then passed in as a second parameter. (Indentation is adjusted to align
+# with the name of the command.)
+#
+# Here are the forms:
+#
+# - line arguments to function
+#
+# - block line arguments << eof
+#   block contents
+#   block contents
+#   ...
+# - eof
+
+my ($string, %options) = @_;
+my $expansions         = 0;
+my $old_string         = '';
+my $limit              = $options{expansion_limit} || 100;
+my @pieces             = ();
+
+sub adjust_spaces {
+  my ($spaces, $string) = @_;
+  $string =~ s/^$spaces  //mg;
+  chomp $string;
+  $string;
+}
+
+while ($old_string ne $string and $expansions++ < $limit) {
+  $old_string = $string;
+
+  while ((my @pieces = split  /(^(\h*)-\h \S+ \h* \V* <<\h*(\w+)$ \n .*?  ^\2-\h\3$)/xms, $string) > 1 and $expansions++ < $limit) {
+    $pieces[1 + ($_ << 2)] =~ /^ (\h*)-\h(\S+)\h*(\V*)<<\h*(\w+)$ \n(.*?) ^\1-\h\4 $/xms && $externalized_functions{"template::$2"} and
+      $pieces[1 + ($_ << 2)] = &{"template::$2"}($3, adjust_spaces($1, $5))
+      for 0 .. $#pieces / 4;
+
+    @pieces[2 + ($_ << 2), 3 + ($_ << 2)] = '' for 0 .. $#pieces / 4;
+    $string = join '', @pieces;
+  }
+
+  if ((my @pieces = split     /^(\h*-\h \S+ \h* .*)$/xom, $string) > 1) {
+    $pieces[1 + ($_ << 1)] =~ /^ \h*-\h(\S+)\h*(.*)$/xom && $externalized_functions{"template::$1"} and
+      $pieces[1 + ($_ << 1)] = &{"template::$1"}($2)
+      for 0 .. $#pieces >> 1;
+
+    $string = join '', @pieces;
+  }
+}
+
+$string;
+__66e539d29e9afa903569efad0eb7c886
+
+meta::function('reload', 'execute($_) for grep ! (/^internal::/ || /^bootstrap::/), keys %data;');
+meta::function('render', <<'__ccb26db43115329651cc3c0527a3e849');
+use File::Copy 'copy';
+compile();
+copy(&{'pdf-output-file'}(), &{'source-directory'}() . '/' . name() . '.pdf') or die "Copy failed: $!";
+__ccb26db43115329651cc3c0527a3e849
+
+meta::function('rm', <<'__963fdd3d9f6a0ba279b001b1f5679a38');
+for my $to_be_deleted (@_) {
+  terminal::message('warning', "$to_be_deleted does not exist") unless exists $data{$to_be_deleted};
+}
+
+delete @data{@_};
+__963fdd3d9f6a0ba279b001b1f5679a38
+
+meta::function('save', <<'__ca9ab587c78ff2024ef9ad8ca634db5b');
+if (! verify()) {
+  die "$0 has not been updated";
+} else {
+  my $serialized_data = serialize();
+  eval {file::write($0, $serialized_data)};
+  die $@ if $@;
+  terminal::message('info', "$0 saved successfully.");
+}
+__ca9ab587c78ff2024ef9ad8ca634db5b
+
+meta::function('save-state', <<'__5c5b586331e25951140ced6442d9fe2b');
+# Creates a named copy of the current state and stores it.
+my ($state_name) = @_;
+associate("state::$state_name", &{'current-state'}(), execute => 1);
+__5c5b586331e25951140ced6442d9fe2b
+
+meta::function('serialize', <<'__023436ac07471e2f2cf016e2172c8d73');
+my ($options, @criteria) = separate_options(@_);
+my $partial              = $$options{'-p'};
+my $criteria             = join '|', @criteria;
+my @attributes           = map serialize_single($_), select_keys(%$options, '-m' => 1, '--criteria' => $criteria), select_keys(%$options, '-M' => 1, '--criteria' => $criteria);
+my @final_array          = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__END__']};
+
+join "\n", @final_array;
+__023436ac07471e2f2cf016e2172c8d73
+
+meta::function('serialize_single', <<'__48005281edde632b0df2e346c094b7bd');
+# Serializes a single attribute and optimizes for content.
+
+my $name               = $_[0] || $_;
+my $contents           = $data{$name};
+my $meta_function_name = 'meta::' . namespace($name);
+my $invocation_name    = attribute($name);
+my $escaped            = $contents;
+$escaped =~ s/\\/\\\\/go;
+$escaped =~ s/'/\\'/go;
+
+return "$meta_function_name('$invocation_name', '$escaped');" unless $escaped =~ /\v/;
+
+my $delimiter = '__' . fast_hash($contents);
+return "$meta_function_name('$invocation_name', <<'$delimiter');\n$contents\n$delimiter\n";
+__48005281edde632b0df2e346c094b7bd
+
+meta::function('shell', <<'__c6ef6c31734c0b330f6076543fef8f1f');
+use Term::ReadLine;
+
+my $term = new Term::ReadLine "$0 shell";
+$term->ornaments(0);
+my $prompt = name() . '$ ';
+my $output = $term->OUT || \*STDOUT;
+
+$term->Attribs->{attempted_completion_function} = \&complete;
+
+while (defined ($_ = $term->readline($prompt))) {
+  my $command_line = $_;
+  my @args = grep length, split /\s+|("[^"\\]*(?:\\.)?")/o;
+  my $function_name = shift @args;
+
+  return if $function_name eq 'exit';
+
+  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @args;
+
+  if ($function_name) {
+    if ($externalized_functions{$function_name}) {
+      chomp(my $result = eval {&$function_name(@args)});
+      terminal::message('error', translate_backtrace($@)) if $@;
+      print $output $result, "\n" unless $@;
+    } else {
+      terminal::message('warning', "Command not found: '$function_name' (use 'ls' to see available commands)");
+    }
+  }
+
+  if (watching()) {
+    for (grep /^watch::/, sort keys %data) {
+      my $watch = retrieve($_);
+      terminal::message('watch', "$_ => " . meta::eval_in($watch, $_));
+    }
+  }
+
+  $prompt = name() . '$ ';
+}
+__c6ef6c31734c0b330f6076543fef8f1f
+
+meta::function('size', 'length(serialize());');
+meta::function('snapshot', <<'__787158a5844d36cbfd29e5b74c9167e1');
+my ($name) = @_;
+file::write(my $finalname = temporary_name($name), serialize(), noclobber => 1);
+chmod 0700, $finalname;
+
+terminal::message('state', "Created snapshot at $finalname.");
+__787158a5844d36cbfd29e5b74c9167e1
+
+meta::function('state', <<'__e17520e3a5d81d788ae995fd8ac47cb9');
+my @keys = sort keys %data;
+my $hash = fast_hash(scalar @keys);
+$hash = fast_hash($hash . join '|', @keys);
+$hash = fast_hash("$data{$_}|$hash") for @keys;
+$hash;
+__e17520e3a5d81d788ae995fd8ac47cb9
+
+meta::function('tex', <<'__5bb8bf491e1b442858096acf711135f9');
+my ($document) = @_;
+$document ||= 'main';
+preprocess(retrieve("section::$document"));
+__5bb8bf491e1b442858096acf711135f9
+
+meta::function('unlock', 'chmod_self(sub {$_[0] | 0200});');
+meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
+meta::function('update-from', <<'__f927cc6b2e1c93ce2e969845e01ba839');
+# Upgrade all attributes that aren't customized. Customization is defined when the data type is created,
+# and we determine it here by checking for $transients{inherit}{$type}.
+#
+# Note that this assumes you trust the remote script. If you don't, then you shouldn't update from it.
+
+my ($options, @targets) = separate_options(@_);
+
+my %options = %$options;
+@targets or die 'Must specify at least one target to update from';
+
+my $save_state = ! ($options{'-n'} || $options{'--no-save'});
+my $no_parents =    $options{'-P'} || $options{'--no-parent'} || $options{'--no-parents'};
+my $force      =    $options{'-f'} || $options{'--force'};
+my $unique     =    $options{'-u'} || $options{'--unique'};
+
+my $unique_option = $unique ? '-u' : '';
+
+&{'save-state'}('before-update') if $save_state;
+terminal::message('warning', 'Not saving state, as requested; to save it, omit the -n option.') unless $save_state;
+
+for my $target (@targets) {
+  terminal::message('info', "Updating from $target");
+
+  my $attributes = join '', qx($target ls -aiu);
+  terminal::message('warning', "Skipping unreachable object $target") unless $attributes;
+
+  if ($attributes) {
+    rm(split /\n/, retrieve("parent::$target")) if $data{"parent::$target"};
+    associate("parent::$target", $attributes) unless $no_parents;
+
+    terminal::message('info', 'Updating meta attributes...');
+    eval qx($target serialize -ipm $unique_option);
+    terminal::message('warning', $@) if $@;
+
+    terminal::message('info', 'Updating non-meta attributes...');
+    eval qx($target serialize -ipM $unique_option);
+    terminal::message('warning', $@) if $@;
+    reload();
+
+    if (verify()) {
+      terminal::message('info', "Successfully updated from $_[0]. Run 'load-state before-update' to undo this change.") if $save_state;
+    } elsif ($force) {
+      terminal::message('warning', 'The object failed verification, but the failure state has been kept because --force was specified.');
+      terminal::message('warning', 'At this point your object will not save properly, though backup copies will be created.');
+      terminal::message('info',    'Run "load-state before-update" to undo the update and return to a working state.') if $save_state;
+    } else {
+      terminal::message('error',   'Verification failed after the upgrade was complete.');
+      terminal::message('info',    "$0 has been reverted to its pre-upgrade state.") if $save_state;
+      terminal::message('info',    "If you want to upgrade and keep the failure state, then run 'update-from $target --force'.") if $save_state;
+      return &{'load-state'}('before-update') if $save_state;
+    }
+  }
+}
+__f927cc6b2e1c93ce2e969845e01ba839
+
+meta::function('usage', <<'__25615bcd877fcf7e5c823dec475f0a31');
+<<"EOD" . ls ('-d');
+Usage: $0 action [arguments]
+Defined actions (and the attribute that defines them):
+EOD
+__25615bcd877fcf7e5c823dec475f0a31
+
+meta::function('verify', <<'__e8ff828f42cdc7d759b70bb81721ddb6');
+my $serialized_data = serialize();
+my $state           = state();
+
+my $temporary_filename = temporary_name();
+$transient{temporary_filename} = $temporary_filename;
+file::write($temporary_filename, $serialized_data);
+chmod 0700, $temporary_filename;
+
+chomp(my $observed_state = join '', qx|perl '$temporary_filename' state|);
+
+my $result = $observed_state eq $state;
+unlink $temporary_filename if $result;
+terminal::message('error', "Verification failed; '$observed_state' (produced by $temporary_filename) != '$state' (expected)") unless $result;
+
+$result;
+__e8ff828f42cdc7d759b70bb81721ddb6
+
+meta::function('view', <<'__72064117780244bd9dd38659573b9f2c');
+my $pdf_reader      = &{'pdf-reader'}();
+my $pdf_output_file = &{'pdf-output-file'}();
+chomp $pdf_reader;
+system("$pdf_reader '$pdf_output_file'");
+__72064117780244bd9dd38659573b9f2c
+
+meta::function('vim', <<'__bd231af998c353790253bc6660be0b90');
+# Installs VIM highlighters.
+file::write("$ENV{'HOME'}/.vim/syntax/$_.vim", retrieve("vim_highlighter::$_")) for grep s/^vim_highlighter:://o, keys %data;
+__bd231af998c353790253bc6660be0b90
+
+meta::internal_function('associate', <<'__80f0728190bf3b0d4c94807cfdc12a22');
+my ($name, $value, %options) = @_;
+my $namespace = namespace($name);
+die "Namespace $namespace does not exist" unless $datatypes{$namespace};
+$data{$name} = $value;
+execute($name) if $options{'execute'};
+__80f0728190bf3b0d4c94807cfdc12a22
+
+meta::internal_function('attribute', <<'__62efb9f22157835940af1d5feae98d98');
+my ($name) = @_;
+$name =~ s/^[^:]*:://;
+$name;
+__62efb9f22157835940af1d5feae98d98
+
+meta::internal_function('chmod_self', <<'__b13487447c65f2dc790bd6b21dde89dd');
+my ($mode_function)      = @_;
+my (undef, undef, $mode) = stat $0;
+chmod &$mode_function($mode), $0;
+__b13487447c65f2dc790bd6b21dde89dd
+
+meta::internal_function('complete', <<'__f14ae2337c0653b6bb6fd02bb6493646');
+my @functions  = sort keys %externalized_functions;
+my @attributes = sort keys %data;
+
+sub match {
+  my ($text, @options) = @_;
+  my @matches = sort grep /^$text/, @options;
+
+  if    (@matches == 0) {return undef;}
+  elsif (@matches == 1) {return $matches [0];}
+  elsif (@matches >  1) {return ((longest ($matches [0], $matches [@matches - 1])), @matches);}
+}
+
+sub longest {
+  my ($s1, $s2) = @_; 
+  return substr ($s1, 0, length $1) if ($s1 ^ $s2) =~ /^(\0*)/;
+  return ''; 
+}
+
+# This is another way to implement autocompletion.
+#
+# my $attribs = $term->Attribs;
+# $attribs->{completion_entry_function} = $attribs->{list_completion_function};
+# $attribs->{completion_word} = [sort keys %data, sort keys %externalized_functions];
+
+my ($text, $line) = @_;
+if ($line =~ / /) {
+  # Start matching attribute names.
+  match ($text, @attributes);
+} else {
+  # Start of line, so it's a function.
+  match ($text, @functions);
+}
+__f14ae2337c0653b6bb6fd02bb6493646
+
+meta::internal_function('debug_trace', <<'__f887289259890731458a66398b628cdc');
+quiet() or terminal::message('debug', join ', ', @_);
+wantarray ? @_ : $_[0];
+__f887289259890731458a66398b628cdc
+
+meta::internal_function('execute', <<'__4b4efc33bc6767a7aade7f427eedf83f');
+my ($name, %options) = @_;
+my $namespace = namespace($name);
+eval {&{"meta::$namespace"}(attribute($name), retrieve($name))};
+warn $@ if $@ && $options{'carp'};
+__4b4efc33bc6767a7aade7f427eedf83f
+
+meta::internal_function('fast_hash', <<'__ac70f469e697725cfb87629833434ab1');
+my ($data)     = @_;
+my $piece_size = length($data) >> 3;
+
+my @pieces     = (substr($data, $piece_size * 8) . length($data), map(substr($data, $piece_size * $_, $piece_size), 0 .. 7));
+my @hashes     = (fnv_hash($pieces[0]));
+
+push @hashes, fnv_hash($pieces[$_ + 1] . $hashes[$_]) for 0 .. 7;
+
+$hashes[$_] ^= $hashes[$_ + 4] >> 16 | ($hashes[$_ + 4] & 0xffff) << 16 for 0 .. 3;
+$hashes[0]  ^= $hashes[8];
+
+sprintf '%08x' x 4, @hashes[0 .. 3];
+__ac70f469e697725cfb87629833434ab1
+
+meta::internal_function('file::read', <<'__186bbcef8f6f0dd8b72ba0fdeb1de040');
+my $name = shift;
+open my($handle), "<", $name;
+my $result = join "", <$handle>;
+close $handle;
+$result;
+__186bbcef8f6f0dd8b72ba0fdeb1de040
+
+meta::internal_function('file::write', <<'__eb7b1efebe0db73378b0cce46681788d');
+use File::Path     'mkpath';
+use File::Basename 'dirname';
+
+my ($name, $contents, %options) = @_;
+die "Choosing not to overwrite file $name" if $options{noclobber} and -f $name;
+mkpath(dirname($name)) if $options{mkpath};
+
+open my($handle), $options{append} ? '>>' : '>', $name or die "Can't open $name for writing";
+print $handle $contents;
+close $handle;
+__eb7b1efebe0db73378b0cce46681788d
+
+meta::internal_function('fnv_hash', <<'__8d001a3a7988631bab21a41cee559758');
+# A rough approximation to the Fowler-No Voll hash. It's been 32-bit vectorized
+# for efficiency, which may compromise its effectiveness for short strings.
+
+my ($data) = @_;
+
+my ($fnv_prime, $fnv_offset) = (16777619, 2166136261);
+my $hash                     = $fnv_offset;
+my $modulus                  = 2 ** 32;
+
+$hash = ($hash ^ ($_ & 0xffff) ^ ($_ >> 16)) * $fnv_prime % $modulus for unpack 'L*', $data . substr($data, -4) x 8;
+$hash;
+__8d001a3a7988631bab21a41cee559758
+
+meta::internal_function('hypothetically', <<'__33ee2e1595d3877bd1d9accaa72305c8');
+# Applies a temporary state and returns a serialized representation.
+# The original state is restored after this, regardless of whether the
+# temporary state was successful.
+
+my %data_backup   = %data;
+my ($side_effect) = @_;
+my $return_value  = eval {&$side_effect()};
+%data = %data_backup;
+
+die $@ if $@;
+$return_value;
+__33ee2e1595d3877bd1d9accaa72305c8
+
+meta::internal_function('internal::main', <<'__acb38ec5971c89f794f486f1c30900e6');
+disable();
+
+$SIG{'INT'} = sub {
+  snapshot();
+  exit 1;
+};
+
+my $initial_state        = state();
+chomp(my $default_action = retrieve('data::default-action'));
+
+my $function_name = shift(@ARGV) || $default_action || 'usage';
+terminal::message('warning', "Unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
+
+chomp(my $result = &$function_name(@ARGV));
+print "$result\n" if $result;
+
+save() unless $initial_state eq state();
+
+END {
+  enable();
+}
+__acb38ec5971c89f794f486f1c30900e6
+
+meta::internal_function('invoke_editor_on', <<'__7c798760d79429e5b52d9fa934e889d8');
+my ($data, %options) = @_;
+my $editor           = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} ||
+                       die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
+my $options          = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
+my $extension        = $options{extension} || '';
+my $attribute        = $options{attribute} || '';
+
+my $filename         = temporary_name() . "-$attribute" . $extension;
+
+file::write($filename, $data);
+system("$editor $options '$filename'");
+
+my $result = file::read($filename);
+unlink $filename;
+$result;
+__7c798760d79429e5b52d9fa934e889d8
+
+meta::internal_function('main', <<'__cb63fed16dd9ee83dcbd15aa72643d74');
+$SIG{'INT'} = sub {
+  snapshot();
+  exit 1;
+};
+
+my $initial_state        = state();
+chomp(my $default_action = retrieve('data::default-action'));
+
+my $function_name = shift(@ARGV) || $default_action || 'usage';
+terminal::message('warning', "Unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
+
+chomp(my $result = &$function_name(@ARGV));
+print "$result\n" if $result;
+
+save() unless $initial_state eq state();
+__cb63fed16dd9ee83dcbd15aa72643d74
+
+meta::internal_function('namespace', <<'__93213d60cafb9627e0736b48cd1f0760');
+my ($name) = @_;
+$name =~ s/::.*$//;
+$name;
+__93213d60cafb9627e0736b48cd1f0760
+
+meta::internal_function('retrieve', <<'__0e9c1ae91f6cf6020cf1a05db7d51d72');
+my @results = map defined $data{$_} ? $data{$_} : file::read($_), @_;
+wantarray ? @results : $results[0];
+__0e9c1ae91f6cf6020cf1a05db7d51d72
+
+meta::internal_function('select_keys', <<'__9f1f6ed4c1df5aa5f62cfd0ded8e6ae6');
+my %options   = @_;
+my %inherited = map {$_ => 1} split /\n/o, join "\n", retrieve(grep /^parent::/o, sort keys %data) if $options{'-u'} or $options{'-U'};
+my $criteria  = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
+
+grep /$criteria/ && (! $options{'-u'} || ! $inherited{$_}) &&
+                    (! $options{'-U'} ||   $inherited{$_}) &&
+                    (! $options{'-i'} ||   $transient{inherit}{namespace($_)}) &&
+                    (! $options{'-I'} || ! $transient{inherit}{namespace($_)}) &&
+                    (! $options{'-S'} || ! /^state::/o) &&
+                    (! $options{'-m'} ||   /^meta::/o) &&
+                    (! $options{'-M'} || ! /^meta::/o), sort keys %data;
+__9f1f6ed4c1df5aa5f62cfd0ded8e6ae6
+
+meta::internal_function('separate_options', <<'__d47e8ee23fe55e27bb523c9fcb2f5ca1');
+# Things with one dash are short-form options, two dashes are long-form.
+# Characters after short-form are combined; so -auv4 becomes -a -u -v -4.
+# Also finds equivalences; so --foo=bar separates into $$options{'--foo'} eq 'bar'.
+# Stops processing at the -- option, and removes it. Everything after that
+# is considered to be an 'other' argument.
+
+# The only form not supported by this function is the short-form with argument.
+# To pass keyed arguments, you need to use long-form options.
+
+my @parseable;
+push @parseable, shift @_ until ! @_ or $_[0] eq '--';
+
+my @singles = grep /^-[^-]/, @parseable;
+my @longs   = grep /^--/,    @parseable;
+my @others  = grep ! /^-/,   @parseable;
+
+my @singles = map /-(.{2,})/ ? map("-$_", split(//, $1)) : $_, @singles;
+
+my %options;
+  $options{$1} = $2 for grep /^([^=]+)=(.*)$/, @longs;
+++$options{$_}      for grep ! /=/, @singles, @longs;
+
+({%options}, @others, @_);
+__d47e8ee23fe55e27bb523c9fcb2f5ca1
+
+meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
+meta::internal_function('table_display', <<'__8a6897e093f36bf05477a3889b84a61d');
+# Displays an array of arrays as a table; that is, with alignment. Arrays are
+# expected to be in column-major order.
+
+sub maximum_length_in {
+  my $maximum = 0;
+  length > $maximum and $maximum = length for @_;
+  $maximum;
+}
+
+my @arrays    = @_;
+my @lengths   = map maximum_length_in(@$_), @arrays;
+my @row_major = map {my $i = $_; [map $$_[$i], @arrays]} 0 .. $#{$arrays[0]};
+my $format    = join '  ', map "%-${_}s", @lengths;
+
+join "\n", map strip(sprintf($format, @$_)), @row_major;
+__8a6897e093f36bf05477a3889b84a61d
+
+meta::internal_function('temporary_name', <<'__0fb1402061581b69822f913631b4a9d9');
+use File::Temp 'tempfile';
+my (undef, $temporary_filename) = tempfile("$0." . 'X' x 4, OPEN => 0);
+$temporary_filename;
+__0fb1402061581b69822f913631b4a9d9
+
+meta::internal_function('translate_backtrace', <<'__06fad3d85833a6484e426401b95e0206');
+my ($trace) = @_;
+$trace =~ s/\(eval (\d+)\)/$locations{$1 - 1}/g;
+$trace;
+__06fad3d85833a6484e426401b95e0206
+
+meta::library('terminal', <<'__6999988eaf441c9b1282e03e1db427b5');
+# Functions for nice-looking terminal output.
+package terminal;
+
+my %color_conversions = (black  => "0;0", red  => "1;31", yellow => "1;33", green => "1;32",
+                                          blue => "1;34", purple => "1;35", cyan  => "1;36");
+my $longest_prefix = 0;
+my %default_colors = ();
+
+sub color {
+  $default_colors{$_[0]} = $_[1];
+  $longest_prefix = $longest_prefix < length($_[0]) ? length($_[0]) : $longest_prefix;
+}
+
+color    'info',  'green';
+color  'status',  'green';
+color   'error',    'red';
+color   'debug',   'blue';
+color 'warning', 'yellow';
+
+sub message {
+  my ($prefix, $message) = @_;
+  my $color = $color_conversions{$default_colors{$prefix}};
+  my $padding = ' ' x ($longest_prefix - length $prefix);
+
+  return if ::quiet() and $default_colors{$prefix} eq 'green';
+  print STDERR "${padding}\[\033[${color}m$prefix\033[0;0m] $message\n";
+}
+__6999988eaf441c9b1282e03e1db427b5
+
+meta::message_color('state', 'purple');
+meta::message_color('states', 'yellow');
+meta::message_color('watch', 'blue');
+meta::parent('/home/spencertipping/bin/literate-project', <<'__30e30a38dc2bd8ee5b5f47ed055b367c');
+function::clean
+function::compile
+function::make
+function::render
+function::tex
+function::view
+internal_function::main
+meta::externalize_template
+meta::functor::code-templates
+meta::functor::tex-templates
+meta::template::code
+meta::template::document
+meta::template::enumeration
+meta::template::math
+meta::template::quotations
+meta::template::sections
+meta::type::resource
+meta::type::section
+parent::development
+resource::header
+resource::header-languages
+resource::header-listings
+resource::header-packages
+resource::header-refs
+resource::header-resource
+template::item[]
+vim_highlighter::cltex
+__30e30a38dc2bd8ee5b5f47ed055b367c
+
+meta::parent('/home/spencertipping/bin/object', <<'__2fa5e2565231e24d8c3ba43abc0403c4');
+bootstrap::initialization
+function::cat
+function::child
+function::clone
+function::cp
+function::create
+function::current-state
+function::disable
+function::edit
+function::enable
+function::export
+function::extern
+function::grep
+function::hash
+function::import
+function::import-bundle
+function::load-state
+function::lock
+function::ls
+function::ls-a
+function::mv
+function::parents
+function::perl
+function::reload
+function::rm
+function::save
+function::save-state
+function::serialize
+function::serialize_single
+function::shell
+function::size
+function::snapshot
+function::state
+function::unlock
+function::update
+function::update-from
+function::usage
+function::verify
+internal_function::associate
+internal_function::attribute
+internal_function::chmod_self
+internal_function::complete
+internal_function::debug_trace
+internal_function::execute
+internal_function::fast_hash
+internal_function::file::read
+internal_function::file::write
+internal_function::fnv_hash
+internal_function::hypothetically
+internal_function::internal::main
+internal_function::invoke_editor_on
+internal_function::namespace
+internal_function::retrieve
+internal_function::select_keys
+internal_function::separate_options
+internal_function::strip
+internal_function::table_display
+internal_function::temporary_name
+internal_function::translate_backtrace
+library::terminal
+message_color::state
+message_color::states
+message_color::watch
+meta::configure
+meta::externalize
+meta::functor::editable
+meta::type::bootstrap
+meta::type::data
+meta::type::function
+meta::type::inc
+meta::type::internal_function
+meta::type::library
+meta::type::message_color
+meta::type::meta
+meta::type::parent
+meta::type::state
+meta::type::watch
+__2fa5e2565231e24d8c3ba43abc0403c4
+
+meta::parent('configuration', <<'__511208c99d8bc2caa3067db9f1824163');
+meta::type::configuration
+parent::/home/spencertipping/bin/object
+__511208c99d8bc2caa3067db9f1824163
+
+meta::parent('development', <<'__4ad4d4e680cfb5934a6e72241f8dd17c');
+parent::configuration
+parent::notes
+parent::preprocessor
+parent::vim-highlighters
+__4ad4d4e680cfb5934a6e72241f8dd17c
+
+meta::parent('notes', <<'__320d51928ec8e2e370d67d30abe059b5');
+function::note
+meta::type::note
+parent::object
+__320d51928ec8e2e370d67d30abe059b5
+
+meta::parent('object', <<'__2fa5e2565231e24d8c3ba43abc0403c4');
+bootstrap::initialization
+function::cat
+function::child
+function::clone
+function::cp
+function::create
+function::current-state
+function::disable
+function::edit
+function::enable
+function::export
+function::extern
+function::grep
+function::hash
+function::import
+function::import-bundle
+function::load-state
+function::lock
+function::ls
+function::ls-a
+function::mv
+function::parents
+function::perl
+function::reload
+function::rm
+function::save
+function::save-state
+function::serialize
+function::serialize_single
+function::shell
+function::size
+function::snapshot
+function::state
+function::unlock
+function::update
+function::update-from
+function::usage
+function::verify
+internal_function::associate
+internal_function::attribute
+internal_function::chmod_self
+internal_function::complete
+internal_function::debug_trace
+internal_function::execute
+internal_function::fast_hash
+internal_function::file::read
+internal_function::file::write
+internal_function::fnv_hash
+internal_function::hypothetically
+internal_function::internal::main
+internal_function::invoke_editor_on
+internal_function::namespace
+internal_function::retrieve
+internal_function::select_keys
+internal_function::separate_options
+internal_function::strip
+internal_function::table_display
+internal_function::temporary_name
+internal_function::translate_backtrace
+library::terminal
+message_color::state
+message_color::states
+message_color::watch
+meta::configure
+meta::externalize
+meta::functor::editable
+meta::type::bootstrap
+meta::type::data
+meta::type::function
+meta::type::inc
+meta::type::internal_function
+meta::type::library
+meta::type::message_color
+meta::type::meta
+meta::type::parent
+meta::type::state
+meta::type::watch
+__2fa5e2565231e24d8c3ba43abc0403c4
+
+meta::parent('preprocessor', <<'__9c447d98a6cfad0ea5444db7eb4b75de');
+function::preprocess
+meta::type::template
+parent::object
+template::comment
+template::eval
+template::failing_conditional
+template::include
+__9c447d98a6cfad0ea5444db7eb4b75de
+
+meta::parent('vim-highlighters', <<'__1258d5867978f2068c8efd130c2066f7');
+function::vim
+meta::type::vim_highlighter
+parent::object
+__1258d5867978f2068c8efd130c2066f7
+
+meta::resource('header', <<'__efe6254be4f73fb4170ab1980a1888d5');
+- include resource::header-packages
+- include resource::header-listings
+
+- include resource::header-refs
+
+- include resource::header-languages
+- include resource::header-resource
+__efe6254be4f73fb4170ab1980a1888d5
+
+meta::resource('header-languages', <<'__637a18cf607b727dec3feab552be05e2');
+\lstnewenvironment{asmcode}       {}{}
+\lstnewenvironment{cppcode}       {\lstset{language=c++}}{}
+\lstnewenvironment{javacode}      {\lstset{language=java}}{}
+\lstnewenvironment{javascriptcode}{}{}
+\lstnewenvironment{htmlcode}      {\lstset{language=html}}{}
+__637a18cf607b727dec3feab552be05e2
+
+meta::resource('header-listings', <<'__4caf6ff3ff152cce49ad5d1775ad0703');
+\definecolor{gray}{rgb}{0.6,0.6,0.6}
+
+\usepackage{caption}
+\DeclareCaptionFormat{listing}{\llap{\color{gray}#1\hspace{10pt}}\tt{}#3}
+\captionsetup[lstlisting]{format=listing, singlelinecheck=false, margin=0pt, font={bf}}
+
+\lstset{columns=fixed,basicstyle={\tt},numbers=left,firstnumber=auto,basewidth=0.5em,showstringspaces=false,numberstyle={\color{gray}\scriptsize}}
+__4caf6ff3ff152cce49ad5d1775ad0703
+
+meta::resource('header-packages', <<'__5a7e0bd196996326e6278b6dc308371c');
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,pxfonts,listings,color}
+\usepackage[colorlinks]{hyperref}
+__5a7e0bd196996326e6278b6dc308371c
+
+meta::resource('header-refs', '\\newcommand{\\Ref}[2]{\\hyperref[#2]{#1 \\ref*{#2}}}');
+meta::resource('header-resource', '\\lstnewenvironment{resourcecode}{}{}');
+meta::section('defining-macros', <<'__f26334e3bf87cd88c716a6103f9bafdd');
+- sc Defining Macros | sec:defining-macros
+  Caterwaul's standard macros can be useful, but the real point of having a macro-oriented compiler is being able to write your own. Caterwaul comes with several macro-defining
+  macros\footnote{If this doesn't make sense, pretend I didn't say it.} that make it easier to extend.
+
+  Before I get into the details of defining macros, here's an example where a macro definition is useful:
+
+  - verbatim << end
+    // Without macros:
+    $('.add').live('click', fn_[$(this).parents('.list').eq(0).append('foo')]);
+    $('.remove').live('click', fn_[$(this).parents('.removable').eq(0).remove()]);
+  - end
+
+  Let's define a macro that will simplify this code (details in \Ref{section}{sec:defining-macros-patterns}):
+
+  - verbatim << end
+    defmacro[_ >c> _][fn[selector, handler][
+      qs[$(_).live('click', fn_[_, where[t = $(this)]])].s('_', [selector, handler]),
+      when[selector.is_string()]]];
+  - end
+
+  Now we can write this:
+
+  - verbatim << end
+    '.add' >c> t.parents('.list').eq(0).append('foo');
+    '.remove' >c> t.parents('.removable').eq(0).remove();
+  - end
+
+  - s1 Patterns | sec:defining-macros-patterns
+    There are two parts to a macro definition. The first is the pattern; this is just an expression that is used to match against syntax elsewhere. Underscores in an expression are treated as
+    wildcards and the trees they match will be passed into your macroexpansion function. For the \verb|>c>| macro above, for example, the pattern was \verb|_ >c> _|. This locates syntax trees
+    that look like \verb|x > c > y|, where {\tt x} and {\tt y} are arbitrary expressions. The nice thing about structural macros is that the tree matching is precedence-aware; so, for
+    instance, \verb|3 + 4 >c> 5, 10| would result in \verb|3 + 4| for the left match, and \verb|5| for the right; \verb|10| is not a part of that tree, since comma takes lower precedence than
+    \verb|>|.\footnote{Combining operators around an identifier like I did here is safe as long as each operator symbol has equal precedence. For my own sanity, I like to use the same operator
+    on each side. Associativity isn't an issue, by the way -- binary operators with equal precedence always have the same assocativity (otherwise the grammar would be ambiguous).}
+
+    Here are the patterns for some builtin macros:
+
+    - verbatim << end
+      fn[_][_]          // _ can match a comma-delimited list of things, too.
+      fn_[_]            // ... or arbitrary expressions
+      fb[_][_]
+      fb_[_]
+
+      let[_] in _       // 'in' has the same precedence as '<' or '>'
+      _, where[_]
+      _, when[_]
+      _, unless[_]
+
+      defmacro[_][_]    // defmacro is a macro too!
+    - end
+
+    Just a \verb|_| is used for string interpolation. The reason is that strings are atoms, and there isn't a way to specify properties about the tree when you're writing a pattern for it. So
+    the string interpolation macro ends up visiting every node in the tree, even though it only modifies strings that contain \verb|#{}| blocks.
+__f26334e3bf87cd88c716a6103f9bafdd
+
+meta::section('introduction', <<'__ec447f24e225c47c60899f824b5dd332');
+- sc Introduction | sec:introduction
+  Most JavaScript users are writing client-side applications, though node.js may change that. Caterwaul can be useful for this and plays well with jQuery and other common client-side
+  libraries. This guide goes through some enhancements that you can make to your code when you use Lisp-style macros in conjunction with jQuery and jQuery UI.
+
+  - s1 Setup | sec:introduction-setup
+    Using Caterwaul is really easy. Most applications have a setup like this:
+
+    - verbatim << end
+      <script src='...jquery.js'></script>
+      <script>
+        $(function () {
+          // application code
+        });
+      </script>
+    - end
+
+    If you wanted to use Caterwaul in the application code, you'd do this:
+
+    - verbatim << end
+      <script src='...jquery.js'></script>
+      <script src='...caterwaul.js'></script>
+      <script>
+        // Yes, this looks weird, but it's how it works :)
+        $(caterwaul.clone('std')(function () {
+          // application code can now use macros
+        }));
+      </script>
+    - end
+
+    The latest development version of Caterwaul is always available at \url{http://spencertipping.com/caterwaul/caterwaul.js}, though if you have a production application you'll probably be
+    better off deploying a snapshot with your code.\footnote{Both to protect against breaking changes, which sometimes happen, and to protect against downtime from my webhost, which is a
+    definite possibility.} You can also get stable versions from \url{http://spencertipping.com/caterwaul/stable}.
+
+  - s1 Running the examples | sec:introduction-running-the-examples
+    This guide contains lots of code examples that use Caterwaul. I recommend using the online Caterwaul compiler, up at \url{http://spencertipping.com/caterwaul/compiler}, to see the
+    generated code. This shows you the compiled functions that Caterwaul produces from your code.
+__ec447f24e225c47c60899f824b5dd332
+
+meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
+- documentclass report
+- include resource::header
+
+- title  Client-Side Caterwaul
+- author Spencer Tipping
+
+- document << end
+  - maketitle
+  - tableofcontents
+
+  - include section::introduction
+  - include section::the-std-library
+  - include section::defining-macros
+- end
+__aa4d1b571c5a0d971bdcb77aebbf035d
+
+meta::section('the-std-library', <<'__8d20e26cb37e9f37047ea9fead613273');
+- sc The {\tt std} Library | sec:the-std-library
+  Caterwaul comes with a bunch of useful macros accessible via the {\tt std} configuration. I highly recommend importing them for use in your projects. In this chapter I'll go over some
+  examples demonstrating how to use the {\tt std} library in your code.
+
+  - s1 {\tt fn} and {\tt fb} | sec:the-std-library-fn
+    The most common thing you're likely to use in {\tt std} is the {\tt fn} macro, along with its companion macros {\tt fb}, \verb|fn_|, and \verb|fb_|. These are abbreviations for common
+    function patterns. For example, here's a common jQuery pattern:
+
+    - verbatim << end
+      $('input.validated').blur(function () {
+        var t = $(this);
+        $.getJSON('/validate', {value: t.val()}, function (result) {
+          if (result.valid)
+            t.removeClass('invalid');
+          else
+            t.addClass('invalid');
+        });
+      });
+    - end
+
+    The first thing to do is collapse the inner function. We can use {\tt fn[]} to do it, sort of like this:
+
+    - verbatim << end
+      // Doesn't work, but it's the right idea:
+      $.getJSON('/validate', {value: t.val()}, fn[result][
+        if (result.valid)
+          t.removeClass('invalid');
+        else
+          t.addClass('invalid');
+      ]);
+    - end
+
+    The problem here is that {\em if} is a statement-mode construct; that is, you can't say things like {\tt 3 + if (foo) bar;}. We need to convert the body of the function into an expression,
+    which is most easily achieved using {\tt ?:}.
+
+    - verbatim << end
+      $('input.validated').blur(function () {
+        var t = $(this);
+        $.getJSON('/validate', {value: t.val()}, fn[result][
+          result.valid ? t.removeClass('invalid') : t.addClass('invalid')]);
+      });
+    - end
+
+    Cool, so that's some code out of the way. But this is just the beginning. Notice that the AJAX closure isn't bound, so we have to define {\tt t}. The {\tt fb} macro was designed to get rid
+    of this problem:
+
+    - verbatim << end
+      $('input.validated').blur(function () {
+        $.getJSON('/validate', {value: $(this).val()}, fb[result][
+          result.valid ? $(this).removeClass('invalid') : $(this).addClass('invalid')]);
+      });
+    - end
+
+    {\tt fb} is just like {\tt fn}, except that it binds to the outer {\tt this}. This means that {\tt this} inside the body of an {\tt fb} function will be the same value that it was outside
+    the function, regardless of how it is called.
+
+    Now let's tackle the outer function. It's a perfect candidate for {\tt fn[]} because it has just one statement and that statement can be interpreted as an expression. It's tempting to do
+    this:
+
+    - verbatim << end
+      // Doesn't work; syntax error
+      $('input.validated').blur(fn[][
+        $.getJSON(...)
+      ]);
+    - end
+
+    Unfortunately you can't follow an expression with empty braces or parens. Rather than defining a useless argument, Caterwaul gives you the \verb|fn_| macro (and \verb|fb_| when you want to
+    preserve {\tt this}):
+
+    - verbatim << end
+      $('input.validated').blur(fn_[
+        $.getJSON('/validate', {value: $(this).val()}, fb[result][
+          result.valid ? $(this).removeClass('invalid') : $(this).addClass('invalid')])]);
+    - end
+
+  - s1 {\tt let} and {\tt where} | sec:the-std-library-let-and-where
+    Continuing the previous example, let's suppose you are concerned about minimizing jQuery allocations and don't want to repeat the expression \verb|$(this)| more than necessary. The easiest
+    way to eliminate this repetition is to allocate a temporary variable, but {\tt var} is statement-mode and won't work inside {\tt fn} or \verb|fn_|. There are a couple of macros in {\tt
+    std} to work around this, {\tt let} and {\tt where}. First, here's the code with a temporary variable:
+
+    - verbatim << end
+      // Doesn't work; var is statement-mode
+      $('input.validated').blur(fn_[
+        var t = $(this);
+        $.getJSON(...);
+      ]);
+    - end
+
+    Here's how to use {\tt let} to achieve the same effect:
+
+    - verbatim << end
+      $('input.validated').blur(fn_[
+        let[t = $(this)] in
+        $.getJSON('/validate', {value: t.val()}, fn[result][
+          result.valid ? t.removeClass('invalid') : t.addClass('invalid')])]);
+    - end
+
+    {\tt where} does the same thing, but with a different syntax:
+
+    - verbatim << end
+      $('input.validated').blur(fn_[
+        $.getJSON('/validate', {value: t.val()}, fn[result][
+          result.valid ? t.removeClass('invalid') : t.addClass('invalid')]),
+        where[t = $(this)]]);
+    - end
+
+    - s2 Caveats of {\tt let} and {\tt where} | sec:the-std-library-let-and-where-caveats
+      {\tt let} and {\tt where} are not semantically equivalent to {\tt var}. In particular, here are some cases where they behave differently:
+
+      - verbatim << end
+        var x1 = 4,
+            y1 = x1;
+        y1              // -> 4
+
+        let[x2 = 4,
+            y2 = x2] in
+        y2              // -> ReferenceError: x2 is undefined
+
+        y3, where[x3 = 4, y3 = x3]
+                        // -> ReferenceError: x3 is undefined
+      - end
+
+      The reason has to do with how they're expanded. The above {\tt let} and {\tt where} expand into this:
+
+      - verbatim << end
+        // The let definition:
+        (function (x2, y2) {
+          return y2
+        }).call(this, 4, x2)
+
+        // The where definition:
+        (function (x3, y3) {
+          return y3
+        }).call(this, 4, x3)
+      - end
+
+      Now the problem should be obvious; the values you're assigning are in the outer scope, but the variables don't come into existence until the inner scope.
+
+  - s1 {\tt std.string} | sec:the-std-library-std-string
+    It's common to write code like this:
+
+    - verbatim << end
+      $('button').click(fn_[
+        alert('You clicked on ' + $(this).text() + '!')]);
+    - end
+
+    Part of the {\tt std} library in Caterwaul is a macro that performs string interpolation, just like in Ruby. You can use it like this:
+
+    - verbatim << end
+      $('button').click(fn_[
+        alert('You clicked on #{$(this).text()}!')]);
+    - end
+
+    You can even embed strings and use regular expressions without escaping backslashes. The only things that don't work are:
+
+    - enumerate << end
+      - item Using the same style of quotation mark that was used to quote the string; for example, \verb|'foo#{'bar'}'| won't parse correctly (it will cause a syntax error).
+      - item Using a close-brace in the interpolated expression; e.g.~\verb|'foo#{let[x = {foo: "bar"}] in x.foo}'|. In this case, the close-brace will terminate the string interpolation and
+        you'll get a syntax error in the expanded code. At some point string interpolation may use a full lex/parse to avoid this problem, but that will be in a future major release.
+    - end
+
+  - s1 {\tt when} and {\tt unless} | sec:the-std-library-when-and-unless
+    I like to use short-circuit logic for conditionals, but there are some times when you want Perl-style postfix conditional logic. A common case is when the condition slightly obscures the
+    meaning of the code when it's placed first:
+
+    - verbatim << end
+      var f = fn[x][
+        // Notice that there isn't a return statement.
+        // The value of the expression is automatically returned.
+        x !== null && x !== undefined && x.toLowerCase && x.toLowerCase()];
+    - end
+
+    Much clearer is to say it this way:
+
+    - verbatim << end
+      var f = fn[x][
+        x.toLowerCase(), when[x !== null && x !== undefined && x.toLowerCase]];
+    - end
+
+    This lets you put the function's meaning first, leaving the exceptional cases to an aside. {\tt unless} is also provided, which does the opposite:
+
+    - verbatim << end
+      var f = fn[x][
+        x.toLowerCase(), unless[x === null || x === undefined || ! x.toLowerCase]];
+    - end
+
+    Because the comma operator associates left, you can stack {\tt when} and {\tt unless}. However, they will be evaluated outside-in:
+
+    - verbatim << end
+      var f = fn[x][
+        // The conditions below need to be in this order, since x being null or
+        // undefined causes the toLowerCase check to fail.
+        x.toLowerCase(), when[x.toLowerCase], unless[x === null || x === undefined]];
+    - end
+__8d20e26cb37e9f37047ea9fead613273
+
+meta::template('comment', '\'\';     # A mechanism for line or block comments.');
+meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
+my $result = eval $_[0];
+terminal::message('warning', "Error during template evaluation: $@") if $@;
+$result;
+__7be1d470a07a06c58e971bc7fc24c048
+
+meta::template('failing_conditional', <<'__b49f2ffe1cfefb36b1eabd7abd7b3bb6');
+my ($commands)    = @_;
+my $should_return = $commands =~ / if (.*)$/ && ! eval $1;
+terminal::message('warning', "eval of template condition failed: $@") if $@;
+$should_return;
+__b49f2ffe1cfefb36b1eabd7abd7b3bb6
+
+meta::template('include', <<'__e0624844a65ae41e0217dd871fc0dbfb');
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+join "\n", map retrieve($_), split /\s+/, $commands;
+__e0624844a65ae41e0217dd871fc0dbfb
+
+meta::template('item[]', '"\\\\item[$_[0]]";');
+meta::vim_highlighter('cltex', <<'__5bfc80e1a2ad3bb7cb4f57ff906d71b0');
+" Cleaner TeX
+" Maintainer: Spencer Tipping <spencer@spencertipping.com>
+" Language:   Cleaner TeX (a variant of LaTeX with support for a bunch of embedded languages)
+
+if version < 600
+  syntax clear
+elseif exists("b:current_syntax")
+  finish
+endif
+
+syn match   cltEofMarker   /<<\s*\w\+/ contained
+syn region  cltLineComment matchgroup=cltCode start=/^\s*- comment / end=/$/ contained
+syn match   cltLine        /^\s*- .*$/ contains=cltEofMarker,cltLineComment
+
+syn include @cpp           syntax/cpp.vim        | unlet b:current_syntax
+syn include @java          syntax/java.vim       | unlet b:current_syntax
+syn include @asm           syntax/asm.vim        | unlet b:current_syntax
+syn include @javascript    syntax/javascript.vim | unlet b:current_syntax
+syn include @html          syntax/html.vim       | unlet b:current_syntax
+
+syn region  cltCpp         matchgroup=cltCode start=/^\z(\s*\)- cpp .*<<\s*\z(\w\+\)$/        end=/^\z1- \z2$/ contains=@cpp
+syn region  cltJava        matchgroup=cltCode start=/^\z(\s*\)- java .*<<\s*\z(\w\+\)$/       end=/^\z1- \z2$/ contains=@java
+syn region  cltAsm         matchgroup=cltCode start=/^\z(\s*\)- asm .*<<\s*\z(\w\+\)$/        end=/^\z1- \z2$/ contains=@asm
+syn region  cltJavascript  matchgroup=cltCode start=/^\z(\s*\)- javascript .*<<\s*\z(\w\+\)$/ end=/^\z1- \z2$/ contains=@javascript
+syn region  cltHtml        matchgroup=cltCode start=/^\z(\s*\)- html .*<<\s*\z(\w\+\)$/       end=/^\z1- \z2$/ contains=@html
+syn region  cltResource    matchgroup=cltCode start=/^\z(\s*\)- resource .*<<\s*\z(\w\+\)$/   end=/^\z1- \z2$/
+syn region  cltComment     matchgroup=cltCode start=/^\z(\s*\)- comment .*<<\s*\z(\w\+\)$/    end=/^\z1- \z2$/
+
+syn cluster cltStuff       add=cltCpp,cltJava,cltAsm,cltJavascript,cltHtml,cltResource,cltComment,cltLine
+
+syn region  cltDocument    start=/\%^/ end=/\%$/ contains=@cltStuff
+
+hi link cltLine            Special
+hi link cltKeyword         String
+hi link cltResource        String
+hi link cltEofMarker       String
+
+hi link cltCode            Special
+hi link cltDocument        Comment
+hi link cltComment         Type
+hi link cltLineComment     Type
+
+let b:current_syntax = "cltex"
+__5bfc80e1a2ad3bb7cb4f57ff906d71b0
+
+internal::main();
+
+__END__
