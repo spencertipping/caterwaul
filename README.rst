@@ -8,8 +8,8 @@ Caterwaul is the replacement for Divergence. It fixes a number of issues (see th
 destructuring-bind syntactic macros. It also, unlike Divergence, has a proper test suite and runs on IE6. (Please visit the `test page <http://spencertipping.com/caterwaul/test>`_ and let me
 know if anything fails. My goal is to make this project completely cross-browser, at least starting with IE6.)
 
-Online documentation is available at http://spencertipping.com/caterwaul/caterwaul.html, and you can experiment with Caterwaul by using the `online compiler
-<http://spencertipping.com/caterwaul/compiler>`_.
+Documentation is in the doc/ directory (in the form of applied guides), and the annotated source is up at http://spencertipping.com/caterwaul/caterwaul.html. The best way to learn Caterwaul is
+probably to experiment by using the `online compiler <http://spencertipping.com/caterwaul/compiler>`_.
 
 Using Caterwaul
 ---------------
@@ -28,6 +28,8 @@ looks like::
     });
 
 Then you can use the copy to introduce macro support into functions.
+
+In the unlikely event that the name ``caterwaul`` conflicts with stuff (hey, it could happen), you can call ``caterwaul.deglobalize()`` to restore the old ``caterwaul`` value.
 
 Defining Macros
 ---------------
