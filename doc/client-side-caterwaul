@@ -741,16 +741,21 @@ my $delimiter = '__' . fast_hash($contents);
 return "$meta_function_name('$invocation_name', <<'$delimiter');\n$contents\n$delimiter\n";
 __48005281edde632b0df2e346c094b7bd
 
-meta::function('shell', <<'__c6ef6c31734c0b330f6076543fef8f1f');
+meta::function('shell', <<'__e9e0709e6ee1dd09521c683322be79e6');
 use Term::ReadLine;
 
 my $term = new Term::ReadLine "$0 shell";
 $term->ornaments(0);
-my $prompt = name() . '$ ';
+my $prompt = undef;
+my $set_prompt = sub {
+  $prompt = "\033[1;32m" . name() . "\033[0;0m ";
+};
+  
 my $output = $term->OUT || \*STDOUT;
 
 $term->Attribs->{attempted_completion_function} = \&complete;
 
+&$set_prompt();
 while (defined ($_ = $term->readline($prompt))) {
   my $command_line = $_;
   my @args = grep length, split /\s+|("[^"\\]*(?:\\.)?")/o;
@@ -777,9 +782,9 @@ while (defined ($_ = $term->readline($prompt))) {
     }
   }
 
-  $prompt = name() . '$ ';
+  &$set_prompt();
 }
-__c6ef6c31734c0b330f6076543fef8f1f
+__e9e0709e6ee1dd09521c683322be79e6
 
 meta::function('size', 'length(serialize());');
 meta::function('snapshot', <<'__787158a5844d36cbfd29e5b74c9167e1');
