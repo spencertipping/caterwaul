@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.7gCM/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.lf0s/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1470,7 +1470,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\\newcommand{\\Ref}[2]{\\hyperref[#2]{#1 \\ref*{#2}}}');
 meta::resource('header-resource', '\\lstnewenvironment{resourcecode}{}{}');
-meta::section('defining-macros', <<'__fe9e3db63fa5c3032358f960380c32b7');
+meta::section('defining-macros', <<'__a1f280abcd5ae8530945e5286fa285f2');
 - sc Defining Macros | sec:defining-macros
   Caterwaul's standard macros can be useful, but the real point of having a macro-oriented compiler is being able to write your own. Caterwaul comes with several macro-defining
   macros\footnote{If this doesn't make sense, just pretend I didn't say it.} that make it easier to extend.
@@ -1554,7 +1554,85 @@ meta::section('defining-macros', <<'__fe9e3db63fa5c3032358f960380c32b7');
 
       I highly recommend reading the Caterwaul annotated source, available at \url{http://spencertipping.com/caterwaul/caterwaul.html}, for an in-depth look at how Caterwaul works and how to
       define more sophisticated macros (this section is just the tip of the iceberg).
-__fe9e3db63fa5c3032358f960380c32b7
+
+  - s1 Binding variables (dynamic scoping) | sec:defining-macros-dynamic-scoping
+    Asking programming language enthusiasts about dynamic scoping is like asking them about computed {\tt GOTO}. You'll often get a very polarized response, and with good reason -- many
+    otherwise good languages have been held back by their reliance on such features. However, as with most things, there are times when it's useful to be able to define variables outside of
+    the lexical scope chain, and I'll go over how to do it using macros.
+
+    The basic idea is simple. In Lisp you can write a (non-hygienic) macro like this:
+
+    - verbatim << end
+      (defmacro let-x-be-5-in (expression)
+        `(let ((x 5)) ,expression))
+
+      (let-x-be-5-in (+ x 6))   ; -> 11
+    - end
+
+    You can imagine how easily this can produce unreadable code if used ubiquitously, but if your variable name is very predictable it's nice to eliminate the duplication involved in creating
+    it. A common case is a jQuery event handler, where the two relevant variables are {\tt e} and {\tt this} (well, really \verb|$(this)|). Let's take some jQuery code and write macros to make
+    it shorter:
+
+    - verbatim << end
+      $('a.foo').click(fn[e][$('p').append('foo')]);
+      $('a.bar').click(fn[e][$(this).parents('p').eq(0).find('a.bar').remove()]);
+
+      $('input').keyup(fn[e][send_to_server($(this).val()),
+                             when[e.keyCode === 13]]);
+    - end
+
+    An obvious bit of common code is the \verb|fn[e]| that we keep writing. Another is \verb|$(this)|. But stepping back, there's a high-level pattern:
+
+    - verbatim << end
+      $(<selector>).<event>(fn[e][<body>]);
+    - end
+
+    If we assume that we're going to need \verb|$(this)| in the \verb|<body>| above, then we really have something closer to this:
+
+    - verbatim << end
+      $(<selector>).<event>(fn[e][<body>, where[t = $(this)]]);
+    - end
+
+    What should the event look like? I'm partial to the \verb|x >letters> y| syntax, and I think it suits jQuery code well. Let's implement it this way first, and then I'll go over some
+    alternatives:
+
+    - verbatim << end
+      defmacro[_ >_> _][fn[selector, event, body][
+        qs[$(_)._(fn[e][_, where[t = $(this)]])].s('_', [selector, event_name, body]),
+        when[event_name && selector.is_string()],
+        where[event_name = event.data === 'c' ? 'click' :
+                           event.data === 'k' ? 'keyup' : null]]];
+    - end
+
+    With this macro, the code from earlier becomes:
+
+    - verbatim << end
+      'a.foo' >c> $('p').append('foo');
+      'a.bar' >c> t.parents('p').eq(0).find('a.bar').remove();
+
+      // Parens required here, since comma is lower precedence than >
+      'input' >k> (send_to_server(t.val()), when[e.keyCode === 13]);
+    - end
+
+    This last line is a good reason to reconsider how we're defining this macro. Generally you want to use an infix macro when both macro arguments are comprised entirely of high-precedence
+    operators, but conditionals use comma or short-circuit logic and have very low precedence.\footnote{If you're going to be writing many infix macros, I recommend becoming very familiar with
+    Javascript's operator precedence and associativity.} We can reuse the macro expander from above, but change the pattern to be grouped instead of infix:
+
+    - verbatim << end
+      defmacro[_._[_]][fn[selector, event, body][...]];
+    - end
+
+    Now our code is this:
+
+    - verbatim << end
+      'a.foo'.c[$('p').append('foo')];
+      'a.bar'.c[t.parents('p').eq(0).find('a.bar').remove()];
+
+      'input'.k[send_to_server(t.val()), when[e.keyCode === 13]];
+    - end
+
+- comment  - s1 Abstracting statement-mode constructs | sec:defining-macros-abstracting-statement-mode
+__a1f280abcd5ae8530945e5286fa285f2
 
 meta::section('introduction', <<'__ec447f24e225c47c60899f824b5dd332');
 - sc Introduction | sec:introduction
