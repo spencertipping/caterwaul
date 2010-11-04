@@ -1,0 +1,20 @@
+Caterwaul lvalue macro tests
+
+test(function () {
+  var fn = caterwaul.clone('std.fn', 'std.bind', 'std.lvalue', 'std.cond');
+
+  fn(function (eq) {
+    var f, g, h;
+    f(x) = x + 1;
+    g(x) = x + 2;
+    h(x) = x + 3;
+
+    eq(f(10), 11);
+    eq(g(10), 12);
+    eq(h(10), 13);
+
+    eq(let[f(x) = 10] in f(5), 10);
+    eq(let[g(x) = 11] in g(5), 11);
+    eq(let[h(x) = 12] in h(5), 12);
+  }) (eq);
+});
