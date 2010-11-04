@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.lf0s/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.Jw9y/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1690,7 +1690,7 @@ meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - end
 __aa4d1b571c5a0d971bdcb77aebbf035d
 
-meta::section('the-std-library', <<'__8d20e26cb37e9f37047ea9fead613273');
+meta::section('the-std-library', <<'__3bb7142441c70e511b6453dd15221f84');
 - sc The {\tt std} Library | sec:the-std-library
   Caterwaul comes with a bunch of useful macros accessible via the {\tt std} configuration. I highly recommend importing them for use in your projects. In this chapter I'll go over some
   examples demonstrating how to use the {\tt std} library in your code.
@@ -1829,6 +1829,50 @@ meta::section('the-std-library', <<'__8d20e26cb37e9f37047ea9fead613273');
 
       Now the problem should be obvious; the values you're assigning are in the outer scope, but the variables don't come into existence until the inner scope.
 
+    - s2 The solution: {\tt let*} and {\tt where*} | sec:the-std-library-let-and-where-star
+      These macros expand into {\tt var} expansions, like this:
+
+      - verbatim << end
+        // let*[x = 5, y = x] in ... or
+        // ..., where*[x = 5, y = x]:
+        (function () {
+          var x = 5, y = x;
+          return ...;
+        }).call(this);
+      - end
+
+      Because the expansions are placed in a {\tt var} definition, you can also define recursive functions:\footnote{You could do this before using the applicative variant of the Y combinator,
+      but nobody really does this. Caterwaul also doesn't provide a fixed-point function, though in the future I imagine I'll write one for it.}
+
+      - verbatim << end
+        let*[factorial = fn[n][n > 1 ? n * factorial(n - 1) : 1]] in factorial(5);
+      - end
+
+    - s2 Function shorthands | sec:the-std-library-let-and-where-fn
+      The factorial definition above can be shortened using a syntax similar to OCaml and Haskell (though without guards):
+
+      - verbatim << end
+        let*[factorial(n) = n > 1 ? n * factorial(n - 1) : 1] in factorial(5);
+      - end
+
+      This is called an lvalue-macro, since it modifies the behavior of assignments based on properties of the left-hand side. The builtin {\tt std.lvalue} library provides function
+      assignment, as used above. (By extension, curried assignments are allowed; for example, {\tt let*[f(x)(y) = x + y] in ...}.) Javascript's grammar isn't wonderfully accepting of arbitrary
+      values placed on the left-hand side of an assignment, but due to an old IE bug function calls are syntactically (though not semantically in normal Javascript environments)
+      lvalues.\footnote{This is the one good thing IE did for the world.}
+
+      Note that {\tt std.lvalue} applies not only inside {\tt let} and {\tt where}, but across your code in general. For example:
+
+      - verbatim << end
+        var f;
+        f(x) = x + 1;
+        f(5)    // -> 6
+
+        f(x)(y) = x + y;
+        f(1)(2) // -> 3
+      - end
+
+      Unfortunately it isn't possible to write {\tt var f(x) = 10}, but the lvalue semantics would also apply there if it were.
+
   - s1 {\tt std.string} | sec:the-std-library-std-string
     It's common to write code like this:
 
@@ -1885,7 +1929,7 @@ meta::section('the-std-library', <<'__8d20e26cb37e9f37047ea9fead613273');
         // undefined causes the toLowerCase check to fail.
         x.toLowerCase(), when[x.toLowerCase], unless[x === null || x === undefined]];
     - end
-__8d20e26cb37e9f37047ea9fead613273
+__3bb7142441c70e511b6453dd15221f84
 
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
