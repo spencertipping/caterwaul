@@ -60,7 +60,7 @@ Standard Macro Library
 
 Caterwaul comes with some standard macro libraries. To get access to them::
 
-    var with_fn = caterwaul.clone('std.fn');
+    var with_fn = caterwaul.clone('std.fn', 'std.bind');
     with_fn(function () {
       // Function creation:
       var x = fn[y][y + 1](6);          // Now x is 7
@@ -91,7 +91,7 @@ Caterwaul comes with some standard macro libraries. To get access to them::
 
 Another library enables the ``defmacro[][]`` command::
 
-    var with_defmacro = caterwaul.clone('qs', 'std.fn', 'std.defmacro');
+    var with_defmacro = caterwaul.clone('std.qs', 'std.fn', 'std.defmacro', 'std.with_gensyms');
     with_defmacro(function () {
       // Defining inline macros:
       defmacro[foo[_]][fn[thing][qs[console.log(_)].s('_', thing)]];
