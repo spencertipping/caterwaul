@@ -993,11 +993,26 @@ configuration multiple times (though you're probably doing something wrong if yo
 
   | let[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
 
+  You also get let* and where*, which define their variables in the enclosed scope:
+
+  | let*[x = 6, y = x] in x + y
+    // compiles into:
+    (function () {
+      var x = 6, y = x;
+      return x + y;
+    }).call(this);
+
+  This form has a couple of advantages over the original. First, you can use the values of previous variables; and second, you can define recursive functions:
+
+  | let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
+
     tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
       this.rmacro(qs[let[_] in _], fn[vars, expression][vars.data === ',' && (vars = vars.flatten()),
                                                         qs[qg[function (_) {return _}].call(this, _)].s('_', [vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
                                                                                                               vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])]).
-           rmacro(qs[_, where[_]], fn[expression, vars][qs[qg[let[_] in qg[_]]].s('_', [vars, expression])])}).
+           rmacro(qs[_, where[_]], fn[expression, vars][qs[qg[let[_] in qg[_]]].s('_', [vars, expression])]).
+           rmacro(qs[let*[_] in _], fn[vars, expression][qs[qg[function () {var _; return _}].call(this)].s('_', [vars, expression])]).
+           rmacro(qs[_, where*[_]], fn[expression, vars][qs[qg[let*[_] in qg[_]]].s('_', [vars, expression])])}).
 
   Conditional abbreviations (the 'cond' library).
   Includes forms for making decisions in perhaps a more readable way than using short-circuit logic. In particular, it lets you do things postfix; i.e. 'do X if Y' instead of 'if Y do X'.

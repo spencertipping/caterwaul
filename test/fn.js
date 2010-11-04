@@ -11,8 +11,14 @@ test(function () {
     eq(let[y = 5] in y + 1, 6);
     eq(let[y = 5, a = 6] in y + a, 11);
 
-    eq((z + 1, where[z = 5]), 6);
-    eq((q + w, where[q = 10, w = 100]), 110);
+    eq(let*[x = 4, y = x] in x + y, 8);
+    eq(let*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]] in fact(5), 120);
+
+    eq(z + 1, where[z = 5], 6);
+    eq(q + w, where[q = 10, w = 100], 110);
+
+    eq(x + y,   where*[x = 4, y = x], 8);
+    eq(fact(5), where*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]], 120);
 
     eq(5, when[true], 5);
     eq(5, when[false], false);
