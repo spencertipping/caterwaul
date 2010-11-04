@@ -207,7 +207,7 @@
 
    collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
 
-         s: function (data, xs) {var c = this.constructor, promote = function (x) {return x.data ? x : new c(x)}, i = 0, is_array = xs.constructor === Array;
+         s: function (data, xs) {var c = this.constructor, promote = function (x) {return ! x || x.data ? x : new c(x)}, i = 0, is_array = xs.constructor === Array;
                                  return this.rmap(function (n) {return n.data === data && promote(is_array ? xs[i++ % xs.length] : xs)})},
 
 //     Alteration.
