@@ -42,8 +42,8 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
 
   syn keyword jsVarBindingKeyword       const var contained
   syn keyword jsBindingKeyword          function catch contained
-  syn match   jsBindingAssignment       /\k\+\s*=[^=]/ contains=jsOperator contained containedin=jsVarBinding
-  syn match   jsExtraBindingAssignment  /\k\+\s*=[^=]/ contains=jsOperator contained containedin=jsCaterwaulLet,jsCaterwaulWhere
+  syn match   jsBindingAssignment       /\k\+\s*=[^=]/        contains=jsOperator contained containedin=jsVarBinding
+  syn match   jsExtraBindingAssignment  /[\k(),\s]\+\s*=[^=]/ contains=jsOperator contained containedin=jsCaterwaulLet,jsCaterwaulWhere
 
 syn region    jsTernary                 matchgroup=jsTernaryOperator start=/?/ end=/:/ contains=TOP,jsColonLHS
 syn match     jsOperator                /[-+*^%&\|!~;=><,.]\{1,4\}/
@@ -59,8 +59,8 @@ syn keyword   jsPrototype               prototype constructor
 syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/           end=/]/ contains=TOP
 syn region    jsCaterwaulQg             matchgroup=jsCaterwaulMacro start=/qg\s*\[/           end=/]/ contains=TOP
 syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/f[nb]\s*\[/        end=/]/ contains=jsOperator
-syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\s*\[/          end=/]/ contains=TOP,jsBindingAssignment
-syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\s*\[/        end=/]/ contains=TOP,jsBindingAssignment
+syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\*\?\s*\[/      end=/]/ contains=TOP,jsBindingAssignment
+syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\*\?\s*\[/    end=/]/ contains=TOP,jsBindingAssignment
 
 syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/f[nb]_\s*\[/       end=/]/ contains=TOP
 syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/         end=/]/ contains=TOP
