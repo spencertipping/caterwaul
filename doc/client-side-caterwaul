@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.Jw9y/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.nvr2/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1470,7 +1470,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\\newcommand{\\Ref}[2]{\\hyperref[#2]{#1 \\ref*{#2}}}');
 meta::resource('header-resource', '\\lstnewenvironment{resourcecode}{}{}');
-meta::section('defining-macros', <<'__a1f280abcd5ae8530945e5286fa285f2');
+meta::section('defining-macros', <<'__2bbef06a90966f8159bf94350445a511');
 - sc Defining Macros | sec:defining-macros
   Caterwaul's standard macros can be useful, but the real point of having a macro-oriented compiler is being able to write your own. Caterwaul comes with several macro-defining
   macros\footnote{If this doesn't make sense, just pretend I didn't say it.} that make it easier to extend.
@@ -1487,7 +1487,8 @@ meta::section('defining-macros', <<'__a1f280abcd5ae8530945e5286fa285f2');
 
   - verbatim << end
     defmacro[_ >c> _][fn[selector, handler][
-      qs[$(_).live('click', fn_[_, where[t = $(this)]])].s('_', [selector, handler]),
+      qs[$(_selector).live('click', fn_[_handler, where[t = $(this)]])].
+        replace({_selector: selector, _handler: handler}),
       when[selector.is_string()]]];
   - end
 
@@ -1532,21 +1533,19 @@ meta::section('defining-macros', <<'__a1f280abcd5ae8530945e5286fa285f2');
 
     - s2 {\tt qs[]} | sec:defining-macros-expander-functions-qs
       {\tt qs[]} is the simplest way to quote an expression. A quoted expression doesn't get evaluated; instead, it gets returned as a syntax tree. Syntax trees define some useful operations,
-      perhaps most importantly the {\tt s()} method, which lets you replace pieces of a tree.\footnote{Sorry for the opaque nomenclature. Think Perl -- it's like {\tt s//}.} Let's write a
-      pathological macro that replaces every addition with a multiplication:
+      perhaps most importantly the {\tt replace()} method, which lets you replace pieces of a tree. Let's write a pathological macro that replaces every addition with a multiplication:
 
       - verbatim << end
-        defmacro[_ + _][fn[left, right][qs[x * x].s('x', [left, right])]];
+        defmacro[_ + _][fn[left, right][qs[l * r].replace({l: left, r: right})]];
       - end
 
-      In English, this would read as ``For every something + something, call the first something `left' and the second something `right'. Then take `x * x', and replace the two `x's with
-      `left' and `right', respectively.''
+      And that's it. Each instance of ``l'' in the quoted form is replaced by the {\tt left} that we got from the pattern match, and ``r'' with {\tt right}.
 
     - s2 Using {\tt when} and {\tt unless} in expanders | sec:defining-macros-expander-functions-when-unless
       {\tt when} and {\tt unless} are totally compatible with macros. For example:
 
       - verbatim << end
-        defmacro[_ + _][fn[left, right][qs[x * x].s('x', [left, right]),
+        defmacro[_ + _][fn[left, right][qs[l * r].replace({l: left, r: right}),
                                         unless[left.is_string() || right.is_string()]]];
       - end
 
@@ -1598,7 +1597,8 @@ meta::section('defining-macros', <<'__a1f280abcd5ae8530945e5286fa285f2');
 
     - verbatim << end
       defmacro[_ >_> _][fn[selector, event, body][
-        qs[$(_)._(fn[e][_, where[t = $(this)]])].s('_', [selector, event_name, body]),
+        qs[$(_selector)._event_name(fn[e][_body, where[t = $(this)]])].
+          replace({_selector: selector, _event_name: event_name, _body: body}),
         when[event_name && selector.is_string()],
         where[event_name = event.data === 'c' ? 'click' :
                            event.data === 'k' ? 'keyup' : null]]];
@@ -1632,7 +1632,7 @@ meta::section('defining-macros', <<'__a1f280abcd5ae8530945e5286fa285f2');
     - end
 
 - comment  - s1 Abstracting statement-mode constructs | sec:defining-macros-abstracting-statement-mode
-__a1f280abcd5ae8530945e5286fa285f2
+__2bbef06a90966f8159bf94350445a511
 
 meta::section('introduction', <<'__ec447f24e225c47c60899f824b5dd332');
 - sc Introduction | sec:introduction
