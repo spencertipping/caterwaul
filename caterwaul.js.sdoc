@@ -1055,7 +1055,8 @@ configuration multiple times (though you're probably doing something wrong if yo
       this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]])}).
 
     tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
-      this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data], this.gensym()]), qs[qs[_]].replace({_: expansion})]])}).
+      this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
+                                                                                 qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
 
   Compile-time eval (the 'compile_eval' module).
   This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting

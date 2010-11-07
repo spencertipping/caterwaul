@@ -5,6 +5,7 @@
     <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'></script>
     <script src='../caterwaul.js'></script>
     <script src='../modules/caterwaul.opt.min.js'></script>
+    <script src='../modules/caterwaul.iter.min.js'></script>
     <script src='../modules/caterwaul.error.min.js'></script>
     <script src='../modules/caterwaul.format.min.js'></script>
 
@@ -15,9 +16,8 @@
         var recompile = let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e.toString()}},
                               try_to_compile = function (c, code) {try {return c.macroexpand(c.parse(code))} catch (e) {return e.toString()}},
                                    serialize = fn[tree][tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() : c.format(tree)],
-                            create_caterwaul = fn_[let[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone()] in
-                                                   (let[c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1] in
-                                                    (let[c3 = $('#error').is(':checked') ? c2.configure('error') : c2] in c3))]] in
+                            create_caterwaul = fn_[let*[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone(), c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1,
+                                                        c3 = $('#error').is(':checked') ? c2.configure('error') : c2, c4 = $('#iter').is(':checked') ? c3.configure('iter') : c3] in c4]] in
         fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(try_to_compile(c, code)))) || '')];
 
         $('#code').keyup(let[timeout = null] in fn_[timeout && clearTimeout(timeout), timeout = setTimeout(recompile, 200)]);
@@ -53,14 +53,18 @@
         <li><code><a href='javascript:void(0)'>console.log(x), when[x &gt; 0];</a></code></li>
         <li><code><a href='javascript:void(0)'>var plus = $+$;</a></code></li>
         <li><code><a href='javascript:void(0)'>let[f = $+$] in f(3, 4);</a></code></li>
+        <li><code><a href='javascript:void(0)'>let[f = $+$][f(3, 4)];</a></code></li>
         <li><code><a href='javascript:void(0)'>let*[x = 5, y = x] in x + y;</a></code></li>
         <li><code><a href='javascript:void(0)'>x + y, where[x = 4, y = 6];</a></code></li>
         <li><code><a href='javascript:void(0)'>let[f(x) = x + 1] in f(6);</a></code></li>
         <li><code><a href='javascript:void(0)'>f(10)(20), where[f(x)(y) = x + y];</a></code></li>
         <li><code><a href='javascript:void(0)'>console.log('The value is #{1 + 2 + 3}');</a></code></li>
-        <li><code><a href='javascript:void(0)'>x &gt;$&gt; x + 1;</a></code></li>
-        <li><code><a href='javascript:void(0)'>defmacro[_ &lt;$&lt; _][fn[left, right][qs[_ >$> _].s('_', [right, left])]]; x + 1 &lt;$&lt; x;</a></code></li>
     </ul>
+
+    <h3>Iteration macro library</h3>
+    <ul><li><code><a href='javascript:void(0)'>iter.n[i, 10][console.log(i)];</a></code></li>
+        <li><code><a href='javascript:void(0)'>iter.keys[k, document][console.log(k)];</a></code></li>
+        <li><code><a href='javascript:void(0)'>iter.until[total >= 50][++total];</a></code></li></ul>
 
     <h3>Optimization macro library</h3>
     <ul><li><code><a href='javascript:void(0)'>opt.unroll[x, 100][console.log(x)];</a></code></li>
@@ -69,13 +73,14 @@
     <h3>Error handling macro library</h3>
     <ul><li><code><a href='javascript:void(0)'>error.quietly[(null).foo];</a></code></li>
         <li><code><a href='javascript:void(0)'>error.safely[(null).foo][console.log(error)];</a></code></li>
-        <li><code><a href='javascript:void(0)'>x || error.fail[new Error('x is not truthy')];</a></code></li>
+        <li><code><a href='javascript:void(0)'>x || error.fail[new Error('#{x} is not truthy')];</a></code></li>
     </ul>
 
     <div>
       <h2>Compiler options</h2>
       <div><label for='minify'>Condensed output</label><input type='checkbox' id='minify'/></div>
       <div><label for='std'>Standard macros ('std' module)</label><input type='checkbox' checked='checked' id='std'/></div>
+      <div><label for='iter'>Iteration macros ('iter' module)</label><input type='checkbox' checked='checked' id='iter'/></div>
       <div><label for='opt'>Optimization macros ('opt' module)</label><input type='checkbox' checked='checked' id='opt'/></div>
       <div><label for='error'>Error handling macros ('error' module)</label><input type='checkbox' checked='checked' id='error'/></div>
     </div>
