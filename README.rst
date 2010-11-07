@@ -8,8 +8,8 @@ Caterwaul is the replacement for Divergence. It fixes a number of issues (see th
 destructuring-bind syntactic macros. It also, unlike Divergence, has a proper test suite and runs on IE6. (Please visit the `test page <http://spencertipping.com/caterwaul/test>`_ and let me
 know if anything fails. My goal is to make this project completely cross-browser, at least starting with IE6.)
 
-Documentation is in the doc/ directory (in the form of applied guides), and the annotated source is up at http://spencertipping.com/caterwaul/caterwaul.html. The best way to learn Caterwaul is
-probably to experiment by using the `online compiler <http://spencertipping.com/caterwaul/compiler>`_.
+Documentation is in the doc/ directory (in the form of applied guides; these should be a great place to start), and the annotated source is up at
+http://spencertipping.com/caterwaul/caterwaul.html. Another way to learn Caterwaul is to experiment with the `live compiler <http://spencertipping.com/caterwaul/compiler>`_.
 
 Using Caterwaul
 ---------------
@@ -18,98 +18,20 @@ Caterwaul's API is much like jQuery's. After including the script::
 
     <script src='http://spencertipping.com/caterwaul/caterwaul.js'></script>
 
-you can refer to a global ``caterwaul`` function. Since Caterwaul lets you define new macros in a stateful way, you should create a copy of the global function to customize. Here's what that
-looks like::
+you can refer to a global ``caterwaul`` function. The global ``caterwaul`` has no macros defined, but you can get a new Caterwaul compiler with a standard set of macros by doing this::
 
-    // The block is optional, but it lets you do the customization all in one place.
-    var copy = caterwaul.clone(function () {
-      this.macro(...);
-      this.other_customization();
-    });
+    var c = caterwaul.clone('std');
 
-Then you can use the copy to introduce macro support into functions.
+Then you can start compiling functions::
 
-In the unlikely event that the name ``caterwaul`` conflicts with stuff (hey, it could happen), you can call ``caterwaul.deglobalize()`` to restore the old ``caterwaul`` value.
+    c(function () {
+      let[x = 6, y = 10] in alert(x + y);
+      some_array.map(fn[x][x + 1]);
+    })();
 
-Defining Macros
----------------
+Documentation
+-------------
 
-Macros are specified by a pattern and an expansion function. For example, let's define a macro that introduces the syntax ``let (x = y) in z`` into JavaScript::
-
-    var with_let = caterwaul.clone('std.qs', function () {
-      this.macro(
-        qs[let(_ = _) in _],            // The syntax form we want to match (_ is a wildcard)
-
-        // The function we use to generate its replacement (the _ values are passed in as parameters)
-        function (variable, value, expression) {
-          return qs[(function (_) {return _}).call(this, _)].s('_', [variable, expression, value]);
-        });
-    });
-
-    with_let(function () {
-      let(x = 5) in alert(x);           // alerts 5
-    });
-
-The ``qs[]`` macro lets you quote syntax, and returns a syntax tree (we need to include ``'std.qs'`` to enable it). ``_`` is used as a wildcard for pattern matching; the matched fragments of
-syntax are passed into the expander function in the order that they were listed in the pattern, and the function returns a new syntax tree to replace the old one. In this case, I templated it
-out using ``qs[]`` again, but filled it in using the ``s()`` method (`s` stands for substitute -- inspired by ``s//`` in Perl). ``s`` takes a node type and an array of replacements, filling in
-the template to be ``(function (variable) {return expression}).call(this, value)``.
-
-Standard Macro Library
-----------------------
-
-Caterwaul comes with some standard macro libraries. To get access to them::
-
-    var with_fn = caterwaul.clone('std.fn', 'std.bind');
-    with_fn(function () {
-      // Function creation:
-      var x = fn[y][y + 1](6);          // Now x is 7
-
-      // Let-bindings:
-      let [z = 10, t = 1] in z + t;     // Returns 11
-
-      // Where-bindings (Haskell-style, sort of)
-      q + w, where[q = 15, w = 5];      // Returns 20
-
-      // When and unless:
-      console.log(10), when[true];
-      console.log(10), unless[false];
-    });
-
-    var with_string = caterwaul.clone('std.string');
-    with_string(function () {
-      // String interpolation with #{} blocks:
-      var s = '3 + 5 is #{3 + 5}';      // Now s is '3 + 5 is 8'
-    });
-
-    var with_dfn = caterwaul.clone('std.dfn');
-    with_dfn(function () {
-      // Divergence-style inline functions:
-      var f = x >$> x + 1;
-      f(5);                             // Returns 6
-    });
-
-Another library enables the ``defmacro[][]`` command::
-
-    var with_defmacro = caterwaul.clone('std.qs', 'std.fn', 'std.defmacro', 'std.with_gensyms');
-    with_defmacro(function () {
-      // Defining inline macros:
-      defmacro[foo[_]][fn[thing][qs[console.log(_)].s('_', thing)]];
-      foo[5];
-      foo[7];
-
-      // Using gensyms:
-      defmacro[forEach[_][_]]
-              [fn[array, body]
-                 [with_gensyms[i, l, xs][(function () {
-                  for (var i = 0, xs = _, l = xs.length, it; it = xs[i], i < l; ++i) {
-                    _
-                  }})()].s('_', [array, body])]];
-
-      // Logs 1, then 2, then 3:
-      forEach[[1, 2, 3]][console.log(it)];
-    });
-
-Generally you would use the ``'std'`` library, which includes all of the standard macros that ship with Caterwaul.
-
-The Caterwaul source code and tests cover the uses of ``defmacro`` and ``with_gensyms`` in more detail.
+This README isn't intended to document Caterwaul; to learn how to use it, I recommend starting off with `Client-Side Caterwaul
+<http://spencertipping.com/caterwaul/doc/client-side-caterwaul.pdf>`_ and, then, if you're feeling adventurous, reading the `annotated source code
+<http://spencertipping.com/caterwaul/caterwaul.html`_. 
