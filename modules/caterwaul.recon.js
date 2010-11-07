@@ -168,10 +168,11 @@
                                                                                                    node[0].compose_single(0, recon.annotate) : node[0]).compose_single(1, recon.annotate)) :
                node.is_invocation()      ? recon.wrap(node, node.is_contextualized_invocation() ?
                                              new s(node.data, recon.annotate(node[0]), new s('(', recon.annotate(node[1][0]))) :
-                                             (function (gensym) {return qs[qg[function () {var _ = _; return _.call(_, _)}]()].s('_',
-                                                                   [gensym, recon.annotate(node[0][0]), new s(node[0].data, gensym, node[0].data === '[]' ?
-                                                                      new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) : new s('.',  gensym, node[0][1])), gensym,
-                                                                    new s('(', recon.annotate(node[1][0]))])}) (new s(gensym()))) :
+                                             (function (gensym) {return qs[qg[function () {var _v = _value; return _f.call(_v, _args)}]()].
+                                                                   replace({_v: gensym, _value: recon.annotate(node[0][0]),
+                                                                            _f: new s(node[0].data, gensym, node[0].data === '[]' ? new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) :
+                                                                                                                                    new s('.', gensym, node[0][1])),
+                                                                            _args: new s('(', recon.annotate(node[1][0]))})}) (new s(gensym()))) :
 
                node.has_lvalue_list()    ? new s(node.data, node[0].data === ',' ? new s(',', node[0].flatten().map(function (n) {return n.data === '=' && new s(n.data, n[0], recon.annotate(n[1]))})) :
                                                             node[0].data === '=' ? new s('=', node[0][0], node[0][1]) : node[0]) :
