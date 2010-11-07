@@ -2,11 +2,11 @@
 
 test(function () {
   var c = caterwaul.clone('std.qs', function () {
-    this.rmacro(qs[fn[_][_]], function (params, expression) {return qs[function (_) {return _}].s('_', [params, expression])});
+    this.rmacro(qs[fn[_][_]], function (params, expression) {return qs[function (_vars) {return _expression}].replace({_vars: params, _expression: expression})});
   });
 
   c.configure(function () {
-    this.rmacro(qs[let(_ = _) in _], fn[v, e, n][qs[fn[_][_].call(this, _)].s('_', [v, n, e])]);
+    this.rmacro(qs[let(_ = _) in _], fn[v, e, n][qs[fn[variable][expression].call(this, value)].replace({variable: v, expression: n, value: e})]);
   });
 
   eq(c(function () {return fn[x, y][x + y]})()(3, 5), 8);

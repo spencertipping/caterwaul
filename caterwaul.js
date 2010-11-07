@@ -4,31 +4,31 @@
 (function (f) {return f(f)}) (function (self) {
 
 // Introduction.
-// Caterwaul implements a very small Lisp in JavaScript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding
-// those in a JS-compatible grammar. Also, JavaScript convention makes square-bracket calls such as qs[foo] relatively uncommon, so I'm using that as the macro syntax (though of course you can
+// Caterwaul implements a very small Lisp in Javascript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding
+// those in a JS-compatible grammar. Also, Javascript convention makes square-bracket calls such as qs[foo] relatively uncommon, so I'm using that as the macro syntax (though of course you can
 // define macros with other forms as well).
 
 // The most important thing Caterwaul does is provide a quotation operator. For example:
 
-// | caterwaul(function () {
+// | caterwaul.clone('std')(function () {
 //     return qs[x + 1];
 //   });
 
-// This function returns a syntax tree representing the expression 'x + 1'. (Its utility is debatable.) Caterwaul also includes macro-definition and quasiquoting (not quite like Lisp, though I
-// imagine you could write a macro for that):
+// This function returns a syntax tree representing the expression 'x + 1'. Caterwaul also includes macro-definition and quasiquoting (not quite like Lisp, though I imagine you could write a
+// macro for that):
 
-// | caterwaul(function () {
-//     caterwaul.macro(qs[let (_ = _) in _], function (variable, value, expression) {
-//       return qs[(function (_) {return _}).call(this, _)].s('_', [variable, expression, value]);
+// | caterwaul.configure('std')(function () {
+//     this[caterwaul].macro(qs[let (_ = _) in _], function (variable, value, expression) {
+//       return qs[(function (variable) {return expression}).call(this, value)].replace({variable: variable, expression: expression, value: value});
 //     });
 //     // Macro usable in future caterwaul()ed functions
 //   });
 
 // Or, more concisely (since macro definitions can be used inside other macro definitions when you define with rmacro):
 
-// | var f = caterwaul(function () {
-//     caterwaul.rmacro(qs[let (_ = _) in _], fn[variable, value, expression]
-//                                              [qs[(fn[_][_]).call(this, _)].s('_', [variable, expression, value])]);
+// | var f = caterwaul.configure('std')(function () {
+//     this[caterwaul].rmacro(qs[let (_ = _) in _], fn[variable, value, expression]
+//                                                    [qs[(fn[variable][expression]).call(this, value)].replace({variable: variable, expression: expression, value: value})]);
 //   });
 
 // See the 'Macroexpansion' section some distance below for more information.
@@ -40,7 +40,7 @@
 //   the small scale (depending on whether your JS interpreter is optimized for statements or expressions).
 
 //   There are a couple of things worth knowing about as you're reading through this code. One is that invariants are generally coded as such; for example, the 'own' property lookup is factored
-//   out of the 'has' function even though it would be trivial to write it inside. This is to indicate to JavaScript that Object.prototype.hasOwnProperty is relatively invariant, and that saves
+//   out of the 'has' function even though it would be trivial to write it inside. This is to indicate to Javascript that Object.prototype.hasOwnProperty is relatively invariant, and that saves
 //   some lookups as the code is running. Another is that I use the (function (variable) {return expression})(value) form to emulate let-bindings. (Reading the code with this in mind will make it
 //   much more obvious what's going on.)
 
@@ -88,11 +88,11 @@
         se = function (x, f) {return f && f.call(x, x) || x},
 
 //   Optimizations.
-//   The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the JavaScript interpreter;
+//   The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
 //   syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
 //   linear-time passes over the token stream. (An approximate figure; it actually does about 19 fractional passes, but not all nodes are reached.)
 
-//   Also, I'm not confident that all JavaScript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we
+//   Also, I'm not confident that all Javascript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we
 //   throw a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often. To prevent this
 //   kind of thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to verify that
 //   the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
@@ -164,13 +164,17 @@
       node_methods = {
 
 //     Mutability.
-//     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that.
+//     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
 
-        replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),    append_to: fn('$0 && $0.append(this), this'),
-       reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                         fold_l: fn('@append(@l && @l.unlink(this))'),  fold_lr: fn('@fold_l().fold_r()'),
-         append: fn('(this[@length++] = $0) && ($0.p = this), this'),                      fold_r: fn('@append(@r && @r.unlink(this))'),  fold_rr: fn('@fold_r().fold_r()'),
-        sibling: fn('$0.p = @p, (@r = $0).l = this'),                                      unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @reparent($0)'),
-           wrap: fn('$0.p = @replace($0).p, @reparent($0), @l = @r = null, @append_to($0)'),  pop: fn('--@length, this'),  push: fn('(this[@length++] = $0), this'),
+       _replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),   _append_to: fn('$0 && $0._append(this), this'),
+      _reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                        _fold_l: fn('@_append(@l && @l._unlink(this))'),  _fold_lr: fn('@_fold_l()._fold_r()'),
+        _append: fn('(this[@length++] = $0) && ($0.p = this), this'),                     _fold_r: fn('@_append(@r && @r._unlink(this))'),  _fold_rr: fn('@_fold_r()._fold_r()'),
+       _sibling: fn('$0.p = @p, (@r = $0).l = this'),                                     _unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @_reparent($0)'),
+          _wrap: fn('$0.p = @_replace($0).p, @_reparent($0), @l = @r = null, @_append_to($0)'),
+
+//     These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
+
+            pop: fn('--@length, this'),  push: fn('(this[@length++] = $0), this'),
 
 //     Identification.
 //     You can request that a syntax node identify itself, in which case it will give you a string identifier if it hasn't already. The identity is not determined until the first time it is
@@ -194,21 +198,18 @@
 //     the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.) If a mapping function
 //     returns something falsy, it will have exactly the same effect as returning the node without modification.
 
-//     The s() function maps the tree into a new one, where each node whose data is the given value is replaced by a successive entry in the array. The array wraps back to the beginning if you
-//     hit the end. (Alternatively, if you provide a non-array as the second parameter, then each matching entry is replaced by the second parameter as-is.) It's designed to emulate
-//     quasiquotation, like this:
+//     Using the old s() to do gensym-safe replacement requires that you invoke it only once, and this means that for complex macroexpansion you'll have a long array of values. This isn't ideal,
+//     so syntax trees provide a replace() function that handles replacement more gracefully:
 
-//     | qs[(foo(_), _ + bar(_))].s('_', [qs[x], qs[3 + 5], qs[foo.bar]])
+//     | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
 
       each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
        map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
      reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
-      rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r},
+      rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r},
 
    collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-
-         s: function (data, xs) {var c = this.constructor, promote = function (x) {return ! x || x.data ? x : new c(x)}, i = 0, is_array = xs.constructor === Array;
-                                 return this.rmap(function (n) {return n.data === data && promote(is_array ? xs[i++ % xs.length] : xs)})},
+   replace: function (rs) {return this.rmap(function (n) {return own.call(rs, n.data) && rs[n.data]})},
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
@@ -231,7 +232,7 @@
 
 //       There are a few different formats that would work for this purpose. The issue from the inside of this function is that we want to spend a minimal amount of time building these
 //       structures; the worst-case scenario becomes O(n^2) for n levels of scoping if we always create new objects. Rather than doing that, it's more efficient to construct a linked scope chain
-//       much in the same way that a JavaScript interpreter would.
+//       much in the same way that a Javascript interpreter would.
 
 //       This means that we'll need a structure like this:
 
@@ -269,7 +270,7 @@
 
 //     Structural transformation.
 //     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
-//     each of which is binary. JavaScript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
+//     each of which is binary. Javascript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
 //     .each() much more effectively.) Any binary operator can be transformed this way, and that is exactly what the flatten() method does. (flatten() returns a new tree; it doesn't modify the
 //     original.)
 
@@ -282,12 +283,29 @@
 //        x     y
 
 //     This flatten() method returns the nodes along the chain of associativity, always from left to right. It is shallow, since generally you only need a localized flat tree. That is, it doesn't
-//     descend into the nodes beyond the one specified by the flatten() call.
+//     descend into the nodes beyond the one specified by the flatten() call. It takes an optional parameter indicating the operator to flatten over; if the operator in the tree differs, then the
+//     original node is wrapped in a unary node of the specified operator. The transformation looks like this:
 
-      flatten: function () {var d = this.data; return ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
-                                                 se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
-                                                 se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
-                                                                                                for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+//     |                                  (,)
+//            (+)                          |
+//           /   \   .flatten(',')  ->    (+)
+//          x     y                      /   \
+//                                      x     y
+
+//     Because ',' is a binary operator, a ',' tree with just one operand will be serialized exactly as its lone operand would be. This means that plurality over a binary operator such as comma
+//     or semicolon degrades gracefully for the unary case (this sentence makes more sense in the context of macro definitions; see in particular 'let' and 'where' in std.bind).
+
+      flatten: function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                   se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                   se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                  for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+
+//     Wrapping.
+//     Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
+//     when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
+//     in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
+
+      as: function (d) {return this.data === d ? this : new this.constructor(d).push(this)},
 
 //     Type detection and retrieval.
 //     These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
@@ -311,6 +329,7 @@
 
             is_invisible: function () {return has(parse_invisible, this.data)},                   is_binary_operator: function () {return has(parse_lr, this.data)},
 is_prefix_unary_operator: function () {return has(parse_r, this.data)},                    is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
+       is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
                  accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
 
@@ -322,8 +341,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.value) result[n.data] = n.value}); return result},
 
 //     Inspection and syntactic serialization.
-//     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid JavaScript code). Each representation captures stray links via the 'r'
-//     pointer. In the serialized representation, it is shown as a comment /* -> */ followed by the serialization of whatever is to the right. This has the property that it will break tests but
+//     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
+//     pointer. In the serialized representation, it is shown as a comment /* -> */ containing the serialization of whatever is to the right. This has the property that it will break tests but
 //     won't necessarily break code (though if it happens in the field then it's certainly a bug).
 
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
@@ -348,7 +367,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
 
-//   | caterwaul.compile(qs[fn_[_ + 1]].s('_', new caterwaul.ref(3)))()    // -> 4
+//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)})()    // -> 4
 
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
@@ -363,10 +382,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                           else {this.data = data; this.length = 0; this.l = this.r = this.p = null;
                                                 for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                   for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                    this.append(it.constructor === String ? new this.constructor(it) : it)}}, node_methods),
+                                                    this._append(it.constructor === String ? new this.constructor(it) : it)}}, node_methods),
 
 // Parsing.
-// There are two distinct parts to parsing JavaScript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
+// There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
 // expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
 // particular this was infeasible for keywords such as 'break', 'continue', 'return', and some others (any of these can be nullary or unary). It also involved creating a bizarre hack for 'case
 // x:' inside a switch block. This hack made the expression passed in to 'case' unavailable, as it would be buried in a ':' node.
@@ -386,9 +405,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   and are later processed in the order indicated by the operator associativity. That is, left-associative operators are processed 0 .. n and right associative are processed n .. 0. Keywords
 //   are categorized by behavior and folded after all of the other operators. Semicolons are folded last, from left to right.
 
-//   There are some corner cases due to JavaScript's questionable heritage from C-style syntax. For example, most constructs take either syntax blocks or semicolon-delimited statements. Ideally,
+//   There are some corner cases due to Javascript's questionable heritage from C-style syntax. For example, most constructs take either syntax blocks or semicolon-delimited statements. Ideally,
 //   else, while, and catch are associated with their containing if, do, and try blocks, respectively. This can be done easily, as the syntax is folded right-to-left. Another corner case would
-//   come up if there were any binary operators with equal precedence and different associativity. JavaScript doesn't have them however, and it wouldn't make much sense to; it would render
+//   come up if there were any binary operators with equal precedence and different associativity. Javascript doesn't have them however, and it wouldn't make much sense to; it would render
 //   expressions such as 'a op1 b op2 c' ambiguous if op1 and op2 shared precedence but each wanted to bind first. (I mention this because at first I was worried about it, but now I realize it
 //   isn't an issue.)
 
@@ -398,7 +417,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   all left-associative operators; right-associative operators preserve their hierarchical folding.
 
 //   Parse/lex shared logic.
-//   Lexing JavaScript is not entirely straightforward, primarily because of regular expression literals. The first implementation of the lexer got things right 99% of the time by inferring the
+//   Lexing Javascript is not entirely straightforward, primarily because of regular expression literals. The first implementation of the lexer got things right 99% of the time by inferring the
 //   role of a / by its preceding token. The problem comes in when you have a case like this:
 
 //   | if (condition) /foo/.test(x)
@@ -421,7 +440,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     The lexer uses several character lookups, which I've optimized by using integer->boolean arrays. The idea is that instead of using string membership checking or a hash lookup, we use the
 //     character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency, only
 //     the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. (I'm aware that the arrays are power-of-two-sized and that there are enough of
-//     them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a JavaScript JIT capable enough to have this problem, I think
+//     them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a Javascript JIT capable enough to have this problem, I think
 //     we'll be OK.)
 
 //     The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
@@ -439,7 +458,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
        lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
 
 //     Parse data.
-//     The lexer and parser aren't entirely separate, nor can they be considering the complexity of JavaScript's grammar. The lexer ends up grouping parens and identifying block constructs such
+//     The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
 //     as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
 
     parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
@@ -481,7 +500,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
         var s = s.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
             grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(parse_k_empty, parse_reduce_order), invocation_nodes = [], all_nodes = [],
-            new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head.sibling(head = n) : (head = n.append_to(parent)), new_node(n)};
+            new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)};
 
 //     Main lex loop.
 //     This loop takes care of reading all of the tokens in the input stream. At the end, we'll have a linked node structure with paren groups. At the beginning, we set the mark to the current
@@ -502,21 +521,21 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       Regexp and string literal lexing.
 //       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
 //       illegal for a string to occur anywhere that a slash would indicate division (and it is also illegal to follow a string literal with extra characters), so reusing the regular expression
-//       logic for strings is not a problem. (This follows because we know ahead of time that the JavaScript is valid.)
+//       logic for strings is not a problem. (This follows because we know ahead of time that the Javascript is valid.)
 
        else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs(i)) !== close || esc)  esc = ! esc && c === lex_back;
                                                                                     while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = true}
 
 //       Numeric literal lexing.
 //       This is far more complex than the above cases. Numbers have several different formats, each of which requires some custom logic. The reason we need to parse numbers so exactly is that it
-//       influences how the rest of the stream is lexed. One example is '0.5.toString()', which is perfectly valid JavaScript. What must be output here, though, is '0.5', '.', 'toString', '(',
+//       influences how the rest of the stream is lexed. One example is '0.5.toString()', which is perfectly valid Javascript. What must be output here, though, is '0.5', '.', 'toString', '(',
 //       ')'; so we have to keep track of the fact that we've seen one dot and stop lexing the number on the second.
 
 //       Another case is exponent-notation: 3.0e10. The hard part here is that it's legal to put a + or - on the exponent, which normally terminates a number. Luckily we can safely skip over any
 //       character that comes directly after an E or e (so long as we're really in exponent mode, which I'll get to momentarily), since there must be at least one digit after an exponent.
 
 //       The final case, which restricts the logic somewhat, is hexadecimal numbers. These also contain the characters 'e' and 'E', but we cannot safely skip over the following character, and any
-//       decimal point terminates the number (since '0x5.toString()' is also valid JavaScript). The same follows for octal numbers; the leading zero indicates that there will be no decimal point,
+//       decimal point terminates the number (since '0x5.toString()' is also valid Javascript). The same follows for octal numbers; the leading zero indicates that there will be no decimal point,
 //       which changes the lex mode (for example, '0644.toString()' is valid).
 
 //       So, all this said, there are different logic branches here. One handles guaranteed integer cases such as hex/octal, and the other handles regular numbers. The first branch is triggered
@@ -544,7 +563,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
        else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
 
 //       Identifier lexing.
-//       If nothing else matches, then the token is lexed as a regular identifier or JavaScript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is
+//       If nothing else matches, then the token is lexed as a regular identifier or Javascript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is
 //       that you could write 'x / 5', and it is obvious that the / means division. But if you wrote 'return / 5', the / would be a regexp delimiter because return is an operator, not a value. So
 //       at the very end, in addition to assigning t, we also set the re flag if the word turns out to be an operator.
 
@@ -560,7 +579,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //       Grouping and operator indexing.
 //       Now that we have a token, we need to see whether it affects grouping status. There are a couple of possibilities. If it's an opener, then we create a new group; if it's a matching closer
-//       then we close the current group and pop out one layer. (We don't check for matching here. Any code provided to Caterwaul will already have been parsed by the host JavaScript interpreter,
+//       then we close the current group and pop out one layer. (We don't check for matching here. Any code provided to Caterwaul will already have been parsed by the host Javascript interpreter,
 //       so we know that it is valid.)
 
 //       All operator indexing is done uniformly, left-to-right. Note that the indexing isn't strictly by operator. It's by reduction order, which is arguably more important. That's what the
@@ -617,7 +636,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
 //       Operators in this class are considered to be 'fold_lr'; that is, they fold first their left sibling, then their right.
 
-            if (has(parse_lr, data)) node.fold_lr();
+            if (has(parse_lr, data)) node._fold_lr();
 
 //       Ambiguous parse groups.
 //       As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that way
@@ -628,14 +647,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       We can't solve this problem here, but we can solve it after the parse has finished. I'm pushing these invocation nodes onto an index for the end.
 
        else if (has(parse_ambiguous_group, data) && node.l && (node.l.data === '.' ||
-                     ! (has(lex_op, node.l.data) || has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l.wrap(new_node(new syntax_node(data + parse_group[data]))).p.fold_r());
+                     ! (has(lex_op, node.l.data) || has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l._wrap(new_node(new syntax_node(data + parse_group[data]))).p._fold_r());
 
 //       Unary left and right-fold behavior.
-//       Unary nodes have different fold directions. In this case, it just determines which side we grab the node from. I'm glad that JavaScript doesn't allow stuff like '++x++', which would make
+//       Unary nodes have different fold directions. In this case, it just determines which side we grab the node from. I'm glad that Javascript doesn't allow stuff like '++x++', which would make
 //       the logic here actually matter. Because there isn't that pathological case, exact rigidity isn't required.
 
-       else if (has(parse_l, data))  node.fold_l();
-       else if (has(parse_r, data))  node.fold_r();
+       else if (has(parse_l, data))  node._fold_l();
+       else if (has(parse_r, data))  node._fold_r();
 
 //       Ternary operator behavior.
 //       This is kind of interesting. If we have a ternary operator, then it will be treated first as a group; just like parentheses, for example. This is the case because the ternary syntax is
@@ -643,7 +662,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding, we do a quick swap of the first two
 //       to set the ordering straight.
 
-       else if (has(parse_ternary, data)) {node.fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
+       else if (has(parse_ternary, data)) {node._fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
 
 //       Grab-until-block behavior.
 //       Not quite as simple as it sounds. This is used for constructs such as 'if', 'function', etc. Each of these constructs takes the form '<construct> [identifier] () {}', but they can also
@@ -664,16 +683,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       key.)
 
        else if (has(parse_r_until_block, data) && node.r && node.r.data !== ':')  
-                                                 {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node.fold_r();
-                                                  node.r && node.r.data !== ';' && node.fold_r();
-                                                  if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node.fold_r().pop().fold_r();
-                                             else if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.data))               node.fold_r()}
+                                                 {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node._fold_r();
+                                                  node.r && node.r.data !== ';' && node._fold_r();
+                                                  if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node._fold_r().pop()._fold_r();
+                                             else if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.data))               node._fold_r()}
 
 //       Optional right-fold behavior.
 //       The return, throw, break, and continue keywords can each optionally take an expression. If the token to the right is an expression, then we take it, but if the token to the right is a
 //       semicolon then the keyword should be nullary.
 
-       else if (has(parse_r_optional, data))  node.r && node.r.data !== ';' && node.fold_r();
+       else if (has(parse_r_optional, data))  node.r && node.r.data !== ';' && node._fold_r();
 
 //     Third step.
 //     Find all elements with right-pointers and wrap them with semicolon nodes. This is necessary because of certain constructs at the statement-level don't use semicolons; they use brace syntax
@@ -681,7 +700,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     associativity; in general, you can't make assumptions about the exact layout of semicolon nodes. Fortunately semicolon is associative, so it doesn't matter in practice. And just in case,
 //     these nodes are 'i;' rather than ';', meaning 'inferred semicolon' -- that way it's clear that they aren't original. (They also won't appear when you call toString() on the syntax tree.)
 
-        for (var i = all_nodes.length - 1, _; _ = all_nodes[i], i >= 0; --i)  _.r && _.wrap(new syntax_node('i;')).p.fold_r();
+        for (var i = all_nodes.length - 1, _; _ = all_nodes[i], i >= 0; --i)  _.r && _._wrap(new syntax_node('i;')).p._fold_r();
 
 //     Fourth step.
 //     Flatten out all of the invocation nodes. As explained earlier, they are nested such that the useful data on the right is two levels down. We need to grab the grouping construct on the
@@ -701,7 +720,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Defining offline macros is done in the normal execution path. For example:
 
 // | caterwaul(function () {
-//     caterwaul.rmacro(qs[let (_ = _) in _], fn[n, v, e][qs[fn[_][_].call(this, _)].s('_', [n, e, v])]);
+//     caterwaul.rmacro(qs[let (_ = _) in _], fn[n, v, e][qs[fn[args][body].call(this, values)].replace({args: n, body: e, values: v})]);
 //   }) ();        // Must invoke the function
 
 // | // Macro is usable in this function:
@@ -907,29 +926,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function that is
 // being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
 
-    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map, qw: qw,
-
-// It also has some design patterns that are useful for heavyweight (i.e. configurable) extensions.
-
-//   The 'configurable' design pattern.
-//   jQuery provides a great manipulation interface; getters and setters have the same names, and absence of a parameter to the method indicates that it's a getter. I'm shamelessly copying that
-//   pattern here, except that the state is also made available in an 'options' object, in case you need to peruse it directly. (Usual caveats about public data apply, of course -- use at your
-//   own peril. :) )
-
-//   So if you mark an object as being 'configurable', then it will get a bunch of standard-form getter/setter methods and an 'options' hash if one doesn't exist already. The format for saying
-//   that an object is configurable is:
-
-//   | caterwaul.util.configurable(object, 'option1', 'option2', {option3: function (new_value) {do_something()}, ...})            // Returns object after adding configuration interface
-
-//   All configuration functions are bound to the object, so they can be eta-reduced freely.
-
-    configurable: function (object) {var function_for = function (name, change) {return function (x) {if (x === undefined) return this.options[name];
-                                                                                                      else                 return this.options[name] = (change || id)(x), this}};
-                                     object.options || (object.options = {});
-                                     for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                       if (_.constructor === String) object[_] = bind(function_for(_), object);
-                                       else                          for (var k in _) if (has(_, k)) object[k] = bind(function_for(k, _[k]), object);
-                                     return object}}).
+    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map, qw: qw}).
 
 // Standard library.
 // Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -969,11 +966,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     configuration('std.qs', function () {this.macro(this.parse('qs[_]'), function (tree) {return new this.ref(tree)})}).
 
 //   Qg library.
-//   The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting JavaScript runtimes such as SpiderMonkey. Firefox
+//   The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting Javascript runtimes such as SpiderMonkey. Firefox
 //   failed the unit tests when ordinary parentheses were used because it requires disambiguation for expression-mode functions only at the statement level; thus syntax trees are not fully mobile
-//   like they are ordinarily.
+//   like they are ordinarily. Already-parenthesized expressions aren't wrapped.
 
-    tconfiguration('std.qs', 'std.qg', function () {this.rmacro(qs[qg[_]], function (expression) {return new this.syntax('(', expression)})}).
+    tconfiguration('std.qs', 'std.qg', function () {this.rmacro(qs[qg[_]], function (expression) {return expression.as('(')})}).
 
 //   Function abbreviations (the 'fn' library).
 //   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. fb[][] and fb_[]
@@ -981,10 +978,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     tconfiguration('std.qs std.qg', 'std.fn', function () {
       this.configure('std.qg').
-           rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (_) {return _}]].s('_', [vars, expression])}).
-           rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function  () {return _}]].s('_', [expression])}).
-           rmacro(qs[fb[_][_]], function (vars, expression) {var s = new this.syntax(this.gensym()); return qs[fn[_][fn_[fn[_][_].apply(_, arguments)]](this)].s('_', [s, vars, expression, s])}).
-           rmacro(qs[fb_[_]],   function       (expression) {var s = new this.syntax(this.gensym()); return qs[fn[_][fn_[  fn_[_].apply(_, arguments)]](this)].s('_', [s, expression, s])})}).
+           rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (vars) {return expression}]].replace({vars: vars, expression: expression})}).
+           rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
+           rmacro(qs[fb[_][_]], function (vars, expression) {return qs[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
+           rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})})}).
 
 //   Binding abbreviations (the 'bind' library).
 //   Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is
@@ -1006,25 +1003,34 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   | let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
 
+//   You can also use the less English-like but more expressive let[...][...] syntax:
+
+//   | let[x = 5][x + 1]
+//     let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
+
+//   This has the advantage that you no longer need to parenthesize any short-circuit, decisional, or relational logic in the expression.
+
     tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
-      this.rmacro(qs[let[_] in _], fn[vars, expression][vars = this.macroexpand(vars), vars.data === ',' && (vars = vars.flatten()),
-                                                        qs[qg[function (_) {return _}].call(this, _)].s('_', [vars.data === ',' ? vars.map(function (n) {return n[0]}) : vars[0], expression,
-                                                                                                              vars.data === ',' ? vars.map(function (n) {return n[1]}) : vars[1]])]).
-           rmacro(qs[_, where[_]], fn[expression, vars][qs[qg[let[_] in qg[_]]].s('_', [vars, expression])]).
-           rmacro(qs[let*[_] in _], fn[vars, expression][qs[qg[function () {var _; return _}].call(this)].s('_', [this.macroexpand(vars), expression])]).
-           rmacro(qs[_, where*[_]], fn[expression, vars][qs[qg[let*[_] in qg[_]]].s('_', [vars, expression])])}).
+      var let_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
+          let_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
+                                                   qs[qg[function (vars) {return e}].call(this, values)].
+                                                     replace({vars: vars.map(function (n) {return n[0]}), e: expression, values: vars.map(function (n) {return n[1]})})];
+
+      this.rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
+           rmacro(qs[let*[_] in _], let_star_expander).rmacro(qs[let*[_][_]], let_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][let_star_expander(vars, expression)])}).
 
 //   Assignment abbreviations (the 'lvalue' library).
-//   Lets you create functions using the syntax supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy to work with on
-//   this point. (It's only due to an interesting IE bug that this is possible in the first place.)
+//   Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
+//   to work with on this point. (It's only due to an interesting IE feature (bug) that assigning to a function call is possible in the first place.)
 
-    tconfiguration('std.qs std.qg std.fn', 'std.lvalue', function () {this.rmacro(qs[_(_) = _], fn[base, params, value][qs[_ = qg[function (_) {return _}]].s('_', [base, params, value])])}).
+    tconfiguration('std.qs std.qg std.fn', 'std.lvalue', function () {this.rmacro(qs[_(_) = _], fn[base, params, value][qs[base = qg[function (params) {return value}]].
+                                                                                                                          replace({base: base, params: params, value: value})])}).
 
 //   Conditional abbreviations (the 'cond' library).
 //   Includes forms for making decisions in perhaps a more readable way than using short-circuit logic. In particular, it lets you do things postfix; i.e. 'do X if Y' instead of 'if Y do X'.
 
-    tconfiguration('std.qs std.qg std.fn', 'std.cond', function () {this.rmacro(qs[_,   when[_]], fn[expression, cond][qs[  qg[_] && qg[_]].s('_', [cond, expression])]).
-                                                                         rmacro(qs[_, unless[_]], fn[expression, cond][qs[! qg[_] && qg[_]].s('_', [cond, expression])])}).
+    tconfiguration('std.qs std.qg std.fn', 'std.cond', function () {this.rmacro(qs[_,   when[_]], fn[expression, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expression})]).
+                                                                         rmacro(qs[_, unless[_]], fn[expression, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expression})])}).
 
 //   Macro authoring tools (the 'defmacro' library).
 //   Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
@@ -1032,7 +1038,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Another handy macro is 'with_gensyms', which lets you write hygienic macros. For example:
 
-//   | defmacro[forEach[_][_]][fn[xs, f][with_gensyms[i, l, xs][(function() {for (var i = 0, xs = _, l = xs.length, it; it = xs[i], it < l; ++it) {_}})()].s('_', [xs, f])]];
+//   | defmacro[forEach[_][_]][fn[xs, f][with_gensyms[i, l, xs][(function() {for (var i = 0, xs = _xs, l = xs.length, it; it = xs[i], it < l; ++it) {_body}})()].replace({_xs: xs, _body: f})]];
 
 //   This will prevent 'xs', 'l', and 'i' from being visible; here is a sample (truncated) macroexpansion:
 
@@ -1049,16 +1055,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]])}).
 
     tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
-      this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][vars.data !== ',' ? (expansion = expansion.s(vars.data, new this.syntax(this.gensym()))) :
-                                                                                  vars.flatten().each(fn[v][expansion = expansion.s(v.data, new s(g()))]),
-                                                              qs[qs[_]].s('_', expansion), where[g = this.gensym, s = this.syntax]])}).
+      this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data], this.gensym()]), qs[qs[_]].replace({_: expansion})]])}).
 
 //   Compile-time eval (the 'compile_eval' module).
 //   This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
 //   expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
 
     tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
-      this.macro(qs[compile_eval[_]], fn[expression][this.compile(this.macroexpand(qs[fn_[_]].s('_', expression))).call(this)])}).
+      this.macro(qs[compile_eval[_]], fn[expression][this.compile(this.macroexpand(qs[fn_[_]].replace({_: expression}))).call(this)])}).
 
 //   Self-reference (the 'ref' module).
 //   Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
@@ -1066,12 +1070,6 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   whichever Caterwaul function was used to transform the code.
 
     tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[this[caterwaul]], fn_[new this.ref(this)])}).
-
-//   Divergence function syntax.
-//   Rebase provides an infix function operator >$> that can be more readable, if more ambiguous, then Caterwaul's fn[][]. Enabling this configuration enables this notation from within Caterwaul.
-
-    tconfiguration('std.qs std.qg std.fn', 'std.dfn', function () {
-      this.configure('std.qg').rmacro(qs[_ >$> _], fn[vars, e][qs[qg[function (_) {return _}]].s('_', [vars.data === '(' ? vars[0] : vars, e])])}).
 
 //   String interpolation.
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -1097,7 +1095,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
            new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))))])}).
 
 //   Operator promotion.
-//   Languages like ML and Haskell (and of course Lisps) let you use operators in a first-class way. JavaScript doesn't normally do this, but it's arguably an important feature in a language. The
+//   Languages like ML and Haskell (and of course Lisps) let you use operators in a first-class way. Javascript doesn't normally do this, but it's arguably an important feature in a language. The
 //   syntax to get an operator to become a binary function in Caterwaul is $op$, where op is some binary operator. You should make sure this has top binding precedence by wrapping it in parens
 //   (otherwise you'll get weird errors about $ not being defined, or if you're using jQuery then you will get errors about NaN not being a function or some such).
 
@@ -1109,13 +1107,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   | xs.fold($+$)
 
-    tconfiguration('std.qs std.fn', 'std.op.fn', function () {this.util.map(fb[op][this.rmacro(new this.syntax(op, '$', '$'), fn_[qs[fn[x, y][_]].s('_', new this.syntax(op, 'x', 'y'))])],
+    tconfiguration('std.qs std.fn', 'std.op.fn', function () {this.util.map(fb[op][this.rmacro(new this.syntax(op, '$', '$'), fn_[qs[fn[x, y][_]].replace({_: new this.syntax(op, 'x', 'y')})])],
                                                                             this.util.qw('+ - * / & | ^ && || % < > << >> >>> == === <= >= != !== [] () , in instanceof'))}).
 
 //   Standard configuration.
 //   This loads all of the production-use extensions.
 
     configuration('std', function () {
-      this.configure(this.util.qw('std.qs std.qg std.bind std.lvalue std.cond std.fn std.dfn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string'))})});
+      this.configure(this.util.qw('std.qs std.qg std.bind std.lvalue std.cond std.fn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string'))})});
 
 // Generated by SDoc 

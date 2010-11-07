@@ -23,6 +23,7 @@
 
   run-node() {
     start node $*
+    sleep 0.1
     cat "$@" > tmp.js
     node tmp.js || fail node $* || return 1
     rm -f tmp.js
@@ -42,6 +43,7 @@
 
     # Production-worthy files get minified:
     minify caterwaul
+    minify modules/caterwaul.iter
     minify modules/caterwaul.opt
     minify modules/caterwaul.format
     minify modules/caterwaul.error

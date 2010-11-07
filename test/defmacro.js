@@ -10,11 +10,11 @@ test(function () {
     var x = 3;
     eq(x + 5, 8, 'first');
 
-    eq(defmacro[_ + _][fn[l, r][qs[_ * _].s('_', [l, r])]], null);
+    eq(defmacro[_ + _][fn[l, r][qs[l * r].replace({l: l, r: r})]], null);
     eq(x + 5, 15, 'second');
 
     defmacro[loop[_].over[_]][fn[expr, xs][(with_gensyms[i, l, xs][qg[function () {
-      for (var i = 0, xs = _, l = xs.length, it; it = xs[i], i < l; ++i) {_}}]()]).s('_', [xs, expr])]];
+      for (var i = 0, xs = _array, l = xs.length, it; it = xs[i], i < l; ++i) {_body}}]()]).replace({_array: xs, _body: expr})]];
     var count = 0;
     loop[eq(it, ++count)].over[[1, 2, 3, 4, 5]];
     eq(count, 5);

@@ -64,7 +64,7 @@ also use them directly.
     with_gensyms[l, rs, es, j][qg[function (l) {for (var rs = l >>> 3, es = l & 7, _i_ = 0; _i_ < es; ++_i_) _body_;
                                                 for (var j = 0; j < rs; ++j) {_i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++; _body_;
                                                                               _i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++; _body_}}].call(this, _iterations_)].
-    s('_i_', variable).s('_body_', body).s('_iterations_', iterations)])});
+    replace({_i_: variable, _body_: body, _iterations_: iterations})])});
 
 Opt module collection.
 Loading the 'opt' configuration will enable all of the individual macros in the optimization library.
