@@ -22,7 +22,7 @@
                              op === '{' ? '{\n#{spaces}  #{serialize(1)(tree[0])}\n#{spaces}}' :
                              op === ';' ? '#{serialize()(tree[0])};\n#{spaces}#{serialize()(tree[1])}' :
                              op === '.' ? '#{serialize()(tree[0])}.#{serialize()(tree[1])}' :
-                             op === ',' ? '#{serialize()(tree[0])}, #{serialize()(tree[1])}' :
+                             op === ',' ? map(serialize(), tree).join(', ') :
                            op === 'for' ? 'for #{c.format(tree[0]).replace(/\n/g, " ")} #{serialize()(tree[1])}' :
               tree.is_binary_operator() ? tree.length ? map(serialize(), tree).join(' #{op} ') : op :
         tree.is_prefix_unary_operator() ? '#{op.replace(/^u/, "")} #{serialize()(tree[0])}' :
