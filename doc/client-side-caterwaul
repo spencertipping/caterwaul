@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.Xc5z/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.yjec/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1688,7 +1688,7 @@ meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - end
 __aa4d1b571c5a0d971bdcb77aebbf035d
 
-meta::section('the-std-library', <<'__3bb7142441c70e511b6453dd15221f84');
+meta::section('the-std-library', <<'__944912508750c7c83e7b2334fb794808');
 - sc The {\tt std} Library | sec:the-std-library
   Caterwaul comes with a bunch of useful macros accessible via the {\tt std} configuration. I highly recommend importing them for use in your projects. In this chapter I'll go over some
   examples demonstrating how to use the {\tt std} library in your code.
@@ -1846,6 +1846,15 @@ meta::section('the-std-library', <<'__3bb7142441c70e511b6453dd15221f84');
         let*[factorial = fn[n][n > 1 ? n * factorial(n - 1) : 1]] in factorial(5);
       - end
 
+      An alternative syntax is provided for both {\tt let} and {\tt let*}:
+
+      - verbatim << end
+        let[x = 5][x + 1]       // is the same as:
+        let[x = 5] in x + 1
+      - end
+
+      This syntax has the advantage that you don't have to worry about the precedence of {\tt in} relative to the right-hand side of the {\tt let}.
+
     - s2 Function shorthands | sec:the-std-library-let-and-where-fn
       The factorial definition above can be shortened using a syntax similar to OCaml and Haskell (though without guards):
 
@@ -1870,6 +1879,28 @@ meta::section('the-std-library', <<'__3bb7142441c70e511b6453dd15221f84');
       - end
 
       Unfortunately it isn't possible to write {\tt var f(x) = 10}, but the lvalue semantics would also apply there if it were.
+
+      A common use of function shorthands is to extend jQuery or to bind a callback, for example:
+
+      - verbatim << end
+        $.fn.how_many() = this.find('*').length;
+        var f; 
+        f(x, y)() = console.log(x + y);
+        $('...').click(f(3, 4));
+      - end
+
+      In this example, the line \verb|f(x, y)() = ...| assigns a curried function to {\tt f}. Caterwaul generates this for the assignment:
+
+      - verbatim << end
+        f = function (x, y) {
+          return function () {
+            return console.log(x + y);
+          };
+        };
+      - end
+
+      Note that saying something like \verb|$.fn.foo()() = ...| won't do what you want. The reason is that the inner function loses its {\tt this} binding, so you won't be able to refer to the
+      jQuery object! I don't have a solution in mind for this yet, but it's high on my list of things to fix.
 
   - s1 {\tt std.string} | sec:the-std-library-std-string
     It's common to write code like this:
@@ -1927,7 +1958,7 @@ meta::section('the-std-library', <<'__3bb7142441c70e511b6453dd15221f84');
         // undefined causes the toLowerCase check to fail.
         x.toLowerCase(), when[x.toLowerCase], unless[x === null || x === undefined]];
     - end
-__3bb7142441c70e511b6453dd15221f84
+__944912508750c7c83e7b2334fb794808
 
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
