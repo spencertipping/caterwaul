@@ -18,7 +18,7 @@
 // macro for that):
 
 // | caterwaul.configure('std')(function () {
-//     this[caterwaul].macro(qs[let (_ = _) in _], function (variable, value, expression) {
+//     caterwaul.macro(qs[let (_ = _) in _], function (variable, value, expression) {
 //       return qs[(function (variable) {return expression}).call(this, value)].replace({variable: variable, expression: expression, value: value});
 //     });
 //     // Macro usable in future caterwaul()ed functions
@@ -27,11 +27,13 @@
 // Or, more concisely (since macro definitions can be used inside other macro definitions when you define with rmacro):
 
 // | var f = caterwaul.configure('std')(function () {
-//     this[caterwaul].rmacro(qs[let (_ = _) in _], fn[variable, value, expression]
-//                                                    [qs[(fn[variable][expression]).call(this, value)].replace({variable: variable, expression: expression, value: value})]);
+//     caterwaul.rmacro(qs[let (_ = _) in _], fn[variable, value, expression]
+//                                              [qs[(fn[variable][expression]).call(this, value)].replace({variable: variable, expression: expression, value: value})]);
 //   });
 
-// See the 'Macroexpansion' section some distance below for more information.
+// Note that 'caterwaul' inside a transformed function refers to the transforming function, not to the global Caterwaul function.
+
+// See the 'Macroexpansion' section some distance below for more information about defining macros.
 
 //   Coding style.
 //   I like to code using syntactic minimalism, and since this project is a hobby instead of work I've run with that style completely. This has some advantages and some disadvantages. Advantages
@@ -54,8 +56,11 @@
 //   distance below):
 
 //   | (function (a_gensym) {
+//       var v1 = a_gensym.gensym_1;
+//       var v2 = a_gensym.gensym_2;
+//       ...
 //       return <your macroexpanded function>;
-//     }) ({gensym_1: syntax_tree_1, gensym_2: syntax_tree_2, ..., gensym_n: syntax_tree_n});
+//     }) ({gensym_1: v1, gensym_2: v2, ..., gensym_n: vn});
 
 //   A note about gensym uniqueness. Gensyms are astronomically unlikely to collide, but there are some compromises made to make sure of this. First, gensyms are not predictable; the first one is
 //   randomized. This means that if you do have a collision, it may be intermittent (and that is probably a non-feature). Second, and this is a good thing, you can load Caterwaul multiple times
@@ -954,8 +959,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
     method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                       if (_.constructor === String)     if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
-                                                                         else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
+                                       if (_.constructor === String)
+                                         for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
+                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
+                                           else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
                                        else if (_.constructor === Array) this.configure.apply(this, _);
                                        else                              this(_).call(this);
                                      return this}).
@@ -1067,10 +1074,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Self-reference (the 'ref' module).
 //   Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
-//   possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing this[caterwaul]. The expression is replaced by a closure variable that will refer to
+//   possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing 'caterwaul'. The expression is replaced by a closure variable that will refer to
 //   whichever Caterwaul function was used to transform the code.
 
-    tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[this[caterwaul]], fn_[new this.ref(this)])}).
+    tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
 
 //   String interpolation.
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax

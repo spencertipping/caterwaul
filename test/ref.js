@@ -5,9 +5,9 @@ test(function () {
   fn.foo = 'bar';
 
   var returned_this = fn(function (eq) {
-    eq(this[caterwaul].foo, 'bar');
-    this[caterwaul].foo = 'bif';
-    return this[caterwaul];
+    eq(caterwaul.foo, 'bar');
+    caterwaul.foo = 'bif';
+    return caterwaul;
   }) (eq);
 
   fn.macro(fn.parse('foo'), function () {return new this.ref('foo')});
