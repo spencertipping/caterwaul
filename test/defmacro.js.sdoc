@@ -18,5 +18,13 @@ test(function () {
     var count = 0;
     loop[eq(it, ++count)].over[[1, 2, 3, 4, 5]];
     eq(count, 5);
+
+    var less = fn[x, y][qg[++count, x < y]];
+    defsubst[_left < _right][less(_left, _right)];
+    eq(5 < 6, true);
+    eq(count, 6);
+
+    eq(6 < 5, false);
+    eq(count, 7);
   }) (eq);
 });

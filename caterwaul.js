@@ -1058,8 +1058,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros.
 
-    tconfiguration('std.qs std.fn', 'std.defmacro', function () {
-      this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]])}).
+//   Related to 'defmacro' is 'defsubst', which lets you express simple syntactic rewrites more conveniently. Here's an example of a defmacro and an equivalent defsubst:
+
+//   | defmacro[_ <equals> _][fn[left, right][qs[left === right].replace({left: left, right: right})]];
+//     defsubst[_left <equals> _right][_left === _right];
+
+//   Syntax variables are prefixed with underscores; other identifiers are literals.
+
+    tconfiguration('std.qs std.fn std.bind std.lvalue', 'std.defmacro', function () {
+      let[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
+      this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
+           macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), let[wildcards = pattern.collect(wildcard)] in fn_[let[hash = {}, as = arguments]
+                                                              [caterwaul.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
 
     tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
       this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
