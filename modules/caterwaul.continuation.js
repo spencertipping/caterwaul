@@ -73,7 +73,7 @@
 //     (b) --> (output)
 
 //   Imperative programming relies heavily on this. (So does functional programming, but in a different sense. The K combinator is more of a way to create local black holes to accommodate for
-//   excess duplication by other combinators, rather than a way to evaluate something with side-effects.)
+//   excess duplication by other combinators than a way to evaluate something with side-effects.)
 
 //   Anonymous implication.
 //   The most common operation is an implication, which is invocation of a CPS-function along with its continuation. This is what happens when you make an AJAX call, for instance. So, for example,
