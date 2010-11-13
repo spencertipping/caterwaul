@@ -1014,8 +1014,8 @@ configuration multiple times (though you're probably doing something wrong if yo
           let_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
                                                    qs[qg[function (vars) {return e}].call(this, values)].
                                                      replace({vars: vars.map(function (n) {return n[0]}), e: expression, values: vars.map(function (n) {return n[1]})})];
-
-      this.rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
+      this.configure('std.qg').
+           rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
            rmacro(qs[let*[_] in _], let_star_expander).rmacro(qs[let*[_][_]], let_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][let_star_expander(vars, expression)])}).
 
   Assignment abbreviations (the 'lvalue' library).
@@ -1028,8 +1028,8 @@ configuration multiple times (though you're probably doing something wrong if yo
   Conditional abbreviations (the 'cond' library).
   Includes forms for making decisions in perhaps a more readable way than using short-circuit logic. In particular, it lets you do things postfix; i.e. 'do X if Y' instead of 'if Y do X'.
 
-    tconfiguration('std.qs std.qg std.fn', 'std.cond', function () {this.rmacro(qs[_,   when[_]], fn[expression, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expression})]).
-                                                                         rmacro(qs[_, unless[_]], fn[expression, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expression})])}).
+    tconfiguration('std.qs std.fn', 'std.cond', function () {this.configure('std.qg').rmacro(qs[_,   when[_]], fn[expression, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expression})]).
+                                                                                      rmacro(qs[_, unless[_]], fn[expression, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expression})])}).
 
   Macro authoring tools (the 'defmacro' library).
   Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
@@ -1080,6 +1080,16 @@ configuration multiple times (though you're probably doing something wrong if yo
 
     tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
 
+  Local macroexpansion (the 'local' library).
+  Sometimes you want to write a configuration that isn't applied globally, but rather just to a delimited section of code. This macro does just that: You can specify one or more configurations
+  and a block of code, and the block of code will be transformed under a Caterwaul clone with those configurations and returned. So, for example:
+
+  | caterwaul.clone('local')(function () {
+      return local['std'][fn[x][x + 1]];
+    });
+
+    tconfiguration('std.qs std.fn', 'std.local', function () {this.macro(qs[local[_][_]], fn[c, e][this.clone(c.as_escaped_string()).macroexpand(e)])}).
+
   String interpolation.
   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
   tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
@@ -1105,4 +1115,4 @@ configuration multiple times (though you're probably doing something wrong if yo
   Standard configuration.
   This loads all of the production-use extensions.
 
-    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string')})});
+    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.defmacro std.with_gensyms std.ref std.local std.compile_eval std.string')})});
