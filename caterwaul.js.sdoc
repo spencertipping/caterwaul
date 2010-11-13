@@ -1095,9 +1095,9 @@ configuration multiple times (though you're probably doing something wrong if yo
   seriously borked.
 
     tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
-      this.rmacro(qs[_], fn[s]
-        [s.is_string() && /#\{[^\}]+\}/.test(s.data) &&
-         let*[q = s.data.charAt(0), s = s.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
+      this.rmacro(qs[_], fn[string]
+        [string.is_string() && /#\{[^\}]+\}/.test(string.data) &&
+         let*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
              [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
               this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
               new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))]])}).
