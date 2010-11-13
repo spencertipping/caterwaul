@@ -82,7 +82,7 @@ See the 'Macroexpansion' section some distance below for more information about 
     });
 
     var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},  qw = fn('$0.split(/\\s+/)'),
-    gensym = (function (n, m) {return function () {return '_gensym_' + n.toString(36) + '_' + (++m).toString(36) + '_'}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
         id = fn('$0'),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
@@ -634,8 +634,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
     array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
 
-        for (var i = 0, l = indexes.length, forward = null, _ = null; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
-          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node = null, data = null; node = _[j], data = node && node.data, forward ? j < lj : j >= 0; j += inc)
+        for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
+          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data; node = _[j], data = node && node.data, forward ? j < lj : j >= 0; j += inc)
 
       Binary node behavior.
       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
@@ -826,8 +826,8 @@ However, if I do find such an algorithm later on then macroexpansion will run qu
   (Not that you should be in the habit of defining side-effectful macros, but I certainly won't stop you.)
 
     macro_expand = function (t, macros, expanders, context) {
-                     return t.rmap (function (n) {for (var i = 0, l = macros.length, macro = null, match = null, replacement = null; i < l && (macro = macros[i]); ++i)
-                                                    if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
+                     return t.rmap(function (n) {for (var i = 0, l = macros.length, macro, match, replacement; i < l && (macro = macros[i]); ++i)
+                                                   if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
 
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -923,8 +923,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
 
      method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
-                                                                        erase_configurations || (result.configurations = this.configurations);
-                                                                        return result}).
+                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
 Utility library.
 Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the variables
@@ -959,13 +958,10 @@ configuration multiple times (though you're probably doing something wrong if yo
 
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
     method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                       if (_.constructor === String)
-                                         for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
-                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
-                                           else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
-                                       else if (_.constructor === Array) this.configure.apply(this, _);
-                                       else                              this(_).call(this);
-                                     return this}).
+                                       if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
+                                                                       if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
+                                                                       else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
+                                       else _.constructor === Array ? this.configure.apply(this, _) : this(_).call(this); return this}).
 
   Qs library.
   You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'.
@@ -1069,7 +1065,7 @@ configuration multiple times (though you're probably doing something wrong if yo
       let[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
       this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
            macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), let[wildcards = pattern.collect(wildcard)] in fn_[let[hash = {}, as = arguments]
-                                                              [caterwaul.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
+                                                              [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
 
     tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
       this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
@@ -1079,8 +1075,7 @@ configuration multiple times (though you're probably doing something wrong if yo
   This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
   expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
 
-    tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
-      this.macro(qs[compile_eval[_]], fn[expression][this.compile(this.macroexpand(qs[fn_[_]].replace({_: expression}))).call(this)])}).
+    tconfiguration('std.qs std.fn', 'std.compile_eval', function () {this.macro(qs[compile_eval[_]], fn[e][this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this)])}).
 
   Self-reference (the 'ref' module).
   Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
