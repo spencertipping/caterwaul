@@ -903,8 +903,7 @@ Related to this is a configure() method that modifies and returns the original f
   storing it in the table, enabling you to use things like 'qs[]' without manually transforming stuff. The downside is that you lose closure state and can't bind variables.
 
     behavior('field').behavior('shallow', shallow_copy).method('configuration',  function          (name, f) {this.configurations[name] = f; return this}).
-                                                        method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone.apply(this, configs.split(/,?\s+/))(f);
-                                                                                                              return this}).
+                                                        method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
 
 Global Caterwaul setup.
 Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
@@ -1122,5 +1121,4 @@ configuration multiple times (though you're probably doing something wrong if yo
   Standard configuration.
   This loads all of the production-use extensions.
 
-    configuration('std', function () {
-      this.configure(this.util.qw('std.qs std.qg std.bind std.lvalue std.cond std.fn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string'))})});
+    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string')})});
