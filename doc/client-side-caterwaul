@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.yjec/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.tOEr/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1470,7 +1470,7 @@ __5a7e0bd196996326e6278b6dc308371c
 
 meta::resource('header-refs', '\\newcommand{\\Ref}[2]{\\hyperref[#2]{#1 \\ref*{#2}}}');
 meta::resource('header-resource', '\\lstnewenvironment{resourcecode}{}{}');
-meta::section('defining-macros', <<'__3fc915ac38b495b95383e0a03c6e1e8c');
+meta::section('defining-macros', <<'__03c31eb18de6301ae3f792a5a942844c');
 - sc Defining Macros | sec:defining-macros
   Caterwaul's standard macros can be useful, but the real point of having a macro-oriented compiler is being able to write your own. Caterwaul comes with several macro-defining
   macros\footnote{If this doesn't make sense, just pretend I didn't say it.} that make it easier to extend.
@@ -1490,6 +1490,13 @@ meta::section('defining-macros', <<'__3fc915ac38b495b95383e0a03c6e1e8c');
       qs[$(_selector).live('click', fn_[_handler, where[t = $(this)]])].
         replace({_selector: selector, _handler: handler}),
       when[selector.is_string()]]];
+  - end
+
+  (If you're using the latest build of Caterwaul, you can write this instead, with the caveat that non-strings will also be matched:)
+
+  - verbatim << end
+    defsubst[_selector >c> _handler]
+            [$(_selector).live('click', fn_[_handler, where[t = $(this)]])];
   - end
 
   Now we can write this:
@@ -1630,7 +1637,7 @@ meta::section('defining-macros', <<'__3fc915ac38b495b95383e0a03c6e1e8c');
 
       'input'.k[send_to_server(t.val()), when[e.keyCode === 13]];
     - end
-__3fc915ac38b495b95383e0a03c6e1e8c
+__03c31eb18de6301ae3f792a5a942844c
 
 meta::section('introduction', <<'__ec447f24e225c47c60899f824b5dd332');
 - sc Introduction | sec:introduction
