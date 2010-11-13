@@ -1097,10 +1097,11 @@ configuration multiple times (though you're probably doing something wrong if yo
     tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
       this.rmacro(qs[_], fn[s]
         [s.is_string() && /#\{[^\}]+\}/.test(s.data) &&
-         let*[q = s.data.charAt(0), s = s.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
-             [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
-              this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
-              new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))]])}).
+         let[q = s.data.charAt(0), s = s.as_escaped_string()] in
+         (let[eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')] in
+          (s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
+           this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
+           new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))))])}).
 
   Operator promotion.
   Languages like ML and Haskell (and of course Lisps) let you use operators in a first-class way. Javascript doesn't normally do this, but it's arguably an important feature in a language. The
