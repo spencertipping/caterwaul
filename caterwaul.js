@@ -82,7 +82,7 @@
 //     });
 
     var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},  qw = fn('$0.split(/\\s+/)'),
-    gensym = (function (n, m) {return function () {return '_gensym_' + n.toString(36) + '_' + (++m).toString(36) + '_'}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
         id = fn('$0'),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
@@ -259,14 +259,11 @@
 //       inside the function, not the one in which the function is defined. If you want the outer scope, you can use the .parent attribute of the scope node. The 'global' scope (i.e. the
 //       outermost one) will have a null parent.
 
-        scoped_traverse: function (f) {var new_scope = function (parent) {return {parent: parent || null, variables: {}, children: {}}},
-                                               scope = new_scope();
-
+        scoped_traverse: function (f) {var new_scope = function (parent) {return {parent: parent || null, variables: {}, children: {}}}, scope = new_scope();
           this.traverse(function (t) {var n = t.entering, formals = null;
-            n ? (n.data === 'function' ?  (scope = scope.children[n.id()] = new_scope(scope), formals = n[0].data === '(' ? n[0][0] : n[1][0],
-                                           formals.data === ',' ? formals.flatten().each(function (v) {scope.variables[v.data] = scope}) : scope.variables[formals.data] = scope) :
-                     n.data === 'var'  && (n[0].data === ',' ? n[0].flatten().each(function (v) {scope.variables[v.data === '=' ? v[0].data : v.data] = scope}) :
-                                                               (scope.variables[n[0].data === '=' || n[0].data === 'in' ? n[0][0].data : n[0].data] = scope))) :
+            n ? (n.data === 'function' ? (scope = scope.children[n.id()] = new_scope(scope), formals = n[0].data === '(' ? n[0][0] : n[1][0],
+                                          formals.flatten(',').each(function (v) {scope.variables[v.data] = scope})) :
+                     n.data === 'var'  && n[0].flatten(',').each(function (v) {scope.variables[v.data === '=' || v.data === 'in' ? v[0].data : v.data] = scope})) :
                 t.exiting.data === 'function' && (scope = scope.parent)});
 
           return this.traverse(function (node) {if (node.entering && node.entering.data === 'function') scope = scope.children[node.entering.id()];
@@ -634,8 +631,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
 //     array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
 
-        for (var i = 0, l = indexes.length, forward = null, _ = null; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
-          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node = null, data = null; node = _[j], data = node && node.data, forward ? j < lj : j >= 0; j += inc)
+        for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
+          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data; node = _[j], data = node && node.data, forward ? j < lj : j >= 0; j += inc)
 
 //       Binary node behavior.
 //       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
@@ -826,8 +823,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   (Not that you should be in the habit of defining side-effectful macros, but I certainly won't stop you.)
 
     macro_expand = function (t, macros, expanders, context) {
-                     return t.rmap (function (n) {for (var i = 0, l = macros.length, macro = null, match = null, replacement = null; i < l && (macro = macros[i]); ++i)
-                                                    if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
+                     return t.rmap(function (n) {for (var i = 0, l = macros.length, macro, match, replacement; i < l && (macro = macros[i]); ++i)
+                                                   if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
 
 // Environment-dependent compilation.
 // It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -906,8 +903,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   storing it in the table, enabling you to use things like 'qs[]' without manually transforming stuff. The downside is that you lose closure state and can't bind variables.
 
     behavior('field').behavior('shallow', shallow_copy).method('configuration',  function          (name, f) {this.configurations[name] = f; return this}).
-                                                        method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone.apply(this, configs.split(/,?\s+/))(f);
-                                                                                                              return this}).
+                                                        method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
 
 // Global Caterwaul setup.
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
@@ -923,8 +919,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
      method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
-                                                                        erase_configurations || (result.configurations = this.configurations);
-                                                                        return result}).
+                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
 // Utility library.
 // Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the variables
@@ -959,13 +954,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
     method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                       if (_.constructor === String)
-                                         for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
-                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
-                                           else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
-                                       else if (_.constructor === Array) this.configure.apply(this, _);
-                                       else                              this(_).call(this);
-                                     return this}).
+                                       if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
+                                                                       if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
+                                                                       else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
+                                       else _.constructor === Array ? this.configure.apply(this, _) : this(_).call(this); return this}).
 
 //   Qs library.
 //   You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'.
@@ -1069,7 +1061,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       let[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
       this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
            macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), let[wildcards = pattern.collect(wildcard)] in fn_[let[hash = {}, as = arguments]
-                                                              [caterwaul.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
+                                                              [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
 
     tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
       this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
@@ -1079,8 +1071,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
 //   expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
 
-    tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
-      this.macro(qs[compile_eval[_]], fn[expression][this.compile(this.macroexpand(qs[fn_[_]].replace({_: expression}))).call(this)])}).
+    tconfiguration('std.qs std.fn', 'std.compile_eval', function () {this.macro(qs[compile_eval[_]], fn[e][this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this)])}).
 
 //   Self-reference (the 'ref' module).
 //   Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
@@ -1106,11 +1097,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
       this.rmacro(qs[_], fn[s]
         [s.is_string() && /#\{[^\}]+\}/.test(s.data) &&
-         let[q = s.data.charAt(0), s = s.as_escaped_string()] in
-         (let[eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')] in
-          (s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
-           this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
-           new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))))])}).
+         let*[q = s.data.charAt(0), s = s.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
+             [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
+              this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
+              new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))]])}).
 
 //   Operator promotion.
 //   Languages like ML and Haskell (and of course Lisps) let you use operators in a first-class way. Javascript doesn't normally do this, but it's arguably an important feature in a language. The
@@ -1131,7 +1121,6 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Standard configuration.
 //   This loads all of the production-use extensions.
 
-    configuration('std', function () {
-      this.configure(this.util.qw('std.qs std.qg std.bind std.lvalue std.cond std.fn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string'))})});
+    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.op.fn std.defmacro std.with_gensyms std.ref std.compile_eval std.string')})});
 
 // Generated by SDoc 
