@@ -1067,13 +1067,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
                                                                                  qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
 
-//   Compile-time eval (the 'compile_eval' module).
+//   Compile-time eval (the 'compile_eval' library).
 //   This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
 //   expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
 
     tconfiguration('std.qs std.fn', 'std.compile_eval', function () {this.macro(qs[compile_eval[_]], fn[e][this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this)])}).
 
-//   Self-reference (the 'ref' module).
+//   Self-reference (the 'ref' library).
 //   Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
 //   possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing 'caterwaul'. The expression is replaced by a closure variable that will refer to
 //   whichever Caterwaul function was used to transform the code.

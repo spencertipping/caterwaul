@@ -5,23 +5,12 @@
 // JavaScript lacks a robust lazy sequence library. Most of its sequence-manipulation constructs are side-effectful, which means that they take up a lot of code-space and don't compose well in
 // expressions. This library is designed to provide first-class sequence macros/classes to (hopefully) obviate the need for 'for' loops and similar JavaScript statement-level constructs.
 
-//   Sequence metaclass.
-//   Sequences provide some methods such as 'grep', and selectors such as 'before' and 'after', whose matching parameters can mean very different things depending on what the sequence is used
-//   for. As such, you can instantiate the sequence metaclass into a regular class to provide a sequence with well-defined behavior for element matching. For example:
-
-//   | var seq        = caterwaul.util.seq;
-//     var seq_of_int = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? x === pattern :
-//                                                            pattern.constructor === Function ? pattern(x) : false]});
-//     var seq_modulo = seq.specialize({match: fn[pattern, x][pattern.constructor === Number   ? ! (x % pattern) : ...]});
-
-//   | var threes     = seq_of_int.from([1, 2, 3, 4, 5, 4, 3, 2, 1]).grep(3);
-//     var evens      = seq_modulo.from([1, 2, 3, 4, 5, 6, 7, 8, 9]).grep(2);
-
 //   Macros and sequence construction.
 //   In addition to providing utility as classes, there are also some nice macros that come with sequences. You get comprehensions, generators, and side-effectful and pure traversal. Here are
-//   some examples (using 'std', 'seq.ana', 'seq.comp', 'seq.cons', and 'seq.iter'):
+//   some examples (using 'std', 'seq.ana', 'seq.comp', and 'seq.iter'):
 
-//   | var naturals = seq.ana[x + 1](0);                                   // O(1) time
+//   | var naturals_from = seq.ana[x + 1];                                 // O(1) time
+//     var naturals      = naturals_from(0);                               // O(1) time
 //     naturals.length             // -> Infinity                          // O(1) time (obviously, it's a property)
 //     naturals.size()             // -> Infinity                          // O(1) time
 //     naturals.at(0)              // -> 0                                 // O(1) time
@@ -70,16 +59,12 @@
 //     fibonacci.length                              // -> Infinity
 //     fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]                    // O(n) time
 
-//   | var custom1 = 1 |sc| (2 |sc| (3 |sc| undefined));                                                           // O(n) time (n conses)
-//     var custom2 = 4 |sc| (5 |sc| undefined);                                                                    // O(n) time
-//     (custom1 |sa| custom2).length                 // -> 5                                                       // O(1) time (lazy append)
-
 //   Traversal.
-//   Side-effectful traversal can be achieved by using the each() method (which takes a JavaScript function), or by using the <se< or >se> macros, which take a block of code. each() does not
+//   Side-effectful traversal can be achieved by using the each() method (which takes a Javascript function), or by using the <se< or >se> macros, which take a block of code. each() does not
 //   rewrite your code, but <se< and >se> do. These macros optimize the rewritten form like this (with gensym details elided):
 
 //   | console.log(x) <se< naturals.between(1, 10);
-//     // becomes (though see 'Advanced optimization options' below for the full story here):
+//     // becomes:
 //     (function (_gensym_seq) {
 //       _gensym_seq.prepare && _gensym_seq.prepare();
 //       for (var _gensym_i = 0, _gensym_l = _gensym_seq.length, x; x = _gensym_seq[_gensym_i], _gensym_i < _gensym_l; ++_gensym_i)
@@ -96,13 +81,6 @@
 //   Other traversal functions include <sm< and >sm> (map), <sfm< and >sfm> (flatmap), <sc< and >sc> (fold, 'c' stands for catamorphism), and <smf< and >smf> (map-filter -- returns a map across
 //   your function for elements for which your function is defined). The nice thing about these methods is that you can also use them with arrays -- they don't assume any methods besides
 //   prepare(), and they use that only if it exists.
-
-//     Advanced optimization options.
-//     For-loops aren't actually that fast in JavaScript, even running under V8. Better is to use some form of loop unrolling such as Duff's device (http://en.wikipedia.org/wiki/Duff's_device).
-//     The sequence library uses this by default (8 steps of unrolling -- see the caterwaul.opt module), but if for some reason you want to use regular for loops instead you can configure it like
-//     this:
-
-//     | caterwaul.seq.optimize(false);
 
 //   Lazy mapping.
 //   The <sm<, <sf<, <sfm<, <sc<, and <smf< transforms (and their right-handed equivalents) return proxy sequences that operate on the originals. This is true even if the original is an array,
