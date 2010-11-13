@@ -1,0 +1,20 @@
+Operator promotion module | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Operator promotion.
+Languages like ML and Haskell (and of course Lisps) let you use operators in a first-class way. Javascript doesn't normally do this, but it's arguably an important feature in a language. The
+syntax to get an operator to become a binary function in Caterwaul is $op$, where op is some binary operator. You should make sure this has top binding precedence by wrapping it in parens
+(otherwise you'll get weird errors about $ not being defined, or if you're using jQuery then you will get errors about NaN not being a function or some such).
+
+For example, here is the longhand way to add all elements of an array (assuming a fold() function):
+
+| xs.fold(fn[x, y][x + y])
+
+And here is the shorthand way:
+
+| xs.fold($+$)
+
+caterwaul.tconfiguration('std', 'op', function () {
+  this.util.map(fb[op][this.rmacro(new this.syntax(op, '$', '$'), fn_[qs[fn[x, y][_]].replace({_: new this.syntax(op, 'x', 'y')})])],
+                this.util.qw('+ - * / & | ^ && || % < > << >> >>> == === <= >= != !== [] () , in instanceof'))});
+
