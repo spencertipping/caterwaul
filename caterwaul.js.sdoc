@@ -259,14 +259,11 @@ nodes. At the end of folding there is only one child per paren-group.
       inside the function, not the one in which the function is defined. If you want the outer scope, you can use the .parent attribute of the scope node. The 'global' scope (i.e. the
       outermost one) will have a null parent.
 
-        scoped_traverse: function (f) {var new_scope = function (parent) {return {parent: parent || null, variables: {}, children: {}}},
-                                               scope = new_scope();
-
+        scoped_traverse: function (f) {var new_scope = function (parent) {return {parent: parent || null, variables: {}, children: {}}}, scope = new_scope();
           this.traverse(function (t) {var n = t.entering, formals = null;
-            n ? (n.data === 'function' ?  (scope = scope.children[n.id()] = new_scope(scope), formals = n[0].data === '(' ? n[0][0] : n[1][0],
-                                           formals.data === ',' ? formals.flatten().each(function (v) {scope.variables[v.data] = scope}) : scope.variables[formals.data] = scope) :
-                     n.data === 'var'  && (n[0].data === ',' ? n[0].flatten().each(function (v) {scope.variables[v.data === '=' ? v[0].data : v.data] = scope}) :
-                                                               (scope.variables[n[0].data === '=' || n[0].data === 'in' ? n[0][0].data : n[0].data] = scope))) :
+            n ? (n.data === 'function' ? (scope = scope.children[n.id()] = new_scope(scope), formals = n[0].data === '(' ? n[0][0] : n[1][0],
+                                          formals.flatten(',').each(function (v) {scope.variables[v.data] = scope})) :
+                     n.data === 'var'  && n[0].flatten(',').each(function (v) {scope.variables[v.data === '=' || v.data === 'in' ? v[0].data : v.data] = scope})) :
                 t.exiting.data === 'function' && (scope = scope.parent)});
 
           return this.traverse(function (node) {if (node.entering && node.entering.data === 'function') scope = scope.children[node.entering.id()];
