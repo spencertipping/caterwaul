@@ -3,26 +3,26 @@
 test(function () {
   var f = caterwaul.clone('std', 'iter')(function (eq) {
     var iterations = 0;
-    iter.n[i, 10][++iterations];
+    eq(iter.n[i, 10][++iterations], 10);
     eq(iterations, 10);
-    iter.n[i, 8][++iterations];
+    eq(iter.n[i, 8][++iterations], 8);
     eq(iterations, 18);
-    iter.n[i, 7][++iterations];
+    eq(iter.n[i, 7][++iterations], 7);
     eq(iterations, 25);
-    iter.n[i, 1][++iterations];
+    eq(iter.n[i, 1][++iterations], 1);
     eq(iterations, 26);
-    iter.n[i, 24][++iterations];
+    eq(iter.n[i, 24][++iterations], 24);
     eq(iterations, 50);
 
     var object = {foo: 'bar', bif: 'baz'};
     var s = '';
-    iter.keys[k, object][s += k];
+    eq(iter.keys[k, object][s += k], object);
     eq(s, 'foobif');
-    iter.keys[k, object][s += object[k]];
+    eq(iter.keys[k, object][s += object[k]], object);
     eq(s, 'foobifbarbaz');
 
     var i = 0;
-    iter.until[i >= 100][++i];
+    eq(iter.until[i >= 100][++i], true);
     eq(i, 100);
 
     return iterations;
