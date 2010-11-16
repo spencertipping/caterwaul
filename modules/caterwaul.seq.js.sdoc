@@ -20,6 +20,7 @@ expressions. This library is designed to provide first-class sequence macros/cla
   | var to_10 = naturals.first(10);                                     // O(1) time
     to_10.length                // -> 10                                // O(1) time
     to_10.at(0)                 // -> 0                                 // O(1) time
+    to_10.at(-1)                // -> 0                                 // O(1) time
     to_10.at(9)                 // -> 9                                 // O(n) time (since it's generating each element from the previous one)
     to_10.at(-1)                // -> 9                                 // O(1) time (since generated elements are memoized)
     to_10.at(10)                // -> undefined                         // O(1) time (out of bounds)
@@ -112,13 +113,18 @@ function to generate the next. The initial value is always stored as [0], and su
       this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, methods][(this.seq[name] = ctor).prototype = this.util.merge(new this.seq.core(), methods), this.seq]});
       this.seq.core.prototype.size() = this.length});
 
+    Preparation.
+    Sequences can be 'prepared' -- that is, they can have their [n] caches populated for some finite n. This is done by accessing the stream at the maximum element required for preparation.
+
+      caterwaul.tconfiguration('std', 'seq.core.prepare', function () {this.configure('seq.core').seq.core.prototype.prepare(n) = (this.at((n || this.length) - 1), this)});
+
   Anamorphic core stream.
   This is the basis for generating new streams. There are other stream classes that capture the semantics of filtering, mapping, and iteration patterns -- importantly, they do this lazily.
 
     caterwaul.tconfiguration('std', 'seq.class.ana', function () {
       this.configure('seq.core').seq.define('ana',
         fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity, this],
-        {at: fn[n][n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] :
+        {at: fn[n][n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
                    (this[n] = this.next.call(this, n > 0 ? this.at(n - 1) : undefined), this.finite_bound = n + 1, this[n])]})});
 
   Anamorphic syntax extensions.
@@ -142,4 +148,4 @@ function to generate the next. The initial value is always stored as [0], and su
 End-user configuration.
 Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
 
-  caterwaul.configuration('seq', function () {this.configure('seq.ana')});
+  caterwaul.configuration('seq', function () {this.configure('seq.core.prepare seq.ana')});

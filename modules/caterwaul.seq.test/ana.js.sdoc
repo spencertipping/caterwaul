@@ -1,7 +1,7 @@
 Anamorphism tests.
 
 test(function () {
-  var c = caterwaul.clone('seq.ana');
+  var c = caterwaul.clone('seq');
   
   c(function (eq) {
     var xs = x + 1 <sa< [0];
@@ -16,5 +16,22 @@ test(function () {
     eq(xs.finite_bound, 3);
     eq(xs.at(5), 5);
     eq(xs.finite_bound, 6);
+  })(eq);
+
+  c(function (eq) {
+    var fibs = $(-1) + $(-2) <sa< [0, 1];
+    eq(fibs.at(0), 0);
+    eq(fibs.at(1), 1);
+    eq(fibs.at(2), 1);
+    eq(fibs.at(3), 2);
+
+    eq(fibs.at(5), 5);
+    eq(fibs.at(6), 8);
+    eq(fibs.at(7), 13);
+
+    eq(fibs[49], undefined);
+
+    fibs.prepare(50);
+    eq(fibs[49].constructor, Number);
   })(eq);
 });
