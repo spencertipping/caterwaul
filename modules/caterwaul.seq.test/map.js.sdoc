@@ -1,0 +1,14 @@
+Map tests.
+
+test(function () {
+  var c = caterwaul.clone('std seq.ana seq.map');
+
+  c(function (eq) {
+    var naturals = x + 1 <sa< [0];
+    var evens    = x * 2 <sm< naturals;
+    eq(evens.length, naturals.length);
+    eq(evens.at(0), 0);
+    eq(evens.at(1), 2);
+    eq(evens.at(10), 20);
+  })(eq);
+});

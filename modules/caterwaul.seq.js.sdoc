@@ -110,8 +110,10 @@ function to generate the next. The initial value is always stored as [0], and su
   on.
 
     caterwaul.tconfiguration('std', 'seq.core', function () {
-      this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, methods][(this.seq[name] = ctor).prototype = this.util.merge(new this.seq.core(), methods), this.seq]});
-      this.seq.core.prototype.size() = this.length});
+      this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, _at][(this.seq[name] = ctor).prototype = this.util.merge(new this.seq.core(), {_at: _at}), this.seq]});
+      this.seq.core.prototype.size() = this.length;
+      this.seq.core.prototype.at(n)  = n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
+                                       (this[n] = this._at(n), this.finite_bound = n + 1, this[n])});
 
     Preparation.
     Sequences can be 'prepared' -- that is, they can have their [n] caches populated for some finite n. This is done by accessing the stream at the maximum element required for preparation.
@@ -127,8 +129,7 @@ function to generate the next. The initial value is always stored as [0], and su
     caterwaul.tconfiguration('std', 'seq.class.ana', function () {
       this.configure('seq.core').seq.define('ana',
         fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity, this],
-        {at: fn[n][n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
-                   (this[n] = this.next.call(this, n > 0 ? this.at(n - 1) : undefined), this.finite_bound = n + 1, this[n])]})});
+        fn[n][this.next.call(this, n > 0 ? this.at(n - 1) : undefined)])});
 
     Anamorphic syntax extensions.
     The idea here is that 'x' is the most recent element, '$' is 'this.at', and 'n' is the finite bound of the stream -- that is, the index of the element being computed. (Remember that all
@@ -148,7 +149,18 @@ function to generate the next. The initial value is always stored as [0], and su
         this.rmacro(qs[seq.ana[_]], fn[body][with_gensyms[init][fn[init][new _class(_f, init)]].replace({_f: ctransform(body), _class: new this.ref(ana)})]).
              rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])});
 
+  Transformative streams.
+  These lazily transform other stream instances by computing one element at a time.
+
+    caterwaul.tconfiguration('std', 'seq.class.map', function () {
+      this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this], fn[n][this.f.call(this, this.base.at(n))])});
+
+    caterwaul.tconfiguration('std', 'seq.map', function () {
+      let[ctransform = this.configure('seq.core seq.class.map').seq.map.map_comprehension_transform(body) =
+                       qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
+      this.rmacro(qs[_ <sm< _], fn[body, xs][qs[qg[new _class(_f, _xs)]].replace({_class: new this.ref(map), _f: ctransform(body), _xs: xs})])});
+
 End-user configuration.
 Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
 
-  caterwaul.configuration('seq', function () {this.configure('seq.core.prepare seq.ana')});
+  caterwaul.configuration('seq', function () {this.configure('seq.core.prepare seq.ana seq.map')});
