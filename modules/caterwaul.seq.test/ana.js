@@ -31,8 +31,17 @@ test(function () {
 
     eq(fibs[49], undefined);
 
+    // Enforces memoization. Without it, this would take years:
     fibs.prepare(50);
     eq(fibs[49].constructor, Number);
+    eq(fibs[50], undefined);
+  })(eq);
+
+  c(function (eq) {
+    var evens = x + 2 <sa< [0];
+    var xs = evens.force(10);
+    eq(xs.length, 10);
+    for (var i = 0, l = xs.length; i < l; ++i) eq(xs[i], i * 2);
   })(eq);
 });
 

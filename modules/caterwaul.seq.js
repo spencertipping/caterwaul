@@ -15,7 +15,7 @@
 //     naturals.size()             // -> Infinity                          // O(1) time
 //     naturals.at(0)              // -> 0                                 // O(1) time
 //     naturals.at(1)              // -> 1                                 // O(1) time given that we called at(0) already
-//     naturals.force()            // throws error: can't force infinite stream // O(1) time
+//     naturals.force()            // throws error: can't force infinite stream // O(1) time (error optional; may infinite-loop)
 
 //   | var to_10 = naturals.first(10);                                     // O(1) time
 //     to_10.length                // -> 10                                // O(1) time
@@ -115,8 +115,11 @@
 
 //     Preparation.
 //     Sequences can be 'prepared' -- that is, they can have their [n] caches populated for some finite n. This is done by accessing the stream at the maximum element required for preparation.
+//     Similarly, you can 'force' a finite stream into an array. It will probably fail for infinite sequences, though that's up to Array.prototype.slice.
 
-      caterwaul.tconfiguration('std', 'seq.core.prepare', function () {this.configure('seq.core').seq.core.prototype.prepare(n) = (this.at((n || this.length) - 1), this)});
+      caterwaul.tconfiguration('std opt', 'seq.core.prepare', function () {
+        this.configure('seq.core').seq.core.prototype.prepare(n) = (this.at((n || this.length) - 1), this);
+                              this.seq.core.prototype.force(n)   = (this.prepare(n), let[result = []][opt.unroll[i, n || this.length][result.push(this[i])], result])});
 
 //   Anamorphic core stream.
 //   This is the basis for generating new streams. There are other stream classes that capture the semantics of filtering, mapping, and iteration patterns -- importantly, they do this lazily.
@@ -127,23 +130,23 @@
         {at: fn[n][n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
                    (this[n] = this.next.call(this, n > 0 ? this.at(n - 1) : undefined), this.finite_bound = n + 1, this[n])]})});
 
-//   Anamorphic syntax extensions.
-//   The idea here is that 'x' is the most recent element, '$' is 'this.at', and 'n' is the finite bound of the stream -- that is, the index of the element being computed. (Remember that all
-//   anamorphic streams are infinite until explicitly bounded later. At that point they are no longer anamorphic streams.) There are three ways to get an anamorphic stream. One is to use the
-//   anamorphic stream constructor:
+//     Anamorphic syntax extensions.
+//     The idea here is that 'x' is the most recent element, '$' is 'this.at', and 'n' is the finite bound of the stream -- that is, the index of the element being computed. (Remember that all
+//     anamorphic streams are infinite until explicitly bounded later. At that point they are no longer anamorphic streams.) There are three ways to get an anamorphic stream. One is to use the
+//     anamorphic stream constructor:
 
-//   | var xs = new caterwaul.seq.ana(fn[x][x + 1], 0);
+//     | var xs = new caterwaul.seq.ana(fn[x][x + 1], 0);
 
-//   Better is to use one of the syntax macros:
+//     Better is to use one of the syntax macros:
 
-//   | var xs = seq.ana[x + 1]([0]);
-//     var xs = x + 1 <sa< [0];
+//     | var xs = seq.ana[x + 1]([0]);
+//       var xs = x + 1 <sa< [0];
 
-    caterwaul.tconfiguration('std', 'seq.ana', function () {
-      let[ctransform = this.configure('seq.core seq.class.ana').seq.ana.anamorphic_constructor_transform(body) =
-                       qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), ana = this.seq.ana] in
-      this.rmacro(qs[seq.ana[_]], fn[body][with_gensyms[init][fn[init][new _class(_f, init)]].replace({_f: ctransform(body), _class: new this.ref(ana)})]).
-           rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])});
+      caterwaul.tconfiguration('std', 'seq.ana', function () {
+        let[ctransform = this.configure('seq.core seq.class.ana').seq.ana.anamorphic_constructor_transform(body) =
+                         qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), ana = this.seq.ana] in
+        this.rmacro(qs[seq.ana[_]], fn[body][with_gensyms[init][fn[init][new _class(_f, init)]].replace({_f: ctransform(body), _class: new this.ref(ana)})]).
+             rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])});
 
 // End-user configuration.
 // Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
