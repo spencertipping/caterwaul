@@ -153,7 +153,8 @@
 //   These lazily transform other stream instances by computing one element at a time.
 
     caterwaul.tconfiguration('std', 'seq.class.map', function () {
-      this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this], fn[n][this.f.call(this, this.base.at(n))])});
+      this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this], fn[n][this.f.call(this, this.base.at(n))]);
+      let[map = this.seq.map][this.seq.core.prototype.map(f) = new map(f, this)]});
 
     caterwaul.tconfiguration('std', 'seq.map', function () {
       let[ctransform = this.configure('seq.core seq.class.map').seq.map.map_comprehension_transform(body) =
