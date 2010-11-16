@@ -57,7 +57,7 @@ Node provides a nice REPL shell. All we have to do is put in some JavaScript to 
   repl() {
     generate
     echo 'require("repl").start("caterwaul> ")' > /tmp/caterwaul-repl.js
-    run-node caterwaul.js /tmp/caterwaul-repl.js
+    run-node caterwaul.js modules/*.min.js /tmp/caterwaul-repl.js
   }
 
 Test driver.
