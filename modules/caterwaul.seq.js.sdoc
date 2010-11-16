@@ -9,7 +9,7 @@ expressions. This library is designed to provide first-class sequence macros/cla
   In addition to providing utility as classes, there are also some nice macros that come with sequences. You get comprehensions, generators, and side-effectful and pure traversal. Here are
   some examples (using 'std', 'seq.ana', 'seq.comp', and 'seq.iter'):
 
-  | var naturals_from = seq.ana[x + 1];                                 // O(1) time
+  | var naturals_from = fn[n][x + 1 <sa< [n]];                          // O(1) time
     var naturals      = naturals_from(0);                               // O(1) time
     naturals.length             // -> Infinity                          // O(1) time (obviously, it's a property)
     naturals.size()             // -> Infinity                          // O(1) time
@@ -55,7 +55,7 @@ expressions. This library is designed to provide first-class sequence macros/cla
     primes.at(1)                                  // -> 3                                                       // O(n) time
     primes.at(2)                                  // -> 5                                                       // O(n) time
 
-  | var fibonacci = seq.ana[this.at(n - 1) + this.at(n - 2)] (naturals.before(2));    // More compactly: seq.ana[$(-1) + $(-2)] ([0, 1]);
+  | var fibonacci = seq.ana[this.at(n - 1) + this.at(n - 2)] (naturals.before(2));    // More compactly: seq.ana[$(-1) + $(-2)](0, 1);
     fibonacci.length                              // -> Infinity
     fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]                    // O(n) time
 
@@ -99,3 +99,46 @@ expressions. This library is designed to provide first-class sequence macros/cla
   | var ys = (x + 1 <sm< xs).prepare()  // By default prepares all elements
 
   This code isn't subject to the problem because ys is forced before xs can be modified.
+
+Implementation.
+A stream at its core is just a data structure that caches entries. The most important thing is that every stream is an anamorphism of some sort -- this means that it has an initial value and a
+function to generate the next. The initial value is always stored as [0], and subsequent values are either cached or generated as appropriate.
+
+  Core sequence extensions.
+  If you want to extend sequences, this is the place to do it. You can add methods to caterwaul.seq.core and they will automatically be added to every type of sequence that is defined later
+  on.
+
+    caterwaul.tconfiguration('std', 'seq.core', function () {
+      this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, methods][this.seq[name] = this.util.extend(ctor, this.util.merge(new this.seq.core(), methods))]})});
+
+  Anamorphic core stream.
+  This is the basis for generating new streams. There are other stream classes that capture the semantics of filtering, mapping, and iteration patterns -- importantly, they do this lazily.
+
+    caterwaul.tconfiguration('std', 'seq.class.ana', function () {
+      this.configure('seq.core').seq.define('ana',
+        fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity, this],
+        {at: fn[n][n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] :
+                   (this[n] = this.next.call(this, n > 0 ? this.at(n - 1) : undefined), this.finite_bound = n + 1, this[n])]})});
+
+  Anamorphic syntax extensions.
+  The idea here is that 'x' is the most recent element, '$' is 'this.at', and 'n' is the finite bound of the stream -- that is, the index of the element being computed. (Remember that all
+  anamorphic streams are infinite until explicitly bounded later. At that point they are no longer anamorphic streams.) There are three ways to get an anamorphic stream. One is to use the
+  anamorphic stream constructor:
+
+  | var xs = new caterwaul.seq.ana(fn[x][x + 1], 0);
+
+  Better is to use one of the syntax macros:
+
+  | var xs = seq.ana[x + 1]([0]);
+    var xs = x + 1 <sa< [0];
+
+    caterwaul.tconfiguration('std', 'seq.ana', function () {
+      let[ctransform = this.configure('seq.core seq.class.ana').seq.ana.anamorphic_constructor_transform(body) =
+                       qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), ana = this.seq.ana] in
+      this.rmacro(qs[seq.ana[_]], fn[body][with_gensyms[init][fn[init][new _class(_f, init)]].replace({_f: ctransform(body), _class: new this.ref(ana)})]).
+           rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])});
+
+End-user configuration.
+Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
+
+  caterwaul.configuration('seq', function () {this.configure('seq.ana')});

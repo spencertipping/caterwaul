@@ -4,10 +4,11 @@
     <title>Caterwaul Offline Compiler</title>
     <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'></script>
     <script src='../caterwaul.js'></script>
-    <script src='../modules/caterwaul.opt.min.js'></script>
-    <script src='../modules/caterwaul.iter.min.js'></script>
-    <script src='../modules/caterwaul.error.min.js'></script>
-    <script src='../modules/caterwaul.format.min.js'></script>
+    <script src='../modules/caterwaul.opt.js'></script>
+    <script src='../modules/caterwaul.iter.js'></script>
+    <script src='../modules/caterwaul.error.js'></script>
+    <script src='../modules/caterwaul.format.js'></script>
+    <script src='../modules/caterwaul.seq.js'></script>
 
     <script>
       $(caterwaul.clone('std')(function () {
@@ -18,7 +19,8 @@
                                    serialize = fn[tree][tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() :
                                                                                             $('#inspect').is(':checked') ? tree.inspect() : c.format(tree)],
                             create_caterwaul = fn_[let*[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone(), c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1,
-                                                        c3 = $('#error').is(':checked') ? c2.configure('error') : c2, c4 = $('#iter').is(':checked') ? c3.configure('iter') : c3] in c4]] in
+                                                        c3 = $('#error').is(':checked') ? c2.configure('error') : c2, c4 = $('#iter').is(':checked') ? c3.configure('iter') : c3,
+                                                        c5 = $('#seq').is(':checked') ? c4.configure('seq') : c4] in c5]] in
         fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(try_to_compile(c, code)))) || '')];
 
         $('#code').keyup(let[timeout = null] in fn_[timeout && clearTimeout(timeout), timeout = setTimeout(recompile, 200)]);
@@ -85,6 +87,7 @@
       <div><label for='iter'>Iteration macros ('iter' module)</label><input type='checkbox' checked='checked' id='iter'/></div>
       <div><label for='opt'>Optimization macros ('opt' module)</label><input type='checkbox' checked='checked' id='opt'/></div>
       <div><label for='error'>Error handling macros ('error' module)</label><input type='checkbox' checked='checked' id='error'/></div>
+      <div><label for='seq'>Sequence macros ('seq' module)</label><input type='checkbox' checked='checked' id='seq'/></div>
     </div>
     <table>
       <tr><td><h2>Source</h2><textarea id='code'></textarea></td>

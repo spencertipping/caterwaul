@@ -44,6 +44,7 @@ files need to be generated. Each of these things requires little enough time tha
     # Production-worthy files get minified:
     minify caterwaul
     minify modules/caterwaul.iter
+    minify modules/caterwaul.seq
     minify modules/caterwaul.op
     minify modules/caterwaul.opt
     minify modules/caterwaul.format
