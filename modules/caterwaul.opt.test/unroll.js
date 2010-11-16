@@ -1,18 +1,21 @@
 // Tests for opt.unroll
 
 test(function () {
-  var f = caterwaul.clone('std', 'opt.unroll')(function (eq) {
+  var f = caterwaul.clone('std', 'opt')(function (eq) {
     var iterations = 0;
-    opt.unroll[i, 10][++iterations];
+    eq(opt.unroll[i, 10][++iterations], 10);
     eq(iterations, 10);
-    opt.unroll[i, 8][++iterations];
+    eq(opt.unroll[i, 8][++iterations], 8);
     eq(iterations, 18);
-    opt.unroll[i, 7][++iterations];
+    eq(opt.unroll[i, 7][++iterations], 7);
     eq(iterations, 25);
-    opt.unroll[i, 1][++iterations];
+    eq(opt.unroll[i, 1][++iterations], 1);
     eq(iterations, 26);
-    opt.unroll[i, 24][++iterations];
+    eq(opt.unroll[i, 24][++iterations], 24);
     eq(iterations, 50);
+    
+    eq(let[x = 10][eq(x, opt.unroll[i, x][++x]), x], 20);
+
     return iterations;
   });
 
