@@ -9,6 +9,7 @@ test(function () {
     eq(xs.finite_bound, 1);
     eq(xs[0], 0);
     eq(xs.length, Infinity);
+    eq(xs.size(), Infinity);
     eq(xs.at(1), 1);
     eq(xs.finite_bound, 2);
     eq(xs.at(2), 2);

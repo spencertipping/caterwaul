@@ -109,7 +109,8 @@
 //   on.
 
     caterwaul.tconfiguration('std', 'seq.core', function () {
-      this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, methods][this.seq[name] = this.util.extend(ctor, this.util.merge(new this.seq.core(), methods))]})});
+      this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, methods][(this.seq[name] = ctor).prototype = this.util.merge(new this.seq.core(), methods), this.seq]});
+      this.seq.core.prototype.size() = this.length});
 
 //   Anamorphic core stream.
 //   This is the basis for generating new streams. There are other stream classes that capture the semantics of filtering, mapping, and iteration patterns -- importantly, they do this lazily.
