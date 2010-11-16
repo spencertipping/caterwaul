@@ -71,7 +71,7 @@ expressions. This library is designed to provide first-class sequence macros/cla
       for (var _gensym_i = 0, _gensym_l = _gensym_seq.length, x; x = _gensym_seq[_gensym_i], _gensym_i < _gensym_l; ++_gensym_i)
         console.log(x);
       return _gensym_seq;
-    }) (naturals.between(1, 10));
+    }).call(this, naturals.between(1, 10));
 
   Because '<' and '>' are left-associative, you can use the right-handed >se> to write sequences of side-effects:
 
