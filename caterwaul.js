@@ -915,7 +915,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
      method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('caterwaul.rmacro: Cannot define macro with non-function expander');
-                                                    else return this.macro(pattern, bind(function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)}, this))}).
+                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}).
 
      method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
@@ -1012,8 +1012,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
       var let_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
           let_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
-                                                   qs[qg[function (vars) {return e}].call(this, values)].
-                                                     replace({vars: vars.map(function (n) {return n[0]}), e: expression, values: vars.map(function (n) {return n[1]})})];
+                                                   qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]), e: expression, values: vars.map(fn[n][n[1]])})];
       this.configure('std.qg').
            rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
            rmacro(qs[let*[_] in _], let_star_expander).rmacro(qs[let*[_][_]], let_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][let_star_expander(vars, expression)])}).
