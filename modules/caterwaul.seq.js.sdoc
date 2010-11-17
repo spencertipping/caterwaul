@@ -107,29 +107,43 @@ function to generate the next. The initial value is always stored as [0], and su
 
   Core sequence extensions.
   If you want to extend sequences, this is the place to do it. You can add methods to caterwaul.seq.core and they will automatically be added to every type of sequence that is defined later
-  on.
+  on. All sequences automatically get element caching and continuity -- that is, xs[i] will be set to xs.at(i) for you, and if you have xs[i] then you also have xs[i - 1] for i > 0.
 
     caterwaul.tconfiguration('std', 'seq.core', function () {
       this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, _at][(this.seq[name] = ctor).prototype = this.util.merge(new this.seq.core(), {_at: _at}), this.seq]});
       this.seq.core.prototype.size() = this.length;
       this.seq.core.prototype.at(n)  = n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
-                                       (this[n] = this._at(n), this.finite_bound = n + 1, this[n])});
+                                       (n > 0 && this.at(n - 1), this[n] = this._at(n), this.finite_bound = n + 1, this[n])}).
 
     Preparation.
     Sequences can be 'prepared' -- that is, they can have their [n] caches populated for some finite n. This is done by accessing the stream at the maximum element required for preparation.
     Similarly, you can 'force' a finite stream into an array. It will probably fail for infinite sequences, though that's up to Array.prototype.slice.
 
-      caterwaul.tconfiguration('std opt', 'seq.core.prepare', function () {
+      tconfiguration('std iter', 'seq.core.prepare', function () {
         this.configure('seq.core').seq.core.prototype.prepare(n) = (this.at((n || this.length) - 1), this);
-                              this.seq.core.prototype.force(n)   = (this.prepare(n), let[result = []][opt.unroll[i, n || this.length][result.push(this[i])], result])});
+                              this.seq.core.prototype.force(n)   = (this.prepare(n), let[result = []][iter.n[i, n || this.length][result.push(this[i])], result])}).
+
+    Array-like adaptation.
+    You can turn anything that looks like an array into a stream. The requirements are that it provides a length property and can be numerically indexed (e.g. xs[0], xs[1], etc.). The length
+    property is optional if you specify a different length; in that case yours will take precedence.
+
+      tconfiguration('std', 'seq.core.array', function () {this.seq.define('array', fn[xs, length][this.base = xs, this.length = length || xs.length], fn[n][this.base[n]])}).
+
+    Existential and universal quantification.
+    Sequences have brute-force methods for determining whether there exist any elements with property P, or whether all of the elements have that property. These quantification methods are not
+    smart! They just iterate through the sequence deterministically until either (1) the end of the sequence is reached, or (2) a decisive element is found.
+
+      tconfiguration('std iter continuation', 'seq.core.quantifiers', function () {
+        this.util.merge(this.configure('seq.core').seq.core.prototype, {forall: fn[f][call/cc[fb[cc][iter.n[i, this.length][f(this.at(i)) || cc(false)], true]]],
+                                                                        exists: fn[f][! this.forall(fn[x][! f(x)])]})}).
 
   Anamorphic core stream.
   This is the basis for generating new streams. There are other stream classes that capture the semantics of filtering, mapping, and iteration patterns -- importantly, they do this lazily.
 
-    caterwaul.tconfiguration('std', 'seq.class.ana', function () {
+    tconfiguration('std', 'seq.class.ana', function () {
       this.configure('seq.core').seq.define('ana',
-        fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity, this],
-        fn[n][this.next.call(this, n > 0 ? this.at(n - 1) : undefined)])});
+        fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity],
+        fn[n][this.next.call(this, n > 0 ? this.at(n - 1) : undefined)])}).
 
     Anamorphic syntax extensions.
     The idea here is that 'x' is the most recent element, '$' is 'this.at', and 'n' is the finite bound of the stream -- that is, the index of the element being computed. (Remember that all
@@ -143,25 +157,69 @@ function to generate the next. The initial value is always stored as [0], and su
     | var xs = seq.ana[x + 1]([0]);
       var xs = x + 1 <sa< [0];
 
-      caterwaul.tconfiguration('std', 'seq.ana', function () {
+      tconfiguration('std', 'seq.ana', function () {
         let[ctransform = this.configure('seq.core seq.class.ana').seq.ana.anamorphic_constructor_transform(body) =
                          qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), ana = this.seq.ana] in
         this.rmacro(qs[seq.ana[_]], fn[body][with_gensyms[init][fn[init][new _class(_f, init)]].replace({_f: ctransform(body), _class: new this.ref(ana)})]).
-             rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])});
+             rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])}).
 
   Transformative streams.
-  These lazily transform other stream instances by computing one element at a time.
+  These wrap other sequences and expose a new set of elements.
 
-    caterwaul.tconfiguration('std', 'seq.class.map', function () {
-      this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this], fn[n][this.f.call(this, this.base.at(n))]);
-      let[map = this.seq.map][this.seq.core.prototype.map(f) = new map(f, this)]});
+    Mapping stream.
+    Lazily maps a function f over elements of a sequence. Constructed using the <sm< operator or the .map() method; for instance:
 
-    caterwaul.tconfiguration('std', 'seq.map', function () {
-      let[ctransform = this.configure('seq.core seq.class.map').seq.map.map_comprehension_transform(body) =
-                       qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
-      this.rmacro(qs[_ <sm< _], fn[body, xs][qs[qg[new _class(_f, _xs)]].replace({_class: new this.ref(map), _f: ctransform(body), _xs: xs})])});
+    | x * 2 <sm< (x + 1 <sa< [0])               // even naturals
+      (x + 1 <sa< [0]).map(fn[x][x * 2])        // ditto
+
+      tconfiguration('std', 'seq.class.map', function () {
+        this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this.finite_bound = 0], fn[n][this.f.call(this, this.base.at(n))]);
+        let[map = this.seq.map][this.seq.core.prototype.map(f) = new map(f, this)]}).
+
+      tconfiguration('std', 'seq.map', function () {
+        let[ctransform = this.configure('seq.core seq.class.map').seq.map.map_comprehension_transform(body) =
+                         qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
+        this.rmacro(qs[_ <sm< _], fn[body, xs][qs[qg[new _class(_f, _xs)]].replace({_class: new this.ref(map), _f: ctransform(body), _xs: xs})])}).
+
+    Filtering stream.
+    Lazily returns a subset of the elements in the original stream. Constructed using the <sf< operator or the .filter() method.
+
+    | x & 1 <sf< (x + 1 <sa< [0])               // odd naturals
+      (x + 1 <sa< [0]).filter(fn[x][x & 1])     // ditto
+
+    The code here works because _at() is guaranteed to be invoked exactly once for each element, in ascending order, starting at 0. Otherwise it would take considerably more logic to make the
+    filter accessor do the right thing. (So really, the 'n' parameter passed into the _at() method is purely for show; the class could just keep count of the number of times _at() has been
+    invoked.)
+
+    Note that this sequence will report an incorrect size for finite bases. Computing a correct size would force the base, which would kind of defeat the purpose of using these streams in the
+    first place. It can also run out of stack space when searching for an element. In the future I may CPS-convert it.
+
+      tconfiguration('std', 'seq.class.filter', function () {
+        this.configure('seq.core').seq.define('filter', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this.base_finite_bound = -1, this.finite_bound = 0],
+                                                        fn[n][this.f.call(this, this.base.at(++this.base_finite_bound)) ? this.base[this.base_finite_bound] : this._at(n)]);
+        let[filter = this.seq.filter][this.seq.core.prototype.filter(f) = new filter(f, this)]}).
+
+      tconfiguration('std', 'seq.filter', function () {
+        let[ctransform = this.configure('seq.core seq.class.filter').seq.filter.filter_comprehension_transform(body) =
+                         qs[fn[x][_body]].replace({_body: body}), filter = this.seq.filter] in
+        this.rmacro(qs[_ <sf< _], fn[body, xs][qs[qg[new _class(_f, _xs)]].replace({_class: new this.ref(filter), _f: ctransform(body), _xs: xs})])}).
+
+    Slicing stream.
+    Lazily takes a continuous or discontinuous slice of another stream. This imposes an additional O(n) step on retrieval; however, amortized retrieval time of the combined stream will still
+    be O(n) worst case and O(1) average case.
+
+    | (x + 1 <sa< [0]).first(10)                // elements 0 .. 9, inclusive
+      (x + 1 <sa< [0]).after(9)                 // elements 10 .. infinity, inclusive
+      (x + 1 <sa< [0]).between(1, 10)           // elements 1 .. 9, inclusive
+      (x + 1 <sa< [0]).slice(x + 2 <sa< [0])    // elements 0, 1, 2, 3, 4, ... are mapped to elements 0, 2, 4, 6, 8, ...
+
+      tconfiguration('std seq.ana', 'seq.class.slice', function () {
+        this.configure('seq.core seq.core.array seq.class.ana').seq.define('slice',
+          fn[xs, is, n][this.base = xs, this.index = is, this.length = n || (xs.length < is.length ? xs.length : is.length)], fn[n][this.base.at(this.index.at(n))]);
+        let[slice = this.seq.slice, array = this.seq.array] in this.util.merge(this.seq.core.prototype,
+          {first: fn[n][new slice(this, x + 1 <sa< [0], n)], after: fn[n][new slice(this, x + 1 <sa< [n])], slice: fn[s][new slice(this, s)], between: fn[a, b][this.after(a).first(b - a)]})}).
 
 End-user configuration.
 Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
 
-  caterwaul.configuration('seq', function () {this.configure('seq.core.prepare seq.ana seq.map')});
+  configuration('seq', function () {this.configure('seq.core.prepare seq.core.array seq.core.quantifiers seq.ana seq.map seq.filter seq.class.slice')});
