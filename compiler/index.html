@@ -8,27 +8,12 @@
     <script src='../modules/caterwaul.iter.js'></script>
     <script src='../modules/caterwaul.error.js'></script>
     <script src='../modules/caterwaul.format.js'></script>
+    <script src='../modules/caterwaul.continuation.js'></script>
     <script src='../modules/caterwaul.seq.js'></script>
 
-    <script>
-      $(caterwaul.clone('std')(function () {
-        var c = caterwaul.clone('std', 'opt', 'format');
+    <script src='http://spencertipping.com/montenegro/montenegro.jquery.js'></script>
 
-        var recompile = let[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e.toString()}},
-                              try_to_compile = function (c, code) {try {return c.macroexpand(c.parse(code))} catch (e) {return e.toString()}},
-                                   serialize = fn[tree][tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() :
-                                                                                            $('#inspect').is(':checked') ? tree.inspect() : c.format(tree)],
-                            create_caterwaul = fn_[let*[c1 = $('#std').is(':checked') ? caterwaul.clone('std') : caterwaul.clone(), c2 = $('#opt').is(':checked') ? c1.configure('opt') : c1,
-                                                        c3 = $('#error').is(':checked') ? c2.configure('error') : c2, c4 = $('#iter').is(':checked') ? c3.configure('iter') : c3,
-                                                        c5 = $('#seq').is(':checked') ? c4.configure('seq') : c4] in c5]] in
-        fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(try_to_compile(c, code)))) || '')];
-
-        $('#code').keyup(let[timeout = null] in fn_[timeout && clearTimeout(timeout), timeout = setTimeout(recompile, 200)]);
-        $('input').change(recompile);
-
-        $('code > a').click(fn_[$('#code').val('#{$("#code").val()}\n#{$(this).text()}'), recompile()]);
-      }));
-    </script>
+    <script src='compiler.js'></script>
 
     <style>
       body {width: 900px; margin-left: auto; margin-right: auto; font-family: sans-serif; font-size: 10pt}
@@ -47,36 +32,36 @@
        documentation</a> for more information):</p>
 
     <h3>Standard macro library</h3>
-    <ul><li><code><a href='javascript:void(0)'>let[x = 5] in x + 2;</a></code></li>
-        <li><code><a href='javascript:void(0)'>fn[x][x + 1];</a></code></li>
-        <li><code><a href='javascript:void(0)'>fb[x][this(x)];</a></code></li>
-        <li><code><a href='javascript:void(0)'>fb_[this.method()];</a></code></li>
-        <li><code><a href='javascript:void(0)'>fn_[this];</a></code></li>
-        <li><code><a href='javascript:void(0)'>x + y, where[x = 6, y = 10];</a></code></li>
-        <li><code><a href='javascript:void(0)'>console.log(x), when[x &gt; 0];</a></code></li>
-        <li><code><a href='javascript:void(0)'>var plus = $+$;</a></code></li>
-        <li><code><a href='javascript:void(0)'>let[f = $+$] in f(3, 4);</a></code></li>
-        <li><code><a href='javascript:void(0)'>let[f = $+$][f(3, 4)];</a></code></li>
-        <li><code><a href='javascript:void(0)'>let*[x = 5, y = x] in x + y;</a></code></li>
-        <li><code><a href='javascript:void(0)'>x + y, where[x = 4, y = 6];</a></code></li>
-        <li><code><a href='javascript:void(0)'>let[f(x) = x + 1] in f(6);</a></code></li>
-        <li><code><a href='javascript:void(0)'>f(10)(20), where[f(x)(y) = x + y];</a></code></li>
-        <li><code><a href='javascript:void(0)'>console.log('The value is #{1 + 2 + 3}');</a></code></li>
+    <ul><li>let[x = 5] in x + 2;</li>
+        <li>fn[x][x + 1];</li>
+        <li>fb[x][this(x)];</li>
+        <li>fb_[this.method()];</li>
+        <li>fn_[this];</li>
+        <li>x + y, where[x = 6, y = 10];</li>
+        <li>console.log(x), when[x &gt; 0];</li>
+        <li>var plus = $+$;</li>
+        <li>let[f = $+$] in f(3, 4);</li>
+        <li>let[f = $+$][f(3, 4)];</li>
+        <li>let*[x = 5, y = x] in x + y;</li>
+        <li>x + y, where[x = 4, y = 6];</li>
+        <li>let[f(x) = x + 1] in f(6);</li>
+        <li>f(10)(20), where[f(x)(y) = x + y];</li>
+        <li>console.log('The value is #{1 + 2 + 3}');</li>
     </ul>
 
     <h3>Iteration macro library</h3>
-    <ul><li><code><a href='javascript:void(0)'>iter.n[i, 10][console.log(i)];</a></code></li>
-        <li><code><a href='javascript:void(0)'>iter.keys[k, document][console.log(k)];</a></code></li>
-        <li><code><a href='javascript:void(0)'>iter.until[total >= 50][++total];</a></code></li></ul>
+    <ul><li>iter.n[i, 10][console.log(i)];</li>
+        <li>iter.keys[k, document][console.log(k)];</li>
+        <li>iter.until[total &gt;= 50][++total];</li></ul>
 
     <h3>Optimization macro library</h3>
-    <ul><li><code><a href='javascript:void(0)'>opt.unroll[x, 100][console.log(x)];</a></code></li>
+    <ul><li>opt.unroll[x, 100][console.log(x)];</li>
     </ul>
 
     <h3>Error handling macro library</h3>
-    <ul><li><code><a href='javascript:void(0)'>error.quietly[(null).foo];</a></code></li>
-        <li><code><a href='javascript:void(0)'>error.safely[(null).foo][console.log(error)];</a></code></li>
-        <li><code><a href='javascript:void(0)'>x || error.fail[new Error('#{x} is not truthy')];</a></code></li>
+    <ul><li>error.quietly[(null).foo];</li>
+        <li>error.safely[(null).foo][console.log(error)];</li>
+        <li>x || error.fail[new Error('#{x} is not truthy')];</li>
     </ul>
 
     <div>
@@ -88,6 +73,8 @@
       <div><label for='opt'>Optimization macros ('opt' module)</label><input type='checkbox' checked='checked' id='opt'/></div>
       <div><label for='error'>Error handling macros ('error' module)</label><input type='checkbox' checked='checked' id='error'/></div>
       <div><label for='seq'>Sequence macros ('seq' module)</label><input type='checkbox' checked='checked' id='seq'/></div>
+      <div><label for='continuation'>Continuation macros ('continuation' module)</label><input type='checkbox' checked='checked' id='continuation'/></div>
+      <div><label for='montenegro'>Montenegro client macros ('montenegro.jquery' module)</label><input type='checkbox' checked='checked' id='montenegro'/></div>
     </div>
     <table>
       <tr><td><h2>Source</h2><textarea id='code'></textarea></td>
