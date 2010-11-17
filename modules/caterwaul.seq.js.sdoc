@@ -215,7 +215,7 @@ function to generate the next. The initial value is always stored as [0], and su
 
       tconfiguration('std seq.ana', 'seq.class.slice', function () {
         this.configure('seq.core seq.core.array seq.class.ana').seq.define('slice',
-          fn[xs, is, n][this.base = xs, this.index = is, this.length = n || (xs.length < is.length ? xs.length : is.length)], fn[n][this.base.at(this.index.at(n))]);
+          fn[xs, is, n][this.base = xs, this.index = is, this.length = n !== undefined ? n : (xs.length < is.length ? xs.length : is.length)], fn[n][this.base.at(this.index.at(n))]);
         let[slice = this.seq.slice, array = this.seq.array] in this.util.merge(this.seq.core.prototype,
           {first: fn[n][new slice(this, x + 1 <sa< [0], n)], after: fn[n][new slice(this, x + 1 <sa< [n])], slice: fn[s][new slice(this, s)], between: fn[a, b][this.after(a).first(b - a)]})}).
 

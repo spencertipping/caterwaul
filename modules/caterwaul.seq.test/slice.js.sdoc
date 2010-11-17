@@ -17,5 +17,11 @@ test(function () {
     eq(the_rest.length, Infinity);
     eq(the_rest.at(0), 10);
     eq(the_rest.at(1), 11);
+
+    eq(naturals.between(0, 10).length, 10);
+    eq(naturals.between(0, 1).length, 1);
+    eq(naturals.between(2, 2).length, 0);
+
+    eq(naturals.between(2, 2).exists(fn_[true]), false);
   })(eq);
 });
