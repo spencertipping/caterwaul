@@ -45,11 +45,6 @@
 //     times_3.at(0)               // -> 0                                 // O(1) time
 //     times_3.at(1)               // -> 3                                 // O(1) time
 
-//   | var depth_first_cartesian_product = (([x, y] <sm< naturals, where[y = x]) <sm< naturals).flatten();         // O(1) time
-//     depth_first_cartesian_product.length          // -> Infinity                                                // O(1) time
-//     depth_first_cartesian_product.at(0)           // -> [0, 0]                                                  // O(1) time
-//     depth_first_cartesian_product.at(1)           // -> [1, 0]                                                  // O(1) time
-
 //   | var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(2);                    // O(1) time
 //     primes.length                                 // -> Infinity                                                // O(1) time
 //     primes.at(0)                                  // -> 2                                                       // O(1) time
@@ -59,29 +54,6 @@
 //   | var fibonacci = $(-1) + $(-2) <sa< [0, 1];
 //     fibonacci.length                              // -> Infinity
 //     fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]                    // O(n) time
-
-//   Traversal.
-//   Side-effectful traversal can be achieved by using the each() method (which takes a Javascript function), or by using the <se< or >se> macros, which take a block of code. each() does not
-//   rewrite your code, but <se< and >se> do. These macros optimize the rewritten form like this (with gensym details elided):
-
-//   | console.log(x) <se< naturals.between(1, 10);
-//     // becomes:
-//     (function (_gensym_seq) {
-//       _gensym_seq.prepare && _gensym_seq.prepare();
-//       for (var _gensym_i = 0, _gensym_l = _gensym_seq.length, x; x = _gensym_seq[_gensym_i], _gensym_i < _gensym_l; ++_gensym_i)
-//         console.log(x);
-//       return _gensym_seq;
-//     }).call(this, naturals.between(1, 10));
-
-//   Because '<' and '>' are left-associative, you can use the right-handed >se> to write sequences of side-effects:
-
-//   | sequence >se> foo(x) >se> bar(x) >se> bif(x);
-//     foo(x) <se< bar(x) <se< bif(x) <se< sequence        // <- Won't do what you want!
-//     foo(x) <se< (bar(x) <se< (bif(x) <se< sequence))    // <- This is what you want.
-
-//   Other traversal functions include <sm< and >sm> (map), <sfm< and >sfm> (flatmap), <sc< and >sc> (fold, 'c' stands for catamorphism), and <smf< and >smf> (map-filter -- returns a map across
-//   your function for elements for which your function is defined). The nice thing about these methods is that you can also use them with arrays -- they don't assume any methods besides
-//   prepare(), and they use that only if it exists.
 
 //   Lazy mapping.
 //   The <sm<, <sf<, <sfm<, <sc<, and <smf< transforms (and their right-handed equivalents) return proxy sequences that operate on the originals. This is true even if the original is an array,
@@ -135,6 +107,27 @@
                                                                                                                          fn[n][this.base.at ? this.base.at(n) : this.base[n]])}).
       tconfiguration('std', 'seq.core.array', function () {
         let[array = this.configure('seq.core.class.array').seq.array] in this.rmacro(qs[ sa<< _], fn[xs][qs[qg[new _class(_xs)]].replace({_class: new this.ref(array), _xs: xs})])}).
+
+//     Object key/value adaptation.
+//     Objects can be adapted a few different ways. You can grab keys, values, or key-value pairs (as [key, value], not {key: value}). Some shorthands are provided:
+
+//     | var keys   = sk<<  {...};
+//       var keys   = new caterwaul.seq.keys({...});
+//       var values = sv<<  {...};
+//       var values = new caterwaul.seq.values({...});
+//       var pairs  = skv<< {...};
+//       var pairs  = new caterwaul.seq.keyvalues({...});
+
+      tconfiguration('std iter', 'seq.core.class.object', function () {
+        this.configure('seq.core').seq.define('keys',      fn[o][this.xs = [], iter.keys[k, o][this.xs.push(k)],         this.length = this.xs.length], fn[n][this.xs[n]]).
+                                       define('values',    fn[o][this.xs = [], iter.keys[k, o][this.xs.push(o[k])],      this.length = this.xs.length], fn[n][this.xs[n]]).
+                                       define('keyvalues', fn[o][this.xs = [], iter.keys[k, o][this.xs.push([k, o[k]])], this.length = this.xs.length], fn[n][this.xs[n]])}).
+
+      tconfiguration('std', 'seq.core.object', function () {this.configure('seq.core.class.object');
+        let[keys = this.seq.keys, values = this.seq.values, keyvalues = this.seq.keyvalues] in
+        this.rmacro(qs[  sk<< _], fn[o][qs[qg[new _class(_o)]].replace({_class: new this.ref(keys),      _o: o})]).
+             rmacro(qs[  sv<< _], fn[o][qs[qg[new _class(_o)]].replace({_class: new this.ref(values),    _o: o})]).
+             rmacro(qs[ skv<< _], fn[o][qs[qg[new _class(_o)]].replace({_class: new this.ref(keyvalues), _o: o})])}).
 
 //     Existential and universal quantification.
 //     Sequences have brute-force methods for determining whether there exist any elements with property P, or whether all of the elements have that property. These quantification methods are not
@@ -230,6 +223,6 @@
 // End-user configuration.
 // Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
 
-  configuration('seq', function () {this.configure('seq.core.prepare seq.core.array seq.core.quantifiers seq.ana seq.map seq.filter seq.class.slice')});
+  configuration('seq', function () {this.configure('seq.core.prepare seq.core.array seq.core.object seq.core.quantifiers seq.ana seq.map seq.filter seq.class.slice')});
 
 // Generated by SDoc 
