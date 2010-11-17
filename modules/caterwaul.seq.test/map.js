@@ -1,7 +1,7 @@
 // Map tests.
 
 test(function () {
-  var c = caterwaul.clone('std iter seq.ana seq.map');
+  var c = caterwaul.clone('std iter seq.ana seq.map seq.core.array');
 
   c(function (eq) {
     var naturals = x + 1 <sa< [0];
@@ -15,8 +15,10 @@ test(function () {
   c(function (eq) {
     var odds  = (x + 2 <sa< [0]).map(fn[x][x + 1]);
     var odds2 = x + 2 <sa< [1];
+    var odds3 = x + 1 <sm< sa<< [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
 
     iter.n[i, 10][eq(odds.at(i), odds2.at(i))];
+    iter.n[i, 10][eq(odds.at(i), odds3.at(i))];
   })(eq);
 });
 

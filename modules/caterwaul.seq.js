@@ -125,25 +125,33 @@
 
 //     Array-like adaptation.
 //     You can turn anything that looks like an array into a stream. The requirements are that it provides a length property and can be numerically indexed (e.g. xs[0], xs[1], etc.). The length
-//     property is optional if you specify a different length; in that case yours will take precedence.
+//     property is optional if you specify a different length; in that case yours will take precedence. You can also use the array adapter against another sequence; in this case, the usual .at()
+//     method will be used. A shorthand operator is provided, and you can also use the constructor directly:
 
-      tconfiguration('std', 'seq.core.array', function () {this.seq.define('array', fn[xs, length][this.base = xs, this.length = length || xs.length], fn[n][this.base[n]])}).
+//     | var seq = sa<< [1, 2, 3];
+//       var seq = new caterwaul.seq.array([1, 2, 3]);
+
+      tconfiguration('std', 'seq.core.class.array', function () {this.configure('seq.core').seq.define('array', fn[xs, length][this.base = xs, this.length = length || xs.length],
+                                                                                                                         fn[n][this.base.at ? this.base.at(n) : this.base[n]])}).
+      tconfiguration('std', 'seq.core.array', function () {
+        let[array = this.configure('seq.core.class.array').seq.array] in this.rmacro(qs[ sa<< _], fn[xs][qs[qg[new _class(_xs)]].replace({_class: new this.ref(array), _xs: xs})])}).
 
 //     Existential and universal quantification.
 //     Sequences have brute-force methods for determining whether there exist any elements with property P, or whether all of the elements have that property. These quantification methods are not
-//     smart! They just iterate through the sequence deterministically until either (1) the end of the sequence is reached, or (2) a decisive element is found.
+//     smart! They just iterate through the sequence deterministically until either (1) the end of the sequence is reached, or (2) a decisive element is found. Infinite sequences will always have
+//     an element that fails the condition; that is, infinite_seq.forall(f) === false, and infinite_seq.exists(f) === true. This doesn't mean anything; it just means that if no such element
+//     existed, the quantifier would never return -- therefore the caller must know ahead of time that a decisive element exists.
 
       tconfiguration('std iter continuation', 'seq.core.quantifiers', function () {
-        this.util.merge(this.configure('seq.core').seq.core.prototype, {forall: fn[f][call/cc[fb[cc][iter.n[i, this.length][f(this.at(i)) || cc(false)], true]]],
+        this.util.merge(this.configure('seq.core').seq.core.prototype, {forall: fn[f][isFinite(this.length) && call/cc[fb[cc][iter.n[i, this.length][f(this.at(i)) || cc(false)], true]]],
                                                                         exists: fn[f][! this.forall(fn[x][! f(x)])]})}).
 
 //   Anamorphic core stream.
 //   This is the basis for generating new streams. There are other stream classes that capture the semantics of filtering, mapping, and iteration patterns -- importantly, they do this lazily.
 
     tconfiguration('std', 'seq.class.ana', function () {
-      this.configure('seq.core').seq.define('ana',
-        fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity],
-        fn[n][this.next.call(this, n > 0 ? this.at(n - 1) : undefined)])}).
+      this.configure('seq.core').seq.define('ana', fn[f, xs][this.length = 0, this.next = f, this.finite_bound = Array.prototype.push.apply(this, xs || []), this.length = Infinity],
+                                                       fn[n][this.next.call(this, n > 0 ? this.at(n - 1) : undefined)])}).
 
 //     Anamorphic syntax extensions.
 //     The idea here is that 'x' is the most recent element, '$' is 'this.at', and 'n' is the finite bound of the stream -- that is, the index of the element being computed. (Remember that all
