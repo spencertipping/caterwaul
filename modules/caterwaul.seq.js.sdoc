@@ -50,13 +50,13 @@ expressions. This library is designed to provide first-class sequence macros/cla
     depth_first_cartesian_product.at(0)           // -> [0, 0]                                                  // O(1) time
     depth_first_cartesian_product.at(1)           // -> [1, 0]                                                  // O(1) time
 
-  | var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(1);                    // O(1) time
+  | var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(2);                    // O(1) time
     primes.length                                 // -> Infinity                                                // O(1) time
     primes.at(0)                                  // -> 2                                                       // O(1) time
     primes.at(1)                                  // -> 3                                                       // O(n) time
     primes.at(2)                                  // -> 5                                                       // O(n) time
 
-  | var fibonacci = seq.ana[this.at(n - 1) + this.at(n - 2)] (naturals.before(2));    // More compactly: seq.ana[$(-1) + $(-2)](0, 1);
+  | var fibonacci = $(-1) + $(-2) <sa< [0, 1];
     fibonacci.length                              // -> Infinity
     fibonacci.first(10)                           // -> seq[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]                    // O(n) time
 
