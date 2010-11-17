@@ -49,6 +49,7 @@
     minify modules/caterwaul.opt
     minify modules/caterwaul.format
     minify modules/caterwaul.error
+    minify modules/caterwaul.continuation
   }
 
 # REPL.
