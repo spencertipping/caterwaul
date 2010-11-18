@@ -342,6 +342,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
       bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.value) result[n.data] = n.value}); return result},
 
+    Matching.
+    Syntax trees can use the Caterwaul match function to return a list of wildcards.
+
+         match: function (pattern) {return macro_try_match(this, pattern)},
+
     Inspection and syntactic serialization.
     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
     pointer. In the serialized representation, it is shown as a comment /* -> */ containing the serialization of whatever is to the right. This has the property that it will break tests but

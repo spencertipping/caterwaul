@@ -111,7 +111,7 @@
 //   caterwaul and restore the global that was there when Caterwaul was loaded. Note that deglobalize() is available only on the global caterwaul() function. It wouldn't make much sense for
 //   clones to inherit it.
 
-    _caterwaul = this.caterwaul,  _global = this,
+    _caterwaul = typeof caterwaul === 'undefined' ? undefined : caterwaul,
 
 // Syntax data structures.
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -341,6 +341,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     populate, in case you already had a hash set aside for bindings -- though it always returns the hash.
 
       bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.value) result[n.data] = n.value}); return result},
+
+//     Matching.
+//     Syntax trees can use the Caterwaul match function to return a list of wildcards.
+
+         match: function (pattern) {return macro_try_match(this, pattern)},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
@@ -894,7 +899,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                                                             for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})};
 
-  return this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
+  return caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {caterwaul = _caterwaul; return this}}).
 
 //   Bootstrapping method behavior.
 //   Setting up the behavior(), method(), field(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the
