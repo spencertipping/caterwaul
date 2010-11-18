@@ -14,5 +14,5 @@ $(caterwaul.clone('std')(function () {
   $('#code').keyup(let[timeout = null] in fn_[timeout && clearTimeout(timeout), timeout = setTimeout(recompile, 200)]);
   $('input').change(recompile);
 
-  $('code > a').click(fn_[$('#code').val('#{$("#code").val()}\n#{$(this).text()}'), recompile()]);
+  $('li').click(fn_[$('#code').val('#{$("#code").val()}\n#{$(this).text()}'), recompile()]);
 }));
