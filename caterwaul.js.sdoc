@@ -111,7 +111,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   caterwaul and restore the global that was there when Caterwaul was loaded. Note that deglobalize() is available only on the global caterwaul() function. It wouldn't make much sense for
   clones to inherit it.
 
-    _caterwaul = this.caterwaul,  _global = this,
+    _caterwaul = typeof caterwaul === 'undefined' ? undefined : caterwaul,
 
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -894,7 +894,7 @@ Related to this is a configure() method that modifies and returns the original f
 
                                                             for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})};
 
-  return this.caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {_global.caterwaul = _caterwaul; return this}}).
+  return caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {caterwaul = _caterwaul; return this}}).
 
   Bootstrapping method behavior.
   Setting up the behavior(), method(), field(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the
