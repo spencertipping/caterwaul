@@ -345,7 +345,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Matching.
 //     Syntax trees can use the Caterwaul match function to return a list of wildcards.
 
-         match: function (pattern) {return macro_try_match(this, pattern)},
+         match: function (pattern) {return macro_try_match(pattern, this)},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
