@@ -34,6 +34,9 @@ Build phases.
 There are a few different things that happen here. First, SDoc needs to be run to update the main source, tests, and modules. This happens regardless of what we're doing. Next the minified JS
 files need to be generated. Each of these things requires little enough time that I'm willing to have them run automatically on every build (anything to avoid using a makefile!).
 
+Caterwaul is particular about the order in which scripts are loaded. Because that's a pain to deal with, I'm generating a precompiled file called 'caterwaul.all.js' (and a corresponding
+min.js) that loads all of the usual stuff in the right order.
+
   minify() {
     node lib/minify.js < $1.js > $1.min.js
   }
@@ -50,6 +53,9 @@ files need to be generated. Each of these things requires little enough time tha
     minify modules/caterwaul.format
     minify modules/caterwaul.error
     minify modules/caterwaul.continuation
+
+    cat caterwaul.js modules/caterwaul.{iter,opt,error,continuation,op,seq}.js > caterwaul.all.js
+    minify caterwaul.all
   }
 
 REPL.
@@ -104,7 +110,7 @@ Trivial build rules that don't actually do anything, but exist to provide inform
     echo "core gzip bytes:    $(gzip -c9 caterwaul.min.js | wc -c)"
     echo "core compact bytes: $(cat caterwaul.min.js | wc -c)"
 
-    rm -f *.min.js modules/*.min.js
+    rm -f *.min.js modules/*.min.js caterwaul.all.js
     echo "total LOC/chars:          $(cat test/*.js modules/*.js modules/*.test/*.js caterwaul.js | wc -lm)"
     echo "core SLOC/chars:          $(grep -v '//' < caterwaul.js | grep -v '^$' | wc -lm)"
     echo "core comment LOC/chars:   $(grep '//' < caterwaul.js | wc -lm)"
@@ -114,6 +120,8 @@ Trivial build rules that don't actually do anything, but exist to provide inform
     echo "module test SLOC/chars:   $(cat modules/*.test/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
 
     generate
+
+    echo "caterwaul.all.min chars/gzip bytes: $(cat caterwaul.all.min.js | wc -m) / $(gzip -c caterwaul.all.min.js | wc -c)"
   }
 
 Main loop.
