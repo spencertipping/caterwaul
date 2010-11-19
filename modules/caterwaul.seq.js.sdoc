@@ -164,6 +164,21 @@ function to generate the next. The initial value is always stored as [0], and su
         this.rmacro(qs[seq.ana[_]], fn[body][with_gensyms[init][fn[init][new _class(_f, init)]].replace({_f: ctransform(body), _class: new this.ref(ana)})]).
              rmacro(qs[_ <sa< _],   fn[form, init][qs[seq.ana[_form](_init)].replace({_form: form, _init: init})])}).
 
+  Traversal extensions.
+  There are a few different ways you can traverse a stream. The simplest way is to use the <se< operator, which stands for 'sequence each' -- this forces the stream and side-effectfully runs
+  an expression on each element; the original stream (now forced) is returned. You can do this for infinite streams, but you need a way to break out of the loop (e.g. with an escaping
+  continuation).
+
+  | console.log(x) <se< [1, 2, 3];                      // Logs 1, 2, 3 and returns a sequence constructed from [1, 2, 3]
+    (sa<< [1, 2, 3]).each(fn[x][console.log(x)]);       // Does the same thing
+
+    tconfiguration('std iter', 'seq.class.traversal', function () {this.configure('seq.core').seq.traversal = {};
+                                                                   this.seq.core.prototype.each(f) = (iter.n[i, this.length][f(this.at(i))], this)}).
+    tconfiguration('std', 'seq.traversal', function () {
+      let[ctransform = this.configure('seq.core seq.class.traversal').seq.traversal.each_comprehension_transform(body) =
+                       qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body})] in
+      this.rmacro(qs[_ <se< _], fn[body, xs][qs[qg[( sa<< _xs).each(_body)]].replace({_xs: xs, _body: ctransform(body)})])}).
+
   Transformative streams.
   These wrap other sequences and expose a new set of elements.
 
@@ -223,4 +238,4 @@ function to generate the next. The initial value is always stored as [0], and su
 End-user configuration.
 Generally you won't want to use the above configurations; this one gathers those all into a coherent module.
 
-  configuration('seq', function () {this.configure('seq.core.prepare seq.core.array seq.core.object seq.core.quantifiers seq.ana seq.map seq.filter seq.class.slice')});
+  configuration('seq', function () {this.configure('seq.core.prepare seq.core.array seq.core.object seq.core.quantifiers seq.ana seq.traversal seq.map seq.filter seq.class.slice')});
