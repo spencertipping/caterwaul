@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.tOEr/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.LcFt/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1639,7 +1639,7 @@ meta::section('defining-macros', <<'__03c31eb18de6301ae3f792a5a942844c');
     - end
 __03c31eb18de6301ae3f792a5a942844c
 
-meta::section('introduction', <<'__ec447f24e225c47c60899f824b5dd332');
+meta::section('introduction', <<'__bf4c05ee82377eefffcf94df2b82ca27');
 - sc Introduction | sec:introduction
   Most JavaScript users are writing client-side applications, though node.js may change that. Caterwaul can be useful for this and plays well with jQuery and other common client-side
   libraries. This guide goes through some enhancements that you can make to your code when you use Lisp-style macros in conjunction with jQuery and jQuery UI.
@@ -1676,7 +1676,14 @@ meta::section('introduction', <<'__ec447f24e225c47c60899f824b5dd332');
   - s1 Running the examples | sec:introduction-running-the-examples
     This guide contains lots of code examples that use Caterwaul. I recommend using the online Caterwaul compiler, up at \url{http://spencertipping.com/caterwaul/compiler}, to see the
     generated code. This shows you the compiled functions that Caterwaul produces from your code.
-__ec447f24e225c47c60899f824b5dd332
+
+  - s1 Further reading | sec:introduction-further-reading
+    After using Caterwaul for some web development, I've taken some common macros and factored them into their own library. You can download this library at
+    \url{http://github.com/spencertipping/montenegro} -- the macros defined there are probably more complete than the ad-hoc macros that you're likely to define for a project.
+
+    I recommend becoming acquainted with Caterwaul's {\tt seq} and {\tt continuation} modules, as these make it easy to handle some common cases that come up in client-side development. (At
+    some point I'll discuss how to use those modules in this guide.)
+__bf4c05ee82377eefffcf94df2b82ca27
 
 meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - documentclass report
