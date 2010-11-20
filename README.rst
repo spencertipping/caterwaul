@@ -29,6 +29,10 @@ Then you can start compiling functions::
       some_array.map(fn[x][x + 1]);
     })();
 
+If you plan on using modules, I recommend including the full script instead (it takes care of module-to-module dependencies by loading things in the right order)::
+
+    <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
+
 Documentation
 -------------
 
