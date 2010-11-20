@@ -37,5 +37,5 @@ Documentation
 -------------
 
 This README isn't intended to document Caterwaul; to learn how to use it, I recommend starting off with `Client-Side Caterwaul
-<http://spencertipping.com/caterwaul/doc/client-side-caterwaul.pdf>`_ and, then, if you're feeling adventurous, reading the `annotated source code
+<http://spencertipping.com/caterwaul/doc/client-side-caterwaul.pdf>`_. If you're feeling adventurous, you might also want to check out the `annotated source code
 <http://spencertipping.com/caterwaul/caterwaul.html>`_. 
