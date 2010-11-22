@@ -1578,12 +1578,12 @@ caterwaul.tconfiguration('std', 'op', function () {
 //       (x + 1 <sa< [0]).map(fn[x][x * 2])        // ditto
 
       tconfiguration('std', 'seq.class.map', function () {
-        this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this.finite_bound = 0], fn[n][this.f.call(this, this.base.at(n))]);
+        this.configure('seq.core').seq.define('map', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this.finite_bound = 0], fn[n][this.f.call(this, this.base.at(n), n)]);
         let[map = this.seq.map][this.seq.core.prototype.map(f) = new map(f, this)]}).
 
       tconfiguration('std', 'seq.map', function () {
         let[ctransform = this.configure('seq.core seq.class.map').seq.map.map_comprehension_transform(body) =
-                         qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
+                         qs[fn[x, i][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
         this.rmacro(qs[_ <sm< _], fn[body, xs][qs[qg[new _class(_f, _xs)]].replace({_class: new this.ref(map), _f: ctransform(body), _xs: xs})])}).
 
 //     Filtering stream.
