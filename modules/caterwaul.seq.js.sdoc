@@ -84,7 +84,7 @@ function to generate the next. The initial value is always stored as [0], and su
     caterwaul.tconfiguration('std', 'seq.core', function () {
       this.configure('std').shallow('seq', {core: fn_[this], define: fb[name, ctor, _at][(this.seq[name] = ctor).prototype = this.util.merge(new this.seq.core(), {_at: _at}), this.seq]});
       this.seq.core.prototype.size() = this.length;
-      this.seq.core.prototype.at(n)  = n < 0 ? this.at(this.finite_bound + n) : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
+      this.seq.core.prototype.at(n)  = n < 0 ? this.finite_bound >= n ? this.at(this.finite_bound + n) : undefined : n < this.finite_bound ? this[n] : n >= this.length ? undefined :
                                        (n > 0 && this.at(n - 1), this[n] = this._at(n), this.finite_bound = n + 1, this[n])}).
 
     Preparation.
