@@ -7,7 +7,7 @@
 
 //   Macros and sequence construction.
 //   In addition to providing utility as classes, there are also some nice macros that come with sequences. You get comprehensions, generators, and side-effectful and pure traversal. Here are
-//   some examples (using 'std', 'seq.ana', 'seq.comp', and 'seq.iter'):
+//   some examples (using 'std' and 'seq'):
 
 //   | var naturals_from = fn[n][x + 1 <sa< [n]];                          // O(1) time
 //     var naturals      = naturals_from(0);                               // O(1) time
@@ -47,7 +47,7 @@
 
 //   | var primes = ! naturals.between(2, x).exists(fn[y][x % y === 0]) <sf< naturals.after(2);                    // O(1) time
 //     primes.length                                 // -> Infinity                                                // O(1) time
-//     primes.at(0)                                  // -> 2                                                       // O(1) time
+//     primes.at(0)                                  // -> 2                                                       // O(n) time
 //     primes.at(1)                                  // -> 3                                                       // O(n) time
 //     primes.at(2)                                  // -> 5                                                       // O(n) time
 
@@ -177,7 +177,7 @@
     tconfiguration('std', 'seq.traversal', function () {
       let[ctransform = this.configure('seq.core seq.class.traversal').seq.traversal.each_comprehension_transform(body) =
                        qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body})] in
-      this.rmacro(qs[_ <se< _], fn[body, xs][qs[qg[( sa<< _xs).each(_body)]].replace({_xs: xs, _body: ctransform(body)})])}).
+      this.rmacro(qs[_ <se< _], fn[body, xs][qs[qg[_xs.each(_body)]].replace({_xs: xs, _body: ctransform(body)})])}).
 
 //   Transformative streams.
 //   These wrap other sequences and expose a new set of elements.
@@ -212,7 +212,8 @@
 
       tconfiguration('std', 'seq.class.filter', function () {
         this.configure('seq.core').seq.define('filter', fn[f, xs][this.length = xs.length, this.base = xs, this.f = f, this.base_finite_bound = -1, this.finite_bound = 0],
-                                                        fn[n][this.f.call(this, this.base.at(++this.base_finite_bound)) ? this.base[this.base_finite_bound] : this._at(n)]);
+                                                        fn[n][n < this.base.length &&
+                                                              (this.f.call(this, this.base.at(++this.base_finite_bound)) ? this.base[this.base_finite_bound] : this._at(n))]);
         let[filter = this.seq.filter][this.seq.core.prototype.filter(f) = new filter(f, this)]}).
 
       tconfiguration('std', 'seq.filter', function () {
