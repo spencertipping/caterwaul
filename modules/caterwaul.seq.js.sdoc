@@ -194,7 +194,7 @@ function to generate the next. The initial value is always stored as [0], and su
 
       tconfiguration('std', 'seq.map', function () {
         let[ctransform = this.configure('seq.core seq.class.map').seq.map.map_comprehension_transform(body) =
-                         qs[fn[x, i][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
+                         qs[fn[x, i][_body, where*[t = this, $(n) = t.base.at(n), n = t.finite_bound]]].replace({_body: body}), map = this.seq.map] in
         this.rmacro(qs[_ <sm< _], fn[body, xs][qs[qg[new _class(_f, _xs)]].replace({_class: new this.ref(map), _f: ctransform(body), _xs: xs})])}).
 
     Filtering stream.
