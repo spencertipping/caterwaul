@@ -1,7 +1,7 @@
 // Map tests.
 
 test(function () {
-  var c = caterwaul.clone('std iter seq.ana seq.map seq.core.array');
+  var c = caterwaul.clone('std iter seq');
 
   c(function (eq) {
     var naturals = x + 1 <sa< [0];
@@ -19,6 +19,19 @@ test(function () {
 
     iter.n[i, 10][eq(odds.at(i), odds2.at(i))];
     iter.n[i, 10][eq(odds.at(i), odds3.at(i))];
+  })(eq);
+
+  c(function (eq) {
+    var empty = sa<< [];
+    var mapped = x + 1 <sm< empty;
+
+    eq(empty.length, 0);
+    eq(empty.at(0), undefined);
+
+    eq(mapped.length, 0);
+    eq(mapped.at(0), undefined);
+
+    eq(mapped.force().length, 0);
   })(eq);
 });
 
