@@ -173,10 +173,10 @@ function to generate the next. The initial value is always stored as [0], and su
     (sa<< [1, 2, 3]).each(fn[x][console.log(x)]);       // Does the same thing
 
     tconfiguration('std iter', 'seq.class.traversal', function () {this.configure('seq.core').seq.traversal = {};
-                                                                   this.seq.core.prototype.each(f) = (iter.n[i, this.length][f(this.at(i))], this)}).
+                                                                   this.seq.core.prototype.each(f) = (iter.n[i, this.length][f(this.at(i), i)], this)}).
     tconfiguration('std', 'seq.traversal', function () {
       let[ctransform = this.configure('seq.core seq.class.traversal').seq.traversal.each_comprehension_transform(body) =
-                       qs[fn[x][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body})] in
+                       qs[fn[x, i][_body, where*[t = this, $(n) = t.at(n), n = t.finite_bound]]].replace({_body: body})] in
       this.rmacro(qs[_ <se< _], fn[body, xs][qs[qg[_xs.each(_body)]].replace({_xs: xs, _body: ctransform(body)})])}).
 
   Transformative streams.
