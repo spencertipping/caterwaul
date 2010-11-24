@@ -1306,8 +1306,8 @@ caterwaul.tconfiguration('std', 'error', function () {
                                                          try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
                                                          catch (e) {if (escaped) return e; else throw e}},
                                   call_tail: fn[f][{magic: magic, continuation: f, parameters: Array.prototype.slice.call(arguments, 1)}], magic: magic}).
-         rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc(_f)]].         replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
-         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail(_f, _args)]].replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).
+         rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
+         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail(_f, _args)]].  replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).
 
 // Graph operations.
 // Normal expression-oriented programming gives you several ways to construct nodes, and variables and recursion let you form loops in the graph. However, there are several common problems for
@@ -1348,17 +1348,6 @@ caterwaul.tconfiguration('std', 'error', function () {
 
 //   Imperative programming relies heavily on this. (So does functional programming, but in a different sense. The K combinator is more of a way to create local black holes to accommodate for
 //   excess duplication by other combinators than it is a way to evaluate something with side-effects.)
-
-//   Anonymous implication.
-//   The most common operation is an implication, which is invocation of a CPS-function along with its continuation. This is what happens when you make an AJAX call, for instance. So, for
-//   example, here's a normal AJAX call and its corresponding CPS representation:
-
-//   | // Using caterwaul.std:
-//     $.getJSON('/some/url', fn[data][$.post('/data', data, fn[reply][console.log('Posted, and got #{reply}')])]);
-//     $.getJSON('/other/url', fn[data][alert('Got #{data}')]);
-
-//   | local['cps'][$.getJSON('/some/url') | $.post('/data', $0) | console.log('Posted, and got #{$0}'),
-//                  $.getJSON('/other/url') | alert('Got #{data}')];
 
 // End-user library.
 
