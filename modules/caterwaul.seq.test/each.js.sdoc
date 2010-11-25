@@ -5,20 +5,20 @@ test(function () {
   
   c(function (eq) {
     var s = sa<< [1, 2, 3];
-    var i = 0;
+    var j = 0;
 
-    i++ <se< s;
-    eq(i, 3);
+    j++ <se< s;
+    eq(j, 3);
 
-    i = 0;
-    (i += x) <se< s;
-    eq(i, 6);
+    j = 0;
+    (j += x) <se< s;
+    eq(j, 6);
   })(eq);
 
   c(function (eq) {
     var naturals = x + 1 <sa< [1];
-    var i = 0;
-    naturals.first(100).each(fn[x][i += x]);
-    eq(i, 5050);
+    var j = 0;
+    naturals.first(100).each(fn[x][j += x]);
+    eq(j, 5050);
   })(eq);
 });
