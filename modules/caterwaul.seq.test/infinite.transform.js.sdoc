@@ -1,0 +1,30 @@
+Map and filter tests on infinite streams.
+
+test(function () {
+  var c = caterwaul.clone('std seq');
+  c(function (eq) {
+    var naturals = new caterwaul.seq.infinite.y(fn[x][x + 1], 0);
+    var evens1   = naturals.map(fn[x][x * 2]);
+    var evens2   = naturals.filter(fn[x][! (x & 1)]);
+
+    eq(naturals.h(), 0);
+    eq(evens1.h(), 0);
+    eq(evens2.h(), 0);
+
+    eq(naturals.t().h(), 1);
+    eq(evens1.t().h(), 2);
+    eq(evens2.t().h(), 2);
+
+    eq(naturals.t().t().h(), 2);
+    eq(evens1.t().t().h(), 4);
+    eq(evens2.t().t().h(), 4);
+
+    eq(naturals.t().t().t().h(), 3);
+    eq(evens1.t().t().t().h(), 6);
+    eq(evens2.t().t().t().h(), 6);
+
+    var big = evens1.filter(fn[x][x > 20000]);
+    eq(big.h(), 20002);
+    eq(big.t().h(), 20004);
+  })(eq);
+});

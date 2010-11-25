@@ -1334,7 +1334,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Javascript's looping facilities are side-effectful and more importantly operate in statement-mode rather than expression-mode. This sequence library moves finite and anamorphic looping into
 // expression-mode using both methods and macros. Macros are used sparingly here; they provide comprehensions, but are ultimately just shorthands for sequence methods.
 
-  caterwaul.tconfiguration('std', 'seq.core', function () {this.shallow('seq', {core: fn_[null] /se[_.prototype = {}]})}).
+  caterwaul.tconfiguration('std', 'seq.core', function () {this.shallow('seq', {core: fn_[null]})}).
 
 // There are two kinds of sequences represented here. One is a finite sequence, which is eager and acts like a Javascript array (though it has a different prototype). The other is an infinite
 // stream; this is an anamorphism that generates new elements from previous ones. Because Javascript isn't required to optimize tail calls, any recursion done by the sequence library is coded in
@@ -1354,8 +1354,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   defined here is actually just a stream that returns undefined forever.
 
     tconfiguration('std continuation', 'seq.infinite.core', function () {
-      this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core()]
-        /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
+      this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
+        /se[_.def(name, ctor, h, t) = i[name] = fn_[ctor.apply(this, arguments), null] /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor], where[ctor = _]], where[i = _],
 
             _.def('cons', fn[h, t][this._h = h, this._t = t], fn_[this._h], fn_[this._t]),
             _.def('k',    fn   [x][this._x = x],              fn_[this._x], fn_[this])]}).
@@ -1368,16 +1368,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Lazy map and filter.
 //   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
-//   because they provide streams as output.
+//   because they provide streams as output. filter() is eager on its first element; that is, it remains one element ahead of what is requested.
 
     tconfiguration('std continuation', 'seq.infinite.class.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
-        /se[_.prototype.map(f) = new _.map(f, this)] 
-        /se[_.def('map',    fn[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())])]
+        /se[_.prototype.map(f) = new _.map(f, this),
+            _.def('map', fn[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
 
-        /se[_.prototype.filter(f) = new _.filter(f, this)]
-        /se[_.def('filter', fn[f, xs][this._f = f, this._xs = xs], fn_[let*[f = this._f, next(s)(cc) = let[h = s.h()][f(h) ? cc(h) : call/tail[next(s.t())(cc)]]] in call/cc[next(this)]],
-                                                                   fn_[new this.constructor(this._f, this._xs.t())])]}).
+            _.prototype.filter(f) = new _.filter(f, this),
+            _.def('filter', fn[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
+                            fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
 
 //   Traversal and forcing.
 //   This is where we convert from infinite streams to finite sequences. You can take or drop elements until a condition is met. take() always assumes it will return a finite sequence, whereas
