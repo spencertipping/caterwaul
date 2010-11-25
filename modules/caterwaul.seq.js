@@ -51,11 +51,12 @@
 
 //   Traversal and forcing.
 //   This is where we convert from infinite streams to finite sequences. You can take or drop elements until a condition is met. take() always assumes it will return a finite sequence, whereas
-//   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager.
+//   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
+//   sequence starting with the element that triggers the function, whereas take() returns a sequence for which no element triggers the function.
 
     tconfiguration('std continuation', 'seq.infinite.class.traversal', function () {
       this.configure('seq.infinite.core').seq.infinite.prototype
-        /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? cc(s.t()) : call/tail[next(s.t())(cc)]] in call/cc[next(this)],
+        /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(this)],
             _.take(f) = let*[xs = [], next(s)(cc) = let[h = s.h()][f(h) ? cc(xs) : (xs.push(h), call/tail[next(s.t())(cc)])]] in call/cc[next(this)]]}).
 
 // Final configuration.
