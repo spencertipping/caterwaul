@@ -6,34 +6,33 @@ This module provides macros to assist with continuations. The most widely-known 
 nonblocking things such as AJAX. In this case the callback function is the continuation of the call. (I'm not going to fully explain continuations here, but
 http://en.wikipedia.org/wiki/Continuation is a good if intimidating place to start if you're into functional programming -- which I assume you are if you're using Caterwaul :).)
 
-Javascript's continuation support has some subtleties. First a bit of background: Most languages use asymmetric continuations; that is, the arity of functions is different from the arity of
-continuations. This is because most functions return only one value, whereas they can take many. Perl is as far as I know the only language to get this right, and even it has some weirdness
-when differentiating between scalar and list-context continuations. Anyway, Javascript is firmly asymmetric in its handling of continuations, which means that multiple-value callbacks require
-some supporting machinery before using them in a true continuation context.
+  caterwaul.configuration('continuation.core', function () {this.shallow('continuation', {})}).
 
-Another subtlety is how the implicit 'this' parameter is handled. Caterwaul's standard library treats a function's binding behavior more as an attribute of the function than of its invocation
-context (a step away from traditional Javascript). In the case of continuations, there are a couple of common cases:
+CPS-conversion.
+Converting a whole program to CPS to get re-entrant continuations is a lot of work, so I'm not even trying that. But localized CPS is really useful, especially for nested AJAX calls and such.
+Here's a common example:
 
-| 1. The continuation is a result of asynchronous communication or some such, and 'this' doesn't mean anything.
-  2. The continuation is an event callback or otherwise related to an object, so 'this' is important.
+| $.getJSON('some-url', fn[result]
+    [$.getJSON('some-other-url-#{result.property}', fn[other_result][...])]);
 
-This continuation library preserves Caterwaul's treatment of 'this'; that is, you define a continuation's binding when you create it.
+Rather than dealing with this nesting explicitly, it's more convenient to use normal let-notation. That's exactly what let/cps does:
 
-  Data flow as a graph.
-  In functional programming you can think of data flow in terms of a graph; a variable isn't a box in which to store something as much as it is a name for a link. For example, the expression
-  'let[a = 3, b = 5] in a * b + b' involves two edges, 'a' and 'b'. Each has a vertex of in-degree zero (the constants 3 and 5, respectively), forming this graph:
+| let/cps[result       <- $.getJSON('some-url', _),
+          other_result <- $.getJSON('some-other-url-#{result.property}', _)]
+  [console.log(result)];
 
-  | (3) -> (*) <- (5)
-            |      V
-            +---> (+) -> (output)
+There are a couple of things to note about this setup. First, the arrows. This is so that your continuations can be n-ary. (Javascript doesn't let you assign into a paren-list.)
 
-  Obviously this isn't quite how it works, since you can change a and b's values without retroactively affecting other expressions. But absent modification, at a semantic level you do get this
-  kind of data flow. Some things to note:
+| let/cps[(x, y) <- binary_ajax_call('some-url', _)][...];
 
-  | 1. Nodes with just one outward edge can be inlined in expressions, whereas two or more edges require a temporary variable.
-    2. Nodes with no input edges are where evaluation begins.
-    3. There is always an output continuation that is not determined by the contents of an expression. (In other words, every expression returns a value, and you can send that value anywhere.)
-    4. A function is just an expression where some nodes have inputs that aren't a part of the graph.
+Second, and this is important: let/cps returns immediately with the result of the first continuation-producing expression (so in the above example, the return value of binary_ajax_call would
+be the value of the let/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is
+happening here; let/cps ultimately gets translated into the set of nested functions that you would otherwise write.
+
+  tconfiguration('std', 'continuation.cps', function () {
+    let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v, _b: b})})] in
+    this.rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
+         rmacro(qs[let/cps[   _ <- _][_]], cps_convert)}).
 
 Escaping continuations and tail call optimization.
 The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
@@ -53,11 +52,12 @@ that tail-calling a method won't do what you want:
 
 | call/tail[object.method(5)]   // calls object.method with wrong 'this'
 
-What you can do instead is eta-expand:
+What you can do instead is eta-expand or use Caterwaul's /mb notation (note the extra parens; they're necessary, just as they would be if you were invoking an /mb'd method directly):
 
 | call/tail[fn[x][object.method(x)](5)];
+  call/tail[(object/mb/method)(5)];             // At this rate you're probably better off using the call_tail function directly.
 
-This will invoke object.method in the right context.
+Either of these will invoke object.method in the right context.
 
 Delimited continuations work because call/cc uses an internal while loop to forward parameters outside of the tail call. This keeps the stack bounded by a constant. Note that tail calls work
 only inside a call/cc context. You can use them elsewhere, but they will not do what you want. Also, tail calls really do have to be tail calls. You need to return the call/tail[...]
@@ -68,54 +68,16 @@ continuations). call/cc is stored as caterwaul.continuation.call_cc, and call/ta
 
 | caterwaul.continuation.call_tail(f, arg1, arg2, ...);
 
-  caterwaul.tconfiguration('std', 'continuation.delimited', function () {var magic = {};
-    this.shallow('continuation', {call_cc: function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
-                                                         try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
-                                                         catch (e) {if (escaped) return e; else throw e}},
-                                  call_tail: fn[f][{magic: magic, continuation: f, parameters: Array.prototype.slice.call(arguments, 1)}], magic: magic}).
-         rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
+  tconfiguration('std', 'continuation.delimited', function () {var magic = {};
+    this.continuation.call_cc = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
+                                              try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
+                                              catch (e) {if (escaped) return e; else throw e}};
+    this.continuation.call_tail(f) = {magic: magic, continuation: f, parameters: Array.prototype.slice.call(arguments, 1)};
+    this.continuation.magic = magic;
+
+    this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
          rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail(_f, _args)]].  replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).
-
-Graph operations.
-Normal expression-oriented programming gives you several ways to construct nodes, and variables and recursion let you form loops in the graph. However, there are several common problems for
-which variables and/or recursion (mostly just variables) are unnecessarily verbose.
-
-  Duplication.
-  Here's a common Javascript idiom:
-
-  | x && x.foo && x.foo.bar && x.foo.bar.bif
-
-  But since x, x.foo, and x.foo.bar are all local invariants, it would be nice to write this instead:
-
-  | x && it.foo && it.bar && it.baz
-    // which becomes ((x && it.foo) && it.bar) && it.baz due to left-associativity
-
-  Basically, because && specifies evaluation order anyway, you want to grab the value of the last thing computed and reuse it. Here's what the graph would look like (minus decisionals, which
-  are handled by && for us):
-
-  | (x) -[1]-> (.foo)
-     |            V
-     +--------> (&&) -[2]-> (.bar)
-                  |            V
-                  +--------> (&&) -[3]-> (.bif)
-                               |            V
-                               +--------> (&&) --> (output)
-
-  Here the arrows [1], [2], and [3] represent the duplication caused by 'it' in the original expression. (Each one also happens to be predicated on the truthiness of its inbound node, but only
-  because of && -- this is a bit of nonlocality that's hard to model in a continuation graph.)
-
-  Put into a completely different context, this is a fold (catamorphism) using &&, combined with an unfold (anamorphism) from x to x.property, where property varies depending on the unfold
-  step. Catamorphisms and anamorphisms are often present when continuation graphs have many nodes with in-degree and out-degree 2, respectively.
-
-  Absorption.
-  Javascript already provides a way to absorb values. The expression 'a, b' evaluates both and returns b, which corresponds roughly to this graph:
-
-  | (a) --> (black hole)
-    (b) --> (output)
-
-  Imperative programming relies heavily on this. (So does functional programming, but in a different sense. The K combinator is more of a way to create local black holes to accommodate for
-  excess duplication by other combinators than it is a way to evaluate something with side-effects.)
 
 End-user library.
 
-  configuration('continuation', function () {this.configure('continuation.delimited')});
+  configuration('continuation', function () {this.configure('continuation.core continuation.cps continuation.delimited')});

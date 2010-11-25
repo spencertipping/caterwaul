@@ -1,0 +1,28 @@
+CPS-conversion tests.
+
+test(function () {
+  var c = caterwaul.clone('std continuation');
+  c(function (eq) {
+    var x  = 0;
+    var cs = [];
+    var f  = cs/mb/push;
+    var g  = fn_[cs.shift().apply(this, arguments)];
+
+    eq(let/cps[y <- f(_)][x += y], 1);
+    eq(x, 0);
+    eq(cs.length, 1);
+    g(10);
+    eq(x, 10);
+    eq(cs.length, 0);
+
+    eq(let/cps[y <- f(_), z <- f(_)][x += y + z], 1);
+    eq(x, 10);
+    eq(cs.length, 1);
+    g(7);
+    eq(x, 10);
+    eq(cs.length, 1);
+    g(4);
+    eq(x, 21);
+    eq(cs.length, 0);
+  })(eq);
+});
