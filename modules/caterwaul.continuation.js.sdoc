@@ -8,6 +8,24 @@ http://en.wikipedia.org/wiki/Continuation is a good if intimidating place to sta
 
   caterwaul.configuration('continuation.core', function () {this.shallow('continuation', {})}).
 
+Unwind protection.
+This is how you can implement error handling. You can intercept both the normal and the escaping cases and specify a return value for each alternative. Unwind-protect ultimately compiles into
+a try/catch. Also provided is the unwind[] macro, which causes an unwind through any call/cc operations until an unwind-protect is hit or the toplevel is reached, in which case it shows up as
+an error. unwind[x] is exactly equivalent to (function () {throw x})().
+
+Unwind-protect is of this form:
+
+| unwind_protect[<escape>][<body>]      // === caterwaul.continuation.unwind_protect(fn[e][<escape>], fn_[<body>])
+
+The escape block will be run if any abnormal escaping is being performed (e.g. escaping via call/cc, unwind[], or an exception). Body is executed regardless, and if it returns normally then
+its return value is the return value of the unwind_protect block. The escape block can refer to 'e', the escaping value. 'this' is preserved in the body and escape blocks.
+
+  tconfiguration('std', 'continuation.unwind', function () {
+    this.configure('std.fn continuation.core').continuation.unwind_protect = function (escape, f) {try {return f()} catch (e) {return escape(e)}};
+    this.continuation.unwind = function (e) {throw e};
+    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qs[_f(fb[e][_escape], fb_[_body])].replace({_f: new this.ref(this.continuation.unwind_protect), _escape: escape, _body: body})]).
+         rmacro(qs[unwind[_]], fn[e][qs[_f(_e)].replace({_f: new this.ref(this.continuation.unwind), _e: e})])}).
+
 CPS-conversion.
 Converting a whole program to CPS to get re-entrant continuations is a lot of work, so I'm not even trying that. But localized CPS is really useful, especially for nested AJAX calls and such.
 Here's a common example:
@@ -31,8 +49,8 @@ happening here; let/cps ultimately gets translated into the set of nested functi
 
   tconfiguration('std', 'continuation.cps', function () {
     let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v, _b: b})})] in
-    this.rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
-         rmacro(qs[let/cps[   _ <- _][_]], cps_convert)}).
+    this.configure('continuation.core').rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
+                                        rmacro(qs[let/cps[   _ <- _][_]], cps_convert)}).
 
 Escaping continuations and tail call optimization.
 The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
@@ -68,12 +86,12 @@ continuations). call/cc is stored as caterwaul.continuation.call_cc, and call/ta
 
 | caterwaul.continuation.call_tail(f, arg1, arg2, ...);
 
-  tconfiguration('std', 'continuation.delimited', function () {var magic = {};
+  tconfiguration('std', 'continuation.delimited', function () {
+    var magic = this.configure('continuation.core').continuation.magic = {};
     this.continuation.call_cc = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
                                               try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
                                               catch (e) {if (escaped) return e; else throw e}};
     this.continuation.call_tail(f) = {magic: magic, continuation: f, parameters: Array.prototype.slice.call(arguments, 1)};
-    this.continuation.magic = magic;
 
     this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
          rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail(_f, _args)]].  replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).

@@ -46,15 +46,12 @@
 
     # Production-worthy files get minified:
     minify caterwaul
-    minify modules/caterwaul.iter
-    minify modules/caterwaul.seq
-    minify modules/caterwaul.op
     minify modules/caterwaul.opt
+    minify modules/caterwaul.seq
     minify modules/caterwaul.format
-    minify modules/caterwaul.error
     minify modules/caterwaul.continuation
 
-    cat caterwaul.js modules/caterwaul.{iter,opt,error,continuation,op,seq}.js > caterwaul.all.js
+    cat caterwaul.js modules/caterwaul.{opt,continuation,seq}.js > caterwaul.all.js
     minify caterwaul.all
   }
 
