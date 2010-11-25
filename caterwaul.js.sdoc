@@ -933,6 +933,12 @@ being configured; thus a 'util' object that contains some useful stuff. For star
 
     shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map, qw: qw}).
 
+Magic.
+Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are
+considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
+
+     method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({})).
+
 Standard library.
 Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
 
@@ -1000,10 +1006,13 @@ configuration multiple times (though you're probably doing something wrong if yo
 
   Side-effects can be chained since / is left-associative.
 
+  An alternative form of side-effecting is the 'right-handed' side-effect, written x /re[y]. This returns the result of evaluating y, where _ is bound to x.
+
     tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
       this.configure('std.qg std.fn').rmacro(qs[_/mb/_],  fn[object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
                                       rmacro(qs[_/mb[_]], fn[object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/se[_]], fn   [value, body][qs[qg[fn[_][body, _]](value)].replace({body: body, value: value})])}).
+                                      rmacro(qs[_/se[_]], fn   [value, body][qs[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/re[_]], fn   [value, body][qs[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})])}).
 
   Binding abbreviations (the 'bind' library).
   Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is

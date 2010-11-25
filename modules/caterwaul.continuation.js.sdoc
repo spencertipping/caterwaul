@@ -87,7 +87,7 @@ continuations). call/cc is stored as caterwaul.continuation.call_cc, and call/ta
 | caterwaul.continuation.call_tail(f, arg1, arg2, ...);
 
   tconfiguration('std', 'continuation.delimited', function () {
-    var magic = this.configure('continuation.core').continuation.magic = {};
+    var magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited');
     this.continuation.call_cc = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
                                               try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
                                               catch (e) {if (escaped) return e; else throw e}};
