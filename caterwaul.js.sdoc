@@ -987,6 +987,24 @@ configuration multiple times (though you're probably doing something wrong if yo
            rmacro(qs[fb[_][_]], function (vars, expression) {return qs[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
            rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})})}).
 
+  Object abbreviations (the 'obj' library).
+  Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly
+  eta-expand when calling a method in point-free form:
+
+  | xs.map(object/mb/method);           // === xs.map(fn[x][object.method(x)])
+    xs.map(object/mb[method]);          // === xs.map(fn[x][object[method](x)])
+
+  Also useful is side-effecting, which you can do this way:
+
+  | {} /se[_.foo = 'bar']               // === let[_ = {}][_.foo = 'bar', _]
+
+  Side-effects can be chained since / is left-associative.
+
+    tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
+      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],  fn[object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/mb[_]], fn[object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/se[_]], fn   [value, body][qs[qg[fn[_][body, _]](value)].replace({body: body, value: value})])}).
+
   Binding abbreviations (the 'bind' library).
   Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is
   left-associative. This means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.)
@@ -1119,4 +1137,4 @@ configuration multiple times (though you're probably doing something wrong if yo
   Standard configuration.
   This loads all of the production-use extensions.
 
-    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.defmacro std.with_gensyms std.ref std.local std.compile_eval std.string')})});
+    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.local std.compile_eval std.string')})});
