@@ -986,12 +986,16 @@ configuration multiple times (though you're probably doing something wrong if yo
   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. fb[][] and fb_[]
   are identical to fn[][] and fn_[], but they preserve 'this' across the function call.
 
+  The fc[][] and fc_[] variants build constructor functions. These are just like regular functions, but they have no return statement.
+
     tconfiguration('std.qs std.qg', 'std.fn', function () {
       this.configure('std.qg').
            rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (vars) {return expression}]].replace({vars: vars, expression: expression})}).
            rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
            rmacro(qs[fb[_][_]], function (vars, expression) {return qs[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
-           rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})})}).
+           rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
+           rmacro(qs[fc[_][_]], function       (vars, body) {return qs[qg[function (vars) {body}]].replace({vars: vars, body: body})}).
+           rmacro(qs[fc_[_]],   function             (body) {return qs[qg[function     () {body}]].replace({            body: body})})}).
 
   Object abbreviations (the 'obj' library).
   Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly

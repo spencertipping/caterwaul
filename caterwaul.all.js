@@ -986,12 +986,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. fb[][] and fb_[]
 //   are identical to fn[][] and fn_[], but they preserve 'this' across the function call.
 
+//   The fc[][] and fc_[] variants build constructor functions. These are just like regular functions, but they have no return statement.
+
     tconfiguration('std.qs std.qg', 'std.fn', function () {
       this.configure('std.qg').
            rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (vars) {return expression}]].replace({vars: vars, expression: expression})}).
            rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
            rmacro(qs[fb[_][_]], function (vars, expression) {return qs[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
-           rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})})}).
+           rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
+           rmacro(qs[fc[_][_]], function       (vars, body) {return qs[qg[function (vars) {body}]].replace({vars: vars, body: body})}).
+           rmacro(qs[fc_[_]],   function             (body) {return qs[qg[function     () {body}]].replace({            body: body})})}).
 
 //   Object abbreviations (the 'obj' library).
 //   Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly
@@ -1350,12 +1354,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // element of the stream, and the latter returns a stream containing the rest of the elements.
 
 //   Terminals.
-//   There isn't a 'nil' stream exactly, since that would imply an end of data. Rather, if you're building a stream from consing, you'll end up consing something onto a constant stream. The 'nil'
-//   defined here is actually just a stream that returns undefined forever.
+//   There isn't a 'nil' stream exactly, since that would imply an end of data. Rather, if you're building a stream from consing, you'll end up consing something onto a constant stream.
 
     tconfiguration('std continuation', 'seq.infinite.core', function () {
       this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
-        /se[_.def(name, ctor, h, t) = i[name] = fn_[ctor.apply(this, arguments), null] /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor], where[ctor = _]], where[i = _],
+        /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
 
             _.def('cons', fn[h, t][this._h = h, this._t = t], fn_[this._h], fn_[this._t]),
             _.def('k',    fn   [x][this._x = x],              fn_[this._x], fn_[this])]}).
@@ -1364,7 +1367,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns f(x), f(f(x)), f(f(f(x))), ....
 
     tconfiguration('std', 'seq.infinite.y', function () {
-      this.configure('seq.infinite.core').seq.infinite.def('y', fn[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
+      this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
 
 //   Lazy map and filter.
 //   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
@@ -1373,10 +1376,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     tconfiguration('std continuation', 'seq.infinite.class.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
         /se[_.prototype.map(f) = new _.map(f, this),
-            _.def('map', fn[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
+            _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
 
             _.prototype.filter(f) = new _.filter(f, this),
-            _.def('filter', fn[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
+            _.def('filter', fc[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
                             fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
 
 //   Traversal and forcing.

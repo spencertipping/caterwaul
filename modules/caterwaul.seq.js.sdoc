@@ -21,12 +21,11 @@ All streams are assumed to be infinite in length; that is, given some element th
 element of the stream, and the latter returns a stream containing the rest of the elements.
 
   Terminals.
-  There isn't a 'nil' stream exactly, since that would imply an end of data. Rather, if you're building a stream from consing, you'll end up consing something onto a constant stream. The 'nil'
-  defined here is actually just a stream that returns undefined forever.
+  There isn't a 'nil' stream exactly, since that would imply an end of data. Rather, if you're building a stream from consing, you'll end up consing something onto a constant stream.
 
     tconfiguration('std continuation', 'seq.infinite.core', function () {
       this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
-        /se[_.def(name, ctor, h, t) = i[name] = fn_[ctor.apply(this, arguments), null] /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor], where[ctor = _]], where[i = _],
+        /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
 
             _.def('cons', fn[h, t][this._h = h, this._t = t], fn_[this._h], fn_[this._t]),
             _.def('k',    fn   [x][this._x = x],              fn_[this._x], fn_[this])]}).
@@ -35,7 +34,7 @@ element of the stream, and the latter returns a stream containing the rest of th
   Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns f(x), f(f(x)), f(f(f(x))), ....
 
     tconfiguration('std', 'seq.infinite.y', function () {
-      this.configure('seq.infinite.core').seq.infinite.def('y', fn[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
+      this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
 
   Lazy map and filter.
   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
@@ -44,10 +43,10 @@ element of the stream, and the latter returns a stream containing the rest of th
     tconfiguration('std continuation', 'seq.infinite.class.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
         /se[_.prototype.map(f) = new _.map(f, this),
-            _.def('map', fn[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
+            _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
 
             _.prototype.filter(f) = new _.filter(f, this),
-            _.def('filter', fn[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
+            _.def('filter', fc[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
                             fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
 
   Traversal and forcing.
