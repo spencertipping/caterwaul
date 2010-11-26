@@ -24,12 +24,36 @@ you can refer to a global ``caterwaul`` function. The global ``caterwaul`` has n
 
 Then you can start compiling functions::
 
-    c(function () {
-      let[x = 6, y = 10] in alert(x + y);
-      some_array.map(fn[x][x + 1]);
+    c(function () {                                                                     // c(f) decompiles f and returns a new function
+      let[x = 6, y = 10] in alert(x + y);                                               // expands into (function (x, y) {return alert(x + y)}).call(this, 6, 10)
+      some_array.map(fn[x][x + k]), where[k = 10];                                      // fn[x][x + k] expands into function (x) {return x + k}, and
+                                                                                        // ..., where[k = 10] is the same as let[k = 10] in ...
+
+      var point = fc[x, y][this.x = x, this.y = y]                                      // fc[...][...] builds a constructor function (one without a return)
+        /se[_.prototype.distance() = Math.sqrt(this.x * this.x + this.y * this.y),      // x /se[...] evaluates ... with _ bound to x, then returns x
+            _.prototype.toString() = '<#{this.x}, #{this.y}>'];                         // f(...) = y is the same as f = fn[...][y]
+
+      console.log('The distance is #{new point(3, 4).distance()}');                     // #{} blocks in strings are interpolated as they are in Ruby
+
+      defsubst[log < _x][console.log(_x)];                                              // defines a substitution macro (you can use defmacro for Turing completeness)
+      log < 'Macro!';                                                                   // expands into console.log('Macro!')
+
+      var f = console/mb/log;                                                           // retrieves console.log as a bound method
+      f('This will work');                                                              // f doesn't require explicit 'this'-binding; it's persistently bound to console
+
+      // Using the 'continuation' module:
+      var factorial = fn[n, acc, k][n > 0 ? call/tail[factorial(n - 1, acc * n, k)] : k(acc)];
+      console.log('5! = #{call/cc[fn[k][factorial(5, 1, k)]]}');                        // call/cc creates a delimited continuation
+
+      // Using the 'seq' module:
+      var from_two         = seq[2 >>>[_ + 1]];                                         // Infinite stream of naturals starting with 2
+      var primes           = seq[from_two %!n[from_two[_ <= Math.sqrt(n)] &[n % _]]];   // Infinite stream of prime numbers
+      var primes_below_100 = seq[primes[_ < 100]];                                      // Finite sequence of prime numbers
+
+      console.log('The primes below 100 are #{primes_below_100.join(", ")}');
     })();
 
-If you plan on using modules, I recommend including the full script instead (it takes care of module-to-module dependencies by loading things in the right order)::
+If you plan on using modules, I recommend using the "all" script rather than caterwaul.js (it takes care of module-to-module dependencies by loading things in the right order)::
 
     <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
 
@@ -38,4 +62,4 @@ Documentation
 
 This README isn't intended to document Caterwaul; to learn how to use it, I recommend starting off with `Client-Side Caterwaul
 <http://spencertipping.com/caterwaul/doc/client-side-caterwaul.pdf>`_. If you're feeling adventurous, you might also want to check out the `annotated source code
-<http://spencertipping.com/caterwaul/caterwaul.html>`_. 
+<http://spencertipping.com/caterwaul/caterwaul.html>`_.

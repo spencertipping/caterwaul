@@ -179,6 +179,8 @@
 //   x + y                 // x.concat(y)
 //   !x                    // x.object()
 //   ~x                    // new caterwaul.seq.finite(x)
+//   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
+//   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
 //   (x)                   // x
 
 // Method calls are treated normally and arguments are untransformed; so you can call methods normally without internal operator overloading.
