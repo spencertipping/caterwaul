@@ -1,0 +1,23 @@
+Finite sequence zip tests.
+
+test(function () {
+  var c = caterwaul.clone('std seq');
+
+  c(function (eq) {
+    var xs = new caterwaul.seq.finite([1, 2, 3, 4, 5]);
+    var ys = xs.map(fn[x][x * 2]);
+    var zs = xs.map(fn[x][x * 3]);
+
+    var triples = xs.zip(ys, zs);
+    eq(triples.length, 5);
+    eq(triples[0].length, 3);
+
+    eq(triples[0][0], 1);
+    eq(triples[0][1], 2);
+    eq(triples[0][2], 3);
+
+    eq(triples[0].join(','), '1,2,3');
+    eq(triples[1].join(','), '2,4,6');
+    eq(triples[2].join(','), '5,10,15');
+  })(eq);
+});

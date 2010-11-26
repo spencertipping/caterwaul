@@ -1,13 +1,15 @@
 Unit testing library functions
 
 var already_failed = false;
-var on_error = function (e) {throw new Error(e)};
+var on_error = function (e) {console.log('Error at eq count ' + eq_count); throw new Error(e)};
+var eq_count = 0;
 
 var log = function (message) {};
 
 var eq = function (x, y, message) {
+  ++eq_count;
   if (x == y) return true;
-  else        return on_error((message ? message + ': ' : '') + '\n' + x + '\n\n!==\n\n' + y);
+  else        return on_error((message ? message + ': ' : ' (eq ' + eq_count + ')') + '\n' + x + '\n\n!==\n\n' + y);
 };
 
 var aeq = function (xs, ys, message) {
@@ -18,7 +20,9 @@ var aeq = function (xs, ys, message) {
 };
 
 var test = function (f) {
+  eq_count = 0;
   f();
   caterwaul = caterwaul.reinitialize(caterwaul);
+  eq_count = 0;
   f();
 };
