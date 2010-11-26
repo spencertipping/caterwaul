@@ -4,8 +4,8 @@ test(function () {
   var c = caterwaul.clone('std seq');
   c(function (eq) {
     var naturals = new caterwaul.seq.infinite.y(fn[x][x + 1], 0);
-    var big      = naturals.drop(fn[x][x >= 1000]);
-    var small    = naturals.take(fn[x][x >= 1000]);
+    var big      = naturals.drop(fn[x][x < 1000]);
+    var small    = naturals.take(fn[x][x < 1000]);
 
     eq(big.h(), 1000);
     eq(big.t().h(), 1001);

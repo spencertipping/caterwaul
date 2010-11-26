@@ -13,6 +13,7 @@ test(function () {
 
     eq(below_100.forall(fn[x][x < 100]), true);
     eq(below_100.exists(fn[x][x > 10]), 11);
+    eq(below_100.exists(fn[x][x > 20]), 23);
   })(eq);
 });
 
