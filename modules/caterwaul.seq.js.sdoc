@@ -61,6 +61,7 @@ filter(), foldl(), foldr(), zip(), etc.
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.length][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
+
             _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length][opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x],
             _.foldr(f, x) = let[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
                                [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x]]}).
@@ -69,25 +70,26 @@ filter(), foldl(), foldr(), zip(), etc.
   Zipping as a generalized construct has a few variants. One is the function used to zip (by default, [x, y]), another is the number of sequences to zip together, and the last one is whether
   you want an inner or outer product. Here's the full argument syntax for zip() with defaults:
 
-  | zip(xs1, xs2, ..., xsn, {f: fn_[new seq(arguments)], outer: false})
+  | xs.zip(xs1, xs2, ..., xsn, {f: fn_[new seq(arguments)], outer: false})
 
   Each of xsi should be an array-ish object (i.e. should support the .length and [i] attributes). If you specify the optional hash at the end, its 'f' attribute, if specified, will be invoked
   on every n-tuple of items, and if 'outer' is truthy then you will have the outer-product of all of your sequences (i.e. the longest sequence length is used, and undefined is specified when
   you run past the end of any other one).
 
     tconfiguration('std opt', 'seq.finite.zip', function () {
-      this.configure('seq.finite.traversal').seq.finite /se[let[seq = _, slice = Array.prototype.slice] in
-      _.prototype.zip() = let[as = new seq(arguments), options = {f: fn_[new seq(arguments)], outer: false}]
-                             [as[as.length - 1].constructor === Object && caterwaul.util.merge(options, as.pop()),
-                              let[l = as.map(fn[x][x.length]).foldl(options.outer ? Math.max : Math.min), f = options.f] in
-                              new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({index: i}, slice.call(as.map(fn[x][x[i]]))))]]]]}).
+      this.configure('seq.finite.traversal').seq.finite
+        /se[let[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
+          let[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
+             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
+              let[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
+              new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
   Quantification.
   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
 
     tconfiguration('std continuation', 'seq.finite.quantification', function () {
       this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.length][f.call(this, this[i], i) && cc(this[i] || true)], false]],
-                                                                 _.forall(f) = ! this.exists(fn_[!f.apply(this, arguments)])]}).
+                                                                 _.forall(f) = ! this.exists(fn_[! f.apply(this, arguments)])]}).
 
 Stream API.
 All streams are assumed to be infinite in length; that is, given some element there is always another one. Streams provide this interface with h() and t() methods; the former returns the first

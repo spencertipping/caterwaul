@@ -15,6 +15,13 @@ test(function () {
     eq(ys.foldr(fn[x, y][x + y]), 10);
     eq(ys.foldr(fn[x, y][x + y], ''), '1234');
     eq(ys.foldr(fn[x, y]['(#{x + y})'], ''), '(1(2(3(4))))');
+
+    var zs = new caterwaul.seq.finite([3, 4]);
+
+    eq(zs.foldl(fn[x, y][Math.min(x, y)]), 3);
+    eq(zs.foldr(fn[x, y][Math.min(x, y)]), 3);
+    eq(zs.foldl(fn[x, y][Math.max(x, y)]), 4);
+    eq(zs.foldr(fn[x, y][Math.max(x, y)]), 4);
   })(eq);
 });
 
