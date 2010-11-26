@@ -1445,7 +1445,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
 //   because they provide streams as output. filter() is eager on its first element; that is, it remains one element ahead of what is requested.
 
-    tconfiguration('std continuation', 'seq.infinite.class.transform', function () {
+    tconfiguration('std continuation', 'seq.infinite.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
         /se[_.prototype.map(f) = new _.map(f, this),
             _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
@@ -1459,16 +1459,67 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
 //   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
-    tconfiguration('std continuation', 'seq.infinite.class.traversal', function () {
+    tconfiguration('std continuation', 'seq.infinite.traversal', function () {
       let[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
         /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
             _.take(f) = let*[xs = new finite(), next(s)(cc) = let[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
 
+// Sequence manipulation language.
+// Using methods to manipulate sequences can be clunky, so the sequence library provides a macro to enable sequence-specific manipulation. You enter this mode by using seq[], and expressions
+// inside the brackets are interpreted as sequence transformations. For example, here is some code translated into the seq[] macro:
+
+// | var primes1 = let[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
+//   var primes2 = let[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _ === 0]]];
+
+// These operators are supported and take their normal Javascript precedence and associativity:
+
+// | x *[_ + 2]            // x.map(fn[_, _i][_ + 2])
+//   x *![console.log(_)]  // x.each(fn[_, _i][console.log(_)])
+//   x /[_ + _0]           // x.foldl(fn[_, _0, _i][_ + _0])
+//   x /![_ + _0]          // x.foldr(fn[_, _0, _i][_ + _0])
+//   x %[_ >= 100]         // x.filter(fn[_, _i][_ >= 100])
+//   x %![_ >= 100]        // x.filter(fn[_, _i][!(x >= 100)])
+//   x *n[n + 2]           // x.map(fn[n, ni][n + 2])
+//   x *!n[console.log(n)] // x.each(fn[n, ni][console.log(n)])
+//   x /n[n + n0]          // x.foldl(fn[n, n0, ni][n + n0])
+//   x /!n[n + n0]         // x.foldr(fn[n, n0, ni][n + n0])
+//   x %n[n % 100 === 0]   // x.filter(fn[n, ni][n % 100 === 0])
+//   x %!n[n % 100]        // x.filter(fn[n, ni][!(n % 100 === 0)])
+//   x[_ >= 10]            // x.take(fn[_][_ >= 10])
+//   x <<[_ >= 10]         // x.take(fn[_][_ >= 10])
+//   x <<n[n >= 10]        // x.take(fn[n][n >= 10])
+//   x >>[_ >= 10]         // x.drop(fn[_][_ >= 10])
+//   x >>n[n >= 10]        // x.drop(fn[n][n >= 10])
+//   x |[_ === 5]          // x.exists(fn[_, _i][_ === 5])
+//   x &[_ === 5]          // x.forall(fn[_, _i][_ === 5])
+//   x |n[n === 5]         // x.exists(fn[n, ni][n === 5])
+//   x &n[n === 5]         // x.forall(fn[n, ni][n === 5])
+//   x || y                // x && x.length ? x : y
+//   x && y                // x && x.length ? y : x
+//   x > y                 // x.length > y.length
+//   x >= y                // x.length >= y.length
+//   x < y                 // x.length < y.length
+//   x <= y                // x.length <= y.length
+//   x === y               // x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])
+//   x !== y               // !(x === y)
+//   x == y                // x.length === y.length
+//   x != y                // x.length !== y.length
+//   sk[x]                 // caterwaul.seq.finite.keys(x)
+//   sv[x]                 // caterwaul.seq.finite.values(x)
+//   sp[x]                 // caterwaul.seq.finite.pairs(x)
+//   x ^ y                 // x.zip(y)
+//   x + y                 // x.concat(y)
+//   !x                    // x.object()
+//   ~x                    // new caterwaul.seq.finite(x)
+//   (x)                   // x
+
+// Method calls are treated normally and arguments are untransformed; so you can call methods normally without internal operator overloading.
+
 // Final configuration.
 // Rather than including individual configurations above, you'll probably just want to include this one.
 
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
-                                                            'seq.infinite.core seq.infinite.y seq.infinite.class.transform seq.infinite.class.traversal')});
+                                                            'seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal')});
 
 // Generated by SDoc 
