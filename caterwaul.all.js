@@ -1420,7 +1420,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Quantification.
 //   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
 
-    tconfiguration('std continuation', 'seq.finite.quantification', function () {
+    tconfiguration('std opt continuation', 'seq.finite.quantification', function () {
       this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.length][f.call(this, this[i], i) && cc(this[i] || true)], false]],
                                                                  _.forall(f) = ! this.exists(fn_[! f.apply(this, arguments)])]}).
 
@@ -1455,15 +1455,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                             fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
 
 //   Traversal and forcing.
-//   This is where we convert from infinite streams to finite sequences. You can take or drop elements until a condition is met. take() always assumes it will return a finite sequence, whereas
+//   This is where we convert from infinite streams to finite sequences. You can take or drop elements while a condition is true. take() always assumes it will return a finite sequence, whereas
 //   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
-//   sequence starting with the element that triggers the function, whereas take() returns a sequence for which no element triggers the function.
+//   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
     tconfiguration('std continuation', 'seq.infinite.class.traversal', function () {
       let[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
-        /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(this)],
-            _.take(f) = let*[xs = new finite(), next(s)(cc) = let[h = s.h()][f(h) ? cc(xs) : (xs.push(h), call/tail[next(s.t())(cc)])]] in call/cc[next(this)]]}).
+        /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
+            _.take(f) = let*[xs = new finite(), next(s)(cc) = let[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
 
 // Final configuration.
 // Rather than including individual configurations above, you'll probably just want to include this one.
