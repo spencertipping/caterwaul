@@ -37,9 +37,10 @@
         <li>fb[x][this(x)];</li>
         <li>fb_[this.method()];</li>
         <li>fn_[this];</li>
+        <li>fc[x, y][this.x = x, this.y = y];</li>
+        <li>fc_[this.x = ++count];</li>
         <li>x + y, where[x = 6, y = 10];</li>
         <li>console.log(x), when[x &gt; 0];</li>
-        <li>var plus = $+$;</li>
         <li>let[f = $+$] in f(3, 4);</li>
         <li>let[f = $+$][f(3, 4)];</li>
         <li>let*[x = 5, y = x] in x + y;</li>
@@ -47,10 +48,40 @@
         <li>let[f(x) = x + 1] in f(6);</li>
         <li>f(10)(20), where[f(x)(y) = x + y];</li>
         <li>console.log('The value is #{1 + 2 + 3}');</li>
+        <li>{} /se[_[k] = v];</li>
+        <li>{} /re[_[k] = v];</li>
+        <li>[1, 2, 3].map(console/mb/log);</li>
+        <li>[1, 2, 3].map(console/mb['log']);</li>
     </ul>
 
     <h3>Optimization macro library</h3>
     <ul><li>opt.unroll[x, 100][console.log(x)];</li>
+    </ul>
+
+    <h3>Continuation macro library</h3>
+    <em>Note that these make heavy use of internal references, so the code they generate is fairly uninteresting.</em>
+    <ul><li>call/cc[fn[cc][condition ? cc(5) : 6]];</li>
+        <li>let*[f(n, a, k) = n &gt; 0 ? call/tail[f(n - 1, a * n, k)] : k(a)] in call/cc[fn[cc][f(5, 1, cc)]];</li>
+        <li>let/cps[x &lt;- $.getJSON('/foo', _), y &lt;- $.getJSON('/foo/#{x}', _)][console.log('Got #{y}')];</li>
+    </ul>
+
+    <h3>Sequence macro library</h3>
+    <ul><li>seq[xs *[_ + 1]];</li>
+        <li>seq[xs *![console.log(_)]];</li>
+        <li>seq[xs /[_ + _0]];</li>
+        <li>seq[xs /![_ + _0]];</li>
+        <li>seq[xs %[_ % 3 === 0]];</li>
+        <li>seq[xs %![_ % 3]];</li>
+        <li>seq[xs *n[n + 10]];</li>
+        <li>seq[xs *!n[console.log(n)]];</li>
+        <li>seq[xs *[_ + 1] %[_ % 3] /[_ + _0]];</li>
+        <li>seq[xs &lt;&lt;[_ &lt; 100]];</li>
+        <li>seq[xs &gt;&gt;[_ &lt; 100]];</li>
+        <li>seq[xs + ys];</li>
+        <li>seq[xs *[_ + 1] ^ ys %[_ &lt;= 10]];</li>
+        <li>var naturals = seq[0 &gt;&gt;&gt;[_ + 1]];</li>
+        <li>var primes = seq[2 &gt;&gt;&gt;[_ + 1]] /se[seq[_ %~n[_ &lt;&lt;[_ &lt;= Math.sqrt(n)] &amp;[n % _]]]];</li>
+        <li>var first_few_primes = seq[primes &lt;&lt;[_ &lt; 100]];</li>
     </ul>
 
     <div>
