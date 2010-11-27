@@ -229,7 +229,7 @@ Method calls are treated normally and arguments are untransformed; so you can ca
                                _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[_, _])),
                                _(qs[~_], rxy(qs[new r(x)].replace({r: new this.ref(this.seq.finite)}))), _(qs[_ ? _ : _], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
                                
-                               let*[rx(tree)(x, y) = tree.replace({x: e(x), y: y}), idrx(tree) = _(tree, rx(tree))] in idrx /se[_(qs[_(_)]), _(qs[_[_]]), _(qs[_._])]],
+                               let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))]],
 
           _.expand(t) = call/cc[fn[cc][opt.unroll[i, ps.length][let*[p = ps[ps.length - (i + 1)], m = t.match(p[0])][cc(p[1].apply(t, m)), when[m]]], t]],
           this.rmacro(qs[seq[_]], fn[x][_.expand(x)]),

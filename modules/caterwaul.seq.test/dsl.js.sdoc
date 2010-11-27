@@ -1,0 +1,13 @@
+Sequence DSL tests.
+
+test(function () {
+  var c = caterwaul.clone('std seq');
+
+  c(function (eq) {
+    var from_two  = seq[2 >>>[_ + 1]];
+    var primes    = seq[from_two %~n[from_two <<[_ <= Math.sqrt(n)] &[n % _]]];
+    var under_100 = seq[(primes <<[_ < 100]).join(',')];
+
+    eq(under_100, '2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97');
+  })(eq);
+});
