@@ -1,13 +1,15 @@
-$(caterwaul.clone('std')(function () {
+$(caterwaul.clone('std continuation')(function () {
   var c = caterwaul.clone('std format');
+  var simplify_gensym = {} /re[let[count = 0] in fn[g][_[g] || (_[g] = 'g#{++count}')]];
 
-  var recompile = let*[parse_errors_for = function (code) {try {return ! new Function(code)} catch (e) {return e.toString()}},
-                         try_to_compile = function (c, code) {try {return c.macroexpand(c.parse(code))} catch (e) {return e.toString()}},
-                              serialize = fn[tree][tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() :
-                                                                                       $('#inspect').is(':checked') ? tree.inspect() : c.format(tree)],
-               configuration(c, config) = $('##{config}').is(':checked') ? c.configure(config) : c,
-                       create_caterwaul = fn_[configuration(caterwaul.clone(), 'std') /re[configuration(_, 'opt') /re[
-                                                     configuration(_, 'continuation') /re[configuration(_, 'seq') /re[configuration(_, 'montenegro.jquery')]]]]]] in
+  var recompile = let*[parse_errors_for(code) = unwind_protect[e.toString()][! new Function(code)],
+                      try_to_compile(c, code) = unwind_protect[e.toString()][c.macroexpand(c.parse(code))],
+                              serialize(tree) = (tree.constructor === String ? tree : $('#minify').is(':checked') ? tree.serialize() :
+                                                                                      $('#inspect').is(':checked') ? tree.inspect() : c.format(tree))
+                                                /re[$('#gensyms').is(':checked') ? _.replace(/gensym_\w+/g, simplify_gensym) : _],
+                     configuration(c, config) = $('##{config}').is(':checked') ? c.configure(config) : c,
+                           create_caterwaul() = configuration(caterwaul.clone(), 'std') /re[configuration(_, 'opt') /re[
+                                                       configuration(_, 'continuation') /re[configuration(_, 'seq')]]]] in
 
   fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(try_to_compile(c, code)))) || '')];
 
