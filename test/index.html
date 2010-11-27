@@ -1,56 +1,41 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Caterwaul Unit Tests</title>
-    <script src='../lib/unit.js'></script>
-    <script src='../caterwaul.min.js'></script>
-
-    <style>
-      #log {font-family: monospace}
-      #log div {border-bottom: solid 1px #ccc; padding: 10px}
-    </style>
-  </head>
-  <body>
-    Any test failures will appear below.
-
-    <div id='log'>
-    </div>
-
-    <script>
-      on_error = function (e) {
-        var d = document.createElement('div');
-        d.appendChild(document.createTextNode(e));
-        document.getElementById('log').appendChild(d);
-      };
-
-      log = function (message) {
-        on_error('Log: ' + message);
-      };
-    </script>
-
-    <script src="defmacro.js"></script>
-    <script src="fn.js"></script>
-    <script src="lex-atom.js"></script>
-    <script src="lex-end-failure.js"></script>
-    <script src="lex-neq-failure.js"></script>
-    <script src="lex-op.js"></script>
-    <script src="lex-regexp-in-for-failure.js"></script>
-    <script src="lex-semicolon-failure.js"></script>
-    <script src="lvalue.js"></script>
-    <script src="macro-definition.js"></script>
-    <script src="op.fn.js"></script>
-    <script src="parse-arithmetic.js"></script>
-    <script src="parse-empty-for-initializer-failure.js"></script>
-    <script src="parse-function-object-failure.js"></script>
-    <script src="parse-grouping.js"></script>
-    <script src="parse-syntax.js"></script>
-    <script src="parse-ternary.js"></script>
-    <script src="ref.js"></script>
-    <script src="serialize-semicolons.js"></script>
-    <script src="string.js"></script>
-    <script src="tostring-bootstrap.js"></script>
-    <script src="tostring-identity.js"></script>
-    <script src="tostring-jquery.js"></script>
-    <script src="with-gensyms.js"></script>
-  </body>
-</html>
+<html><head><title>Caterwaul tests</title><script src="../lib/unit.js"></script><script src="../lib/unit.client.js"></script>
+<script src="../caterwaul.all.min.js"></script></head>
+<body><p>Any failing tests will produce log messages below.</p><div id="log"></div>
+<script src=".././test/defmacro.js"></script>
+<script src=".././test/fn.js"></script>
+<script src=".././test/lex-atom.js"></script>
+<script src=".././test/lex-end-failure.js"></script>
+<script src=".././test/lex-neq-failure.js"></script>
+<script src=".././test/lex-op.js"></script>
+<script src=".././test/lex-regexp-in-for-failure.js"></script>
+<script src=".././test/lex-semicolon-failure.js"></script>
+<script src=".././test/local.js"></script>
+<script src=".././test/lvalue.js"></script>
+<script src=".././test/macro-definition.js"></script>
+<script src=".././test/parse-arithmetic.js"></script>
+<script src=".././test/parse-empty-for-initializer-failure.js"></script>
+<script src=".././test/parse-function-object-failure.js"></script>
+<script src=".././test/parse-grouping.js"></script>
+<script src=".././test/parse-syntax.js"></script>
+<script src=".././test/parse-ternary.js"></script>
+<script src=".././test/ref.js"></script>
+<script src=".././test/serialize-semicolons.js"></script>
+<script src=".././test/string.js"></script>
+<script src=".././test/tostring-bootstrap.js"></script>
+<script src=".././test/tostring-identity.js"></script>
+<script src=".././test/tostring-jquery.js"></script>
+<script src=".././test/with-gensyms.js"></script>
+<script src=".././modules/caterwaul.opt.test/unroll.js"></script>
+<script src=".././modules/caterwaul.continuation.test/cps.js"></script>
+<script src=".././modules/caterwaul.continuation.test/delimited.js"></script>
+<script src=".././modules/caterwaul.seq.test/dsl.js"></script>
+<script src=".././modules/caterwaul.seq.test/finite.filter.js"></script>
+<script src=".././modules/caterwaul.seq.test/finite.fold.js"></script>
+<script src=".././modules/caterwaul.seq.test/finite.map.js"></script>
+<script src=".././modules/caterwaul.seq.test/finite.object.js"></script>
+<script src=".././modules/caterwaul.seq.test/finite.quantifiers.js"></script>
+<script src=".././modules/caterwaul.seq.test/finite.zip.js"></script>
+<script src=".././modules/caterwaul.seq.test/infinite.transform.js"></script>
+<script src=".././modules/caterwaul.seq.test/infinite.traversal.js"></script>
+<script src=".././modules/caterwaul.seq.test/infinite.y.js"></script>
+</body></html>

@@ -53,6 +53,9 @@
 
     cat caterwaul.js modules/caterwaul.{opt,continuation,seq}.js > caterwaul.all.js
     minify caterwaul.all
+
+    # Keep the test page up-to-date:
+    testpage
   }
 
 # REPL.
@@ -77,6 +80,22 @@
     done
     grep '^fail' .test-log && return 1
     return 0
+  }
+
+# Browser testing.
+# I'm too lazy to manually update the test page every time I add a new unit test, so this script generates it from the list of tests that get run when you run build unit. The client-side test
+# code is now factored into lib/unit.client.js.
+
+  testpage() {
+    rm -f test/index.html
+    echo '<html><head><title>Caterwaul tests</title><script src="../lib/unit.js"></script><script src="../lib/unit.client.js"></script>' >> test/index.html
+    echo '<script src="../caterwaul.all.min.js"></script></head>'                                                                        >> test/index.html
+    echo '<body><p>Any failing tests will produce log messages below.</p><div id="log"></div>'                                           >> test/index.html
+
+    find -wholename './test/*.js'           | sed 's/^/<script src="..\//;s/$/"><\/script>/' >> test/index.html
+    find -wholename './modules/*.test/*.js' | sed 's/^/<script src="..\//;s/$/"><\/script>/' >> test/index.html
+
+    echo '</body></html>' >> test/index.html
   }
 
 # Version packaging.
