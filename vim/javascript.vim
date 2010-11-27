@@ -42,8 +42,9 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
 
   syn keyword jsVarBindingKeyword       const var contained
   syn keyword jsBindingKeyword          function catch contained
-  syn match   jsBindingAssignment       /\k\+\s*=[^=]/ contains=jsOperator contained containedin=jsVarBinding
-  syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_ ]\+\(([A-Za-z0-9$_, ]*)\)*\s*=[^=]/ contains=jsOperator,jsParens contained containedin=jsCaterwaulLet,jsCaterwaulWhere
+  syn match   jsBindingAssignment       /\k\+\s*=\([^=]\|$\)/ contains=jsOperator contained containedin=jsVarBinding
+  syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_ ]\+\(([A-Za-z0-9$_, ]*)\)*\s*=\([^=]\|$\)/ contains=jsOperator,jsParens contained containedin=jsCaterwaulLet,jsCaterwaulWhere
+  syn match   jsCpsBindingAssignment    /[A-Za-z0-9$_ ]\+\s*<-/                                  contains=jsOperator,jsParens contained containedin=jsCaterwaulLetCps
 
 syn region    jsTernary                 matchgroup=jsTernaryOperator start=/?/ end=/:/ contains=TOP,jsColonLHS
 syn match     jsOperator                /[-+*^%&\|!~;=><,.]\{1,4\}/
@@ -59,13 +60,17 @@ syn keyword   jsCaterwaul               caterwaul
 
 syn region    jsCaterwaulContinuation   matchgroup=jsCaterwaulMacro start=+call/\(cc\|tail\)\s*\[+ end=/]/ contains=TOP
 
+syn match     jsCaterwaulMb             /\/mb\/\?/
+syn region    jsCaterwaulSe             matchgroup=jsCaterwaulMacro start=/\/[rs]e\[/         end=/]/ contains=TOP
+
 syn region    jsCaterwaulQs             matchgroup=jsCaterwaulMacro start=/qs\s*\[/           end=/]/ contains=TOP
 syn region    jsCaterwaulQg             matchgroup=jsCaterwaulMacro start=/qg\s*\[/           end=/]/ contains=TOP
-syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/f[nb]\s*\[/        end=/]/ contains=jsOperator
+syn region    jsCaterwaulFn             matchgroup=jsCaterwaulMacro start=/f[nbc]\s*\[/       end=/]/ contains=jsOperator
 syn region    jsCaterwaulLet            matchgroup=jsCaterwaulMacro start=/let\*\?\s*\[/      end=/]/ contains=TOP,jsBindingAssignment
+syn region    jsCaterwaulLetCps         matchgroup=jsCaterwaulMacro start=/let\/cps\*\?\s*\[/ end=/]/ contains=TOP,jsCpsBindingAssignment
 syn region    jsCaterwaulWhere          matchgroup=jsCaterwaulMacro start=/where\*\?\s*\[/    end=/]/ contains=TOP,jsBindingAssignment
 
-syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/f[nb]_\s*\[/       end=/]/ contains=TOP
+syn region    jsCaterwaulFn_            matchgroup=jsCaterwaulMacro start=/f[nbc]_\s*\[/      end=/]/ contains=TOP
 syn region    jsCaterwaulWhen           matchgroup=jsCaterwaulMacro start=/when\s*\[/         end=/]/ contains=TOP
 syn region    jsCaterwaulUnless         matchgroup=jsCaterwaulMacro start=/unless\s*\[/       end=/]/ contains=TOP
 syn region    jsCaterwaulCompileEval    matchgroup=jsCaterwaulMacro start=/compile_eval\s*\[/ end=/]/ contains=TOP
@@ -74,14 +79,16 @@ syn region    jsCaterwaulDefmacro       matchgroup=jsCaterwaulMacro start=/defma
 syn region    jsCaterwaulDefsubst       matchgroup=jsCaterwaulMacro start=/defsubst\s*\[/     end=/]/ contains=TOP
 syn region    jsCaterwaulWithGensyms    matchgroup=jsCaterwaulMacro start=/with_gensyms\s*\[/ end=/]/ contains=jsOperator
 
+syn region    jsCaterwaulSeq            matchgroup=jsCaterwaulMacro start=/seq\s*\[/          end=/]/ contains=TOP
+  syn region  jsCaterwaulSeqSX          matchgroup=jsCaterwaulMacro start=/s[kvp]\s*\[/       end=/]/ contains=TOP contained containedin=jsCaterwaulSeq
+  syn match   jsCaterwaulSeqVariableOp  /\([\*/%|&]!\?\|<<\|>>\|>>>\)\~\?\k*/ contained contains=jsCaterwaulSeqVariable,jsOperator containedin=jsCaterwaulSeq
+    syn match jsCaterwaulSeqVariable    /\k\+/ contained containedin=jsCaterwaulSeqVariableOp
+
 syn match     jsCaterwaulDefsubstVar    /_\k\+/ contained containedin=jsCaterwaulDefsubst
 
-syn match     jsCaterwaulDfnParens      /([A-Za-z0-9$_, ]*)\s*>\$>/ contains=jsOperator,jsCaterwaulDfnSigil,jsParens
-syn match     jsCaterwaulDfn            /\k\+\s*>\$>/               contains=jsOperator,jsCaterwaulDfnSigil
-syn match     jsCaterwaulDfnSigil       />\$>/                      contained
-
-syn match     jsCaterwaulComplexOp      /\([-+*^%&\|<>]\{1,2\}\)[\k()\[\]]\+\1\|\([<>]\{1,2\}\)[^ ]\+[<>]\{1,2\}/
+syn match     jsCaterwaulComplexOp      /\([-+*^%&\|<>]\{1,2\}\)[A-Za-z0-9$_()\[\]]\+\1\|\([<>]\{1,2\}\)[^ ]\+[<>]\{1,2\}/
 syn match     jsCaterwaulOperatorFn     /\$[-+*/^%&\|<>]\{1,2\}\$/
+syn match     jsCaterwaulUnaryLeftOp    /[^'"/ ]\+[<>=]\{2,3\}/
 
 syn match     jsParens                  /[()]/ contained
 
@@ -92,18 +99,20 @@ if main_syntax == "javascript"
   syn sync ccomment javaScriptComment
 endif
 
+hi def link jsCaterwaulSeqVariable      Identifier
+
+hi def link jsCaterwaulMb               Special
+
+hi def link jsCpsBindingAssignment      Identifier
 hi def link jsCaterwaulContinuation     Special
 
+hi def link jsCaterwaulUnaryLeftOp      Special
 hi def link jsCaterwaulComplexOp        Special
 hi def link jsCaterwaulOperatorFn       Special
 
 hi def link jsCaterwaulDefmacro         Special
 hi def link jsCaterwaulWithGensyms      Identifier
 hi def link jsCaterwaulDefsubstVar      Identifier
-
-hi def link jsCaterwaulDfnParens        Identifier
-hi def link jsCaterwaulDfn              Identifier
-hi def link jsCaterwaulDfnSigil         Keyword
 
 hi def link jsCaterwaulQs               Special
 hi def link jsCaterwaulMacro            Special
