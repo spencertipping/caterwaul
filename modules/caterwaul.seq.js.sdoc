@@ -142,6 +142,7 @@ inside the brackets are interpreted as sequence transformations. For example, he
 These operators are supported and take their normal Javascript precedence and associativity:
 
 | x *[_ + 2]            // x.map(fn[_, _i][_ + 2])
+  x *~[_ + xs]          // x.map(fn[_, _i][_.concat(xs)])
   x *![console.log(_)]  // x.each(fn[_, _i][console.log(_)])
   x /[_ + _0]           // x.foldl(fn[_, _0, _i][_ + _0])
   x /![_ + _0]          // x.foldr(fn[_, _0, _i][_ + _0])
@@ -188,7 +189,7 @@ Method calls are treated normally and arguments are untransformed; so you can ca
   Inside the DSL code.
   This code probably looks really intimidating, but it isn't actually that complicated. The first thing I'm doing is setting up a few methods to help with tree manipulation. The
   prefix_substitute() method takes a prefix and a tree and looks for data items in the tree that start with underscores. It then changes their names to reflect the variable prefixes. For
-  example, prefix_substitute('foo', qs[fn[_, _x, _i][...]]) would return fn[foo, foox, fooi].
+  example, prefix_substitute(qs[fn[_, _x, _i][...]], 'foo') would return fn[foo, foox, fooi].
 
   Pattern definition is abstracted in case I want to change the representation later on. (I don't have any plans to do this yet.)
 
@@ -207,10 +208,11 @@ Method calls are treated normally and arguments are untransformed; so you can ca
     tconfiguration('std opt continuation', 'seq.dsl', function () {
       this.configure('seq.core seq.infinite.y seq.finite.core').seq.dsl = {}
 
-      /se[_.prefix_substitute(prefix, tree)    = tree.rmap(fn[n][new this.constructor('#{prefix}#{this.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
-          _.define_pattern(pattern, expansion) = _ /se[ps.push([pattern, expansion])],
-          _.define_functional(op, expansion)   = let[ts = trees_for(op)] in _.define_pattern(ts[0], fn[l,    r][prefix_substitute(expansion, '_')   .replace({x: _.expand(l), y: r})]).
-                                                                              define_pattern(ts[1], fn[l, v, r][prefix_substitute(expansion, v.data).replace({x: _.expand(l), y: r})]),
+      /se[_.define_pattern(pattern, expansion) = _ /se[ps.push([pattern, expansion])],
+
+          _.prefix_substitute(tree, prefix)    = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
+          _.define_functional(op, expansion)   = trees_for(op).map(fn[t, i][_.define_pattern(t,
+                                                   fn[l, v, r][_.prefix_substitute(expansion, i & 1 ? v.data : '_').replace({x: _.expand(l), y: (i & 2 ? _.expand : fn[x][x])(r || v)})])]),
 
           _.define_functional /se[_('%',   qs[x.filter(fn[_, _i][y])]),      _('*',  qs[x. map(fn[_, _i][y])]), _('/',  qs[x.foldl(fn[_, _0, _i][y])]), _('|', qs[x.exists(fn[_, _i][y])]),
                                   _('%!',  qs[x.filter(fn[_, _i][!qg[y]])]), _('*!', qs[x.each(fn[_, _i][y])]), _('/!', qs[x.foldr(fn[_, _0, _i][y])]), _('&', qs[x.forall(fn[_, _i][y])]),
@@ -232,8 +234,9 @@ Method calls are treated normally and arguments are untransformed; so you can ca
           _.expand(t) = call/cc[fn[cc][opt.unroll[i, ps.length][let*[p = ps[ps.length - (i + 1)], m = t.match(p[0])][cc(p[1].apply(t, m)), when[m]]], t]],
           this.rmacro(qs[seq[_]], fn[x][_.expand(x)]),
 
-          where*[template(t)(op) = t.clone() /se[_.data = op], b = template(qs[_ +[_]]), bound = template(qs[_ +_[_]]), b0 = template(qs[_ +![_]]), bound0 = template(qs[_ +!_[_]]),
-                 trees_for(op) = op.charAt(op.length - 1) === '!' ? let[op0 = op.substring(0, op.length - 1)] in [b0(op0), bound0(op0)] : [b(op), bound(op)], qw = caterwaul.util.qw,
+          where*[template(op)(t) = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw,
+                 trees_for(op) = op.charAt(op.length - 1) === '!' ? seq([qs[![_]], qs[!_[_]], qs[!~[_]], qs[!~_[_]]]).map(template(op.substring(0, op.length - 1))) :
+                                                                    seq([qs[[_]], qs[_[_]], qs[~[_]], qs[~_[_]]]).map(template(op)),
                  rxy(tree)(x, y) = tree.replace({x: _.expand(x), y: y && _.expand(y)}), seq = fb[xs][new this.seq.finite(xs)], ps = _.patterns = new this.seq.finite()]]}).
 
 Final configuration.
