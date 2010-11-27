@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.LcFt/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.CIh2/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1639,7 +1639,7 @@ meta::section('defining-macros', <<'__03c31eb18de6301ae3f792a5a942844c');
     - end
 __03c31eb18de6301ae3f792a5a942844c
 
-meta::section('introduction', <<'__bf4c05ee82377eefffcf94df2b82ca27');
+meta::section('introduction', <<'__e8ef7171a92341e314ffa647f0644154');
 - sc Introduction | sec:introduction
   Most JavaScript users are writing client-side applications, though node.js may change that. Caterwaul can be useful for this and plays well with jQuery and other common client-side
   libraries. This guide goes through some enhancements that you can make to your code when you use Lisp-style macros in conjunction with jQuery and jQuery UI.
@@ -1648,7 +1648,7 @@ meta::section('introduction', <<'__bf4c05ee82377eefffcf94df2b82ca27');
     Using Caterwaul is really easy. Most applications have a setup like this:
 
     - verbatim << end
-      <script src='...jquery.js'></script>
+      <script src='.../jquery.js'></script>
       <script>
         $(function () {
           // application code
@@ -1659,8 +1659,8 @@ meta::section('introduction', <<'__bf4c05ee82377eefffcf94df2b82ca27');
     If you wanted to use Caterwaul in the application code, you'd do this:
 
     - verbatim << end
-      <script src='...jquery.js'></script>
-      <script src='...caterwaul.js'></script>
+      <script src='.../jquery.js'></script>
+      <script src='.../caterwaul.js'></script>
       <script>
         // Yes, this looks weird, but it's how it works :)
         $(caterwaul.clone('std')(function () {
@@ -1675,7 +1675,7 @@ meta::section('introduction', <<'__bf4c05ee82377eefffcf94df2b82ca27');
 
   - s1 Running the examples | sec:introduction-running-the-examples
     This guide contains lots of code examples that use Caterwaul. I recommend using the online Caterwaul compiler, up at \url{http://spencertipping.com/caterwaul/compiler}, to see the
-    generated code. This shows you the compiled functions that Caterwaul produces from your code.
+    generated code.
 
   - s1 Further reading | sec:introduction-further-reading
     After using Caterwaul for some web development, I've taken some common macros and factored them into their own library. You can download this library at
@@ -1683,7 +1683,7 @@ meta::section('introduction', <<'__bf4c05ee82377eefffcf94df2b82ca27');
 
     I recommend becoming acquainted with Caterwaul's {\tt seq} and {\tt continuation} modules, as these make it easy to handle some common cases that come up in client-side development. (At
     some point I'll discuss how to use those modules in this guide.)
-__bf4c05ee82377eefffcf94df2b82ca27
+__e8ef7171a92341e314ffa647f0644154
 
 meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - documentclass report
@@ -1702,7 +1702,7 @@ meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - end
 __aa4d1b571c5a0d971bdcb77aebbf035d
 
-meta::section('the-std-library', <<'__944912508750c7c83e7b2334fb794808');
+meta::section('the-std-library', <<'__be86785ba1c99e6e1318d4a3923d0bca');
 - sc The {\tt std} Library | sec:the-std-library
   Caterwaul comes with a bunch of useful macros accessible via the {\tt std} configuration. I highly recommend importing them for use in your projects. In this chapter I'll go over some
   examples demonstrating how to use the {\tt std} library in your code.
@@ -1777,6 +1777,16 @@ meta::section('the-std-library', <<'__944912508750c7c83e7b2334fb794808');
         $.getJSON('/validate', {value: $(this).val()}, fb[result][
           result.valid ? $(this).removeClass('invalid') : $(this).addClass('invalid')])]);
     - end
+
+    - s2 Defining constructors: {\tt fc}
+      I found out not too long ago that it's problematic for constructor functions to return values. It's possible to write a non-returning function with {\tt fn} by having it return {\tt
+      undefined}, but that's a lot of typing for something that's ultimately a simple requirement. Since version 0.4, the macro {\tt fc[][]} (and correspondingly \verb|fc_[]|) is available for
+      writing non-returning functions:
+
+      - verbatim << end
+        var problem = fn[x][this.x = x];        // A bad constructor
+        var fixed   = fc[x][this.x = x];        // This one works
+      - end
 
   - s1 {\tt let} and {\tt where} | sec:the-std-library-let-and-where
     Continuing the previous example, let's suppose you are concerned about minimizing jQuery allocations and don't want to repeat the expression \verb|$(this)| more than necessary. The easiest
@@ -1916,6 +1926,34 @@ meta::section('the-std-library', <<'__944912508750c7c83e7b2334fb794808');
       Note that saying something like \verb|$.fn.foo()() = ...| won't do what you want. The reason is that the inner function loses its {\tt this} binding, so you won't be able to refer to the
       jQuery object! I don't have a solution in mind for this yet, but it's high on my list of things to fix.
 
+  - s1 {\tt /se} and {\tt /re} | sec:the-std-library-se-and-re
+    As of version 0.4, Caterwaul's standard library supports some nice ways of introducing side-effects. You would use these when you have an expression that you want to reference more than
+    once, but you don't want to introduce a new {\tt let}-binding for it. The most common case is probably creating an object whose key is variable:
+
+    - verbatim << end
+      // In plain Javascript:
+      var object = function (k, v) {
+        var result = {};
+        result[k] = v;
+        return result;
+      };
+
+      // Using a let:
+      var object = fn[k, v][let[result = {}][result[k] = v, result]];
+
+      // Using /se:
+      var object = fn[k, v][{} /se[_[k] = v]];
+    - end
+
+    The expression {\tt x /se[y]} expands into \verb|let[_ = x][y, x]|. In other words, it introduces {\tt y} as a side-effect and returns {\tt x}. There's a corresponding right-handed side
+    effect macro, {\tt x /re[y]}, that expands into \verb|let[_ = x][y]| -- that is, it returns {\tt y} instead of {\tt x}. Side-effects are often more readable than allocating temporary
+    variables, especially when writing prototyped functions:
+
+    - verbatim << end
+      var my_class = fc[x, y][this.x = x, this.y = y]
+      /se[_.prototype.toString() = '<#{this.x}, #{this.y}>'];
+    - end
+
   - s1 {\tt std.string} | sec:the-std-library-std-string
     It's common to write code like this:
 
@@ -1972,7 +2010,7 @@ meta::section('the-std-library', <<'__944912508750c7c83e7b2334fb794808');
         // undefined causes the toLowerCase check to fail.
         x.toLowerCase(), when[x.toLowerCase], unless[x === null || x === undefined]];
     - end
-__944912508750c7c83e7b2334fb794808
+__be86785ba1c99e6e1318d4a3923d0bca
 
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
