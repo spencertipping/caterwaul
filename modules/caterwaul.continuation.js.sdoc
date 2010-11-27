@@ -48,7 +48,7 @@ be the value of the let/cps[][] block). This has some important ramifications, p
 happening here; let/cps ultimately gets translated into the set of nested functions that you would otherwise write.
 
   tconfiguration('std', 'continuation.cps', function () {
-    let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v, _b: b})})] in
+    let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v.as('(')[0], _b: b})})] in
     this.configure('continuation.core').rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
                                         rmacro(qs[let/cps[   _ <- _][_]], cps_convert)}).
 

@@ -24,5 +24,13 @@ test(function () {
     g(4);
     eq(x, 21);
     eq(cs.length, 0);
+
+    var s = '';
+    eq(let/cps[(foo, bar) <- f(_)][s += foo + bar], 1);
+    eq(s, '');
+    eq(cs.length, 1);
+    g('one', 'two');
+    eq(s, 'onetwo');
+    eq(cs.length, 0);
   })(eq);
 });
