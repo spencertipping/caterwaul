@@ -9,6 +9,9 @@ test(function () {
     var under_100 = seq[(primes <<[_ < 100]).join(',')];
 
     eq(under_100, '2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97');
+
+    // There are fewer primes below 100 than below 1000:
+    eq(seq[primes <<[_ < 100] < primes <<[_ < 1000]], true);
   })(eq);
 });
 
