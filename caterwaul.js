@@ -213,6 +213,8 @@
      reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
       rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r},
 
+     clone: fn('@rmap(function () {return false})'),
+
    collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
    replace: function (rs) {return this.rmap(function (n) {return own.call(rs, n.data) && rs[n.data]})},
 
@@ -916,6 +918,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
       field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
+     method('global', function () {return caterwaul}).
      method('decompile', fn('@parse($0.toString())')).method('macro', fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
 
      method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).

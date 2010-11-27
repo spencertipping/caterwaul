@@ -46,8 +46,11 @@ Then you can start compiling functions::
       console.log('5! = #{call/cc[fn[k][factorial(5, 1, k)]]}');                        // call/cc creates a delimited continuation
 
       // Using the 'seq' module:
+      // Note that there's some macro-magic going on here. modules/caterwaul.seq.js.sdoc
+      // contains an explanation of the notation. You can also write it longhand (see the
+      // example in modules/caterwaul.seq.test/finite.quantifiers.js.sdoc).
       var from_two         = seq[2 >>>[_ + 1]];                                         // Infinite stream of naturals starting with 2
-      var primes           = seq[from_two %!n[from_two[_ <= Math.sqrt(n)] &[n % _]]];   // Infinite stream of prime numbers
+      var primes           = seq[from_two %n[from_two <<[_ <= Math.sqrt(n)] &[n % _]]]; // Infinite stream of prime numbers
       var primes_below_100 = seq[primes[_ < 100]];                                      // Finite sequence of prime numbers
 
       console.log('The primes below 100 are #{primes_below_100.join(", ")}');

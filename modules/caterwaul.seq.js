@@ -137,7 +137,7 @@
 // inside the brackets are interpreted as sequence transformations. For example, here is some code translated into the seq[] macro:
 
 // | var primes1 = let[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
-//   var primes2 = let[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _ === 0]]];
+//   var primes2 = let[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _]]];
 
 // These operators are supported and take their normal Javascript precedence and associativity:
 
@@ -153,7 +153,6 @@
 //   x /!n[n + n0]         // x.foldr(fn[n, n0, ni][n + n0])
 //   x %n[n % 100 === 0]   // x.filter(fn[n, ni][n % 100 === 0])
 //   x %!n[n % 100]        // x.filter(fn[n, ni][!(n % 100 === 0)])
-//   x[_ >= 10]            // x.take(fn[_][_ >= 10])
 //   x <<[_ >= 10]         // x.take(fn[_][_ >= 10])
 //   x <<n[n >= 10]        // x.take(fn[n][n >= 10])
 //   x >>[_ >= 10]         // x.drop(fn[_][_ >= 10])
@@ -162,16 +161,18 @@
 //   x &[_ === 5]          // x.forall(fn[_, _i][_ === 5])
 //   x |n[n === 5]         // x.exists(fn[n, ni][n === 5])
 //   x &n[n === 5]         // x.forall(fn[n, ni][n === 5])
+//   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
+//   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
 //   x || y                // x && x.length ? x : y
 //   x && y                // x && x.length ? y : x
 //   x > y                 // x.length > y.length
 //   x >= y                // x.length >= y.length
 //   x < y                 // x.length < y.length
 //   x <= y                // x.length <= y.length
-//   x === y               // x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])
-//   x !== y               // !(x === y)
 //   x == y                // x.length === y.length
 //   x != y                // x.length !== y.length
+//   x === y               // x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])
+//   x !== y               // !(x === y)
 //   sk[x]                 // caterwaul.seq.finite.keys(x)
 //   sv[x]                 // caterwaul.seq.finite.values(x)
 //   sp[x]                 // caterwaul.seq.finite.pairs(x)
@@ -179,16 +180,66 @@
 //   x + y                 // x.concat(y)
 //   !x                    // x.object()
 //   ~x                    // new caterwaul.seq.finite(x)
-//   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
-//   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
+//   x ? y : z             // x ? y : z
 //   (x)                   // x
 
-// Method calls are treated normally and arguments are untransformed; so you can call methods normally without internal operator overloading.
+// Method calls are treated normally and arguments are untransformed; so you can call methods normally.
+
+//   Inside the DSL code.
+//   This code probably looks really intimidating, but it isn't actually that complicated. The first thing I'm doing is setting up a few methods to help with tree manipulation. The
+//   prefix_substitute() method takes a prefix and a tree and looks for data items in the tree that start with underscores. It then changes their names to reflect the variable prefixes. For
+//   example, prefix_substitute('foo', qs[fn[_, _x, _i][...]]) would return fn[foo, foox, fooi].
+
+//   Pattern definition is abstracted in case I want to change the representation later on. (I don't have any plans to do this yet.)
+
+//   The next interesting thing is define_functional. This goes beyond define_pattern by assuming that you want to define an operator with a function body to its right; e.g. x >>[body]. It
+//   defines two forms each time you call it; the first form is the no-variable case (e.g. x *[_ + 1]), and the second is the with-variable case (e.g. x *n[n + 1]). The trees_for function takes
+//   care of the bang-variant of each operator. This gets triggered if you call define_functional on an operator that ends in '!'.
+
+//   After this is the expansion logic. Any patterns that match are descended into; otherwise expansion returns its tree verbatim. Also, the expander-generator function rxy() causes expansion to
+//   happen on each side. This is what keeps expansion going. When I specify a custom function it's because either (1) rxy doesn't take enough parameters, or (2) I want to specify that only some
+//   subtrees should be expanded. (That's what happens when there's a dot or invocation, for instance.)
+
+//   Pattern matching always starts at the end of the arrays. This way any new patterns that you define will bind with higher precedence than the standard ones.
+
+//   Also, the seq[] macroexpander is deliberately eta-expanded. This allows you to replace the caterwaul.seq.dsl.expand() function to change the sequence DSL.
+
+    tconfiguration('std opt continuation', 'seq.dsl', function () {
+      this.configure('seq.core seq.infinite.y seq.finite.core').seq.dsl = {}
+
+      /se[_.prefix_substitute(prefix, tree)    = tree.rmap(fn[n][new this.constructor('#{prefix}#{this.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
+          _.define_pattern(pattern, expansion) = _ /se[ps.push([pattern, expansion])],
+          _.define_functional(op, expansion)   = let[ts = trees_for(op)] in _.define_pattern(ts[0], fn[l,    r][prefix_substitute(expansion, '_')   .replace({x: _.expand(l), y: r})]).
+                                                                              define_pattern(ts[1], fn[l, v, r][prefix_substitute(expansion, v.data).replace({x: _.expand(l), y: r})]),
+
+          _.define_functional /se[_('%',   qs[x.filter(fn[_, _i][y])]),      _('*',  qs[x. map(fn[_, _i][y])]), _('/',  qs[x.foldl(fn[_, _0, _i][y])]), _('|', qs[x.exists(fn[_, _i][y])]),
+                                  _('%!',  qs[x.filter(fn[_, _i][!qg[y]])]), _('*!', qs[x.each(fn[_, _i][y])]), _('/!', qs[x.foldr(fn[_, _0, _i][y])]), _('&', qs[x.forall(fn[_, _i][y])]),
+                                  _('>>',  qs[x.drop(fn[_][y])]), _('<<', qs[x.take(fn[_][y])]), _('>>>', qs[new r(fn[_][y], x)].replace({r: new this.ref(this.seq.infinite.y)}))],
+
+          seq(qw('> < >= <= == !=')).each(fn[op][_.define_pattern(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
+
+          let[e(x) = _.expand(x)] in
+          _.define_pattern /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
+                               _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
+                               
+                               seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))]),
+                               
+                               _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[_, _])),
+                               _(qs[~_], rxy(qs[new r(x)].replace({r: new this.ref(this.seq.finite)}))), _(qs[_ ? _ : _], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
+                               
+                               let*[rx(tree)(x, y) = tree.replace({x: e(x), y: y}), idrx(tree) = _(tree, rx(tree))] in idrx /se[_(qs[_(_)]), _(qs[_[_]]), _(qs[_._])]],
+
+          _.expand(t) = call/cc[fn[cc][opt.unroll[i, ps.length][let*[p = ps[ps.length - (i + 1)], m = t.match(p[0])][cc(p[1].apply(t, m)), when[m]]], t]],
+          this.rmacro(qs[seq[_]], fn[x][_.expand(x)]),
+
+          where*[template(t)(op) = t.clone() /se[_.data = op], b = template(qs[_ +[_]]), bound = template(qs[_ +_[_]]), b0 = template(qs[_ +![_]]), bound0 = template(qs[_ +!_[_]]),
+                 trees_for(op) = op.charAt(op.length - 1) === '!' ? let[op0 = op.substring(0, op.length - 1)] in [b0(op0), bound0(op0)] : [b(op), bound(op)], qw = caterwaul.util.qw,
+                 rxy(tree)(x, y) = tree.replace({x: _.expand(x), y: y && _.expand(y)}), seq = fb[xs][new this.seq.finite(xs)], ps = _.patterns = new this.seq.finite()]]}).
 
 // Final configuration.
 // Rather than including individual configurations above, you'll probably just want to include this one.
 
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
-                                                            'seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal')});
+                                                            'seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.dsl')});
 
 // Generated by SDoc 
