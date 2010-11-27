@@ -36,13 +36,12 @@
         <li>fc[x, y][this.x = x, this.y = y];</li>
         <li>fc_[this.x = ++count];</li>
         <li>x + y, where[x = 6, y = 10];</li>
+        <li>x + y, where*[x = 6, y = 10];</li>
         <li>console.log(x), when[x &gt; 0];</li>
-        <li>let[f = $+$] in f(3, 4);</li>
-        <li>let[f = $+$][f(3, 4)];</li>
         <li>let*[x = 5, y = x] in x + y;</li>
-        <li>x + y, where[x = 4, y = 6];</li>
         <li>let[f(x) = x + 1] in f(6);</li>
         <li>f(10)(20), where[f(x)(y) = x + y];</li>
+        <li>f(10)(20), where*[f(x)(y) = x + y];</li>
         <li>console.log('The value is #{1 + 2 + 3}');</li>
         <li>var o = {} /se[_[k] = v];</li>
         <li>var o = {} /re[_[k] = v];</li>
@@ -75,6 +74,7 @@
         <li>seq[xs &gt;&gt;[_ &lt; 100]];</li>
         <li>seq[xs + ys];</li>
         <li>seq[xs *[_ + 1] ^ ys %[_ &lt;= 10]];</li>
+        <li>seq[xs *~[_ |[_ === 5]]];</li>
         <li>var naturals = seq[0 &gt;&gt;&gt;[_ + 1]];</li>
         <li>var primes = seq[2 &gt;&gt;&gt;[_ + 1]] /se[seq[_ %~n[_ &lt;&lt;[_ &lt;= Math.sqrt(n)] &amp;[n % _]]]];</li>
         <li>var first_few_primes = seq[primes &lt;&lt;[_ &lt; 100]];</li>
