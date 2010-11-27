@@ -1,0 +1,11 @@
+Client-side unit testing hooks.
+
+on_error = function (e) {
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(e));
+  document.getElementById('log').appendChild(d);
+};
+
+log = function (message) {
+  on_error('Log: ' + message);
+};
