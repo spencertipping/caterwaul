@@ -12,6 +12,15 @@ test(function () {
 
     // There are fewer primes below 100 than below 1000:
     eq(seq[primes <<[_ < 100] < primes <<[_ < 1000]], true);
+
+    var keys = seq[sk[{foo: 'bar'}]];
+    eq(keys[0], 'foo');
+    eq(keys.length, 1);
+
+    var object = seq[!(sp[{foo: 'bar'}])];
+    eq(object.constructor, Object);
+    eq(object.foo, 'bar');
+    eq(caterwaul.seq.finite.keys(object).length, 1);
   })(eq);
 });
 
