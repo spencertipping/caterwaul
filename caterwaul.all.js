@@ -1416,7 +1416,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       this.configure('seq.finite.traversal').seq.finite
         /se[let[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
           let[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
-             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
+             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1] /re[_ && _.constructor === Object]],
               let[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
               new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
@@ -1546,7 +1546,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Also, the seq[] macroexpander is deliberately eta-expanded. This allows you to replace the caterwaul.seq.dsl.expand() function to change the sequence DSL.
 
     tconfiguration('std opt continuation', 'seq.dsl', function () {
-      this.configure('seq.core seq.infinite.y seq.finite.core').seq.dsl = {}
+      this.configure('seq.core seq.infinite.y seq.finite.core seq.finite.zip seq.finite.traversal seq.finite.mutability').seq.dsl = {}
 
       /se[_.define_pattern(pattern, expansion) = _ /se[ps.push([pattern, expansion])],
 
