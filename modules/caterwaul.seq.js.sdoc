@@ -21,6 +21,9 @@ filter(), foldl(), foldr(), zip(), etc.
     let[push = Array.prototype.push]
     [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, xs || [])] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]]}).
 
+  tconfiguration('std', 'seq.finite.serialization', function () {
+    this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{Array.prototype.slice.call(this).join(", ")}]'}).
+
   Mutability.
   Sequences can be modified in-place. Depending on how Javascript optimizes this case it may be much faster than reallocating. Note that the methods here are not quite the same as the regular
   Javascript array methods. In particular, push() returns the sequence rather than its new length. Also, there is no shift()/unshift() API. These would each be linear-time given that we're
@@ -248,4 +251,4 @@ Final configuration.
 Rather than including individual configurations above, you'll probably just want to include this one.
 
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
-                                                            'seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.dsl')});
+                                                            'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.dsl')});
