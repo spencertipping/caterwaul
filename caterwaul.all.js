@@ -989,7 +989,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. fb[][] and fb_[]
 //   are identical to fn[][] and fn_[], but they preserve 'this' across the function call.
 
-//   The fc[][] and fc_[] variants build constructor functions. These are just like regular functions, but they have no return statement.
+//   The fc[][] and fc_[] variants build constructor functions. These are just like regular functions, but they always return undefined.
 
     tconfiguration('std.qs std.qg', 'std.fn', function () {
       this.configure('std.qg').
@@ -997,8 +997,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
            rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
            rmacro(qs[fb[_][_]], function (vars, expression) {return qs[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
            rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
-           rmacro(qs[fc[_][_]], function       (vars, body) {return qs[qg[function (vars) {body}]].replace({vars: vars, body: body})}).
-           rmacro(qs[fc_[_]],   function             (body) {return qs[qg[function     () {body}]].replace({            body: body})})}).
+           rmacro(qs[fc[_][_]], function       (vars, body) {return qs[qg[fn[vars][body, undefined]]].replace({vars: vars, body: body})}).
+           rmacro(qs[fc_[_]],   function             (body) {return qs[qg[fn[vars][body, undefined]]].replace({            body: body})})}).
 
 //   Object abbreviations (the 'obj' library).
 //   Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly
@@ -1419,7 +1419,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       this.configure('seq.finite.traversal').seq.finite
         /se[let[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
           let[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
-             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1] /re[_ && _.constructor === Object]],
+             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
               let[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
               new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
