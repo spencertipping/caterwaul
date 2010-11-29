@@ -1354,8 +1354,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // filter(), foldl(), foldr(), zip(), etc.
 
   tconfiguration('std', 'seq.finite.core', function () {
-    let[push = Array.prototype.push]
-    [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, xs || [])] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]]}).
+    let[push = Array.prototype.push, slice = Array.prototype.slice]
+    [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, slice.call(xs || []))] /se[_.prototype = new this.seq.core() /se[_.constructor = c], where[c = _]]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
     this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{Array.prototype.slice.call(this).join(", ")}]'}).
