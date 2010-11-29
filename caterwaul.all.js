@@ -208,15 +208,20 @@
 
 //     | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
 
+//     There is a map() variant called nmap() (and a corresponding rnmap()) that lets you insert falsy nodes into the syntax tree. This is used by replace(), which lets you replace named nodes
+//     with falsy things if you want them to go away. (The exact behavior is that falsy nodes are not added to the syntax tree at all, rather than remaining in their original state.)
+
       each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
-       map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+       map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length;    i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+      nmap: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length, r; i < l; ++i) (r = f(this[i], i)) && n.push(r); return n},
      reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
-      rmap: function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r},
+      rmap: function (f) {var r = f(this); return ! r || r === this ? this. map(function (n) {return n && n. rmap(f)}) :      r.data === undefined ? new this.constructor(r) : r},
+     rnmap: function (f) {var r = f(this); return        r === this ? this.nmap(function (n) {return n && n.rnmap(f)}) : r && r.data === undefined ? new this.constructor(r) : r},
 
      clone: fn('@rmap(function () {return false})'),
 
-   collect: function (p) {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-   replace: function (rs) {return this.rmap(function (n) {return own.call(rs, n.data) && rs[n.data]})},
+   collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
+   replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
