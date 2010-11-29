@@ -9,7 +9,7 @@ $(caterwaul.clone('std continuation')(function () {
                                                 /re[$('#gensyms').is(':checked') ? _.replace(/gensym_\w+/g, simplify_gensym) : _],
                      configuration(c, config) = $('##{config}').is(':checked') ? c.configure(config) : c,
                            create_caterwaul() = configuration(caterwaul.clone(), 'std') /re[configuration(_, 'opt') /re[
-                                                       configuration(_, 'continuation') /re[configuration(_, 'seq')]]]] in
+                                                       configuration(_, 'continuation') /re[configuration(_, 'seq') /re[configuration(_, 'montenegro')]]]] in
 
   fn_[$('#output').val(let[code = $('#code').val(), c = create_caterwaul()] in (code && (parse_errors_for(code) || serialize(try_to_compile(c, code)))) || '')];
 
