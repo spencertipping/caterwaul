@@ -1,7 +1,7 @@
 Sequence DSL tests.
 
 test(function () {
-  var c = caterwaul.clone('std seq');
+  var c = caterwaul.clone('std continuation seq');
 
   c(function (eq) {
     var from_two    = seq[2 >>>[_ + 1]];
@@ -12,6 +12,13 @@ test(function () {
     var under_100_3 = seq[(~(primef() <<[_ < 100])).join(',')];
 
     var primes2   = seq[2 >>>[_ + 1]] /re[seq[_ %~n[_ <<[_ <= Math.sqrt(n)] &[n % _]]]];
+
+    var count = 0;
+    var one_to_ten = seq[1 >>>[_ + 1] <<[_ <= 10]];
+
+    let/cps[x <- seq[~one_to_ten *n[n * 3]].each(_)][count += x];
+
+    eq(count, 165);
 
     eq(seq[(primes2 <<[_ < 100]).join(',')], under_100);
     eq(under_100, '2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97');
