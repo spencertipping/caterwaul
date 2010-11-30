@@ -7,14 +7,14 @@
 // programmatically and pick out the ones of interest.
 
 // Recon works by post-processing your macroexpanded code. It traverses the expression tree inserting calls to a new hook function. This hook function records the calls that it receives,
-// allowing you to browse the execution history. A more aggressive mode puts each expression in a try{} block so that errors can be pinpointed exactly. This mode isn't enabled by default,
-// however, because it is much slower than just emitting trace calls.
+// allowing you to browse the execution history.
 
 // So, for example, basic transformation works like this (where f1 ... f4 are monitor functions):
 
 // | var foo = function (x) {return x + 1};    =>   var foo = f1(function (x) {return f4(f2(x) + f3(1))});
 
-// Under more aggressive transformation the code would become this:
+// This works for value-space, but errors can be difficult to find with just a value trace. Under a hypothetical (but not yet implemented) more aggressive transformation the code would become
+// this:
 
 // | var foo = function (x) {return x + 1};    =>   var foo = (function () {try {return f1(function (x) {
 //                                                               return f4((function () {try {return ((function () {try {return f2(x)} catch (e) {e1(e); throw e}})() +
@@ -28,13 +28,24 @@
 // the error position without wrapping everything in a try{} block. The way to do this is to look at the list of expressions that are still waiting to be evaluated. These, if followed
 // backwards, lead directly to the error -- at least, provided that the error stops your program.
 
+//   Annotating a function.
+//   This is really easy. You create a recon function like this:
+
+//   | var annotator = caterwaul.clone('std seq continuation recon');
+//     var to_be_annotated = function () {...};
+//     var annotated = annotator(to_be_annotated);
+
+//   At this point, using the 'annotated' function will start recording to the annotator's event log. Note that to_be_annotated should /not/ be pre-macroexpanded! Hard references are valid only
+//   the first time you compile a function, so the annotator is in fact a regular caterwaul function.
+
 //   Event log API.
-//   It's fairly straightforward to find out what happened in your program (presumably you have access to a shell of some sort at this point). All you have to do is refer to your caterwaul
-//   function's recon.log, like this:
+//   It's fairly straightforward to find out what happened in your program (presumably you have access to a shell of some sort at this point). All you have to do is refer to the annotator's log,
+//   like this:
 
 //   | caterwaul.recon.log.length
 
-//   You can also subscript the log as you would an array, e.g. recon.log[10], as well as querying it in various ways. Probably you'll want to query it:
+//   Because a recon log is a sequence (see caterwaul.seq.js.sdoc), you can also subscript the log as you would an array, e.g. recon.log[10], as well as querying it in various ways. Probably
+//   you'll want to query it:
 
 //   | caterwaul.recon.log.grep('_ + _')                 // Returns a sub-log of binary additions (the sub-log has the same interface as the main one, but fewer events)
 //     caterwaul.recon.log.grep('foo(5, _)', 10)         // Invocations of 'foo' on 5 and something else, returning ten events around each match for context
@@ -43,19 +54,8 @@
 //   | ...log.grep(fn[e][e.value === undefined])         // Greps events instead of patterns, creating a sub-log of events that were mapped to truthy values
 //     ...log.grep(fn[e][e.value > 4], 100)              // Returns 100 context events around each match
 
-//   | ...log.between('++_', '_ < l')                    // Sub-log of each run of expressions starting with ++_ and ending with _ < l (the bounds are included)
-//     ...log.after('new _(foo)')                        // Sub-log of events that occurred strictly after the first match -- does not include the matching event
-//     ...log.after('new _(foo)', 10)                    // Sub-log of events that occurred strictly after the tenth match
-//     ...log.before('new _(bar)')                       // Sub-log of events that occurred strictly before the last match -- does not include the matching event
-//     ...log.before('new _(bar)', 10)                   // Sub-log of events that occurred strictly before the tenth match from the last
-
 //   | ...log.unpaired()                                 // Find events whose pair is unset -- this almost always indicates that an error occurred (or you used an escaping continuation, if your
 //                                                       // JS interpreter supports those)
-
-//   | ...log.first()                                    // A sub-log of the first event in the log
-//     ...log.first(50)                                  // A sub-log of the first 50 events
-//     ...log.last()                                     // A sub-log of the last event
-//     ...log.last(100)                                  // A sub-log of the last 100 events
 
 //   | ...log.each(f)                                    // Invokes f on each event and returns the log
 //     ...log.map(f)                                     // Invokes f on each event and returns an array of results
@@ -104,28 +104,18 @@
 //   Because you know that z evaluated successfully -- it was defined at the time of evaluation (otherwise it would also be unpaired), the cause must be the invocation of z. Ideally z is traced
 //   as well, so you can tell exactly what about it failed.
 
-//   Note that the 'recon' environment, once added to a caterwaul function, gets referenced instead of copied. In order to get a different recon environment, you have to use the 'recon'
-//   configuration again, like this:
-
-//   | var c1 = caterwaul.clone('recon');
-//     var c2 = c1.clone('recon');
-
 //   Configuring the annotator.
 //   The 'recon' configuration adds a function, caterwaul.recon, that performs the source code annotation. It's low-level; that is, it takes a syntax tree and returns an annotated syntax tree,
 //   so generally you won't use it directly. But all configuration is done by calling configuration methods on the function. So, for example, to enable aggressive annotation:
-
-//   | caterwaul.recon.aggressive(true);         // Incidentally, this returns caterwaul.recon so you can further configure it
-//     caterwaul.recon.aggressive()              // Returns the current state of the 'aggressive' setting
 
 //   Configuration options such as these determine the behavior of the caterwaul.recon annotator. I mentioned earlier that you don't use caterwaul.recon directly to annotate code; what happens
 //   instead is that the caterwaul function's 'init' method (which is what caterwaul() does when you use it as a function) is augmented to do this for you. So all you have to do is something
 //   like this:
 
 //   | var c = caterwaul.clone('recon');
-//     c.recon.aggressive(true);
 //     c(function () {...}) ();
 
-//   The third line automatically adds debugging annotations to the function and then invokes it.
+//   The second line automatically adds debugging annotations to the function and then invokes it.
 
 //   Something awesome: annotating Caterwaul itself.
 //   Caterwaul gives you a copy of its initialization function and lets you reinitialize the library with a transformation of itself. For example:
@@ -134,8 +124,7 @@
 
 //   Doing this can be useful for debugging macros, configurations, or other things.
 
-  caterwaul.configuration('recon', caterwaul.clone('std')(function () {
-    var old_init = this.init, s = this.syntax, hook_name = this.gensym(), gensym = this.gensym, recon = merge(function (tree) {return recon.annotate(tree)},
+  caterwaul.tconfiguration('std seq continuation', 'recon', function () {
 
 //     Annotation logic.
 //     In a reasonably orthogonal language such as Lisp, annotating nodes is relatively trivial. However, JavaScript doesn't provide syntactic uniformity, so we have to work around some
@@ -144,46 +133,21 @@
 
 //     Specifically, here is the traversal pattern (where A is the annotation function and f is the hook):
 
-//     | A(identifier)     ->    f(identifier)
-//       A(x op y)         ->    f(A(x) op A(y))
-//       A(op x)           ->    f(op A(x))
-//       A(x.y(z))         ->    f((function () {var _gensym_ = A(x); return A(_gensym_.y).call(_gensym_, z)})())
-//       A(x[y](z))        ->    f((function () {var _gensym_ = A(x); return A(_gensym_[y]).call(_gensym_, z)})())
-//       A(x(y))           ->    A(x)(A(y))
-//       A(if (x) y)       ->    if (A(x)) A(y)
-//       A({n ...})        ->    {A(n.flatten())}
-//       A(x [op]= y)      ->    x = A(y)
-//       A(x.y [op]= z)    ->    A(x).y = A(z)
-//       A(x[y] [op]= z)   ->    A(x)[y] = A(z)
+//     | A(identifier)        ->    f(identifier)
+//       A(x op y)            ->    f(A(x) op A(y))
+//       A(op x)              ->    f(op A(x))
+//       A(x.y(z))            ->    f((function () {var _gensym_ = A(x); return A(_gensym_.y).call(_gensym_, z)})())
+//       A(x[y](z))           ->    f((function () {var _gensym_ = A(x); return A(_gensym_[y]).call(_gensym_, z)})())
+//       A(x(y))              ->    A(x)(A(y))
+//       A(if (x) y) [else z] ->    if (A(x)) A(y)
+//       A({n ...})           ->    {A(n.flatten())}
+//       A(x [op]= y)         ->    x [op]= A(y)
+//       A(x.y [op]= z)       ->    A(x).y [op]= A(z)
+//       A(x[y] [op]= z)      ->    A(x)[y] [op]= A(z)
 //       ...
 
-//     Unfortunately it would be difficult to use macros to implement this mechanism. The reason has to do with quoting syntax; JavaScript's limitations mean that we can't say things like
-//     qs[if(_)_], since that would be putting a statement-mode command ('if') into an expression context. (I could build the nodes using strings or something, but that's too much work;
-//     besides, using macros for this is inefficient anyway.)
-
-    {annotate: function (node) {return node &&
-              (node.is_constant()        ? node :
-               node.is_empty()           ? recon.wrap(node, node) :
-               node.left_is_lvalue()     ? recon.wrap(node, node.change(0, node[0].data === '[]' ? node[0].map(recon.annotate) : node[0].data === '.' ?
-                                                                                                   node[0].compose_single(0, recon.annotate) : node[0]).compose_single(1, recon.annotate)) :
-               node.is_invocation()      ? recon.wrap(node, node.is_contextualized_invocation() ?
-                                             new s(node.data, recon.annotate(node[0]), new s('(', recon.annotate(node[1][0]))) :
-                                             (function (gensym) {return qs[qg[function () {var _v = _value; return _f.call(_v, _args)}]()].
-                                                                   replace({_v: gensym, _value: recon.annotate(node[0][0]),
-                                                                            _f: new s(node[0].data, gensym, node[0].data === '[]' ? new s('[]', gensym, new s('[', recon.annotate(node[0][1][0]))) :
-                                                                                                                                    new s('.', gensym, node[0][1])),
-                                                                            _args: new s('(', recon.annotate(node[1][0]))})}) (new s(gensym()))) :
-
-               node.has_lvalue_list()    ? new s(node.data, node[0].data === ',' ? new s(',', node[0].flatten().map(function (n) {return n.data === '=' && new s(n.data, n[0], recon.annotate(n[1]))})) :
-                                                            node[0].data === '=' ? new s('=', node[0][0], node[0][1]) : node[0]) :
-               node.has_parameter_list() ? new s(node.data, node[0], recon.annotate(node[1])) :
-                                           null)},
-
-         wrap: function (node) {},
-
-  environment: {}});
-
-                                      this.method('init', function (f) {return this.compile(recon(this.decompile(old_init.call(this, f))), this.recon.environment)}).
-                                              ref('recon', this.util.configurable(recon, 'aggressive'))}));
+    this /se[_.init(f, bindings) = _.compile(_.recon.annotate(_.macroexpand(_.decompile(f))), bindings),
+             _.recon             = {} /se[_.log         = seq[~[]],
+                                          _.annotate(t) = null /* TODO */]]});
 
 // Generated by SDoc 
