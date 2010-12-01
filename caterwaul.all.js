@@ -1487,6 +1487,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // | x *[_ + 2]            // x.map(fn[_, _i][_ + 2])
 //   x *~[_ + xs]          // x.map(fn[_, _i][_.concat(xs)])
+//   x *+(console/mb/log)  // x.map(console/mb/log)
+//   x *!+f                // x.each(f)
 //   x *![console.log(_)]  // x.each(fn[_, _i][console.log(_)])
 //   x /[_ + _0]           // x.foldl(fn[_, _0, _i][_ + _0])
 //   x /![_ + _0]          // x.foldr(fn[_, _0, _i][_ + _0])
@@ -1534,6 +1536,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   modifier is available as well; this evaluates the expression inside brackets in sequence context rather than normal Javascript. (e.g. xs %~[_ |[_ === 1]] finds all subsequences that contain
 //   1.) Finally, some operators have a ! variant (fully listed in the table above). In this case, the ! always precedes the ~.
 
+//   Another modifier is +; this lets you use point-free form rather than creating a callback function. For example, xs %+divisible_by(3) expands into xs.filter(divisible_by(3)). This modifier
+//   goes where ~ would have gone.
+
 //   Inside the DSL code.
 //   This code probably looks really intimidating, but it isn't actually that complicated. The first thing I'm doing is setting up a few methods to help with tree manipulation. The
 //   prefix_substitute() method takes a prefix and a tree and looks for data items in the tree that start with underscores. It then changes their names to reflect the variable prefixes. For
@@ -1556,15 +1561,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     tconfiguration('std opt continuation', 'seq.dsl', function () {
       this.configure('seq.core seq.infinite.y seq.finite.core seq.finite.zip seq.finite.traversal seq.finite.mutability').seq.dsl = {}
 
-      /se[_.define_pattern(pattern, expansion) = _ /se[ps.push([pattern, expansion])],
+      /se[_.define_pattern(pattern, expansion)   = _ /se[ps.push([pattern, expansion])],
 
-          _.prefix_substitute(tree, prefix)    = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
-          _.define_functional(op, expansion)   = trees_for(op).map(fn[t, i][_.define_pattern(t,
-                                                   fn[l, v, r][_.prefix_substitute(expansion, i & 1 ? v.data : '_').replace({x: _.expand(l), y: (i & 2 ? _.expand : fn[x][x])(r || v)})])]),
+          _.prefix_substitute(tree, prefix)      = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
+          _.define_functional(op, expansion, xs) = trees_for(op).map(fn[t, i][_.define_pattern(t,
+                                                   fn[l, v, r][expansion.replace({x: _.expand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
+                                                                                                                                     y: (i & 2 ? _.expand : fn[x][x])(r || v)}) : v})])]),
 
-          _.define_functional /se[_('%',   qs[x.filter(fn[_, _i][y])]),      _('*',  qs[x. map(fn[_, _i][y])]), _('/',  qs[x.foldl(fn[_, _0, _i][y])]), _('|', qs[x.exists(fn[_, _i][y])]),
-                                  _('%!',  qs[x.filter(fn[_, _i][!qg[y]])]), _('*!', qs[x.each(fn[_, _i][y])]), _('/!', qs[x.foldr(fn[_, _0, _i][y])]), _('&', qs[x.forall(fn[_, _i][y])]),
-                                  _('>>',  qs[x.drop(fn[_][y])]), _('<<', qs[x.take(fn[_][y])]), _('>>>', qs[new r(fn[_][y], x)].replace({r: new this.ref(this.seq.infinite.y)}))],
+          _.define_functional /se[_('%',  qs[x.filter(y)],    qs[_, _i]),                   _('*',  qs[x. map(y)], qs[_, _i]),   _('/',  qs[x.foldl(y)], qs[_, _0, _i]),
+                                  _('%!', qs[x.filter(c(y))], qs[_, _i].replace({c: not})), _('*!', qs[x.each(y)], qs[_, _i]),   _('/!', qs[x.foldr(y)], qs[_, _0, _i]),
+                                  _('&',  qs[x.forall(y)], qs[_, _i]),                      _('|',  qs[x.exists(y)], qs[_, _i]), _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]),
+                                  _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
           seq(qw('> < >= <= == !=')).each(fn[op][_.define_pattern(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
 
@@ -1583,9 +1590,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
           _.expand(t) = call/cc[fn[cc][opt.unroll[i, ps.length][let*[p = ps[ps.length - (i + 1)], m = t.match(p[0])][cc(p[1].apply(t, m)), when[m]]], t]],
           this.rmacro(qs[seq[_]], fn[x][_.expand(x)]),
 
-          where*[template(op)(t) = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw,
-                 trees_for(op) = op.charAt(op.length - 1) === '!' ? seq([qs[![_]], qs[!_[_]], qs[!~[_]], qs[!~_[_]]]).map(template(op.substring(0, op.length - 1))) :
-                                                                    seq([qs[[_]], qs[_[_]], qs[~[_]], qs[~_[_]]]).map(template(op)),
+          where*[template(op)(t) = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw, not = new this.ref(fn[f][fn_[!f.apply(this, arguments)]]),
+                 trees_for(op) = op.charAt(op.length - 1) === '!' ? seq([qs[![_]], qs[!_[_]], qs[!~[_]], qs[!~_[_]], qs[!+_]]).map(template(op.substring(0, op.length - 1))) :
+                                                                    seq([qs[[_]], qs[_[_]], qs[~[_]], qs[~_[_]], qs[+_]]).map(template(op)),
                  rxy(tree)(x, y) = tree.replace({x: _.expand(x), y: y && _.expand(y)}), seq = fb[xs][new this.seq.finite(xs)], ps = _.patterns = new this.seq.finite()]]}).
 
 // Final configuration.

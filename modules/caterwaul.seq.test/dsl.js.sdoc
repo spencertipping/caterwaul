@@ -4,6 +4,22 @@ test(function () {
   var c = caterwaul.clone('std continuation seq');
 
   c(function (eq) {
+    var f = fn[x][x + 1];
+    var xs = seq[~[1, 2, 3, 4, 5]];
+
+    var ys = seq[~xs *+f];
+    eq(ys.length, xs.length);
+    eq(ys[0], 2);
+    eq(ys[1], 3);
+    eq(ys[2], 4);
+    eq(ys[3], 5);
+    eq(ys[4], 6);
+
+    eq(seq[xs /+fn[x, y][x + y]], 15);
+    eq(seq[xs %+fn[x][x % 2]].length, 3);
+  })(eq);
+
+  c(function (eq) {
     var from_two    = seq[2 >>>[_ + 1]];
     var primes      = seq[from_two %~n[from_two <<[_ <= Math.sqrt(n)] &[n % _]]];
     var primef      = fn_[primes];
