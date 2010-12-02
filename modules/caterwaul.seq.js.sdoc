@@ -238,7 +238,7 @@ Method calls are treated normally and arguments are untransformed; so you can ca
           _.define_pattern /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
                                _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
 
-                               _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[_, _])),
+                               _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
                                _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
 
                                let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
