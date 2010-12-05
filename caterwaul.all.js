@@ -1407,6 +1407,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.length][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
+            _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, this.length][_.push(this[l - i - 1])]],
 
             _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length][opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x],
             _.foldr(f, x) = let[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
