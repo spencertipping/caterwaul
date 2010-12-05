@@ -914,8 +914,10 @@ Related to this is a configure() method that modifies and returns the original f
   names when calling clone() or configure() -- see 'Standard library' below.) A complement method, 'tconfiguration', is also available. This transforms the configuration function before
   storing it in the table, enabling you to use things like 'qs[]' without manually transforming stuff. The downside is that you lose closure state and can't bind variables.
 
-    behavior('field').behavior('shallow', shallow_copy).method('configuration',  function          (name, f) {this.configurations[name] = f; return this}).
-                                                        method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
+  There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
+
+    method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).behavior('field').behavior('shallow', shallow_copy).
+    method('configuration',  function          (name, f) {this.configurations[name] = f; return this}).method('namespace', function (s) {return this[s] || this.shallow(s, {})[s]}).
 
 Global Caterwaul setup.
 Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
