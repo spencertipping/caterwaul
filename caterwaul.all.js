@@ -1409,9 +1409,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
             _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, this.length][_.push(this[l - i - 1])]],
 
-            _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length][opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x],
+            _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
+                               [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
             _.foldr(f, x) = let[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
-                               [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x]]}).
+                               [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
 
 //   Zipping.
 //   Zipping as a generalized construct has a few variants. One is the function used to zip (by default, [x, y]), another is the number of sequences to zip together, and the last one is whether
