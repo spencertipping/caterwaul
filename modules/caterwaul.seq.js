@@ -230,9 +230,9 @@
                                                    fn[l, v, r][expansion.replace({x: _.expand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
                                                                                                                                      y: (i & 2 ? _.expand : fn[x][x])(r || v)}) : v})])]),
 
-          _.define_functional /se[_('%',  qs[x.filter(y)],    qs[_, _i]),                   _('*',  qs[x. map(y)], qs[_, _i]),   _('/',  qs[x.foldl(y)], qs[_, _0, _i]),
-                                  _('%!', qs[x.filter(c(y))], qs[_, _i].replace({c: not})), _('*!', qs[x.each(y)], qs[_, _i]),   _('/!', qs[x.foldr(y)], qs[_, _0, _i]),
-                                  _('&',  qs[x.forall(y)], qs[_, _i]),                      _('|',  qs[x.exists(y)], qs[_, _i]), _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]),
+          _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x. map(y)], qs[_, _i]),   _('/',  qs[x.foldl(y)], qs[_, _0, _i]),
+                                  _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)], qs[_, _i]),   _('/!', qs[x.foldr(y)], qs[_, _0, _i]),
+                                  _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]),
                                   _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
           seq(qw('> < >= <= == !=')).each(fn[op][_.define_pattern(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
