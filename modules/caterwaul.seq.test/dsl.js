@@ -66,6 +66,9 @@ test(function () {
   c(function (eq) {
     var zero = seq[(~[1, 2, 3, 4, 5] -~[~[_, -_]]) /[_ + _0]];
     eq(zero, 0);
+
+    var ten = seq[(~[1, 2, 3, 4] -[[_]]) /[_ + _0]];
+    eq(ten, 10);
   })(eq);
 });
 
