@@ -1022,11 +1022,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   An alternative form of side-effecting is the 'right-handed' side-effect, written x /re[y]. This returns the result of evaluating y, where _ is bound to x.
 
+//   Variants of /se and /re allow you to specify a variable name:
+
+//   | {} /se.o[o.foo = 'bar']
+
     tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
-      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],  fn[object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/mb[_]], fn[object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/se[_]], fn   [value, body][qs[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
-                                      rmacro(qs[_/re[_]], fn   [value, body][qs[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})])}).
+      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],    fn   [object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/mb[_]],   fn   [object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/se[_]],   fn      [value, body][qs[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/re[_]],   fn      [value, body][qs[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/se._[_]], fn[value, name, body][qs[qg[fn[name][body, name]].call(this, value)].replace({body: body, name: name, value: value})]).
+                                      rmacro(qs[_/re._[_]], fn[value, name, body][qs[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
 
 //   Binding abbreviations (the 'bind' library).
 //   Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is

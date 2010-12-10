@@ -1022,11 +1022,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   An alternative form of side-effecting is the 'right-handed' side-effect, written x /re[y]. This returns the result of evaluating y, where _ is bound to x.
 
+//   Variants of /se and /re allow you to specify a variable name:
+
+//   | {} /se.o[o.foo = 'bar']
+
     tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
-      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],  fn[object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/mb[_]], fn[object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/se[_]], fn   [value, body][qs[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
-                                      rmacro(qs[_/re[_]], fn   [value, body][qs[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})])}).
+      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],    fn   [object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/mb[_]],   fn   [object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/se[_]],   fn      [value, body][qs[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/re[_]],   fn      [value, body][qs[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/se._[_]], fn[value, name, body][qs[qg[fn[name][body, name]].call(this, value)].replace({body: body, name: name, value: value})]).
+                                      rmacro(qs[_/re._[_]], fn[value, name, body][qs[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
 
 //   Binding abbreviations (the 'bind' library).
 //   Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is
@@ -1349,7 +1355,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // expression-mode using both methods and macros. Macros are used sparingly here; they provide comprehensions, but are ultimately just shorthands for sequence methods. All sequences ultimately
 // inherit from Array, which may or may not work as desired.
 
-  caterwaul.tconfiguration('std', 'seq.core', function () {this.shallow('seq', {core: fn_[null] /se[_.prototype = [] /se[_.constructor = ctor], where[ctor = _]]})}).
+  caterwaul.tconfiguration('std', 'seq.core', function () {this.shallow('seq', {core: fn_[null] /se[_.prototype = [] /se.p[p.constructor = _]]})}).
 
 // There are two kinds of sequences represented here. One is a finite sequence, which is eager and acts like a Javascript array (though it has a different prototype). The other is an infinite
 // stream; this is an anamorphism that generates new elements from previous ones. Because Javascript isn't required to optimize tail calls, any recursion done by the sequence library is coded in
@@ -1362,8 +1368,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
   tconfiguration('std', 'seq.finite.core', function () {
     let[push = Array.prototype.push, slice = Array.prototype.slice]
-    [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, slice.call(xs || []))] /se[_.prototype = new this.seq.core() /se[
-      _.size() = this.length, _.constructor = c], where[c = _]]]}).
+    [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, slice.call(xs || []))] /se.c[c.prototype = new this.seq.core() /se[
+      _.size() = this.length, _.constructor = c]]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
     this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{Array.prototype.slice.call(this).join(", ")}]'}).
@@ -1573,8 +1579,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                    fn[l, v, r][expansion.replace({x: _.expand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
                                                                                                                                      y: (i & 2 ? _.expand : fn[x][x])(r || v)}) : v})])]),
 
-          _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x. map(y)], qs[_, _i]),   _('/',  qs[x.foldl(y)], qs[_, _0, _i]),
-                                  _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)], qs[_, _i]),   _('/!', qs[x.foldr(y)], qs[_, _0, _i]),
+          _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x. map(y)],   qs[_, _i]), _('/',  qs[x.foldl(y)], qs[_, _0, _i]),
+                                  _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)],   qs[_, _i]), _('/!', qs[x.foldr(y)], qs[_, _0, _i]),
                                   _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]),
                                   _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
@@ -1589,7 +1595,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                                let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
                                _(qs[+_], fn[x][x]),
-                               
+
                                seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))])],
 
           _.expand(t) = call/cc[fn[cc][opt.unroll[i, ps.length][let*[p = ps[ps.length - (i + 1)], m = t.match(p[0])][cc(p[1].apply(t, m)), when[m]]], t]],
@@ -1597,7 +1603,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
           where*[template(op)(t) = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw, not = new this.ref(fn[f][fn_[!f.apply(this, arguments)]]),
                  trees_for(op) = op.charAt(op.length - 1) === '!' ? seq([qs[![_]], qs[!_[_]], qs[!~[_]], qs[!~_[_]], qs[!+_]]).map(template(op.substring(0, op.length - 1))) :
-                                                                    seq([qs[[_]], qs[_[_]], qs[~[_]], qs[~_[_]], qs[+_]]).map(template(op)),
+                                                                    seq([qs[[_]],  qs[_[_]],  qs[~[_]],  qs[~_[_]],  qs[+_]]). map(template(op)),
                  rxy(tree)(x, y) = tree.replace({x: _.expand(x), y: y && _.expand(y)}), seq = fb[xs][new this.seq.finite(xs)], ps = _.patterns = new this.seq.finite()]]}).
 
 // Final configuration.
