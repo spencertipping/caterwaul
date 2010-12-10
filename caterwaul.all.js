@@ -1409,12 +1409,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Sequences support the usual set of map/filter/fold operations. Unlike most sequence libraries, though, all of these functions used unrolled loops. This means that if your JS runtime has good
 //   hot-inlining support they should be really fast. (The same does not hold for the infinite stream library, which uses simulated continuations for lots of things and is probably quite slow.)
 
+//   If you fold on a sequence with too few elements (and you don't supply extras by giving it more arguments), it will return something falsy.
+
     tconfiguration('std opt', 'seq.finite.traversal', function () {
       this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.length][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
-            _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, this.length][_.push(this[l - i - 1])]],
+            _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
+            _.flat_map(f) = new this.constructor() /se[this.map(f).each(fn[xs][xs.each(fn[x][_.push(x)])])],
 
             _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
                                [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
@@ -1519,6 +1522,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   x &[_ === 5]          // x.forall(fn[_, _i][_ === 5])
 //   x |n[n === 5]         // x.exists(fn[n, ni][n === 5])
 //   x &n[n === 5]         // x.forall(fn[n, ni][n === 5])
+//   x -~[~[_, _ + 1]]     // x.flat_map(fn[_, _i][seq[~[_, _ + 1]]])
+//   x -~i[~[i, i + 1]]    // x.flat_map(fn[i, ii][seq[~[i, i + 1]]])
 //   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
 //   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
 //   x || y                // x && x.length ? x : y
@@ -1579,10 +1584,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                    fn[l, v, r][expansion.replace({x: _.expand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
                                                                                                                                      y: (i & 2 ? _.expand : fn[x][x])(r || v)}) : v})])]),
 
-          _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x. map(y)],   qs[_, _i]), _('/',  qs[x.foldl(y)], qs[_, _0, _i]),
-                                  _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)],   qs[_, _i]), _('/!', qs[x.foldr(y)], qs[_, _0, _i]),
-                                  _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]),
-                                  _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
+          _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x.map(y)],    qs[_, _i]), _('/',  qs[x.foldl(y)],    qs[_, _0, _i]),
+                                  _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)],   qs[_, _i]), _('/!', qs[x.foldr(y)],    qs[_, _0, _i]),
+                                  _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('-',  qs[x.flat_map(y)], qs[_, _i]),
+                                  _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]), _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
           seq(qw('> < >= <= == !=')).each(fn[op][_.define_pattern(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
 

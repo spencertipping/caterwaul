@@ -62,4 +62,9 @@ test(function () {
     eq(one.length, 1);
     eq(one[0], 10);
   })(eq);
+
+  c(function (eq) {
+    var zero = seq[(~[1, 2, 3, 4, 5] -~[~[_, -_]]) /[_ + _0]];
+    eq(zero, 0);
+  })(eq);
 });
