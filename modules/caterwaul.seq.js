@@ -68,7 +68,7 @@
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
             _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
-            _.flat_map(f) = new this.constructor() /se[this.map(f).each(fn[xs][xs.each(fn[x][_.push(x)])])],
+            _.flat_map(f) = new this.constructor() /se[this.each(fn[x, xi][f.call(this, x, xi).each(fn[x][_.push(x)])])],
 
             _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
                                [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
