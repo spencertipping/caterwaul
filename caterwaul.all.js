@@ -981,9 +981,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                        else _.constructor === Array ? this.configure.apply(this, _) : this(_).call(this); return this}).
 
 //   Qs library.
-//   You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'.
+//   You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'. A variant, qse[], macroexpands
+//   the quoted code first and returns the macroexpansion. This improves performance while still enabling terse macro forms -- for example, if you write this:
 
-    configuration('std.qs', function () {this.macro(this.parse('qs[_]'), function (tree) {return new this.ref(tree)})}).
+//   | this.rmacro(qs[foo[_]], function (tree) {return qse[fn_[x + 1]].replace({x: tree})})
+
+//   The fn_[] will be expanded exactly once when the qse[] is processed, rather than each time as part of the macroexpansion. I don't imagine it improves performance that noticeably, but it's
+//   been bugging me for a while so I decided to add it.
+
+    configuration('std.qs', function () {this.macro(this.parse('qs[_]'),  function (tree) {return new this.ref(tree)}).
+                                              macro(this.parse('qse[_]'), function (tree) {return new this.ref(this.macroexpand(tree))})}).
 
 //   Qg library.
 //   The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting Javascript runtimes such as SpiderMonkey. Firefox
@@ -1002,10 +1009,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       this.configure('std.qg').
            rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (vars) {return expression}]].replace({vars: vars, expression: expression})}).
            rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
-           rmacro(qs[fb[_][_]], function (vars, expression) {return qs[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
-           rmacro(qs[fb_[_]],   function       (expression) {return qs[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
-           rmacro(qs[fc[_][_]], function       (vars, body) {return qs[qg[fn[vars][body, undefined]]].replace({vars: vars, body: body})}).
-           rmacro(qs[fc_[_]],   function             (body) {return qs[qg[fn[vars][body, undefined]]].replace({            body: body})})}).
+           rmacro(qs[fb[_][_]], function (vars, expression) {return qse[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
+           rmacro(qs[fb_[_]],   function       (expression) {return qse[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
+           rmacro(qs[fc[_][_]], function       (vars, body) {return qse[qg[fn[vars][body, undefined]]].replace({vars: vars, body: body})}).
+           rmacro(qs[fc_[_]],   function             (body) {return qse[qg[fn[vars][body, undefined]]].replace({            body: body})})}).
 
 //   Object abbreviations (the 'obj' library).
 //   Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly
@@ -1027,12 +1034,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   | {} /se.o[o.foo = 'bar']
 
     tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
-      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],    fn   [object, method][qs[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/mb[_]],   fn   [object, method][qs[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
-                                      rmacro(qs[_/se[_]],   fn      [value, body][qs[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
-                                      rmacro(qs[_/re[_]],   fn      [value, body][qs[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})]).
-                                      rmacro(qs[_/se._[_]], fn[value, name, body][qs[qg[fn[name][body, name]].call(this, value)].replace({body: body, name: name, value: value})]).
-                                      rmacro(qs[_/re._[_]], fn[value, name, body][qs[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
+      this.configure('std.qg std.fn').rmacro(qs[_/mb/_],    fn   [object, method][qse[qg[fn[_o][fn_[_o.m.apply (_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/mb[_]],   fn   [object, method][qse[qg[fn[_o][fn_[_o[m].apply(_o, arguments)]]](o)].replace({_o: this.gensym(), o: object, m: method})]).
+                                      rmacro(qs[_/se[_]],   fn      [value, body][qse[qg[fn[_][body, _]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/re[_]],   fn      [value, body][qse[qg[fn[_]   [body]].call(this, value)].replace({body: body, value: value})]).
+                                      rmacro(qs[_/se._[_]], fn[value, name, body][qse[qg[fn[name][body, name]].call(this, value)].replace({body: body, name: name, value: value})]).
+                                      rmacro(qs[_/re._[_]], fn[value, name, body][qse[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
 
 //   Binding abbreviations (the 'bind' library).
 //   Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is
@@ -1122,7 +1129,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
 //   expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
 
-    tconfiguration('std.qs std.fn', 'std.compile_eval', function () {this.macro(qs[compile_eval[_]], fn[e][this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this)])}).
+    tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
+      this.macro(qs[compile_eval[_]], fn[e][new this.ref(this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this))])}).
 
 //   Self-reference (the 'ref' library).
 //   Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
@@ -1131,15 +1139,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
 
-//   Local macroexpansion (the 'local' library).
+//   Local macroexpansion (the 'locally' library).
 //   Sometimes you want to write a configuration that isn't applied globally, but rather just to a delimited section of code. This macro does just that: You can specify one or more configurations
 //   and a block of code, and the block of code will be transformed under a Caterwaul clone with those configurations and returned. So, for example:
 
-//   | caterwaul.clone('local')(function () {
-//       return local['std'][fn[x][x + 1]];
+//   | caterwaul.clone('std.locally')(function () {
+//       return locally['std'][fn[x][x + 1]];        // General case (especially if you want multiple configurations separated by spaces)
+//       return locally[std][fn[x][x + 1]];          // Same thing
+//       return locally.std[fn[x][x + 1]];           // Also the same thing
 //     });
 
-    tconfiguration('std.qs std.fn', 'std.local', function () {this.macro(qs[local[_][_]], fn[c, e][this.clone(c.as_escaped_string()).macroexpand(e)])}).
+    tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
+      let*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
 
 //   String interpolation.
 //   Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -1166,7 +1177,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Standard configuration.
 //   This loads all of the production-use extensions.
 
-    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.local std.compile_eval std.string')})});
+    configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.locally std.compile_eval std.string')})});
 
 // Generated by SDoc 
 // Caterwaul optimization library | Spencer Tipping
@@ -1269,7 +1280,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   tconfiguration('std', 'continuation.unwind', function () {
     this.configure('std.fn continuation.core').continuation /se[_.unwind_protect = function (escape, f) {try {return f()} catch (e) {return escape(e)}},
                                                                 _.unwind         = function (e) {throw e}];
-    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qs[_f(fb[e][_escape], fb_[_body])].replace({_f: new this.ref(this.continuation.unwind_protect), _escape: escape, _body: body})]).
+    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qse[_f(fb[e][_escape], fb_[_body])].replace({_f: new this.ref(this.continuation.unwind_protect), _escape: escape, _body: body})]).
          rmacro(qs[unwind[_]], fn[e][qs[_f(_e)].replace({_f: new this.ref(this.continuation.unwind), _e: e})])}).
 
 // CPS-conversion.
@@ -1330,17 +1341,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Note that call/cc and call/tail are macros, not functions. The functions are available in normal Javascript form, however (no deep macro-magic is ultimately required to support delimited
 // continuations). call/cc is stored as caterwaul.continuation.call_cc, and call/tail is caterwaul.continuation.call_tail. The invocation of call_tail is different from call/tail:
 
-// | caterwaul.continuation.call_tail(f, arg1, arg2, ...);
+// | caterwaul.continuation.call_tail.call(f, arg1, arg2, ...);
 
   tconfiguration('std', 'continuation.delimited', function () {
-    var magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited');
-    this.continuation.call_cc = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
-                                              try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
-                                              catch (e) {if (escaped) return e; else throw e}};
-    this.continuation.call_tail(f) = {magic: magic, continuation: f, parameters: Array.prototype.slice.call(arguments, 1)};
+    let[magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited')] in
+    this.continuation /se[_.call_cc     = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
+                                                        try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
+                                                        catch (e) {if (escaped) return e; else throw e}},
+                          _.call_tail() = {magic: magic, continuation: this, parameters: arguments}];
 
-    this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
-         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail(_f, _args)]].  replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).
+    this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].   replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
+         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail.call(_f, _args)]].replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).
 
 // End-user library.
 
