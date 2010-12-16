@@ -46,12 +46,13 @@ min.js) that loads all of the usual stuff in the right order.
 
     # Production-worthy files get minified:
     minify caterwaul
+    minify modules/caterwaul.std
     minify modules/caterwaul.opt
     minify modules/caterwaul.seq
     minify modules/caterwaul.format
     minify modules/caterwaul.continuation
 
-    cat caterwaul.js modules/caterwaul.{opt,continuation,seq}.js > caterwaul.all.js
+    cat caterwaul.js modules/caterwaul.{std,opt,continuation,seq}.js > caterwaul.all.js
     minify caterwaul.all
 
     # Keep the test page up-to-date:
@@ -75,8 +76,8 @@ packaging process.
     generate
     rm -f .test-log
     for file in test/$1*.js modules/*.test/$1*.js; do
-      [[ -f $file ]] && run-node caterwaul.js     modules/*.min.js lib/unit.js $file &&
-                        run-node caterwaul.min.js modules/*.min.js lib/unit.js $file
+      [[ -f $file ]] && run-node caterwaul.js     modules/{std,opt,continuation,seq}.js     lib/unit.js $file &&
+                        run-node caterwaul.min.js modules/{std,opt,continuation,seq}.min.js lib/unit.js $file
     done
     grep '^fail' .test-log && return 1
     return 0
@@ -131,9 +132,15 @@ Trivial build rules that don't actually do anything, but exist to provide inform
     echo "core SLOC/chars:          $(grep -v '//' < caterwaul.js | grep -v '^$' | wc -lm)"
     echo "core comment LOC/chars:   $(grep '//' < caterwaul.js | wc -lm)"
     echo "core test SLOC/chars:     $(cat test/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
-    echo "module SLOC/chars:        $(cat modules/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
-    echo "module comment LOC/chars: $(cat modules/*.js | grep '//' | wc -lm)"
-    echo "module test SLOC/chars:   $(cat modules/*.test/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
+    echo
+
+    for m in modules/*.js; do
+      echo "Module ${m#modules/}:"
+      echo "  SLOC/chars:        $(cat $m | grep -v '//' | grep -v '^$' | wc -lm)"
+      echo "  comment LOC/chars: $(cat $m | grep '//' | wc -lm)"
+      [[ -d ${m/js/test} ]] && echo "  test SLOC/chars:   $(cat ${m/js/test}/*.js | grep -v '//' | grep -v '^$' | wc -lm)"
+      echo
+    done
 
     generate
 
