@@ -995,8 +995,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // The fn_[] will be expanded exactly once when the qse[] is processed, rather than each time as part of the macroexpansion. I don't imagine it improves performance that noticeably, but it's
 // been bugging me for a while so I decided to add it.
 
-  configuration('std.qs', function () {this.macro(this.parse('qs[_]'),  function (tree) {return new this.ref(tree)}).
-                                            macro(this.parse('qse[_]'), function (tree) {return new this.ref(this.macroexpand(tree))})}).
+// Finally, there's also a literal[] macro to preserve code forms. Code inside literal[] will not be macroexpanded in any way.
+
+  configuration('std.qs', function () {this.macro(this.parse('qs[_]'),      function (tree) {return new this.ref(tree)}).
+                                            macro(this.parse('qse[_]'),     function (tree) {return new this.ref(this.macroexpand(tree))}).
+                                            macro(this.parse('literal[_]'), function (tree) {return tree})}).
 
 // Qg library.
 // The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting Javascript runtimes such as SpiderMonkey. Firefox
@@ -1033,9 +1036,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // Side-effects can be chained since / is left-associative.
 
-// An alternative form of side-effecting is the 'right-handed' side-effect, written x /re[y]. This returns the result of evaluating y, where _ is bound to x.
-
-// Variants of /se and /re allow you to specify a variable name:
+// An alternative form of side-effecting is the 'right-handed' side-effect, written x /re[y]. This returns the result of evaluating y, where _ is bound to x. Variants of /se and /re allow you to
+// specify a variable name:
 
 // | {} /se.o[o.foo = 'bar']
 
@@ -1112,9 +1114,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Since nobody in their right mind would name a variable _gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to have gensym
 // collisions. The probability of it is one-in-several-billion at least.)
 
-// Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros.
-
-// Related to 'defmacro' is 'defsubst', which lets you express simple syntactic rewrites more conveniently. Here's an example of a defmacro and an equivalent defsubst:
+// Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros. Related to 'defmacro' is 'defsubst',
+// which lets you express simple syntactic rewrites more conveniently. Here's an example of a defmacro and an equivalent defsubst:
 
 // | defmacro[_ <equals> _][fn[left, right][qs[left === right].replace({left: left, right: right})]];
 //   defsubst[_left <equals> _right][_left === _right];
@@ -1154,6 +1155,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     return locally[std][fn[x][x + 1]];          // Same thing
 //     return locally.std[fn[x][x + 1]];           // Also the same thing
 //   });
+
+// Note that the implementation of this isn't terribly efficient. It creates a custom Caterwaul clone for the block in question and then throws that clone away. This probably pales in comparison
+// to the macroexpansion process in general, but if your Caterwaul has a ton of configurations applied it could be a performance bottleneck during macroexpansion.
 
   tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
     let*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
