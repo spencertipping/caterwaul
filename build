@@ -76,8 +76,8 @@
     generate
     rm -f .test-log
     for file in test/$1*.js modules/*.test/$1*.js; do
-      [[ -f $file ]] && run-node caterwaul.js     modules/{std,opt,continuation,seq}.js     lib/unit.js $file &&
-                        run-node caterwaul.min.js modules/{std,opt,continuation,seq}.min.js lib/unit.js $file
+      [[ -f $file ]] && run-node caterwaul.js     modules/caterwaul.{std,opt,continuation,seq}.js     lib/unit.js $file &&
+                        run-node caterwaul.min.js modules/caterwaul.{std,opt,continuation,seq}.min.js lib/unit.js $file
     done
     grep '^fail' .test-log && return 1
     return 0
