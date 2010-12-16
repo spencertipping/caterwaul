@@ -1226,14 +1226,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       for (var i = 0; i < _gensym_extra; ++i)
 //         x = xs[i], console.log(x), total += x;
 //       for (var _gensym_i = 0; _gensym_i < _gensym_rounds; ++_gensym_i) {
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
-//         i++; x = xs[i], console.log(x), total += x;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
 //       }
 //       return _gensym_iterations;
 //     }) (xs.length);
@@ -1244,7 +1244,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   significant performance impact than low-level stuff like loop unrolling.
 
   caterwaul.tconfiguration('std', 'opt.unroll', function () {this.rmacro(qs[opt.unroll[_, _][_]], fn[variable, iterations, body][
-    with_gensyms[l, rs, es, j][qg[function (l) {for (var rs = l >>> 3, es = l & 7, _i_ = 0; _i_ < es; ++_i_) _body_;
+    with_gensyms[l, rs, es, j][qg[function (l) {for (var rs = l >= 0 && l >> 3, es = l >= 0 && l & 7, _i_ = 0; _i_ < es; ++_i_) _body_;
                                                 for (var j = 0; j < rs; ++j) {_body_; _i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++;
                                                                               _body_; _i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++}; return l}].call(this, _iterations_)].
     replace({_i_: variable, _body_: body, _iterations_: iterations})])});
