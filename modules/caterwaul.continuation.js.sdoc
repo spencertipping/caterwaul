@@ -55,7 +55,7 @@ There's also a shorthand form to CPS-convert functions. If you care only about t
 The shorthand form is always bound to the surrounding 'this'.
 
   tconfiguration('std', 'continuation.cps', function () {
-    let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v.as('(')[0], _b: b})})] in
+    let[cps_convert(v, f, b) = f.replace({_: qse[fb[_v][_b]].replace({_v: v.as('(')[0], _b: b})})] in
     this.configure('std.fn continuation.core').rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
                                                rmacro(qs[let/cps[   _ <- _][_]], cps_convert).
                                                rmacro(qs[_(_) /cps._[_]], fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: qse[fb[_v][_b]].replace({_v: v, _b: b})})})]).
