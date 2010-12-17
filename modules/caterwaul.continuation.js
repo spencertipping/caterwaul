@@ -47,10 +47,19 @@
 // be the value of the let/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is
 // happening here; let/cps ultimately gets translated into the set of nested functions that you would otherwise write.
 
+// There's also a shorthand form to CPS-convert functions. If you care only about the first parameter (which is true for a lot of functions), you can use the postfix /cps[] form, like this:
+
+// | $.getJSON('foo', _) /cps[alert(_)];
+//   $.getJSON('foo', _) /cps.x[alert(x)];         // Also has named form
+
+// The shorthand form is always bound to the surrounding 'this'.
+
   tconfiguration('std', 'continuation.cps', function () {
     let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v.as('(')[0], _b: b})})] in
-    this.configure('continuation.core').rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
-                                        rmacro(qs[let/cps[   _ <- _][_]], cps_convert)}).
+    this.configure('std.fn continuation.core').rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
+                                               rmacro(qs[let/cps[   _ <- _][_]], cps_convert).
+                                               rmacro(qs[_(_) /cps._[_]], fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: qse[fb[_v][_b]].replace({_v: v, _b: b})})})]).
+                                               rmacro(qs[_(_) /cps[_]],   fn[f, ps,    b][qse[_f(_ps) /cps._[_b]].replace({_f: f, _ps: ps, _b: b})])}).
 
 // Escaping continuations and tail call optimization.
 // The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
