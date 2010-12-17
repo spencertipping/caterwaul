@@ -17,4 +17,4 @@ say things like this (abstractly):
 At present I can't imagine a situation when you would need context-free or universal traversal over syntax trees. Both are supported, however, in case you want uber-powerful traversal
 functionality. For example, here's a tree walker that transforms nodes with a prime number of unary negations:
 
-| f(n)(qs[-_]) = 
+| f(n)(qs[-_]) =
