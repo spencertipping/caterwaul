@@ -902,7 +902,7 @@ Related to this is a configure() method that modifies and returns the original f
   have to wonder about anything else.)
 
   associator_for = function (f) {return function (name, behavior, value) {return f[name] = (f.behaviors[f.attributes[name] = behavior] || id).call(f, value), f}},
-    shallow_copy = function (x) {return x && (x.constructor === Array ? Array.prototype.slice.call(x) : merge({}, x))},
+    shallow_copy = function (x) {return x && (x.constructor === Array ? Array.prototype.slice.call(x) : x.clone ? x.clone() : merge({}, x))},
          copy_of = function (f) {var g = merge(function () {return g.init.apply(g, arguments)}, {behaviors: shallow_copy(f.behaviors), attributes: {}});
                                  return se(g, function (g) {(g.associate = associator_for(g))('behavior', 'method', function (name, definition) {this.behaviors[name] = definition;
                                                               return this.associate(name, 'method', function (attribute, value) {return this.associate(attribute, name, value)})}).
