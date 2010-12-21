@@ -52,14 +52,20 @@ There's also a shorthand form to CPS-convert functions. If you care only about t
 | $.getJSON('foo', _) /cps[alert(_)];
   $.getJSON('foo', _) /cps.x[alert(x)];         // Also has named form
 
-The shorthand form is always bound to the surrounding 'this'.
+Bound variants of both let/cps and /cps[] are also available:
+
+| $.getJSON('foo', _) /cpb[...];
+  let/cpb[x <- foo(_)][...];
 
   tconfiguration('std', 'continuation.cps', function () {
-    let[cps_convert(v, f, b) = f.replace({_: qs[fn[_v][_b]].replace({_v: v.as('(')[0], _b: b})})] in
-    this.configure('std.fn continuation.core').rmacro(qs[let/cps[_, _ <- _][_]], fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b)})]).
-                                               rmacro(qs[let/cps[   _ <- _][_]], cps_convert).
-                                               rmacro(qs[_(_) /cps._[_]], fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: qse[fb[_v][_b]].replace({_v: v, _b: b})})})]).
-                                               rmacro(qs[_(_) /cps[_]],   fn[f, ps,    b][qse[_f(_ps) /cps._[_b]].replace({_f: f, _ps: ps, _b: b})])}).
+    let*[cps_convert(v, f, b, bound) = f.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b})}),
+         let_cps_def(t, form, bound) = t.rmacro(qs[let/_form[_, _ <- _][_]].replace({_form: form}), fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)})]).
+                                         rmacro(qs[let/_form[   _ <- _][_]].replace({_form: form}), fn    [v, f, b][cps_convert(v, f, b, bound)]),
+         cps_def(t, form, bound)     = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
+                                         rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
+                                                fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
+                                                                                                                                                     replace({_v: v, _b: b})})})])] in
+    this.configure('std.fn continuation.core') /se[let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true), cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true)]}).
 
 Escaping continuations and tail call optimization.
 The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
