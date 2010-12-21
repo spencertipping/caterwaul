@@ -65,7 +65,7 @@
                                          rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
                                                 fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
                                                                                                                                                      replace({_v: v, _b: b})})})])] in
-    this.configure('std.fn continuation.core') /se[let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true), cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true)]}).
+    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true)]}).
 
 // Escaping continuations and tail call optimization.
 // The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use

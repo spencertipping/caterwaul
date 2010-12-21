@@ -818,7 +818,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       macro_try_match = function (pattern, t) {if (pattern.data === '_')                                   return [t];
                                                if (pattern.data !== t.data || pattern.length !== t.length) return null;
                                                for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
-                                                 if (match = macro_try_match(pattern[i], t[i])) wildcards = wildcards.concat(match);
+                                                 if (match = macro_try_match(pattern[i], t[i])) Array.prototype.push.apply(wildcards, match);
                                                  else                                           return null;
                                                return wildcards},
 
@@ -834,8 +834,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   The fourth parameter, 'context', is used to hand a 'this' reference to the macroexpander. This is necessary to get defmacro[] to work properly, and in general lets macros be side-effectful.
 //   (Not that you should be in the habit of defining side-effectful macros, but I certainly won't stop you.)
 
+//   Note that as of version 0.5, macroexpansion proceeds backwards. This means that the /last/ matching macro is used, not the first. It's an important feature, as it lets you write new macros
+//   to override previous definitions. This ultimately lets you define sub-caterwaul functions for DSLs, and each can define a default case by matching on qs[_] (thus preventing access to other
+//   macro definitions that may exist).
+
     macro_expand = function (t, macros, expanders, context) {
-                     return t.rmap(function (n) {for (var i = 0, l = macros.length, macro, match, replacement; i < l && (macro = macros[i]); ++i)
+                     return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
                                                    if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
 
 // Environment-dependent compilation.
@@ -1332,7 +1336,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                          rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
                                                 fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
                                                                                                                                                      replace({_v: v, _b: b})})})])] in
-    this.configure('std.fn continuation.core') /se[let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true), cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true)]}).
+    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true)]}).
 
 // Escaping continuations and tail call optimization.
 // The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
