@@ -211,56 +211,49 @@ Method calls are treated normally and arguments are untransformed; so you can ca
   prefix_substitute() method takes a prefix and a tree and looks for data items in the tree that start with underscores. It then changes their names to reflect the variable prefixes. For
   example, prefix_substitute(qs[fn[_, _x, _i][...]], 'foo') would return fn[foo, foox, fooi].
 
-  Pattern definition is abstracted in case I want to change the representation later on. (I don't have any plans to do this yet.)
+  The next interesting thing is define_functional. This goes beyond macro() by assuming that you want to define an operator with a function body to its right; e.g. x >>[body]. It defines two
+  forms each time you call it; the first form is the no-variable case (e.g. x *[_ + 1]), and the second is the with-variable case (e.g. x *n[n + 1]). The trees_for function takes care of the
+  bang-variant of each operator. This gets triggered if you call define_functional on an operator that ends in '!'.
 
-  The next interesting thing is define_functional. This goes beyond define_pattern by assuming that you want to define an operator with a function body to its right; e.g. x >>[body]. It
-  defines two forms each time you call it; the first form is the no-variable case (e.g. x *[_ + 1]), and the second is the with-variable case (e.g. x *n[n + 1]). The trees_for function takes
-  care of the bang-variant of each operator. This gets triggered if you call define_functional on an operator that ends in '!'.
+  After this is the expansion logic (which is just the regular Caterwaul macro logic). Any patterns that match are descended into; otherwise expansion returns its tree verbatim. Also, the
+  expander-generator function rxy() causes expansion to happen on each side. This is what keeps expansion going. When I specify a custom function it's because either (1) rxy doesn't take
+  enough parameters, or (2) I want to specify that only some subtrees should be expanded. (That's what happens when there's a dot or invocation, for instance.)
 
-  After this is the expansion logic. Any patterns that match are descended into; otherwise expansion returns its tree verbatim. Also, the expander-generator function rxy() causes expansion to
-  happen on each side. This is what keeps expansion going. When I specify a custom function it's because either (1) rxy doesn't take enough parameters, or (2) I want to specify that only some
-  subtrees should be expanded. (That's what happens when there's a dot or invocation, for instance.)
-
-  Pattern matching always starts at the end of the arrays. This way any new patterns that you define will bind with higher precedence than the standard ones.
-
-  Also, the seq[] macroexpander is deliberately eta-expanded. This allows you to replace the caterwaul.seq.dsl.expand() function to change the sequence DSL.
+  Pattern matching always starts at the end of the arrays as of Caterwaul 0.5. This way any new patterns that you define will bind with higher precedence than the standard ones.
 
     tconfiguration('std opt continuation', 'seq.dsl', function () {
-      this.configure('seq.core seq.infinite.y seq.finite.core seq.finite.zip seq.finite.traversal seq.finite.mutability').seq.dsl = {}
+      this.configure('seq.core seq.infinite.y seq.finite.core seq.finite.zip seq.finite.traversal seq.finite.mutability').seq.dsl = caterwaul.global().clone()
 
-      /se[_.define_pattern(pattern, expansion)   = _ /se[ps.push([pattern, expansion])],
-
-          _.prefix_substitute(tree, prefix)      = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
-          _.define_functional(op, expansion, xs) = trees_for(op).map(fn[t, i][_.define_pattern(t,
-                                                   fn[l, v, r][expansion.replace({x: _.expand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
-                                                                                                                                     y: (i & 2 ? _.expand : fn[x][x])(r || v)}) : v})])]),
+      /se[_.prefix_substitute(tree, prefix)      = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
+          _.define_functional(op, expansion, xs) = trees_for(op).map(fn[t, i][_.macro(t,
+            fn[l, v, r][expansion.replace({x: _.macroexpand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
+                                                                                                   y: (i & 2 ? _.macroexpand : fn[x][x])(r || v)}) : v})])]),
 
           _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x.map(y)],    qs[_, _i]), _('/',  qs[x.foldl(y)],    qs[_, _0, _i]),
                                   _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)],   qs[_, _i]), _('/!', qs[x.foldr(y)],    qs[_, _0, _i]),
                                   _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('-',  qs[x.flat_map(y)], qs[_, _i]),
                                   _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]), _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
-          seq(qw('> < >= <= == !=')).each(fn[op][_.define_pattern(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
+          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
 
-          let[e(x) = _.expand(x)] in
-          _.define_pattern /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
-                               _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
+          let[e(x) = _.macroexpand(x)] in
+          _.macro /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
+                      _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
 
-                               _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
-                               _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
+                      _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
+                      _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
 
-                               let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
-                               _(qs[+_], fn[x][x]),
+                      let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
+                      _(qs[+_], fn[x][x]),
 
-                               seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))])],
+                      seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))])],
 
-          _.expand(t) = call/cc[fn[cc][opt.unroll[i, ps.length][let*[p = ps[ps.length - (i + 1)], m = t.match(p[0])][cc(p[1].apply(t, m)), when[m]]], t]],
-          this.rmacro(qs[seq[_]], fn[x][_.expand(x)]),
+          this.rmacro(qs[seq[_]], _.macroexpand),
 
           where*[template(op)(t) = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw, not = new this.ref(fn[f][fn_[!f.apply(this, arguments)]]),
                  trees_for(op) = op.charAt(op.length - 1) === '!' ? seq([qs[![_]], qs[!_[_]], qs[!~[_]], qs[!~_[_]], qs[!+_]]).map(template(op.substring(0, op.length - 1))) :
                                                                     seq([qs[[_]],  qs[_[_]],  qs[~[_]],  qs[~_[_]],  qs[+_]]). map(template(op)),
-                 rxy(tree)(x, y) = tree.replace({x: _.expand(x), y: y && _.expand(y)}), seq = fb[xs][new this.seq.finite(xs)], ps = _.patterns = new this.seq.finite()]]}).
+                 rxy(tree)(x, y) = tree.replace({x: _.macroexpand(x), y: y && _.macroexpand(y)}), seq = fb[xs][new this.seq.finite(xs)]]]}).
 
 Final configuration.
 Rather than including individual configurations above, you'll probably just want to include this one.
