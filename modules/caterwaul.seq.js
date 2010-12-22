@@ -33,7 +33,7 @@
     tconfiguration('std', 'seq.finite.mutability', function () {
       let[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = (push.apply(this, arguments), this),            // Can't /se this one; it references 'arguments'
-                                                                 _.pop()      = this[--this.length] /se[(function () {delete this[this.length]}).call(this)],
+                                                                 _.pop()      = this[--this.length] /se[delete this[this.length]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
 
 //   Object interfacing.

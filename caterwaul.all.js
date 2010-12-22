@@ -475,8 +475,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
 //     as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
 
-    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&', '^',
-                                    '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue delete void', 'var const',
+    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&',
+                                    '^', '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue void', 'var const',
                                     'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
@@ -1423,7 +1423,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     tconfiguration('std', 'seq.finite.mutability', function () {
       let[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = (push.apply(this, arguments), this),            // Can't /se this one; it references 'arguments'
-                                                                 _.pop()      = this[--this.length] /se[(function () {delete this[this.length]}).call(this)],
+                                                                 _.pop()      = this[--this.length] /se[delete this[this.length]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
 
 //   Object interfacing.
