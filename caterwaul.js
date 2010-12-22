@@ -81,16 +81,17 @@
 //       f.sourceCode = 'return 5';
 //     });
 
+//   The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
+
     var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},  qw = fn('$0.split(/\\s+/)'),
     gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-        id = fn('$0'),
+        id = fn('$0'),  se = function (x, f) {return f && f.call(x, x) || x},
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
       hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
      merge = function (o) {for (var i = 1, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) if (_) for (var k in _) has(_, k) && (o[k] = _[k]); return o},
     extend = function (f) {merge.apply(null, [f.prototype].concat(Array.prototype.slice.call(arguments, 1))); return f},
-        se = function (x, f) {return f && f.call(x, x) || x},
 
 //   Optimizations.
 //   The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
@@ -103,7 +104,7 @@
 //   the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
 //   regardless of the length of the candidate.
 
-    annotate_keys = function (o) {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
+    annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
               has = function (o, p) {return p && ! (p.length > o._max_length) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
 //   Global management.
@@ -847,13 +848,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
 // compiling. The variables correspond to gensyms placed in the code, so the code will have closure over those variables.
 
-// The compile() function used to have an interface that let you access the changing state of closure variables and share it across functions. I may re-introduce this feature later on if there
-// turns out to be a good reason for it (though it's probably better to have an explicitly-shared reference than wonder whether local variable modifications will cross closure boundaries of
-// compiled functions).
+// An optional second parameter 'environment' can contain a hash of variable->value bindings. These will be defined as locals within the compiled function.
 
-  compile = function (tree) {var vars = [], values = [], bindings = tree.bindings(), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
-                             var code = map(function (v) {return 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
-                             try {return (new Function(s, code))(bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}},
+  compile = function (tree, environment) {      // Despite the coincidence of 'tree' and 'environment' on this line, I'm seriously not pushing a green agenda :)
+    var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
+    var code = map(function (v) {return 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
+    try {return (new Function(s, code))(bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}},
 
 // Configurations.
 // Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
@@ -967,7 +967,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     ...
 //   });
 
-// Generally you will just configure with 'std', which includes all of the standard configurations here.
+// Generally you will just configure with 'std', which includes all of the standard configurations (see caterwaul.std.js.sdoc in the modules/ directory).
 
 // Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
 // idea. Named configurations, on the other hand, are not explicitly transformed; so when you define a custom configuration in a named way, you will want to manually transform it. (The reason for
