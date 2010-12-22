@@ -852,7 +852,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // compiled functions).
 
   compile = function (tree) {var vars = [], values = [], bindings = tree.bindings(), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
-                             return (new Function(s, map(function (v) {return 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')')) (bindings)},
+                             var code = map(function (v) {return 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
+                             try {return (new Function(s, code))(bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}},
 
 // Configurations.
 // Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
