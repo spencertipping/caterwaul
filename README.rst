@@ -14,13 +14,13 @@ http://spencertipping.com/caterwaul/caterwaul.html. Another way to learn Caterwa
 Using Caterwaul
 ---------------
 
-Caterwaul's API is much like jQuery's. After including the script::
+Caterwaul's API is much like jQuery's. After including the script (there's a regular ``caterwaul.js``, but it doesn't have any modules)::
 
-    <script src='http://spencertipping.com/caterwaul/caterwaul.js'></script>
+    <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
 
 you can refer to a global ``caterwaul`` function. The global ``caterwaul`` has no macros defined, but you can get a new Caterwaul compiler with a standard set of macros by doing this::
 
-    var c = caterwaul.clone('std');
+    var c = caterwaul.clone('std');     // For all of the examples below, change 'std' to 'std seq continuation'
 
 Then you can start compiling functions::
 
@@ -55,10 +55,6 @@ Then you can start compiling functions::
 
       console.log('The primes below 100 are #{primes_below_100.join(", ")}');
     })();
-
-If you plan on using modules, I recommend using the "all" script rather than caterwaul.js (it takes care of module-to-module dependencies by loading things in the right order)::
-
-    <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
 
 Documentation
 -------------
