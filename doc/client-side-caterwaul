@@ -379,7 +379,7 @@ __3c6177256de0fddb721f534c3ad8c0ee
 
 meta::data('name', 'client-side-caterwaul');
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/client-side-caterwaul.CIh2/document.pdf');
+meta::data('pdf-output-file', '/tmp/client-side-caterwaul.Xjkk/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('quiet', '1');
@@ -1639,7 +1639,7 @@ meta::section('defining-macros', <<'__03c31eb18de6301ae3f792a5a942844c');
     - end
 __03c31eb18de6301ae3f792a5a942844c
 
-meta::section('introduction', <<'__e8ef7171a92341e314ffa647f0644154');
+meta::section('introduction', <<'__244df2fde9083eceb2379dc29702252c');
 - sc Introduction | sec:introduction
   Most JavaScript users are writing client-side applications, though node.js may change that. Caterwaul can be useful for this and plays well with jQuery and other common client-side
   libraries. This guide goes through some enhancements that you can make to your code when you use Lisp-style macros in conjunction with jQuery and jQuery UI.
@@ -1660,7 +1660,7 @@ meta::section('introduction', <<'__e8ef7171a92341e314ffa647f0644154');
 
     - verbatim << end
       <script src='.../jquery.js'></script>
-      <script src='.../caterwaul.js'></script>
+      <script src='.../caterwaul.all.js'></script>
       <script>
         // Yes, this looks weird, but it's how it works :)
         $(caterwaul.clone('std')(function () {
@@ -1669,8 +1669,8 @@ meta::section('introduction', <<'__e8ef7171a92341e314ffa647f0644154');
       </script>
     - end
 
-    The latest development version of Caterwaul is always available at \url{http://spencertipping.com/caterwaul/caterwaul.js}, though if you have a production application you'll probably be
-    better off deploying a snapshot with your code.\footnote{Both to protect against breaking changes, which sometimes happen, and to protect against downtime from my webhost, which is a
+    The latest development version of Caterwaul is always available at \url{http://spencertipping.com/caterwaul/caterwaul.all.js}, though if you have a production application you'll probably
+    be better off deploying a snapshot with your code.\footnote{Both to protect against breaking changes, which sometimes happen, and to protect against downtime from my webhost, which is a
     definite possibility.} You can also get stable versions from \url{http://spencertipping.com/caterwaul/stable}.
 
   - s1 Running the examples | sec:introduction-running-the-examples
@@ -1683,7 +1683,7 @@ meta::section('introduction', <<'__e8ef7171a92341e314ffa647f0644154');
 
     I recommend becoming acquainted with Caterwaul's {\tt seq} and {\tt continuation} modules, as these make it easy to handle some common cases that come up in client-side development. (At
     some point I'll discuss how to use those modules in this guide.)
-__e8ef7171a92341e314ffa647f0644154
+__244df2fde9083eceb2379dc29702252c
 
 meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - documentclass report
@@ -1702,7 +1702,7 @@ meta::section('main', <<'__aa4d1b571c5a0d971bdcb77aebbf035d');
 - end
 __aa4d1b571c5a0d971bdcb77aebbf035d
 
-meta::section('the-std-library', <<'__be86785ba1c99e6e1318d4a3923d0bca');
+meta::section('the-std-library', <<'__9e1aa65ef25e722a59ca7a3197246a27');
 - sc The {\tt std} Library | sec:the-std-library
   Caterwaul comes with a bunch of useful macros accessible via the {\tt std} configuration. I highly recommend importing them for use in your projects. In this chapter I'll go over some
   examples demonstrating how to use the {\tt std} library in your code.
@@ -1954,6 +1954,15 @@ meta::section('the-std-library', <<'__be86785ba1c99e6e1318d4a3923d0bca');
       /se[_.prototype.toString() = '<#{this.x}, #{this.y}>'];
     - end
 
+    - s2 {\tt se.v} and {\tt re.v} | sec:the-std-library-sev-and-rev
+      Both {\tt se} and {\tt re} can be customized to bind a variable other than \verb|_|. To do this, you can use dot-notation:
+
+      - verbatim << end
+        var object = fn[k, v][{} /se.result[result[k] = v]];
+      - end
+
+      In general there is a way to change the name of anything defaulting to \verb|_|, though the notation isn't always in dot-form.
+
   - s1 {\tt std.string} | sec:the-std-library-std-string
     It's common to write code like this:
 
@@ -2010,7 +2019,7 @@ meta::section('the-std-library', <<'__be86785ba1c99e6e1318d4a3923d0bca');
         // undefined causes the toLowerCase check to fail.
         x.toLowerCase(), when[x.toLowerCase], unless[x === null || x === undefined]];
     - end
-__be86785ba1c99e6e1318d4a3923d0bca
+__9e1aa65ef25e722a59ca7a3197246a27
 
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__7be1d470a07a06c58e971bc7fc24c048');
