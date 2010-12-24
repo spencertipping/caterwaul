@@ -18,7 +18,7 @@ eagerly (put differently, most sequence/stream operations are closed under eager
 filter(), foldl(), foldr(), zip(), etc.
 
   tconfiguration('std', 'seq.finite.core', function () {
-    let[push = Array.prototype.push, slice = Array.prototype.slice]
+    l[push = Array.prototype.push, slice = Array.prototype.slice]
     [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, slice.call(xs || []))] /se.c[c.prototype = new this.seq.core() /se[
       _.size() = this.length, _.constructor = c]]]}).
 
@@ -31,7 +31,7 @@ filter(), foldl(), foldr(), zip(), etc.
   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
 
     tconfiguration('std', 'seq.finite.mutability', function () {
-      let[push = Array.prototype.push, slice = Array.prototype.slice] in
+      l[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = (push.apply(this, arguments), this),            // Can't /se this one; it references 'arguments'
                                                                  _.pop()      = this[--this.length] /se[delete this[this.length]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
@@ -50,7 +50,7 @@ filter(), foldl(), foldr(), zip(), etc.
                       object o to zip into; if you do this, then the pairs are added to o and o is returned instead of creating a new object and adding pairs to that.
 
     tconfiguration('std', 'seq.finite.object', function () {
-      let[own = Object.prototype.hasOwnProperty] in
+      l[own = Object.prototype.hasOwnProperty] in
       this.configure('seq.finite.core').seq.finite /se[_.keys  (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(k)})()],
                                                        _.values(o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(o[k])})()],
                                                        _.pairs (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push([k, o[k]])})()],
@@ -67,13 +67,13 @@ filter(), foldl(), foldr(), zip(), etc.
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.length][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
-            _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
+            _.reversed()  = new this.constructor() /se[l[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
             _.flat_map(f) = new this.constructor() /se[this.each(fn[x, xi][(f.call(this, x, xi) /re.xs[xs.each ? xs : new this.constructor(xs)]).each(fn[x][_.push(x)])])],
 
-            _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
-                               [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
-            _.foldr(f, x) = let[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
-                               [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
+            _.foldl(f, x) = l[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
+                             [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
+            _.foldr(f, x) = l[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
+                             [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
 
   Zipping.
   Zipping as a generalized construct has a few variants. One is the function used to zip (by default, [x, y]), another is the number of sequences to zip together, and the last one is whether
@@ -87,11 +87,11 @@ filter(), foldl(), foldr(), zip(), etc.
 
     tconfiguration('std opt', 'seq.finite.zip', function () {
       this.configure('seq.finite.traversal').seq.finite
-        /se[let[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
-          let[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
-             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
-              let[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
-              new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
+        /se[l[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
+          l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
+           [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
+            l[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
+            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
   Quantification.
   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
@@ -127,7 +127,7 @@ element of the stream, and the latter returns a stream containing the rest of th
             _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
 
             _.prototype.filter(f) = new _.filter(f, this),
-            _.def('filter', fc[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
+            _.def('filter', fc[f, xs][this._f = f, this._xs = l*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
                             fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
 
   Traversal and forcing.
@@ -136,17 +136,17 @@ element of the stream, and the latter returns a stream containing the rest of th
   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
     tconfiguration('std continuation', 'seq.infinite.traversal', function () {
-      let[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
+      l[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
-        /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
-            _.take(f) = let*[xs = new finite(), next(s)(cc) = let[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
+        /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
+            _.take(f) = l*[xs = new finite(), next(s)(cc) = l[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
 
 Sequence manipulation language.
 Using methods to manipulate sequences can be clunky, so the sequence library provides a macro to enable sequence-specific manipulation. You enter this mode by using seq[], and expressions
 inside the brackets are interpreted as sequence transformations. For example, here is some code translated into the seq[] macro:
 
-| var primes1 = let[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
-  var primes2 = let[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _]]];
+| var primes1 = l[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
+  var primes2 = l[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _]]];
 
 These operators are supported and take their normal Javascript precedence and associativity:
 
@@ -236,14 +236,14 @@ Method calls are treated normally and arguments are untransformed; so you can ca
 
           seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
 
-          let[e(x) = _.macroexpand(x)] in
+          l[e(x) = _.macroexpand(x)] in
           _.macro /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
                       _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
 
                       _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
                       _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
 
-                      let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
+                      l[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
                       _(qs[+_], fn[x][x]),
 
                       seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))])],
