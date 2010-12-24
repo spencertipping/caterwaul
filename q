@@ -963,7 +963,7 @@ __6999988eaf441c9b1282e03e1db427b5
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('watch', 'blue');
-meta::note('queue', <<'__40f159df1db69068a402de470d5f3472');
+meta::note('queue', <<'__c98db7240c3c7cb6dfb32e47763bbda3');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
 
@@ -980,9 +980,11 @@ Caterwaul does the right thing 99% of the time. This section is for the 1% when 
   This is a reasonable bug. Nodes should be able to "un-flatten" back down into nested form, following their natural associativity. This should be done within macros to make sure that further
   macro patterns don't spuriously reject them.
 
-  V8-based runtimes sometimes fail jQuery test [will fix soon].
+  V8-based runtimes sometimes fail jQuery test [fixed in 0.5].
   This is probably a V8 bug of some sort, though I'll have to isolate a suitable test case to submit it. Fortunately it only seems to have an effect when transforming jQuery (and it produces
   the same output), so maybe there is some nondeterminism that I need to address.
+
+  Update: I think this was a product of using eval()-based functions. It's still a V8 bug, but at least there's a workaround.
 
   Remove uses of eval() inside Caterwaul [fixed in 0.5].
   This is actually important for a couple of reasons. First, it's slow to use eval. Better is to avoid it by writing functions out longhand (much as I don't particularly like doing so).
@@ -994,7 +996,7 @@ Unimportant things that might help at some point in the future.
   Hashed syntax nodes.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
-__40f159df1db69068a402de470d5f3472
+__c98db7240c3c7cb6dfb32e47763bbda3
 
 meta::parent('/home/spencertipping/bin/notes', <<'__320d51928ec8e2e370d67d30abe059b5');
 function::note
