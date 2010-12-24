@@ -1310,14 +1310,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | $.getJSON('foo', _) /cpb[...];
 //   l/cpb[x <- foo(_)][...];
 
+// The legacy let/cps and let/cpb forms are also supported for backwards compatibility.
+
   tconfiguration('std', 'continuation.cps', function () {
     l*[cps_convert(v, f, b, bound) = f.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b})}),
-         l_cps_def(t, form, bound) = t.rmacro(qs[l/_form[_, _ <- _][_]].replace({_form: form}), fn[cs, v, f, b][qs[l/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)})]).
-                                       rmacro(qs[l/_form[   _ <- _][_]].replace({_form: form}), fn    [v, f, b][cps_convert(v, f, b, bound)]),
+         l_cps_def(t, form, bound) = l[inductive(cs, v, f, b) = qs[l/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)}), base(v, f, b) = cps_convert(v, f, b, bound)] in
+                                     t.rmacro(qs[l/_form[_, _ <- _][_]].replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _][_]'), inductive).
+                                       rmacro(qs[l/_form[   _ <- _][_]].replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _][_]'), base),
          cps_def(t, form, bound)   = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
                                        rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
                                               fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
-                                                                                                                                                     replace({_v: v, _b: b})})})])] in
+                                                                                                                                                   replace({_v: v, _b: b})})})])] in
     this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), l_cps_def(_, qs[cps], false), l_cps_def(_, qs[cpb], true)]}).
 
 // Escaping continuations and tail call optimization.
