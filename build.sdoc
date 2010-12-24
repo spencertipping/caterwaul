@@ -26,9 +26,17 @@ is run separately to get an idea of what percentage of the codebase works, altho
     sleep 0.1
     cat "$@" > tmp.js
 
-    start gjs $*
-    gjs tmp.js  || fail gjs $* || return 1
-    pass gjs $*
+    if which gjs > /dev/null; then
+      start gjs $*
+      gjs tmp.js || fail gjs $* || return 1
+      pass gjs $*
+    fi
+
+    if which d8 > /dev/null; then
+      start d8 $*
+      d8 tmp.js || fail d8 $* || return 1
+      pass d8 $*
+    fi
 
     start node $*
     node tmp.js || fail node $* || return 1
