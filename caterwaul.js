@@ -305,10 +305,17 @@
 //     Because ',' is a binary operator, a ',' tree with just one operand will be serialized exactly as its lone operand would be. This means that plurality over a binary operator such as comma
 //     or semicolon degrades gracefully for the unary case (this sentence makes more sense in the context of macro definitions; see in particular 'let' and 'where' in std.bind).
 
-      flatten: function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
-                                                   se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
-                                                   se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
-                                                                                                  for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+//     The unflatten() method performs the inverse transformation. It doesn't delete a converted unary operator in the tree case, but if called on a node with more than two children it will nest
+//     according to associativity.
+
+      flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                     se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                     se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                    for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+
+      unflatten: function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
+                                 if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
+                                 else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))},
 
 //     Wrapping.
 //     Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
@@ -393,11 +400,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype:
 
-    syntax_node = extend(function (data) {if (data instanceof this.constructor) {this.data = data.data; this.length = 0; this.l = this.r = this.p = null}
-                                          else {this.data = data; this.length = 0; this.l = this.r = this.p = null;
-                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                  for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                    this._append(it.constructor === String ? new this.constructor(it) : it)}}, node_methods),
+    syntax_node = extend(function (data) {if (data instanceof this.constructor) {this.data = data.data; this.length = 0}
+                                          else {this.data = data; this.length = 0; for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                                                     for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                                                       this._append(it.constructor === String ? new this.constructor(it) : it)}}, node_methods),
 
 // Parsing.
 // There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
