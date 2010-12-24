@@ -96,7 +96,8 @@ This has the advantage that you no longer need to parenthesize any short-circuit
   tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
     var let_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
         let_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
-                                                 qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]), e: expression, values: vars.map(fn[n][n[1]])})];
+                                                 qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression,
+                                                                                                              values: vars.map(fn[n][n[1]]).unflatten()})];
     this.configure('std.qg').
          rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
          rmacro(qs[let*[_] in _], let_star_expander).rmacro(qs[let*[_][_]], let_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][let_star_expander(vars, expression)])}).
@@ -199,7 +200,7 @@ seriously borked.
        let*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
            [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
             this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
-            new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)))]])}).
+            new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
 
 Standard configuration.
 This loads all of the production-use extensions.
