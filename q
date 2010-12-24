@@ -963,7 +963,7 @@ __6999988eaf441c9b1282e03e1db427b5
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('watch', 'blue');
-meta::note('queue', <<'__72ca2bc824da9d9b02745b9b7d36426d');
+meta::note('queue', <<'__aec50dfeae6e412ac12ede797532ef2f');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
 
@@ -976,9 +976,13 @@ Caterwaul does the right thing 99% of the time. This section is for the 1% when 
   about this sort of thing you should wrap the expression in parens (which is sometimes required even when no particular ambiguity exists, e.g. at statement-level with function expressions in
   Firefox).
 
-  Fix matching against flattened nodes [will fix in 0.5.1].
+  Fix matching against flattened nodes [fixed in 0.5].
   This is a reasonable bug. Nodes should be able to "un-flatten" back down into nested form, following their natural associativity. This should be done within macros to make sure that further
   macro patterns don't spuriously reject them.
+
+  V8-based runtimes sometimes fail jQuery test [will fix soon].
+  This is probably a V8 bug of some sort, though I'll have to isolate a suitable test case to submit it. Fortunately it only seems to have an effect when transforming jQuery (and it produces
+  the same output), so maybe there is some nondeterminism that I need to address.
 
 Ideas.
 Unimportant things that might help at some point in the future.
@@ -986,7 +990,7 @@ Unimportant things that might help at some point in the future.
   Hashed syntax nodes.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
-__72ca2bc824da9d9b02745b9b7d36426d
+__aec50dfeae6e412ac12ede797532ef2f
 
 meta::parent('/home/spencertipping/bin/notes', <<'__320d51928ec8e2e370d67d30abe059b5');
 function::note
