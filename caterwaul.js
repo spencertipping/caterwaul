@@ -400,7 +400,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype:
 
-    syntax_node = extend(function (data) {if (data instanceof this.constructor) {this.data = data.data; this.length = 0}
+    syntax_node = extend(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
                                           else {this.data = data; this.length = 0; for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                                                      for (var j = 0, lj = _.length, it; _.constructor === Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                                                        this._append(it.constructor === String ? new this.constructor(it) : it)}}, node_methods),
