@@ -23,26 +23,28 @@
   }
 
   run-node() {
+    returncode=0
     sleep 0.1
     cat "$@" > tmp.js
 
     if which gjs > /dev/null; then
       start gjs $*
-      gjs tmp.js || fail gjs $* || return 1
+      gjs tmp.js || fail gjs $* || returncode=1
       pass gjs $*
     fi
 
     if which d8 > /dev/null; then
       start d8 $*
-      d8 tmp.js || fail d8 $* || return 1
+      d8 tmp.js || fail d8 $* || returncode=1
       pass d8 $*
     fi
 
     start node $*
-    node tmp.js || fail node $* || return 1
+    node tmp.js || fail node $* || returncode=1
     pass node $*
 
     rm -f tmp.js
+    return $returncode
   }
 
 # Build phases.
