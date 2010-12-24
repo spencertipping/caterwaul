@@ -26,8 +26,12 @@ is run separately to get an idea of what percentage of the codebase works, altho
     sleep 0.1
     cat "$@" > tmp.js
     node tmp.js || fail node $* || return 1
+
+    start gjs $*
+    gjs tmp.js  || fail gjs $*  || return 1
     rm -f tmp.js
     pass node $*
+    pass gjs $*
   }
 
 Build phases.
