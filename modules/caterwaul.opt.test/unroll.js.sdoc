@@ -14,7 +14,7 @@ test(function () {
     eq(opt.unroll[i, 24][++iterations], 24);
     eq(iterations, 50);
     
-    eq(let[x = 10][eq(x, opt.unroll[i, x][++x]), x], 20);
+    eq(l[x = 10][eq(x, opt.unroll[i, x][++x]), x], 20);
 
     return iterations;
   });

@@ -49,7 +49,7 @@
 
 // Also useful is side-effecting, which you can do this way:
 
-// | {} /se[_.foo = 'bar']               // === let[_ = {}][_.foo = 'bar', _]
+// | {} /se[_.foo = 'bar']               // === l[_ = {}][_.foo = 'bar', _]
 
 // Side-effects can be chained since / is left-associative.
 
@@ -67,15 +67,15 @@
                                     rmacro(qs[_/re._[_]], fn[value, name, body][qse[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
 
 // Binding abbreviations (the 'bind' library).
-// Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
+// Includes forms for defining local variables. One is 'l[bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
 // This means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.) Each of these
 // expands into a function call; e.g.
 
-// | let[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
+// | l[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
 
-// You also get let* and where*, which define their variables in the enclosed scope:
+// You also get l* and where*, which define their variables in the enclosed scope:
 
-// | let*[x = 6, y = x] in x + y
+// | l*[x = 6, y = x] in x + y
 //   // compiles into:
 //   (function () {
 //     var x = 6, y = x;
@@ -84,23 +84,25 @@
 
 // This form has a couple of advantages over the original. First, you can use the values of previous variables; and second, you can define recursive functions:
 
-// | let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
+// | l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
 
-// You can also use the less English-like but more expressive let[...][...] syntax:
+// You can also use the less English-like but more expressive l[...][...] syntax:
 
-// | let[x = 5][x + 1]
-//   let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
+// | l[x = 5][x + 1]
+//   l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
 
 // This has the advantage that you no longer need to parenthesize any short-circuit, decisional, or relational logic in the expression.
 
-  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
-    var let_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
-        let_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
-                                                 qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression,
-                                                                                                              values: vars.map(fn[n][n[1]]).unflatten()})];
-    this.configure('std.qg').
-         rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
-         rmacro(qs[let*[_] in _], let_star_expander).rmacro(qs[let*[_][_]], let_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][let_star_expander(vars, expression)])}).
+// The legacy let and let* forms are also supported, but they will cause syntax errors in some Javascript interpreters (hence the change).
+
+  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {this.configure('std.qg');
+    var lf = fb[form][this.rmacro(form, l_expander)], lsf = fb[form][this.rmacro(form, l_star_expander)],
+        l_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
+        l_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
+                            qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression, values: vars.map(fn[n][n[1]]).unflatten()})];
+
+    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (this.parse('let [_] in _')), lf (this.parse('let [_][_]')).rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
+    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(this.parse('let*[_] in _')), lsf(this.parse('let*[_][_]')).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])}).
 
 // Assignment abbreviations (the 'lvalue' library).
 // Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
@@ -141,14 +143,14 @@
 // Syntax variables are prefixed with underscores; other identifiers are literals.
 
   tconfiguration('std.qs std.fn std.bind std.lvalue', 'std.defmacro', function () {
-    let[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
+    l[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
     this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
-         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), let[wildcards = pattern.collect(wildcard)] in fn_[let[hash = {}, as = arguments]
+         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), l[wildcards = pattern.collect(wildcard)] in fn_[l[hash = {}, as = arguments]
                                                             [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
 
   tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
-    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
-                                                                               qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
+    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][l[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
+                                                                             qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
 
 // Compile-time eval (the 'compile_eval' library).
 // This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
@@ -178,7 +180,7 @@
 // to the macroexpansion process in general, but if your Caterwaul has a ton of configurations applied it could be a performance bottleneck during macroexpansion.
 
   tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
-    let*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
+    l*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
 
 // String interpolation.
 // Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -197,10 +199,10 @@
   tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
     this.rmacro(qs[_], fn[string]
       [string.is_string() && /#\{[^\}]+\}/.test(string.data) &&
-       let*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
-           [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
-            this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
-            new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
+       l*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
+         [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
+          this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
+          new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
 
 // Standard configuration.
 // This loads all of the production-use extensions.

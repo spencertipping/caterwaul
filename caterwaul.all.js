@@ -1043,7 +1043,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // Also useful is side-effecting, which you can do this way:
 
-// | {} /se[_.foo = 'bar']               // === let[_ = {}][_.foo = 'bar', _]
+// | {} /se[_.foo = 'bar']               // === l[_ = {}][_.foo = 'bar', _]
 
 // Side-effects can be chained since / is left-associative.
 
@@ -1061,15 +1061,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                     rmacro(qs[_/re._[_]], fn[value, name, body][qse[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
 
 // Binding abbreviations (the 'bind' library).
-// Includes forms for defining local variables. One is 'let [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
+// Includes forms for defining local variables. One is 'l[bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
 // This means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.) Each of these
 // expands into a function call; e.g.
 
-// | let[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
+// | l[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
 
-// You also get let* and where*, which define their variables in the enclosed scope:
+// You also get l* and where*, which define their variables in the enclosed scope:
 
-// | let*[x = 6, y = x] in x + y
+// | l*[x = 6, y = x] in x + y
 //   // compiles into:
 //   (function () {
 //     var x = 6, y = x;
@@ -1078,23 +1078,25 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // This form has a couple of advantages over the original. First, you can use the values of previous variables; and second, you can define recursive functions:
 
-// | let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
+// | l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
 
-// You can also use the less English-like but more expressive let[...][...] syntax:
+// You can also use the less English-like but more expressive l[...][...] syntax:
 
-// | let[x = 5][x + 1]
-//   let*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
+// | l[x = 5][x + 1]
+//   l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
 
 // This has the advantage that you no longer need to parenthesize any short-circuit, decisional, or relational logic in the expression.
 
-  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
-    var let_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
-        let_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
-                                                 qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression,
-                                                                                                              values: vars.map(fn[n][n[1]]).unflatten()})];
-    this.configure('std.qg').
-         rmacro(qs[let [_] in _], let_expander).     rmacro(qs[let [_][_]], let_expander).     rmacro(qs[_, where [_]], fn[expression, vars][let_expander(vars, expression)]).
-         rmacro(qs[let*[_] in _], let_star_expander).rmacro(qs[let*[_][_]], let_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][let_star_expander(vars, expression)])}).
+// The legacy let and let* forms are also supported, but they will cause syntax errors in some Javascript interpreters (hence the change).
+
+  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {this.configure('std.qg');
+    var lf = fb[form][this.rmacro(form, l_expander)], lsf = fb[form][this.rmacro(form, l_star_expander)],
+        l_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
+        l_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
+                            qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression, values: vars.map(fn[n][n[1]]).unflatten()})];
+
+    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (this.parse('let [_] in _')), lf (this.parse('let [_][_]')).rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
+    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(this.parse('let*[_] in _')), lsf(this.parse('let*[_][_]')).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])}).
 
 // Assignment abbreviations (the 'lvalue' library).
 // Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
@@ -1135,14 +1137,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Syntax variables are prefixed with underscores; other identifiers are literals.
 
   tconfiguration('std.qs std.fn std.bind std.lvalue', 'std.defmacro', function () {
-    let[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
+    l[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
     this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
-         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), let[wildcards = pattern.collect(wildcard)] in fn_[let[hash = {}, as = arguments]
+         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), l[wildcards = pattern.collect(wildcard)] in fn_[l[hash = {}, as = arguments]
                                                             [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
 
   tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
-    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][let[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
-                                                                               qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
+    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][l[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
+                                                                             qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
 
 // Compile-time eval (the 'compile_eval' library).
 // This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
@@ -1172,7 +1174,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // to the macroexpansion process in general, but if your Caterwaul has a ton of configurations applied it could be a performance bottleneck during macroexpansion.
 
   tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
-    let*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
+    l*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
 
 // String interpolation.
 // Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -1191,10 +1193,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
     this.rmacro(qs[_], fn[string]
       [string.is_string() && /#\{[^\}]+\}/.test(string.data) &&
-       let*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
-           [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
-            this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
-            new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
+       l*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
+         [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
+          this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
+          new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
 
 // Standard configuration.
 // This loads all of the production-use extensions.
@@ -1312,39 +1314,39 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | $.getJSON('some-url', fn[result]
 //     [$.getJSON('some-other-url-#{result.property}', fn[other_result][...])]);
 
-// Rather than dealing with this nesting explicitly, it's more convenient to use normal let-notation. That's exactly what let/cps does:
+// Rather than dealing with this nesting explicitly, it's more convenient to use normal l-notation. That's exactly what l/cps does:
 
-// | let/cps[result       <- $.getJSON('some-url', _),
-//           other_result <- $.getJSON('some-other-url-#{result.property}', _)]
+// | l/cps[result       <- $.getJSON('some-url', _),
+//         other_result <- $.getJSON('some-other-url-#{result.property}', _)]
 //   [console.log(result)];
 
 // There are a couple of things to note about this setup. First, the arrows. This is so that your continuations can be n-ary. (Javascript doesn't let you assign into a paren-list.)
 
-// | let/cps[(x, y) <- binary_ajax_call('some-url', _)][...];
+// | l/cps[(x, y) <- binary_ajax_call('some-url', _)][...];
 
-// Second, and this is important: let/cps returns immediately with the result of the first continuation-producing expression (so in the above example, the return value of binary_ajax_call would
-// be the value of the let/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is
-// happening here; let/cps ultimately gets translated into the set of nested functions that you would otherwise write.
+// Second, and this is important: l/cps returns immediately with the result of the first continuation-producing expression (so in the above example, the return value of binary_ajax_call would be
+// the value of the l/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is happening
+// here; l/cps ultimately gets translated into the set of nested functions that you would otherwise write.
 
 // There's also a shorthand form to CPS-convert functions. If you care only about the first parameter (which is true for a lot of functions), you can use the postfix /cps[] form, like this:
 
 // | $.getJSON('foo', _) /cps[alert(_)];
 //   $.getJSON('foo', _) /cps.x[alert(x)];         // Also has named form
 
-// Bound variants of both let/cps and /cps[] are also available:
+// Bound variants of both l/cps and /cps[] are also available:
 
 // | $.getJSON('foo', _) /cpb[...];
-//   let/cpb[x <- foo(_)][...];
+//   l/cpb[x <- foo(_)][...];
 
   tconfiguration('std', 'continuation.cps', function () {
-    let*[cps_convert(v, f, b, bound) = f.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b})}),
-         let_cps_def(t, form, bound) = t.rmacro(qs[let/_form[_, _ <- _][_]].replace({_form: form}), fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)})]).
-                                         rmacro(qs[let/_form[   _ <- _][_]].replace({_form: form}), fn    [v, f, b][cps_convert(v, f, b, bound)]),
-         cps_def(t, form, bound)     = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
-                                         rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
-                                                fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
+    l*[cps_convert(v, f, b, bound) = f.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b})}),
+         l_cps_def(t, form, bound) = t.rmacro(qs[l/_form[_, _ <- _][_]].replace({_form: form}), fn[cs, v, f, b][qs[l/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)})]).
+                                       rmacro(qs[l/_form[   _ <- _][_]].replace({_form: form}), fn    [v, f, b][cps_convert(v, f, b, bound)]),
+         cps_def(t, form, bound)   = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
+                                       rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
+                                              fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
                                                                                                                                                      replace({_v: v, _b: b})})})])] in
-    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true)]}).
+    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), l_cps_def(_, qs[cps], false), l_cps_def(_, qs[cpb], true)]}).
 
 // Escaping continuations and tail call optimization.
 // The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
@@ -1381,7 +1383,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | caterwaul.continuation.call_tail.call(f, arg1, arg2, ...);
 
   tconfiguration('std', 'continuation.delimited', function () {
-    let[magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited')] in
+    l[magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited')] in
     this.continuation /se[_.call_cc     = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
                                                         try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
                                                         catch (e) {if (escaped) return e; else throw e}},
@@ -1415,7 +1417,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // filter(), foldl(), foldr(), zip(), etc.
 
   tconfiguration('std', 'seq.finite.core', function () {
-    let[push = Array.prototype.push, slice = Array.prototype.slice]
+    l[push = Array.prototype.push, slice = Array.prototype.slice]
     [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, slice.call(xs || []))] /se.c[c.prototype = new this.seq.core() /se[
       _.size() = this.length, _.constructor = c]]]}).
 
@@ -1428,7 +1430,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
 
     tconfiguration('std', 'seq.finite.mutability', function () {
-      let[push = Array.prototype.push, slice = Array.prototype.slice] in
+      l[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = (push.apply(this, arguments), this),            // Can't /se this one; it references 'arguments'
                                                                  _.pop()      = this[--this.length] /se[delete this[this.length]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
@@ -1447,7 +1449,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //                       object o to zip into; if you do this, then the pairs are added to o and o is returned instead of creating a new object and adding pairs to that.
 
     tconfiguration('std', 'seq.finite.object', function () {
-      let[own = Object.prototype.hasOwnProperty] in
+      l[own = Object.prototype.hasOwnProperty] in
       this.configure('seq.finite.core').seq.finite /se[_.keys  (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(k)})()],
                                                        _.values(o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(o[k])})()],
                                                        _.pairs (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push([k, o[k]])})()],
@@ -1464,13 +1466,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.length][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
             _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
-            _.reversed()  = new this.constructor() /se[let[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
+            _.reversed()  = new this.constructor() /se[l[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
             _.flat_map(f) = new this.constructor() /se[this.each(fn[x, xi][(f.call(this, x, xi) /re.xs[xs.each ? xs : new this.constructor(xs)]).each(fn[x][_.push(x)])])],
 
-            _.foldl(f, x) = let[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
-                               [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
-            _.foldr(f, x) = let[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
-                               [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
+            _.foldl(f, x) = l[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
+                             [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
+            _.foldr(f, x) = l[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
+                             [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
 
 //   Zipping.
 //   Zipping as a generalized construct has a few variants. One is the function used to zip (by default, [x, y]), another is the number of sequences to zip together, and the last one is whether
@@ -1484,11 +1486,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     tconfiguration('std opt', 'seq.finite.zip', function () {
       this.configure('seq.finite.traversal').seq.finite
-        /se[let[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
-          let[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
-             [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
-              let[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
-              new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
+        /se[l[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
+          l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
+           [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
+            l[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
+            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
 //   Quantification.
 //   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
@@ -1524,7 +1526,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
             _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
 
             _.prototype.filter(f) = new _.filter(f, this),
-            _.def('filter', fc[f, xs][this._f = f, this._xs = let*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
+            _.def('filter', fc[f, xs][this._f = f, this._xs = l*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
                             fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
 
 //   Traversal and forcing.
@@ -1533,17 +1535,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
     tconfiguration('std continuation', 'seq.infinite.traversal', function () {
-      let[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
+      l[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
-        /se[_.drop(f) = let*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
-            _.take(f) = let*[xs = new finite(), next(s)(cc) = let[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
+        /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
+            _.take(f) = l*[xs = new finite(), next(s)(cc) = l[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
 
 // Sequence manipulation language.
 // Using methods to manipulate sequences can be clunky, so the sequence library provides a macro to enable sequence-specific manipulation. You enter this mode by using seq[], and expressions
 // inside the brackets are interpreted as sequence transformations. For example, here is some code translated into the seq[] macro:
 
-// | var primes1 = let[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
-//   var primes2 = let[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _]]];
+// | var primes1 = l[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
+//   var primes2 = l[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _]]];
 
 // These operators are supported and take their normal Javascript precedence and associativity:
 
@@ -1633,14 +1635,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
           seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
 
-          let[e(x) = _.macroexpand(x)] in
+          l[e(x) = _.macroexpand(x)] in
           _.macro /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
                       _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
 
                       _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
                       _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
 
-                      let[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
+                      l[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
                       _(qs[+_], fn[x][x]),
 
                       seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))])],

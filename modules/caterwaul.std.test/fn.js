@@ -8,11 +8,11 @@ test(function () {
     eq(fn[x, y][x + y](6, 7), 13);
     eq(fn_[10](), 10);
 
-    eq(let[y = 5] in y + 1, 6);
-    eq(let[y = 5, a = 6] in y + a, 11);
+    eq(l[y = 5] in y + 1, 6);
+    eq(l[y = 5, a = 6] in y + a, 11);
 
-    eq(let*[x = 4, y = x] in x + y, 8);
-    eq(let*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]] in fact(5), 120);
+    eq(l*[x = 4, y = x] in x + y, 8);
+    eq(l*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]] in fact(5), 120);
 
     eq(z + 1, where[z = 5], 6);
     eq(q + w, where[q = 10, w = 100], 110);

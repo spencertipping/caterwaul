@@ -32,7 +32,7 @@ test(function () {
     var count = 0;
     var one_to_ten = seq[1 >>>[_ + 1] <<[_ <= 10]];
 
-    let/cps[x <- seq[~one_to_ten *n[n * 3]].each(_)][count += x];
+    l/cps[x <- seq[~one_to_ten *n[n * 3]].each(_)][count += x];
 
     eq(count, 165);
 

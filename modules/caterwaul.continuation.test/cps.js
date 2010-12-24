@@ -8,14 +8,14 @@ test(function () {
     var f  = cs/mb/push;
     var g  = fn_[cs.shift().apply(this, arguments)];
 
-    eq(let/cps[y <- f(_)][x += y], 1);
+    eq(l/cps[y <- f(_)][x += y], 1);
     eq(x, 0);
     eq(cs.length, 1);
     g(10);
     eq(x, 10);
     eq(cs.length, 0);
 
-    eq(let/cps[y <- f(_), z <- f(_)][x += y + z], 1);
+    eq(l/cps[y <- f(_), z <- f(_)][x += y + z], 1);
     eq(x, 10);
     eq(cs.length, 1);
     g(7);
@@ -26,7 +26,7 @@ test(function () {
     eq(cs.length, 0);
 
     var s = '';
-    eq(let/cps[(foo, bar) <- f(_)][s += foo + bar], 1);
+    eq(l/cps[(foo, bar) <- f(_)][s += foo + bar], 1);
     eq(s, '');
     eq(cs.length, 1);
     g('one', 'two');

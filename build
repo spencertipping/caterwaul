@@ -18,20 +18,23 @@
   }
 
   pass() {
+    echo pass $*
     echo pass $* >> .test-log
   }
 
   run-node() {
-    start node $*
     sleep 0.1
     cat "$@" > tmp.js
-    node tmp.js || fail node $* || return 1
 
     start gjs $*
-    gjs tmp.js  || fail gjs $*  || return 1
-    rm -f tmp.js
-    pass node $*
+    gjs tmp.js  || fail gjs $* || return 1
     pass gjs $*
+
+    start node $*
+    node tmp.js || fail node $* || return 1
+    pass node $*
+
+    rm -f tmp.js
   }
 
 # Build phases.

@@ -49,7 +49,7 @@ eta-expand when calling a method in point-free form:
 
 Also useful is side-effecting, which you can do this way:
 
-| {} /se[_.foo = 'bar']               // === let[_ = {}][_.foo = 'bar', _]
+| {} /se[_.foo = 'bar']               // === l[_ = {}][_.foo = 'bar', _]
 
 Side-effects can be chained since / is left-associative.
 
@@ -67,7 +67,7 @@ specify a variable name:
                                     rmacro(qs[_/re._[_]], fn[value, name, body][qse[qg[fn[name]      [body]].call(this, value)].replace({body: body, name: name, value: value})])}).
 
 Binding abbreviations (the 'bind' library).
-Includes forms for defining local variables. One is 'l [bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
+Includes forms for defining local variables. One is 'l[bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
 This means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.) Each of these
 expands into a function call; e.g.
 
@@ -93,14 +93,16 @@ You can also use the less English-like but more expressive l[...][...] syntax:
 
 This has the advantage that you no longer need to parenthesize any short-circuit, decisional, or relational logic in the expression.
 
-  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {
-    var l_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
+The legacy let and let* forms are also supported, but they will cause syntax errors in some Javascript interpreters (hence the change).
+
+  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {this.configure('std.qg');
+    var lf = fb[form][this.rmacro(form, l_expander)], lsf = fb[form][this.rmacro(form, l_star_expander)],
+        l_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
         l_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
-                                                 qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression,
-                                                                                                              values: vars.map(fn[n][n[1]]).unflatten()})];
-    this.configure('std.qg').
-         rmacro(qs[l [_] in _], l_expander).     rmacro(qs[l [_][_]], l_expander).     rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]).
-         rmacro(qs[l*[_] in _], l_star_expander).rmacro(qs[l*[_][_]], l_star_expander).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])}).
+                            qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression, values: vars.map(fn[n][n[1]]).unflatten()})];
+
+    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (this.parse('let [_] in _')), lf (this.parse('let [_][_]')).rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
+    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(this.parse('let*[_] in _')), lsf(this.parse('let*[_][_]')).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])}).
 
 Assignment abbreviations (the 'lvalue' library).
 Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
@@ -141,7 +143,7 @@ which lets you express simple syntactic rewrites more conveniently. Here's an ex
 Syntax variables are prefixed with underscores; other identifiers are literals.
 
   tconfiguration('std.qs std.fn std.bind std.lvalue', 'std.defmacro', function () {
-    let[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
+    l[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
     this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
          macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), l[wildcards = pattern.collect(wildcard)] in fn_[l[hash = {}, as = arguments]
                                                             [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).

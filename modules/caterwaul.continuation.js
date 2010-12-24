@@ -33,39 +33,39 @@
 // | $.getJSON('some-url', fn[result]
 //     [$.getJSON('some-other-url-#{result.property}', fn[other_result][...])]);
 
-// Rather than dealing with this nesting explicitly, it's more convenient to use normal let-notation. That's exactly what let/cps does:
+// Rather than dealing with this nesting explicitly, it's more convenient to use normal l-notation. That's exactly what l/cps does:
 
-// | let/cps[result       <- $.getJSON('some-url', _),
-//           other_result <- $.getJSON('some-other-url-#{result.property}', _)]
+// | l/cps[result       <- $.getJSON('some-url', _),
+//         other_result <- $.getJSON('some-other-url-#{result.property}', _)]
 //   [console.log(result)];
 
 // There are a couple of things to note about this setup. First, the arrows. This is so that your continuations can be n-ary. (Javascript doesn't let you assign into a paren-list.)
 
-// | let/cps[(x, y) <- binary_ajax_call('some-url', _)][...];
+// | l/cps[(x, y) <- binary_ajax_call('some-url', _)][...];
 
-// Second, and this is important: let/cps returns immediately with the result of the first continuation-producing expression (so in the above example, the return value of binary_ajax_call would
-// be the value of the let/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is
-// happening here; let/cps ultimately gets translated into the set of nested functions that you would otherwise write.
+// Second, and this is important: l/cps returns immediately with the result of the first continuation-producing expression (so in the above example, the return value of binary_ajax_call would be
+// the value of the l/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is happening
+// here; l/cps ultimately gets translated into the set of nested functions that you would otherwise write.
 
 // There's also a shorthand form to CPS-convert functions. If you care only about the first parameter (which is true for a lot of functions), you can use the postfix /cps[] form, like this:
 
 // | $.getJSON('foo', _) /cps[alert(_)];
 //   $.getJSON('foo', _) /cps.x[alert(x)];         // Also has named form
 
-// Bound variants of both let/cps and /cps[] are also available:
+// Bound variants of both l/cps and /cps[] are also available:
 
 // | $.getJSON('foo', _) /cpb[...];
-//   let/cpb[x <- foo(_)][...];
+//   l/cpb[x <- foo(_)][...];
 
   tconfiguration('std', 'continuation.cps', function () {
-    let*[cps_convert(v, f, b, bound) = f.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b})}),
-         let_cps_def(t, form, bound) = t.rmacro(qs[let/_form[_, _ <- _][_]].replace({_form: form}), fn[cs, v, f, b][qs[let/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)})]).
-                                         rmacro(qs[let/_form[   _ <- _][_]].replace({_form: form}), fn    [v, f, b][cps_convert(v, f, b, bound)]),
-         cps_def(t, form, bound)     = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
-                                         rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
-                                                fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
+    l*[cps_convert(v, f, b, bound) = f.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b})}),
+         l_cps_def(t, form, bound) = t.rmacro(qs[l/_form[_, _ <- _][_]].replace({_form: form}), fn[cs, v, f, b][qs[l/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)})]).
+                                       rmacro(qs[l/_form[   _ <- _][_]].replace({_form: form}), fn    [v, f, b][cps_convert(v, f, b, bound)]),
+         cps_def(t, form, bound)   = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
+                                       rmacro(qs[_(_) /_form._[_]].replace({_form: form}),
+                                              fn[f, ps, v, b][qs[_f(_ps)].replace({_f: f, _ps: ps.replace({_: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).
                                                                                                                                                      replace({_v: v, _b: b})})})])] in
-    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), let_cps_def(_, qs[cps], false), let_cps_def(_, qs[cpb], true)]}).
+    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), l_cps_def(_, qs[cps], false), l_cps_def(_, qs[cpb], true)]}).
 
 // Escaping continuations and tail call optimization.
 // The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
@@ -102,7 +102,7 @@
 // | caterwaul.continuation.call_tail.call(f, arg1, arg2, ...);
 
   tconfiguration('std', 'continuation.delimited', function () {
-    let[magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited')] in
+    l[magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited')] in
     this.continuation /se[_.call_cc     = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
                                                         try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
                                                         catch (e) {if (escaped) return e; else throw e}},
