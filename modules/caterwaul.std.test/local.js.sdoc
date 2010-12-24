@@ -8,11 +8,11 @@ test(function () {
     eq(locally['std.fn'][fn[x, y][x + y](6, 7)], 13);
     eq(locally['std.fn'][fn_[10]](), 10);
 
-    eq(locally['std.bind'][let[y = 5] in y + 1], 6);
-    eq(locally['std.bind'][let[y = 5, a = 6] in y + a], 11);
+    eq(locally['std.bind'][l[y = 5] in y + 1], 6);
+    eq(locally['std.bind'][l[y = 5, a = 6] in y + a], 11);
 
-    eq(locally['std.bind'][let*[x = 4, y = x] in x + y], 8);
-    eq(locally['std.bind std.fn'][let*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]] in fact(5)], 120);
+    eq(locally['std.bind'][l*[x = 4, y = x] in x + y], 8);
+    eq(locally['std.bind std.fn'][l*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]] in fact(5)], 120);
 
     eq(locally['std.bind'][z + 1, where[z = 5]], 6);
     eq(locally['std.bind'][q + w, where[q = 10, w = 100]], 110);
