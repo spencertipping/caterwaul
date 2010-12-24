@@ -47,10 +47,6 @@
 //   much more obvious what's going on.)
 
 //   Utility methods.
-//   fn(s) creates a function that returns 's', evaluated as an expression. It gets standard arguments $0, $1, ... $4, and has '@' replaced by 'this.' for Ruby-style instance variable access. I
-//   use it a fair amount, but try to keep it outside of functions because it ends up calling eval(), which is slow. As a quick example, fn('$0 + $1') returns a function that adds its first two
-//   arguments.
-
 //   Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 //   tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some
 //   distance below):
@@ -83,9 +79,8 @@
 
 //   The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
 
-    var fn = function (x) {return new Function ('$0', '$1', '$2', '$3', '$4', 'return ' + x.replace(/@/g, 'this.'))},  qw = fn('$0.split(/\\s+/)'),
+    var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
     gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-        id = fn('$0'),  se = function (x, f) {return f && f.call(x, x) || x},
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -104,13 +99,16 @@
 //   the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
 //   regardless of the length of the candidate.
 
+//   The bad part is that you can't refer to an object called '_max_length' -- this will never be considered to be in the hash. I don't really have a problem with that, but it's worth being aware
+//   of. Also, on IE browsers various properties won't exist (among them toString, hasOwnProperty, etc.). These aren't special in Javascript so it isn't a problem, but it's still unfortunate.
+
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
-              has = function (o, p) {return p && ! (p.length > o._max_length) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
+              has = function (o, p) {return p && ! (p.length > o._max_length) && p !== '_max_length' && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
 //   Global management.
 //   Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
-//   caterwaul and restore the global that was there when Caterwaul was loaded. Note that deglobalize() is available only on the global caterwaul() function. It wouldn't make much sense for
-//   clones to inherit it.
+//   caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
+//   available only on the global caterwaul() function. It wouldn't make much sense for clones to inherit it.
 
     _caterwaul = typeof caterwaul === 'undefined' ? undefined : caterwaul,
 
@@ -161,7 +159,7 @@
 //   the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
 //   (i.e. no parent pointer).
 
-       syntax_node_inspect = fn('$0 ? $0.inspect() : "(<>)"'),  syntax_node_tostring = fn('$0 ? $0.serialize ? $0.serialize() : $0.toString() : ""'),
+       syntax_node_inspect = function (x) {return x ? x.inspect() : '(<>)'},  syntax_node_tostring = function (x) {return x ? x.serialize ? x.serialize() : x.toString() : ''},
 
 //   Syntax node functions.
 //   These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
@@ -172,15 +170,16 @@
 //     Mutability.
 //     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
 
-       _replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),   _append_to: fn('$0 && $0._append(this), this'),
-      _reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                        _fold_l: fn('@_append(@l && @l._unlink(this))'),  _fold_lr: fn('@_fold_l()._fold_r()'),
-        _append: fn('(this[@length++] = $0) && ($0.p = this), this'),                     _fold_r: fn('@_append(@r && @r._unlink(this))'),  _fold_rr: fn('@_fold_r()._fold_r()'),
-       _sibling: fn('$0.p = @p, (@r = $0).l = this'),                                     _unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), delete @l, delete @r, @_reparent($0)'),
-          _wrap: fn('$0.p = @_replace($0).p, @_reparent($0), delete @l, delete @r, @_append_to($0)'),
+       _replace: function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
+      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this))},
+        _append: function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this))},
+       _sibling: function (n) {return n.p = this.p, (this.r = n).l = this},                                                            _fold_lr: function () {return this._fold_l()._fold_r()},
+          _wrap: function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},  _fold_rr: function () {return this._fold_r()._fold_r()},
+        _unlink: function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
 
 //     These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
 
-            pop: fn('--@length, this'),  push: fn('(this[@length++] = $0), this'),
+            pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x, this},
 
 //     Identification.
 //     You can request that a syntax node identify itself, in which case it will give you a string identifier if it hasn't already. The identity is not determined until the first time it is
@@ -219,7 +218,7 @@
       rmap: function (f) {var r = f(this); return ! r || r === this ? this. map(function (n) {return n && n. rmap(f)}) :      r.data === undefined ? new this.constructor(r) : r},
      rnmap: function (f) {var r = f(this); return        r === this ? this.nmap(function (n) {return n && n.rnmap(f)}) : r && r.data === undefined ? new this.constructor(r) : r},
 
-     clone: fn('@rmap(function () {return false})'),
+     clone: function () {return this.rmap(function () {return false})},
 
    collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
    replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
@@ -237,46 +236,10 @@
 //     being entered. Each time a node is left, the callback is invoked with an object of the form {exiting: node}. The return value of the function is not used. Any null nodes are not traversed,
 //     since they would fail any standard truthiness tests for 'entering' or 'exiting'.
 
+//     I used to have a method to perform scope-annotated traversal, but I removed it for two reasons. First, I had no use for it (and no tests, so I had no reason to believe that it worked).
+//     Second, Caterwaul is too low-level to need such a method. That would be more appropriate for an analysis extension.
+
       traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
-
-//       Scope-annotated traversal.
-//       It's often helpful to have a list of currently-defined locals when traversing a syntax tree. This high-level function manages that for you; in addition to entering/exiting events, you
-//       also get a scope object that contains a mapping from each currently-defined local to the function() node that it belongs to. (It also handles variable shadowing correctly.)
-
-//       There are a few different formats that would work for this purpose. The issue from the inside of this function is that we want to spend a minimal amount of time building these
-//       structures; the worst-case scenario becomes O(n^2) for n levels of scoping if we always create new objects. Rather than doing that, it's more efficient to construct a linked scope chain
-//       much in the same way that a Javascript interpreter would.
-
-//       This means that we'll need a structure like this:
-
-//       |          child 1    child 2.1
-//                /          /
-//         parent -- child 2 -- child 2.2  ...
-//                \
-//                  child 3
-
-//       Each node will have a 'parent' reference that points to the enclosing scope. The variables defined wtihin a scope are stored in the 'variables' attribute. So each node will have this
-//       structure:
-
-//       | {parent: <a-scope-node>, variables: {v1: <this-scope-node>, v2: <this-scope-node>, ...}, children: {<function-node-id>: {<scope-node>}}}
-
-//       We use the id() method defined in 'Identification' to allow the function nodes to be used as hash keys.
-
-//       The scoped_traverse function runs in two parts. First, it goes through the whole tree building up the scope objects, and then it runs through a second time calling the callback on each
-//       node, now annotated. When the callback is invoked transitioning into or out of a function (i.e. {entering: function_node} or {exiting: function_node}), the scope will always be the one
-//       inside the function, not the one in which the function is defined. If you want the outer scope, you can use the .parent attribute of the scope node. The 'global' scope (i.e. the
-//       outermost one) will have a null parent.
-
-        scoped_traverse: function (f) {var new_scope = function (parent) {return {parent: parent || null, variables: {}, children: {}}}, scope = new_scope();
-          this.traverse(function (t) {var n = t.entering, formals = null;
-            n ? (n.data === 'function' ? (scope = scope.children[n.id()] = new_scope(scope), formals = n[0].data === '(' ? n[0][0] : n[1][0],
-                                          formals.flatten(',').each(function (v) {scope.variables[v.data] = scope})) :
-                     n.data === 'var'  && n[0].flatten(',').each(function (v) {scope.variables[v.data === '=' || v.data === 'in' ? v[0].data : v.data] = scope})) :
-                t.exiting.data === 'function' && (scope = scope.parent)});
-
-          return this.traverse(function (node) {if (node.entering && node.entering.data === 'function') scope = scope.children[node.entering.id()];
-                                                f(node, scope);
-                                                if (node.exiting  && node.exiting.data  === 'function') scope = scope.parent})},
 
 //     Structural transformation.
 //     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
@@ -337,15 +300,16 @@
                is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
-    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},            is_null_or_undefined: fn('@data === "null" || @data === "undefined"'),
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},            is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
 
-                is_empty: fn('!@length'),  is_constant: fn('@is_number() || @is_string() || @is_boolean() || @is_regexp() || @is_null_or_undefined()'),
-          left_is_lvalue: fn('/=$/.test(@data) || /\\+\\+$/.test(@data) || /--$/.test(@data)'),   has_parameter_list: fn('@data === "function" || @data === "catch"'),
-         has_lvalue_list: fn('@data === "var" || @data === "const"'),                                 is_dereference: fn('@data === "." || @data === "[]"'),
-           is_invocation: fn('@data === "()"'),                                         is_contextualized_invocation: fn('@is_invocation() && this[0] && this[0].is_dereference()'),
+             is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
+          left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
+                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
+         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
+           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0] && this[0].is_dereference()},
 
-            is_invisible: function () {return has(parse_invisible, this.data)},                   is_binary_operator: function () {return has(parse_lr, this.data)},
-is_prefix_unary_operator: function () {return has(parse_r, this.data)},                    is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
+            is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
        is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
                  accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
@@ -370,7 +334,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 //     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
 
-        toString: fn('@inspect()'),
+        toString: function () {return this.inspect()},
          inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                       (this.r ? ' -> ' + this.r.inspect() : '')},
        serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
@@ -494,9 +458,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
               parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
    parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1}),
          parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
-      parse_r_optional = hash('return throw break continue else'),           parse_l = hash('++ --'),            parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
-           parse_block = hash('; {'),  parse_k_empty = fn('[]'),         parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),  parse_invisible = hash('i;'),
- parse_ambiguous_group = hash('[ ('),  parse_ternary = hash('?'),  parse_not_a_value = hash('function if for while catch'),            parse_also_expression = hash('function'),
+      parse_r_optional = hash('return throw break continue else'),  parse_also_expression = hash('function'),    parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally var const void delete'),
+           parse_block = hash('; {'),  parse_invisible = hash('i;'),              parse_l = hash('++ --'),   parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),     parse_not_a_value = hash('function if for while catch'),
 
 //   Parse function.
 //   As mentioned earlier, the parser and lexer aren't distinct. The lexer does most of the heavy lifting; it matches parens and brackets, arranges tokens into a hierarchical linked list, and
@@ -522,7 +486,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     node; in this case we append the node as 'head'. Another case is when 'head' exists; in that case we update head to be the new node, which gets added as a sibling of the old head.
 
         var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
-            grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(parse_k_empty, parse_reduce_order), invocation_nodes = [], all_nodes = [],
+            grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [],
             new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)};
 
 //     Main lex loop.
@@ -596,7 +560,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //       t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
 //       avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
 
-        if (i === mark) throw new Error('Internal error: The lexer failed to consume input and is throwing this error instead of entering an infinite loop. This is probably a Caterwaul bug.');
+        if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 40) + '" with leading context "' + s.substr(mark - 40, 40) + '" (probably a Caterwaul bug)');
         if (t === false) continue;
         t = t === true ? s.substring(mark, i) : t === 'u;' ? ';' : t;
 
@@ -829,12 +793,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern. It is optimized, though, to reject invalid nodes
 //   quickly -- that is, if there is any mismatch in arity or data.
 
-      macro_try_match = function (pattern, t) {if (pattern.data === '_')                                   return [t];
-                                               if (pattern.data !== t.data || pattern.length !== t.length) return null;
-                                               for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
-                                                 if (match = macro_try_match(pattern[i], t[i])) Array.prototype.push.apply(wildcards, match);
-                                                 else                                           return null;
-                                               return wildcards},
+      macro_array_push = Array.prototype.push,
+      macro_try_match  = function (pattern, t) {if (pattern.data === '_')                                   return [t];
+                                                if (pattern.data !== t.data || pattern.length !== t.length) return null;
+                                                for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
+                                                  if (match = macro_try_match(pattern[i], t[i])) macro_array_push.apply(wildcards, match);
+                                                  else                                           return null;
+                                                return wildcards},
 
 //   Expansion.
 //   Uses the straightforward brute-force algorithm to go through the source tree and expand macros. At first I tried to use indexes, but found that I couldn't think of a particularly good way to
@@ -943,8 +908,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
       field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
-     method('global', function () {return caterwaul}).
-     method('decompile', fn('@parse($0.toString())')).method('macro', fn('@macro_patterns.push($0), @macro_expanders.push($1), this')).
+      field('global', function () {return caterwaul}).
+      field('decompile', parse).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
 
      method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('caterwaul.rmacro: Cannot define macro with non-function expander');
