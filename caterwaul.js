@@ -175,8 +175,8 @@
        _replace: fn('($0.l = @l) && (@l.r = $0), ($0.r = @r) && (@r.l = $0), this'),   _append_to: fn('$0 && $0._append(this), this'),
       _reparent: fn('@p && @p[0] === this && (@p[0] = $0), this'),                        _fold_l: fn('@_append(@l && @l._unlink(this))'),  _fold_lr: fn('@_fold_l()._fold_r()'),
         _append: fn('(this[@length++] = $0) && ($0.p = this), this'),                     _fold_r: fn('@_append(@r && @r._unlink(this))'),  _fold_rr: fn('@_fold_r()._fold_r()'),
-       _sibling: fn('$0.p = @p, (@r = $0).l = this'),                                     _unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), @l = @r = null, @_reparent($0)'),
-          _wrap: fn('$0.p = @_replace($0).p, @_reparent($0), @l = @r = null, @_append_to($0)'),
+       _sibling: fn('$0.p = @p, (@r = $0).l = this'),                                     _unlink: fn('@l && (@l.r = @r), @r && (@r.l = @l), delete @l, delete @r, @_reparent($0)'),
+          _wrap: fn('$0.p = @_replace($0).p, @_reparent($0), delete @l, delete @r, @_append_to($0)'),
 
 //     These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
 
@@ -503,7 +503,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   provides an index of those tokens by their fold order. It does all of this by streaming tokens into a micro-parser whose language is grouping and that knows about the oddities required to
 //   handle regular expression cases. In the same function, though as a distinct case, the operators are folded and the syntax is compiled into a coherent tree form.
 
-      parse = function (s) {
+//   The input to the parse function can be anything whose toString() produces valid Javascript code.
+
+      parse = function (input) {
 
 //     Lex variables.
 //     s, obviously, is the string being lexed. mark indicates the position of the stream, while i is used for lookahead. The difference is later read into a token and pushed onto the result. c
@@ -519,7 +521,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     The push() function manages the mechanics of adding a node to the initial linked structure. There are a few cases here; one is when we've just created a paren group and have no 'head'
 //     node; in this case we append the node as 'head'. Another case is when 'head' exists; in that case we update head to be the new node, which gets added as a sibling of the old head.
 
-        var s = s.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
+        var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
             grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(parse_k_empty, parse_reduce_order), invocation_nodes = [], all_nodes = [],
             new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)};
 
@@ -731,6 +733,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = 0, l = invocation_nodes.length, _, child; _ = invocation_nodes[i], i < l; ++i) (child = _[1] = _[1][0]) && (child.p = _);
 
         while (head.p) head = head.p;
+
+//     Fifth step.
+//     Prevent a space leak by clearing out all of the 'p' pointers.
+
+        for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head},
 
 // Macroexpansion.

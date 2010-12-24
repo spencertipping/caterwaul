@@ -963,7 +963,7 @@ __6999988eaf441c9b1282e03e1db427b5
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('watch', 'blue');
-meta::note('queue', <<'__aec50dfeae6e412ac12ede797532ef2f');
+meta::note('queue', <<'__6a4cc8fc6a6e290c099d0490c1c7183a');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
 
@@ -984,13 +984,17 @@ Caterwaul does the right thing 99% of the time. This section is for the 1% when 
   This is probably a V8 bug of some sort, though I'll have to isolate a suitable test case to submit it. Fortunately it only seems to have an effect when transforming jQuery (and it produces
   the same output), so maybe there is some nondeterminism that I need to address.
 
+  Remove uses of eval() inside Caterwaul [will fix soon].
+  This is actually important for a couple of reasons. First, it's slow to use eval. Better is to avoid it by writing functions out longhand (much as I don't particularly like doing so).
+  Second, it may be causing V8 some trouble. I'm not sure; will have to test this.
+
 Ideas.
 Unimportant things that might help at some point in the future.
 
   Hashed syntax nodes.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
-__aec50dfeae6e412ac12ede797532ef2f
+__6a4cc8fc6a6e290c099d0490c1c7183a
 
 meta::parent('/home/spencertipping/bin/notes', <<'__320d51928ec8e2e370d67d30abe059b5');
 function::note
