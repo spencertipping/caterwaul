@@ -294,13 +294,13 @@ nodes. At the end of folding there is only one child per paren-group.
     Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
     eta-reduced (if it were, then the 'this' binding would be lost).
 
-               is_string: function () {return /['"]/.test(this.data.charAt(0))},               as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
-               is_number: function () {return /\d/.test(this.data) && ! /^[\/\w'"]/.test(this.data)},  as_number: function () {return Number(this.data)},
-              is_boolean: function () {return this.data === 'true' || this.data === 'false'},         as_boolean: function () {return this.data === 'true'},
-               is_regexp: function () {return /^\/./.test(this.data)},                         as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+               is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
+              is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
+               is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
 
-       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                     is_block: function () {return has(parse_block, this.data)},
-    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},            is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
+       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
 
              is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
           left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
@@ -319,7 +319,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     need a mapping of symbols to these references, which is what the bindings() method returns. (It also collects references for all descendant nodes.) It takes an optional argument to
     populate, in case you already had a hash set aside for bindings -- though it always returns the hash.
 
-      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.value) result[n.data] = n.value}); return result},
+    A bug in Caterwaul 0.5 and earlier failed to bind falsy values. This is no longer the case; nodes which bind values should indicate that they do so by setting a binds_a_value attribute
+    (ref nodes do this on the prototype), indicating that their value should be read from the 'value' property. (This allows other uses of a 'value' property while making it unambiguous
+    whether a particular node intends to bind something.)
+
+      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result},
 
     Matching.
     Syntax trees can use the Caterwaul match function to return a list of wildcards.
@@ -359,7 +363,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
     ref = extend(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                   else                                   {this.value = value;       this.data = gensym()}}, {length: 0}, node_methods),
+                                   else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}, node_methods),
 
   Syntax node constructor.
   Here's where we combine all of the pieces above into a single function with a large prototype:
@@ -417,25 +421,25 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   the substring() method is O(n) in the number of characters returned. Firefox implements O(1) substring() but O(n) regular expression matching. Since there are O(n) tokens per document of n
   characters, any O(n) step makes lexing quadratic. So I have to use the only reliably constant-time method provided by strings, charAt() (or in this case, charCodeAt()).
 
-  Of course, building strings via concatenation is also O(n^2), so I also avoid that for any strings that could be long. This is achieved by using a mark to indicate where the substring begins,
-  and advancing i independently. The span between mark and i is the substring that will be selected, and since each substring both requires O(n) time and consumes n characters, the lexer as a
-  whole is O(n). (Though perhaps with a large constant.)
+  Of course, building strings via concatenation is also O(n^2), so I also avoid that for any strings that could be long. This is achieved by using a mark to indicate where the substring
+  begins, and advancing i independently. The span between mark and i is the substring that will be selected, and since each substring both requires O(n) time and consumes n characters, the
+  lexer as a whole is O(n). (Though perhaps with a large constant.)
 
     Precomputed table values.
     The lexer uses several character lookups, which I've optimized by using integer->boolean arrays. The idea is that instead of using string membership checking or a hash lookup, we use the
-    character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency, only
-    the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. (I'm aware that the arrays are power-of-two-sized and that there are enough of
-    them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a Javascript JIT capable enough to have this problem, I think
-    we'll be OK.)
+    character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency,
+    only the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. (I'm aware that the arrays are power-of-two-sized and that there are
+    enough of them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a Javascript JIT capable enough to have this
+    problem, I think we'll be OK.)
 
     The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
     cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
-    fail to parse, which causes an infinite loop. (See test/lex-neq-failure for examples.)
+    fail to parse. (See test/lex-neq-failure for examples.)
 
          lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
                        'return throw case var const break continue void else u; ;'),
 
-      lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs = xs.concat(xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
+      lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
       lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
       lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                    lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
         lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),

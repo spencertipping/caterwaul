@@ -1,7 +1,10 @@
 Unit testing library functions
 
 var already_failed = false;
-var on_error = function (e) {console.log('Error at eq count ' + eq_count); throw new Error(e)};
+var on_error = function (e) {typeof console === 'undefined' ?
+                               print('Error at eq count ' + eq_count) :
+                               console.log('Error at eq count ' + eq_count);
+                             throw new Error(e)};
 var eq_count = 0;
 
 var _log = function (message) {};
