@@ -46,4 +46,14 @@ test(function () {
     f(4, _, 9) /cpb.n[++count, eq(n, 13), eq(this, t)];
     eq(count, 4);
   })(eq);
+
+  c(function (eq) {
+    // Sort of like the real I and C, but not quite...
+    var i = fn[f][fn[x][f(x)]];
+    var c = fn[x, f, g][g(f(x))];
+
+    eq(c(5, i(_) /cps[_ + 1], _) /cps[_ + 1], 7);
+    eq(c(5, i(_) /cps.x[x + 1], _) /cps[_ + 1], 7);
+    eq(c(5, i(_) /cps[_ + 1], _) /cps.x[x + 1], 7);
+  })(eq);
 });
