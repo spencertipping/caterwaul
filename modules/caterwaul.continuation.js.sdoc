@@ -74,9 +74,9 @@ to the same callback function rather than multiply-evaluating it (though I'm not
                                      t.rmacro(qs[l/_form[_, _ <- _][_]].replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _][_]'), inductive).
                                        rmacro(qs[l/_form[   _ <- _][_]].replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _][_]'), base),
 
-         cps_def(t, form, bound)   = t.rmacro(qs[_(_) /_form[_]].  replace({_form: form}), fn[f, ps, b][qse[_f(_ps) /_form._[_b]].replace({_form: form, _f: f, _ps: ps, _b: b})]).
-                                       rmacro(qs[_(_) /_form._[_]].replace({_form: form}), fn[f, ps, v, b][qse[l[_ = _c][_f(_ps)]].replace(
-                                         {_c: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v, _b: b}), _f: f, _ps: ps})])] in
+         cps_def(t, form, bound)   = t.rmacro(qs[_ /_form[_]].  replace({_form: form}), fn[f, b][qse[_f /_form._[_b]].replace({_form: form, _f: f, _b: b})]).
+                                       rmacro(qs[_ /_form._[_]].replace({_form: form}), fn[f, v, b][qse[l[_ = _c][_f]].replace(
+                                         {_c: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v, _b: b}), _f: f})])] in
 
     this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), l_cps_def(_, qs[cps], false), l_cps_def(_, qs[cpb], true)]}).
 
