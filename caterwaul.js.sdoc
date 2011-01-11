@@ -372,9 +372,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
     syntax_node = extend(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
                                           else {this.data = data && data.toString(); this.length = 0;
-                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                  for (var j = 0, lj = _.length, it; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                    this._append(it instanceof String || it instanceof Number || it instanceof Boolean ? new this.constructor(it) : it)}}, node_methods),
+                                            for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                              for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], itc = it.constructor, j < lj) : (it = _, ! j); ++j)
+                                                this._append(itc === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods),
 
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
