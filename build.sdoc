@@ -3,6 +3,8 @@
 Caterwaul build script | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+slow=''
+
 Unit testing functions.
 These helper functions are used for unit tests. Because node.js doesn't accept multiple JS files as arguments, we first concatenate the files together and then hand that to node.js. Each test
 is run separately to get an idea of what percentage of the codebase works, although it would also be semantically valid to run all of the tests together in the same environment.
@@ -27,7 +29,7 @@ is run separately to get an idea of what percentage of the codebase works, altho
     sleep 0.1
     cat "$@" > tmp.js
 
-    if which gjs > /dev/null; then
+    if which gjs > /dev/null && [[ $slow ]]; then
       start gjs $*
       gjs tmp.js || fail gjs $* || returncode=1
       pass gjs $*
@@ -82,7 +84,7 @@ Node provides a nice REPL shell. All we have to do is put in some JavaScript to 
   repl() {
     generate
     echo 'require("repl").start("caterwaul> ")' > /tmp/caterwaul-repl.js
-    run-node caterwaul.js modules/*.min.js /tmp/caterwaul-repl.js
+    run-node caterwaul.all.js /tmp/caterwaul-repl.js
   }
 
 Test driver.
@@ -176,6 +178,7 @@ There are only a few things that the main loop provides, mainly to keep the inte
     case $command in
       repl)     repl "$@" ;;
       unit)     unit "$@" ;;
+      slow)     slow="yes"; unit "$@" ;;
       generate) generate "$@" ;;
       package)  package "$@" ;;
       loc)      loc "$@" ;;

@@ -246,7 +246,7 @@ Method calls are treated normally and arguments are untransformed; so you can ca
                       l[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
                       _(qs[+_], fn[x][x]),
 
-                      seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), rxy(qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]])})))])],
+                      seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), fb[x][qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]]), x: x})])])],
 
           this.rmacro(qs[seq[_]], _.macroexpand),
 
