@@ -237,8 +237,9 @@
           seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
 
           l[e(x) = _.macroexpand(x)] in
-          _.macro /se[_(qs[_ && _], rxy(qs[qg[x && x.length ? y : x]])), _(qs[_ === _], rxy(qs[qg[x === y ||  x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])]])),
-                      _(qs[_ || _], rxy(qs[qg[x && x.length ? x : y]])), _(qs[_ !== _], rxy(qs[qg[x !== y && (x.length !== y.length || x.zip(y).exists(fn[p][p[0] !== p[1]]))]])),
+          _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = x][xp && xp.length ? y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = x][xp && xp.length ? xp : y]]])),
+                      _(qs[_ === _], rxy(qs[qg[l[xp = x, yp = y][xp === yp ||  xp.length === yp.length && xp.zip(yp).forall(fn[p][p[0] === p[1]])]]])),
+                      _(qs[_ !== _], rxy(qs[qg[l[xp = x, yp = y][xp !== yp && (xp.length !== yp.length || xp.zip(yp).exists(fn[p][p[0] !== p[1]]))]]])),
 
                       _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
                       _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
