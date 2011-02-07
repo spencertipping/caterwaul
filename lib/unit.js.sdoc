@@ -23,13 +23,13 @@ var aeq = function (xs, ys, message) {
 };
 
 var test = function (f) {
-  eq_count = 0;
-  f();
-
-  // Deactivated for now. This causes nondeterministic failures in recent node.js builds.
-  if (true) {
+  try {
+    eq_count = 0;
+    f();
     caterwaul = caterwaul.reinitialize(caterwaul);
     eq_count = 0;
     f();
+  } catch (e) {
+    on_error(e);
   }
 };
