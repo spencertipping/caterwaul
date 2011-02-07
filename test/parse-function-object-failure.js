@@ -1,6 +1,6 @@
 // Odd failure involving the word 'function' in an object
 
-test(function () {
+test('parse-function-object-failure', function () {
   var p = function (s) {return caterwaul.parse(s).serialize().replace(/\s/g, '')};
 
   eq(p('{"function":3}'), '{"function":3}');

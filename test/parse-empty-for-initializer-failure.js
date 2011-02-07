@@ -1,6 +1,6 @@
 // Test case for 'for (; foo; bar)' loops (in response to jQuery identity failure)
 
-test(function () {
+test('parse-empty-for-initializer-failure', function () {
   var i = function (s)    {eq(s, caterwaul.parse(s).serialize())},
       p = function (s, i) {eq(i, caterwaul.parse(s).inspect())};
 

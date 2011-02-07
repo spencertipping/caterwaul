@@ -1,6 +1,6 @@
 // Tests for opt.unroll
 
-test(function () {
+test('caterwaul.opt.unroll', function () {
   var f = caterwaul.clone('std', 'opt')(function (eq) {
     var iterations = 0;
     eq(opt.unroll[i, 10][++iterations], 10);

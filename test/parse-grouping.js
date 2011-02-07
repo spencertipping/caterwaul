@@ -1,6 +1,6 @@
 // Grouping construct parsing.
 
-test(function () {
+test('parse-grouping', function () {
   var p = function (s, i) {return eq(caterwaul.parse(s).inspect(), i)},
       s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)};
 

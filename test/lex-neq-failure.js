@@ -1,6 +1,6 @@
 // Proper parsing of != and !== (in response to a failure)
 
-test(function () {
+test('lex-neq-failure', function () {
   eq(caterwaul.parse('foo[1] !== 5').inspect(), '(!== ([] (foo) (1)) (5))');
   eq(caterwaul.parse('foo[1] != 5').inspect(), '(!= ([] (foo) (1)) (5))');
 });

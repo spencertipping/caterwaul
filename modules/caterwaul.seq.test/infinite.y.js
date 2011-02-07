@@ -1,6 +1,6 @@
 // Head/tail method tests.
 
-test(function () {
+test('caterwaul.seq.infinite.y', function () {
   var c = caterwaul.clone('std continuation seq');
   c(function (eq) {
     var naturals = new caterwaul.seq.infinite.y(fn[x][x + 1], 0);

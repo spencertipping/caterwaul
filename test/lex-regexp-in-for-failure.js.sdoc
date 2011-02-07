@@ -3,7 +3,7 @@ for (var k in hash) /foo/.test(k) || ...
 
 The problem here is that the lexer assumes that the parens surrounding the for-loop condition end an expression; there needs to be a lexer workaround for block-accepting keywords like this.
 
-test(function () {
+test('lex-regexp-for-in-failure', function () {
   var f = function (s) {try {caterwaul.parse(s)} catch (e) {print('Chucked a wobbly parsing ' + s); throw e}};
   f('for (var k in hash) /foo/.test(k) && bar()');
   f('for (var k in hash) /foo/.test(k) && bar();');

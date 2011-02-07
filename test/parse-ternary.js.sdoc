@@ -1,6 +1,6 @@
 Ternary operator tests.
 
-test(function () {
+test('parse-ternary', function () {
   var p = function (s, i) {return eq(caterwaul.parse(s).inspect(), i)},
       s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)};
 

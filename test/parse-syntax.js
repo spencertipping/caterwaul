@@ -1,6 +1,6 @@
 // JavaScript syntactic constructs.
 
-test(function () {
+test('parse-syntax', function () {
   var p = function (s, i) {return eq(caterwaul.parse(s).inspect(), i)};
 
 //   Lone block-level statements

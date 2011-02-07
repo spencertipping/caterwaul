@@ -1,6 +1,6 @@
 // Finite sequence mapping tests.
 
-test(function () {
+test('caterwaul.seq.finite.map', function () {
   var c = caterwaul.clone('std seq');
   c(function (eq) {
     var xs = new caterwaul.seq.finite([1, 2, 3, 4, 5]);

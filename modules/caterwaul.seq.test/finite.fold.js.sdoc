@@ -1,6 +1,6 @@
 Finite sequence folding tests
 
-test(function () {
+test('caterwaul.seq.finite.fold', function () {
   var c = caterwaul.clone('std seq');
 
   c(function (eq) {

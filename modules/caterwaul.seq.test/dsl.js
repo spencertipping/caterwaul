@@ -1,6 +1,6 @@
 // Sequence DSL tests.
 
-test(function () {
+test('caterwaul.seq.dsl', function () {
   var c = caterwaul.clone('std continuation seq');
 
   c(function (eq) {

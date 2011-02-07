@@ -1,6 +1,6 @@
 // Finite sequence zip tests.
 
-test(function () {
+test('caterwaul.seq.finite.zip', function () {
   var c = caterwaul.clone('std seq');
 
   c(function (eq) {

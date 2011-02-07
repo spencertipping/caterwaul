@@ -5,7 +5,7 @@
 
 // Macroexpansion works backwards, but the macroexpander should failover to the first defmacro if the second expander rejects the match.
 
-test(function () {
+test('caterwaul.std.overlapping-macros', function () {
   var c = caterwaul.clone('std');
 
   c(function (eq) {

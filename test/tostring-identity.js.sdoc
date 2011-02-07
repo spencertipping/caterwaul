@@ -1,6 +1,6 @@
 Serialization via serialize()
 
-test(function () {
+test('tostring-identity', function () {
   var n = function (s)    {return s.replace(/;\s*\}/g, '}').replace(/\s+/g, '')},
       s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)},
       i = function (f)    {return eq(n(caterwaul.decompile(f).serialize()),

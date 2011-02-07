@@ -1,6 +1,6 @@
 // Mysterious 'end()' bug -- caused by a lexer bug that interpreted '.e' as a number in scientific notation
 
-test(function () {
+test('lex-end-failure', function () {
   var p = caterwaul.parse;
 
   eq(p('foo.bar()').inspect(), '(() (. (foo) (bar)) (<>))');

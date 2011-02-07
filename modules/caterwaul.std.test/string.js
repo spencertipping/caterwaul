@@ -1,6 +1,6 @@
 // String interpolation tests.
 
-test(function () {
+test('caterwaul.std.string', function () {
   caterwaul.clone('std.string')(function (eq) {
     eq('foo', 'foo');
     eq('foo#{3 + 5}', 'foo8');

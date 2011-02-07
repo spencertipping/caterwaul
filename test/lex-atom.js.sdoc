@@ -1,6 +1,6 @@
 Atom lexing unit tests
 
-test(function () {
+test('lex-atom', function () {
   var t = function (s, s2) {return eq(caterwaul.parse(s).inspect(), '(' + s2 + ')')},
       s = function (s)     {return t(s, s)};
 

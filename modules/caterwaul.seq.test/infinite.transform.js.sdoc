@@ -1,6 +1,6 @@
 Map and filter tests on infinite streams.
 
-test(function () {
+test('caterwaul.seq.infinite.transform', function () {
   var c = caterwaul.clone('std seq');
   c(function (eq) {
     var naturals = new caterwaul.seq.infinite.y(fn[x][x + 1], 0);

@@ -1,6 +1,6 @@
 // Compile-time eval tests.
 
-test(function () {
+test('caterwaul.std.compile-eval', function () {
   var c = caterwaul.clone('std');
 
   c(function (eq) {

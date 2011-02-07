@@ -2,7 +2,7 @@ Client-side unit testing hooks.
 
 on_error = function (e) {
   var d = document.createElement('div');
-  d.appendChild(document.createTextNode(e));
+  d.appendChild(document.createTextNode(e.description));
   document.getElementById('log').appendChild(d);
 };
 

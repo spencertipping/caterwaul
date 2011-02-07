@@ -1,6 +1,6 @@
 // Caterwaul with_gensyms tests
 
-test(function () {
+test('caterwaul.std.with-gensyms', function () {
   var c = caterwaul.clone('std.qs', 'std.qg', 'std.fn', 'std.defmacro', 'std.with_gensyms', 'std.string');
 
   c(function (eq) {

@@ -1,6 +1,6 @@
 // Caterwaul local standard library tests
 
-test(function () {
+test('caterwaul.std.local', function () {
   var fn = caterwaul.clone('std.locally');
 
   fn(function (eq) {

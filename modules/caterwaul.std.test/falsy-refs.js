@@ -4,7 +4,7 @@
 // | defmacro[foo][fn_[new this.ref(false)]];
 //   foo   // may result in undefined variable
 
-test(function () {
+test('caterwaul.std.falsy-refs', function () {
   var c = caterwaul.clone('std');
 
   c(function (eq) {

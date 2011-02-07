@@ -1,4 +1,4 @@
-test(function () {
+test('lex-semicolon-failure', function () {
   var t = function (s, s2) {return eq(caterwaul.parse(s).inspect(), s2)};
 
   Semicolons (in response to a failure)

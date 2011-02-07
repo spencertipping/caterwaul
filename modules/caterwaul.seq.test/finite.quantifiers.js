@@ -1,6 +1,6 @@
 // Finite sequence quantifier tests.
 
-test(function () {
+test('caterwaul.seq.finite.quantifier', function () {
   var c = caterwaul.clone('std seq');
 
   c(function (eq) {

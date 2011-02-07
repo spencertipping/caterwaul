@@ -1,6 +1,6 @@
 Macro definition tests.
 
-test(function () {
+test('caterwaul.std.macro-definition', function () {
   var c = caterwaul.clone('std.qs', function () {
     this.rmacro(qs[fn[_][_]], function (params, expression) {return qs[function (_vars) {return _expression}].replace({_vars: params, _expression: expression})});
   });

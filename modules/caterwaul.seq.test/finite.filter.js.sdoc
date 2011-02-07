@@ -1,6 +1,6 @@
 Finite sequence filter tests.
 
-test(function () {
+test('caterwaul.seq.finite.filter', function () {
   var c = caterwaul.clone('std seq');
 
   c(function (eq) {

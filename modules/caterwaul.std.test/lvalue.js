@@ -1,6 +1,6 @@
 // Caterwaul lvalue macro tests
 
-test(function () {
+test('caterwaul.std.lvalue', function () {
   var fn = caterwaul.clone('std.fn', 'std.bind', 'std.lvalue', 'std.cond');
 
   fn(function (eq) {

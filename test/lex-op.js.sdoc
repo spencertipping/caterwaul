@@ -1,6 +1,6 @@
 Operation lexing tests.
 
-test(function () {
+test('lex-op', function () {
   var s = function (e, i) {eq(caterwaul.parse(e).inspect(), i)};
 
   Pathological numerical cases.

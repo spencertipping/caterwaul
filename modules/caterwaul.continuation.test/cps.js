@@ -1,6 +1,6 @@
 // CPS-conversion tests.
 
-test(function () {
+test('caterwaul.continuation.cps', function () {
   var c = caterwaul.clone('std continuation');
   c(function (eq) {
     var x  = 0;

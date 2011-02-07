@@ -1,6 +1,6 @@
 // Delimited continuation tests.
 
-test(function () {
+test('caterwaul.continuation.delimited', function () {
   var c = caterwaul.clone('std continuation');
 
   c(function (eq) {

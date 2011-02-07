@@ -1,6 +1,6 @@
 Arithmetic/expression tests for the parser.
 
-test(function () {
+test('parse-arithmetic', function () {
   var p = function (s, i) {return eq(caterwaul.parse(s).inspect(), i)};
 
   Basic precedence
