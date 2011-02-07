@@ -1,6 +1,6 @@
 Caterwaul fn, bind, and cond standard library tests
 
-test(function () {
+test('caterwaul.std.fn', function () {
   var fn = caterwaul.clone('std.fn std.bind std.cond');
 
   fn(function (eq) {
