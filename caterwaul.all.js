@@ -1307,6 +1307,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // the value of the l/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is happening
 // here; l/cps ultimately gets translated into the set of nested functions that you would otherwise write.
 
+// As of version 0.5.5 the alternative "l/cps[x <- ...] in f(x)" notation is supported (basically, just like regular let-bindings). It's purely a stylistic thing.
+
 // There's also a shorthand form to CPS-convert functions. If you care only about the first parameter (which is true for a lot of functions), you can use the postfix /cps[] form, like this:
 
 // | $.getJSON('foo', _) /cps[alert(_)];
@@ -1331,8 +1333,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     l*[cps_convert(v, f, b, bound) = qse[l[_ = _c][_f]].replace({_c: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b}), _f: f}),
 
          l_cps_def(t, form, bound) = l[inductive(cs, v, f, b) = qs[l/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)}), base(v, f, b) = cps_convert(v, f, b, bound)] in
-                                     t.rmacro(qs[l/_form[_, _ <- _][_]].replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _][_]'), inductive).
-                                       rmacro(qs[l/_form[   _ <- _][_]].replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _][_]'), base),
+                                     t.rmacro(qs[l/_form[_, _ <- _] in _].replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _] in _'), inductive).
+                                       rmacro(qs[l/_form[   _ <- _] in _].replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _] in _'), base).
+                                       rmacro(qs[l/_form[_, _ <- _][_]]  .replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _][_]'),   inductive).
+                                       rmacro(qs[l/_form[   _ <- _][_]]  .replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _][_]'),   base),
 
          cps_def(t, form, bound)   = t.rmacro(qs[_ /_form[_]].  replace({_form: form}), fn[f, b][qse[_f /_form._[_b]].replace({_form: form, _f: f, _b: b})]).
                                        rmacro(qs[_ /_form._[_]].replace({_form: form}), fn[f, v, b][qse[l[_ = _c][_f]].replace(
