@@ -9,8 +9,8 @@ test('caterwaul.seq.finite.zip', function () {
     var zs = xs.map(fn[x][x * 3]);
 
     var triples = xs.zip(ys, zs);
-    eq(triples.length, 5);
-    eq(triples[0].length, 3);
+    eq(triples.size(), 5);
+    eq(triples[0].size(), 3);
 
     eq(triples[0][0], 1);
     eq(triples[0][1], 2);
@@ -22,22 +22,22 @@ test('caterwaul.seq.finite.zip', function () {
 
     var sums = xs.zip(ys, zs, {f: fn[x, y, z][x + y + z]});
 
-    eq(sums.length, 5);
+    eq(sums.size(), 5);
     eq(sums[0], 6);
     eq(sums[1], 12);
     eq(sums[4], 30);
 
     var inner = xs.zip([1, 2, 3]);
 
-    eq(inner.length, 3);
-    eq(inner[0].length, 2);
+    eq(inner.size(), 3);
+    eq(inner[0].size(), 2);
     eq(inner[0].join(','), '1,1');
     eq(inner[1].join(','), '2,2');
     eq(inner[2].join(','), '3,3');
 
     var outer = xs.zip([1, 2, 3], {outer: true});
 
-    eq(outer.length, 5);
+    eq(outer.size(), 5);
     eq(outer[0].join(','), '1,1');
     eq(outer[1].join(','), '2,2');
     eq(outer[2].join(','), '3,3');

@@ -8,7 +8,7 @@ test('caterwaul.seq.dsl', function () {
     var xs = seq[~[1, 2, 3, 4, 5]];
 
     var ys = seq[~xs *+f];
-    eq(ys.length, xs.length);
+    eq(ys.size(), xs.size());
     eq(ys[0], 2);
     eq(ys[1], 3);
     eq(ys[2], 4);
@@ -16,7 +16,7 @@ test('caterwaul.seq.dsl', function () {
     eq(ys[4], 6);
 
     eq(seq[xs /+fn[x, y][x + y]], 15);
-    eq(seq[xs %+fn[x][x % 2]].length, 3);
+    eq(seq[xs %+fn[x][x % 2]].size(), 3);
   })(eq);
 
   c(function (eq) {
@@ -46,12 +46,12 @@ test('caterwaul.seq.dsl', function () {
 
     var keys = seq[sk[{foo: 'bar'}]];
     eq(keys[0], 'foo');
-    eq(keys.length, 1);
+    eq(keys.size(), 1);
 
     var object = seq[!(sp[{foo: 'bar'}])];
     eq(object.constructor, Object);
     eq(object.foo, 'bar');
-    eq(caterwaul.seq.finite.keys(object).length, 1);
+    eq(caterwaul.seq.finite.keys(object).size(), 1);
   })(eq);
 
   c(function (eq) {
@@ -59,7 +59,7 @@ test('caterwaul.seq.dsl', function () {
     var bytes = fn[x][seq[x >>>[_ >>> 8] <<[_]]];
     var one = bytes(10);
 
-    eq(one.length, 1);
+    eq(one.size(), 1);
     eq(one[0], 10);
   })(eq);
 

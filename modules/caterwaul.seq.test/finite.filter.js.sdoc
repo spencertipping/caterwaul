@@ -7,20 +7,20 @@ test('caterwaul.seq.finite.filter', function () {
     var xs = new caterwaul.seq.finite([1, 2, 3, 4, 5]);
     var evens = xs.filter(fn[x][! (x & 1)]);
 
-    eq(evens.length, 2);
+    eq(evens.size(), 2);
     eq(evens[0], 2);
     eq(evens[1], 4);
 
     var odds = xs.filter(fn[x][x & 1]);
 
-    eq(odds.length, 3);
+    eq(odds.size(), 3);
     eq(odds[0], 1);
     eq(odds[1], 3);
     eq(odds[2], 5);
 
     var first_three = xs.filter(fn[x, i][i < 3]);
 
-    eq(first_three.length, 3);
+    eq(first_three.size(), 3);
     eq(first_three[0], 1);
     eq(first_three[1], 2);
     eq(first_three[2], 3);

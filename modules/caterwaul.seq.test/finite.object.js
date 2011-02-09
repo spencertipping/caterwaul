@@ -9,17 +9,17 @@ test('caterwaul.seq.finite.object', function () {
     var vs = caterwaul.seq.finite.values(base);
     var ps = caterwaul.seq.finite.pairs(base);
 
-    eq(ks.length, 2);
+    eq(ks.size(), 2);
     eq(ks[0].length, 3);
     eq(ks[1].length, 3);
     eq(base[ks[0]].length, 3);
     eq(base[ks[1]].length, 3);
 
-    eq(vs.length, 2);
+    eq(vs.size(), 2);
     eq(base[ks[0]], vs[0]);
     eq(base[ks[1]], vs[1]);
 
-    eq(ps.length, 2);
+    eq(ps.size(), 2);
     eq(base[ps[0][0]], ps[0][1]);
     eq(base[ps[1][0]], ps[1][1]);
 

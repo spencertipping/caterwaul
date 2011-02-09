@@ -11,7 +11,7 @@ test('caterwaul.seq.infinite.traversal', function () {
     eq(big.t().h(), 1001);
     eq(big.t().t().h(), 1002);
 
-    eq(small.length, 1000);
+    eq(small.size(), 1000);
     eq(small[0], 0);
     eq(small[1], 1);
     eq(small[999], 999);
