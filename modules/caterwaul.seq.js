@@ -22,7 +22,7 @@
 
   tconfiguration('std opt', 'seq.finite.core', function () {
     this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
-      _.size() = this.l || this.length, _.array() = slice.call(this), _.constructor = c, where[slice = Array.prototype.slice]]]}).
+      _.size() = this.l || this.length, _.array() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
     this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{this.array().join(", ")}]'}).
