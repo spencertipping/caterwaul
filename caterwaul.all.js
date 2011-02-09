@@ -1412,7 +1412,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // will always be 0 on IE7.
 
   tconfiguration('std opt', 'seq.finite.core', function () {
-    this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
+    this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
       _.size() = this.l || this.length, _.array() = slice.call(this), _.constructor = c, where[slice = Array.prototype.slice]]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
