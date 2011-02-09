@@ -93,7 +93,7 @@
           l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
            [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
             l[l = as.map(fn[x][x.size ? x.size() : x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
-            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]])))]]]]]}).
+            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).array()))]]]]]}).
 
 //   Quantification.
 //   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
