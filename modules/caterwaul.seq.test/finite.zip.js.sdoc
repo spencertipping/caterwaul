@@ -16,9 +16,9 @@ test('caterwaul.seq.finite.zip', function () {
     eq(triples[0][1], 2);
     eq(triples[0][2], 3);
 
-    eq(triples[0].join(','), '1,2,3');
-    eq(triples[1].join(','), '2,4,6');
-    eq(triples[4].join(','), '5,10,15');
+    eq(triples[0].toString(), 'seq[1, 2, 3]');
+    eq(triples[1].toString(), 'seq[2, 4, 6]');
+    eq(triples[4].toString(), 'seq[5, 10, 15]');
 
     var sums = xs.zip(ys, zs, {f: fn[x, y, z][x + y + z]});
 
@@ -31,16 +31,16 @@ test('caterwaul.seq.finite.zip', function () {
 
     eq(inner.size(), 3);
     eq(inner[0].size(), 2);
-    eq(inner[0].join(','), '1,1');
-    eq(inner[1].join(','), '2,2');
-    eq(inner[2].join(','), '3,3');
+    eq(inner[0].toString(), 'seq[1, 1]');
+    eq(inner[1].toString(), 'seq[2, 2]');
+    eq(inner[2].toString(), 'seq[3, 3]');
 
     var outer = xs.zip([1, 2, 3], {outer: true});
 
     eq(outer.size(), 5);
-    eq(outer[0].join(','), '1,1');
-    eq(outer[1].join(','), '2,2');
-    eq(outer[2].join(','), '3,3');
+    eq(outer[0].toString(), 'seq[1, 1]');
+    eq(outer[1].toString(), 'seq[2, 2]');
+    eq(outer[2].toString(), 'seq[3, 3]');
     eq(outer[3][0], 4);
     eq(outer[3][1], undefined);
     eq(outer[4][0], 5);

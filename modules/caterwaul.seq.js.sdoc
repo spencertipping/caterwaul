@@ -25,7 +25,7 @@ will always be 0 on IE7.
       _.size() = this.l || this.length, _.array() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
-    this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{this.array().join(", ")}]'}).
+    this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.array().join(", ")}]', _.join(x) = this.array().join(x)]}).
 
   Mutability.
   Sequences can be modified in-place. Depending on how Javascript optimizes this case it may be much faster than reallocating. Note that the methods here are not quite the same as the regular
