@@ -17,23 +17,25 @@ Finite sequences are assumed to have numbered elements and a 'length' field, jus
 eagerly (put differently, most sequence/stream operations are closed under eagerness). There's a core prototype for finite sequences that contains eager implementations of each(), map(),
 filter(), foldl(), foldr(), zip(), etc.
 
-  tconfiguration('std', 'seq.finite.core', function () {
-    l[push = Array.prototype.push, slice = Array.prototype.slice]
-    [this.configure('seq.core').seq.finite = fc[xs][this.length = 0, push.apply(this, slice.call(xs || []))] /se.c[c.prototype = new this.seq.core() /se[
-      _.size() = this.length, _.constructor = c]]]}).
+Note that because of an IE7 bug, all lengths are stored twice. Once in 'l' and once in 'length' -- the 'length' property is only updated for array compatibility on compliant platforms, but it
+will always be 0 on IE7.
+
+  tconfiguration('std opt', 'seq.finite.core', function () {
+    this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
+      _.size() = this.l || this.length, _.array() = slice.call(this), _.constructor = c, where[slice = Array.prototype.slice]]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
-    this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{Array.prototype.slice.call(this).join(", ")}]'}).
+    this.configure('seq.finite.core').seq.finite.prototype.toString() = 'seq[#{this.array().join(", ")}]'}).
 
   Mutability.
   Sequences can be modified in-place. Depending on how Javascript optimizes this case it may be much faster than reallocating. Note that the methods here are not quite the same as the regular
   Javascript array methods. In particular, push() returns the sequence rather than its new length. Also, there is no shift()/unshift() API. These would each be linear-time given that we're
   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
 
-    tconfiguration('std', 'seq.finite.mutability', function () {
+    tconfiguration('std opt', 'seq.finite.mutability', function () {
       l[push = Array.prototype.push, slice = Array.prototype.slice] in
-      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = (push.apply(this, arguments), this),            // Can't /se this one; it references 'arguments'
-                                                                 _.pop()      = this[--this.length] /se[delete this[this.length]],
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /se[this.length = this.l, this],
+                                                                 _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
 
   Object interfacing.
@@ -64,15 +66,15 @@ filter(), foldl(), foldr(), zip(), etc.
 
     tconfiguration('std opt', 'seq.finite.traversal', function () {
       this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype
-        /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.length][_.push(f.call(this, this[i], i))]],
-            _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.length][_.push(this[i]), when[f.call(this, this[i], i)]]],
-            _.each(f)     = this                   /se[opt.unroll[i,    _.length][f.call(_, _[i], i)]],
-            _.reversed()  = new this.constructor() /se[l[l = this.length] in opt.unroll[i, l][_.push(this[l - i - 1])]],
+        /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.l][_.push(f.call(this, this[i], i))]],
+            _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.l][_.push(this[i]), when[f.call(this, this[i], i)]]],
+            _.each(f)     = this                   /se[opt.unroll[i,    _.l][f.call(_, _[i], i)]],
+            _.reversed()  = new this.constructor() /se[l[l = this.l] in opt.unroll[i, l][_.push(this[l - i - 1])]],
             _.flat_map(f) = new this.constructor() /se[this.each(fn[x, xi][(f.call(this, x, xi) /re.xs[xs.each ? xs : new this.constructor(xs)]).each(fn[x][_.push(x)])])],
 
             _.foldl(f, x) = l[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
-                             [opt.unroll[i, this.length - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.length >= xi]],
-            _.foldr(f, x) = l[x = arguments.length > 1 ? x : this[this.length - 1], xi = 3 - arguments.length, l = this.length]
+                             [opt.unroll[i, this.l - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.l >= xi]],
+            _.foldr(f, x) = l[x = arguments.length > 1 ? x : this[this.l - 1], xi = 3 - arguments.length, l = this.l]
                              [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
 
   Zipping.
@@ -81,7 +83,7 @@ filter(), foldl(), foldr(), zip(), etc.
 
   | xs.zip(xs1, xs2, ..., xsn, {f: fn_[new seq(arguments)], outer: false})
 
-  Each of xsi should be an array-ish object (i.e. should support the .length and [i] attributes). If you specify the optional hash at the end, its 'f' attribute, if specified, will be invoked
+  Each of xsi should be an array-ish object (i.e. should support .length and [i] attributes). If you specify the optional hash at the end, its 'f' attribute, if specified, will be invoked
   on every n-tuple of items, and if 'outer' is truthy then you will have the outer-product of all of your sequences (i.e. the longest sequence length is used, and undefined is specified when
   you run past the end of any other one).
 
@@ -90,14 +92,14 @@ filter(), foldl(), foldr(), zip(), etc.
         /se[l[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
           l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
            [caterwaul.util.merge(options, as.pop()), when[as[as.length - 1].constructor === Object],
-            l[l = as.map(fn[x][x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
+            l[l = as.map(fn[x][x.size ? x.size() : x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
             new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
   Quantification.
   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
 
     tconfiguration('std opt continuation', 'seq.finite.quantification', function () {
-      this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.length][f.call(this, this[i], i) && cc(this[i] || true)], false]],
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.l][f.call(this, this[i], i) && cc(this[i] || true)], false]],
                                                                  _.forall(f) = ! this.exists(fn_[! f.apply(this, arguments)])]}).
 
 Stream API.
@@ -177,15 +179,15 @@ These operators are supported and take their normal Javascript precedence and as
   x -~i[~[i, i + 1]]    // x.flat_map(fn[i, ii][seq[~[i, i + 1]]])
   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
-  x || y                // x && x.length ? x : y
-  x && y                // x && x.length ? y : x
-  x > y                 // x.length > y.length
-  x >= y                // x.length >= y.length
-  x < y                 // x.length < y.length
-  x <= y                // x.length <= y.length
-  x == y                // x.length === y.length
-  x != y                // x.length !== y.length
-  x === y               // x.length === y.length && x.zip(y).forall(fn[p][p[0] === p[1]])
+  x || y                // x && x.size() ? x : y
+  x && y                // x && x.size() ? y : x
+  x > y                 // x.size() > y.size()
+  x >= y                // x.size() >= y.size()
+  x < y                 // x.size() < y.size()
+  x <= y                // x.size() <= y.size()
+  x == y                // x.size() === y.size()
+  x != y                // x.size() !== y.size()
+  x === y               // x.size() === y.size() && x.zip(y).forall(fn[p][p[0] === p[1]])
   x !== y               // !(x === y)
   sk[x]                 // caterwaul.seq.finite.keys(x)
   sv[x]                 // caterwaul.seq.finite.values(x)
@@ -234,12 +236,12 @@ Method calls are treated normally and arguments are untransformed; so you can ca
                                   _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('-',  qs[x.flat_map(y)], qs[_, _i]),
                                   _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]), _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
-          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.length + y.length].clone() /se[_.data = op]))]),
+          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.size() + y.size()].clone() /se[_.data = op]))]),
 
           l[e(x) = _.macroexpand(x)] in
-          _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = x][xp && xp.length ? y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = x][xp && xp.length ? xp : y]]])),
-                      _(qs[_ === _], rxy(qs[qg[l[xp = x, yp = y][xp === yp ||  xp.length === yp.length && xp.zip(yp).forall(fn[p][p[0] === p[1]])]]])),
-                      _(qs[_ !== _], rxy(qs[qg[l[xp = x, yp = y][xp !== yp && (xp.length !== yp.length || xp.zip(yp).exists(fn[p][p[0] !== p[1]]))]]])),
+          _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = x][xp && xp.size() ? y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = x][xp && xp.size() ? xp : y]]])),
+                      _(qs[_ === _], rxy(qs[qg[l[xp = x, yp = y][xp === yp ||  xp.size() === yp.size() && xp.zip(yp).forall(fn[p][p[0] === p[1]])]]])),
+                      _(qs[_ !== _], rxy(qs[qg[l[xp = x, yp = y][xp !== yp && (xp.size() !== yp.size() || xp.zip(yp).exists(fn[p][p[0] !== p[1]]))]]])),
 
                       _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
                       _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
