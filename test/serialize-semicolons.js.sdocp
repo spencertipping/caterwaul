@@ -1,1 +1,0 @@
-sdocp('test/serialize-semicolons.js.sdoc', 'Semicolon serialization test.\n\ntest(\'serialize-semicolons\', function () {\n  eq(new caterwaul.syntax(\';\').inspect(), \'(;)\');\n  eq(new caterwaul.syntax(\';\').serialize(), \';\');\n});\n');
