@@ -483,7 +483,7 @@ $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
 meta::function('reload', 'execute($_) for grep ! /^bootstrap::/, keys %data;');
 meta::function('render', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;');
-meta::function('rendera', <<'__d49e779af2348c0a7d527463e774c753');
+meta::function('rendera', <<'__19b50e645745d1d9dd39768ca2ece353');
 # Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
 my @files = qw|caterwaul modules/caterwaul.std modules/caterwaul.continuation modules/caterwaul.opt modules/caterwaul.seq|;
 
@@ -491,7 +491,28 @@ render();
 file::write("caterwaul.all.js", cat(map "js::$_", @files));
 file::write("$_.js.sdocp", cat("sdocp::js::$_"), mkpath => 1) for grep s/^sdoc::js:://, keys %data;
 minify("$_.js") for @files, "caterwaul.all";
-__d49e779af2348c0a7d527463e774c753
+
+my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/.*)$/\1.js/, sort keys %data;
+
+file::write('test/index.html', <<EOF);
+<!doctype html>
+<html>
+<head>
+<title>Caterwaul unit tests</title>
+<script src="../caterwaul.all.js"></script>
+<script src="../unit.js"></script>
+<script src="../unit.client.js"></script>
+<style>
+body {font-family: monospace}
+</style>
+</head>
+<body>
+<div id='log'></div>
+$scripts
+</body>
+</html>
+EOF
+__19b50e645745d1d9dd39768ca2ece353
 meta::function('repl', <<'__17de81e24ac3fb6c4a3dda5d78ed780b');
 # Runs a REPL of your source, minus the webserver.
 generate();
