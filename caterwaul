@@ -628,6 +628,15 @@ my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
 $hash = fast_hash("$data{$_}|$hash") for @keys;
 $hash;
 __119111f84c3e32a5536838ac84bc6f10
+meta::function('test', <<'__88091dd1791911816a26fc69f2c8e929');
+# Unit tests for caterwaul.
+# In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
+# gets run just once. This should be significantly faster.
+
+my @tests = select_keys('--criteria' => '^sdoc::js::.*test/');
+rendera();
+node([qw/caterwaul.all.js unit.js/, @tests]);
+__88091dd1791911816a26fc69f2c8e929
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'chmod_self(sub {$_[0] | 0200});');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -8431,8 +8440,10 @@ test('tostring-jquery', function () {
   });
 });
 __27d306f38b559870a5f3423cbca2f03e
-meta::sdoc('js::unit', <<'__60851e92bd25316efd69b4d644b3ccd6');
+meta::sdoc('js::unit', <<'__3c37df875b314c08c1433718481e163b');
 Unit testing library functions
+
+var original_caterwaul = caterwaul.deglobalize();
 
 var log = function (message) {
   if (typeof console === 'undefined') print(message);
@@ -8453,28 +8464,30 @@ var eq = function (x, y, message) {
 
 var current_test = null;
 var test = function (name, f) {
+  current_test = name;
+
   try {
-    current_test = name;
-    eq_count = 0;
+    eq_count  = 0;
+    caterwaul = original_caterwaul.clone();
+    f();
+
+    eq_count  = 0;
+    caterwaul = caterwaul.reinitialize(caterwaul);
     f();
   } catch (e) {
     on_error(name, e);
   }
 };
-__60851e92bd25316efd69b4d644b3ccd6
-meta::sdoc('js::unit.client', <<'__204f5ea2c9b2e2b8bee09e98f852e66c');
+__3c37df875b314c08c1433718481e163b
+meta::sdoc('js::unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
 Client-side unit testing hooks.
 
-on_error = function (name, e) {
+log = function (message) {
   var d = document.createElement('div');
-  d.appendChild(document.createTextNode('failure of test ' + name + ': ' + (e.description || e)));
+  d.appendChild(document.createTextNode(message));
   document.getElementById('log').appendChild(d);
 };
-
-log = function (message) {
-  on_error('Log: ' + message);
-};
-__204f5ea2c9b2e2b8bee09e98f852e66c
+__28f25ce7ee14450256238f801d4e6aac
 internal::main();
 
 __END__
