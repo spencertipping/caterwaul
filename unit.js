@@ -1,5 +1,7 @@
 // Unit testing library functions
 
+var original_caterwaul = caterwaul.deglobalize();
+
 var log = function (message) {
   if (typeof console === 'undefined') print(message);
   else                                console.log(message);
@@ -19,9 +21,15 @@ var eq = function (x, y, message) {
 
 var current_test = null;
 var test = function (name, f) {
+  log('[unit] starting test ' + (current_test = name));
+
   try {
-    current_test = name;
-    eq_count = 0;
+    eq_count  = 0;
+    caterwaul = original_caterwaul.clone();
+    f();
+
+    eq_count  = 0;
+    caterwaul = caterwaul.reinitialize(caterwaul);
     f();
   } catch (e) {
     on_error(name, e);
