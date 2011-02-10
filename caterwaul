@@ -163,6 +163,7 @@ meta::meta('type::meta', <<'__640f25635ce2365b0648962918cf9932');
 
 meta::configure 'meta', extension => '.pl', inherit => 1;
 __640f25635ce2365b0648962918cf9932
+meta::meta('type::note', 'meta::functor::editable \'note\', extension => \'.sdoc\', inherit => 0, default => \'edit\';');
 meta::meta('type::parent', <<'__607e9931309b1b595424bedcee5dfa45');
 meta::define_form 'parent', \&meta::bootstrap::implementation;
 meta::configure 'parent', extension => '', inherit => 1;
@@ -464,18 +465,21 @@ my $name = $0;
 $name =~ s/^.*\///;
 $name;
 __6848cbc257e4b6d7441b25acb04e23c9
-meta::function('node', <<'__4ca639731eed217d5396d1f36c9d5aec');
+meta::function('node', <<'__0dbdfd4cc670051c20430f7ff167ccab');
 # Runs node on a collection of source files and arguments. The format is:
 # node([@source_strings], @process_args);
 my ($sources, @args) = @_;
 
 with_exported(@$sources, sub {
-  terminal::debug("starting application using $_[0]");
   hook('bin/before-node', $_[0], @args);
   sh('node', $_[0], @args);
   hook('bin/after-node', $_[0], @args);
 });
-__4ca639731eed217d5396d1f36c9d5aec
+__0dbdfd4cc670051c20430f7ff167ccab
+meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
+# Creates a note with a given name, useful for jotting things down.
+create("note::$_[0]");
+__bcbfeac6dd2112f47296265444570a6e
 meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
 meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
@@ -869,11 +873,13 @@ END {
   enable();
 }
 __b7379923a1c7d2481bad4247b8a71974
-meta::internal_function('invoke_editor_on', <<'__32c8b1e3c90bd40d504703e22b26e1f5');
+meta::internal_function('invoke_editor_on', <<'__1448132d5294a4b8390b4a684d8a78f9');
 my ($data, %options) = @_;
-my $editor   = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
-my $options  = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
-my $filename = temporary_name() . "-$options{attribute}$options{extension}";
+my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
+my $options   = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
+my $attribute = $options{attribute};
+$attribute =~ s/\//-/g;
+my $filename  = temporary_name() . "-$attribute$options{extension}";
 
 file::write($filename, $data);
 system("$editor $options '$filename'");
@@ -881,7 +887,7 @@ system("$editor $options '$filename'");
 my $result = file::read($filename);
 unlink $filename;
 $result;
-__32c8b1e3c90bd40d504703e22b26e1f5
+__1448132d5294a4b8390b4a684d8a78f9
 meta::internal_function('is_locked', '!((stat($0))[2] & 0222);');
 meta::internal_function('namespace', <<'__93213d60cafb9627e0736b48cd1f0760');
 my ($name) = @_;
@@ -990,6 +996,48 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('q', <<'__441059e30021a0ac12dafcb7eef21aef');
+Bug list.
+Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
+
+  Auto-parens for syntax nodes [won't fix].
+  It's possible to write this:
+
+  | qs[x + y].replace({x: qs[z, t], y: qs[f, g]})
+
+  And end up with an expression whose semantics aren't reflected by the syntax tree (due to operator precedence). This is unfortunate. However, it can also be useful. Anytime there's ambiguity
+  about this sort of thing you should wrap the expression in parens (which is sometimes required even when no particular ambiguity exists, e.g. at statement-level with function expressions in
+  Firefox).
+
+  Fix matching against flattened nodes [fixed in 0.5].
+  This is a reasonable bug. Nodes should be able to "un-flatten" back down into nested form, following their natural associativity. This should be done within macros to make sure that further
+  macro patterns don't spuriously reject them.
+
+  V8-based runtimes sometimes fail jQuery test [fixed in 0.5].
+  This is probably a V8 bug of some sort, though I'll have to isolate a suitable test case to submit it. Fortunately it only seems to have an effect when transforming jQuery (and it produces
+  the same output), so maybe there is some nondeterminism that I need to address.
+
+  Update: I think this was a product of using eval()-based functions. It's still a V8 bug, but at least there's a workaround.
+
+  Remove uses of eval() inside Caterwaul [fixed in 0.5].
+  This is actually important for a couple of reasons. First, it's slow to use eval. Better is to avoid it by writing functions out longhand (much as I don't particularly like doing so).
+  Second, it may be causing V8 some trouble. I'm not sure; will have to test this.
+
+  Stops matching after an expansion rejection [fixed in 0.5.1].
+  If you have two macros whose patterns are identical, only the second will ever be used. This wouldn't be such a problem, except that the first won't be used even if the second declares a
+  macroexpansion failure by returning false.
+
+  Fails in IE7 [fixed in 0.5.4].
+  Something about constructors and how the sequence library implements inheritance from arrays. I'm not married to the idea of implementing proper inheritance here; it comes with enough
+  problems.
+
+Ideas.
+Unimportant things that might help at some point in the future.
+
+  Hashed syntax nodes.
+  This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
+  macroexpanding). The challenge is incorporating wildcards.
+__441059e30021a0ac12dafcb7eef21aef
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
@@ -1116,6 +1164,101 @@ parent::/home/spencertipping/bin/object
 retriever::sdoc
 retriever::sdocp
 __2d47795f5a2f946e1655dcc68b32aadd
+meta::parent('notes', <<'__320d51928ec8e2e370d67d30abe059b5');
+function::note
+meta::type::note
+parent::object
+__320d51928ec8e2e370d67d30abe059b5
+meta::parent('object', <<'__24f211bef7e65af28726dfe6075c671f');
+bootstrap::initialization
+bootstrap::perldoc
+function::cat
+function::cc
+function::child
+function::clone
+function::cp
+function::create
+function::current-state
+function::disable
+function::edit
+function::enable
+function::export
+function::extern
+function::grep
+function::hash
+function::import
+function::initial-state
+function::load-state
+function::lock
+function::ls
+function::ls-a
+function::mv
+function::name
+function::parents
+function::perl
+function::reload
+function::rm
+function::save
+function::save-state
+function::serialize
+function::serialize_single
+function::sh
+function::shell
+function::size
+function::snapshot
+function::state
+function::touch
+function::unlock
+function::update
+function::update-from
+function::usage
+function::verify
+internal_function::associate
+internal_function::attribute
+internal_function::chmod_self
+internal_function::dangerous
+internal_function::debug_trace
+internal_function::execute
+internal_function::exported
+internal_function::extension_for
+internal_function::fast_hash
+internal_function::file::read
+internal_function::file::write
+internal_function::fnv_hash
+internal_function::hypothetically
+internal_function::internal::main
+internal_function::invoke_editor_on
+internal_function::is_locked
+internal_function::namespace
+internal_function::retrieve
+internal_function::retrieve_with_hooks
+internal_function::select_keys
+internal_function::separate_options
+internal_function::strip
+internal_function::table_display
+internal_function::temporary_name
+internal_function::translate_backtrace
+internal_function::with_exported
+library::terminal
+message_color::state
+message_color::states
+meta::configure
+meta::externalize
+meta::functor::editable
+meta::type::bootstrap
+meta::type::data
+meta::type::function
+meta::type::inc
+meta::type::internal_function
+meta::type::library
+meta::type::message_color
+meta::type::meta
+meta::type::parent
+meta::type::retriever
+meta::type::state
+retriever::file
+retriever::id
+__24f211bef7e65af28726dfe6075c671f
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
@@ -8461,7 +8604,7 @@ test('tostring-jquery', function () {
   });
 });
 __27d306f38b559870a5f3423cbca2f03e
-meta::sdoc('js::unit', <<'__903e6756c47ff3a9b674bcaf3e8419cd');
+meta::sdoc('js::unit', <<'__bf2577ed945ae60c28459a283fc44377');
 Unit testing library functions
 
 var original_caterwaul = caterwaul.deglobalize();
@@ -8472,7 +8615,7 @@ var log = function (message) {
 };
 
 var on_error = function (name, e) {
-  log('Error at eq count ' + eq_count + ' in test ' + name);
+  log('Error at eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
   throw new Error(e);
 };
 
@@ -8480,7 +8623,7 @@ var eq_count = 0;
 var eq = function (x, y, message) {
   ++eq_count;
   if (x == y) return true;
-  else        return on_error(current_test, (message ? message + ': ' : ' (eq ' + eq_count + ')') + '\n' + x + '\n\n!==\n\n' + y);
+  else        return on_error(current_test, (message ? message + ': ' : ' (eq ' + eq_count + ')') + '\n' + x + ' !== ' + y);
 };
 
 var current_test = null;
@@ -8499,7 +8642,7 @@ var test = function (name, f) {
     on_error(name, e);
   }
 };
-__903e6756c47ff3a9b674bcaf3e8419cd
+__bf2577ed945ae60c28459a283fc44377
 meta::sdoc('js::unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
 Client-side unit testing hooks.
 
