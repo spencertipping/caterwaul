@@ -996,6 +996,17 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('modules', <<'__b32612967be5a480cbde709fe6b15a61');
+Modules.
+Modules are for extensions as much as they are for fundamentals. This sounds weird perhaps, but it's true. For example, the replication behavior of caterwaul is useful outside of just the
+caterwaul main library, so we could reasonably want to reuse it:
+
+| var replicator = caterwaul.replica();
+  replicator.clone();
+
+In this case, caterwaul itself must be a replicating function. This is kind of interesting, because the publicly available caterwaul.replica assumes the existence of caterwaul already.
+Fortunately the initialization is guaranteed to be single-threaded. (And if you have created a world in which this isn't true, then you deserve what you get.)
+__b32612967be5a480cbde709fe6b15a61
 meta::note('q', <<'__441059e30021a0ac12dafcb7eef21aef');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
