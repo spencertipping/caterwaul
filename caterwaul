@@ -4129,7 +4129,7 @@ test('parse-ternary', function () {
   s('var x = foo() ? (foo + bar)() : (t + u)()', 'var x=foo()?(foo+bar)():(t+u)()');
 });
 __cac941cdd6d24ed2c2d9cb469b11de7f
-meta::sdoc('js::test/replica', <<'__ad6dd493ecc78e1350190f355a0d3c0d');
+meta::sdoc('js::test/replica', <<'__db2a7930c22d8a2dd292fc7927052f8c');
 Replica interface tests.
 
 test('replica', function () {
@@ -4151,8 +4151,14 @@ test('replica', function () {
   r2p.field('foo', 11);
   eq(r2p.foo, 11);
   eq(r2.foo, 10);
+
+  var m = caterwaul.configurable(caterwaul.replica()).configure(caterwaul.macroexpansion);
+  eq(m.rmacro.constructor, Function);
+  eq(m.macro.constructor, Function);
+  eq(m.macro_patterns.constructor, Array);
+  eq(m.macro_expanders.constructor, Array);
 });
-__ad6dd493ecc78e1350190f355a0d3c0d
+__db2a7930c22d8a2dd292fc7927052f8c
 meta::sdoc('js::test/serialize-semicolons', <<'__5674dc8262e3618cb04d828cb98bd81e');
 Semicolon serialization test.
 
