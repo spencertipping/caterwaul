@@ -335,6 +335,22 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     pointer. In the serialized representation, it is shown as a comment /* -> */ containing the serialization of whatever is to the right. This has the property that it will break tests but
 //     won't necessarily break code (though if it happens in the field then it's certainly a bug).
 
+//     Block detection is required for multi-level if/else statements. Consider this code:
+
+//     | if (foo) for (...) {}
+//       else bif;
+
+//     A naive approach (the one I was using before version 0.6) would miss the fact that the 'for' was trailed by a block, and insert a spurious semicolon, which would break compilation:
+
+//     | if (foo) for (...) {};    // <- note!
+//       else bif;
+
+//     What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
+//     algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
+
+ ends_with_block: function () {var block_index = parse_r_until_block[this.data], block = this[block_index];
+                               return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 //     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
 
@@ -348,9 +364,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
                    has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
-                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[1].data !== '{' && this[2] && parse_accepts[op] === this[2].data ?
-                                                                    op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
-                                                                    op + space + map(syntax_node_tostring, this).join('') :
+                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
+                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
+                                                                     op + space + map(syntax_node_tostring, this).join('') :
                                                 has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
                                return right ? s + right : s}},
 
