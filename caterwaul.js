@@ -948,27 +948,38 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
        method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
        method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                           if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
-                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
+                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
-                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : this(_).call(this); return this})},
+                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})},
+
+// Macroexpansion behavior.
+// Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
+// order for this to work, your syntax trees must:
+
+// | 1. Look like arrays -- that is, have a .length property and be indexable by number (e.g. x[0], x[1], ..., x[x.length - 1])
+//   2. Implement an rmap() method. This should perform a depth-first traversal of the syntax tree, invoking a callback function on each node. If the callback returns a value, that value should
+//      be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
+//      rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
+//   3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
+
+  macroexpansion = function (f) {return f.
+    shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
+     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
+                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
 // Global Caterwaul setup.
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
-  caterwaul_core = function (f) {return configurable(f).
-    shallow('macro_patterns', []).shallow('macro_expanders', []).method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
-      field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
+  caterwaul_core = function (f) {return configurable(f).configure(macroexpansion).
+    method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
+     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
-      field('global', function () {return caterwaul_global}).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).
-      field('decompile', parse).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
+     field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
 
-     method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).
-     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
-                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}).
-
-     method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
-     method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
-                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
+    method('init', function (f) {return this.compile(this.macroexpand(this.decompile(f)))}).field('global', function () {return caterwaul_global}).
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
 
 //   Utility library.
 //   Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the

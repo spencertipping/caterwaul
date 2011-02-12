@@ -1286,7 +1286,7 @@ meta::retriever('sdocp', <<'__2fe74510364ec3ea28fefc4f66b864b3');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$_[0]"} ? sdocp("sdoc::$_[0]") : undef;
 __2fe74510364ec3ea28fefc4f66b864b3
-meta::sdoc('js::caterwaul', <<'__b810239a1b7a6e3ef998e0564b9755b3');
+meta::sdoc('js::caterwaul', <<'__c48610a9336ea5d2f11854cb237ec712');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2237,27 +2237,38 @@ Related to this is a configure() method that modifies and returns the original f
        method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
        method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                           if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
-                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
+                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
-                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : this(_).call(this); return this})},
+                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})},
+
+Macroexpansion behavior.
+Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
+order for this to work, your syntax trees must:
+
+| 1. Look like arrays -- that is, have a .length property and be indexable by number (e.g. x[0], x[1], ..., x[x.length - 1])
+  2. Implement an rmap() method. This should perform a depth-first traversal of the syntax tree, invoking a callback function on each node. If the callback returns a value, that value should
+     be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
+     rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
+  3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
+
+  macroexpansion = function (f) {return f.
+    shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
+     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
+                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
 Global Caterwaul setup.
 Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
-  caterwaul_core = function (f) {return configurable(f).
-    shallow('macro_patterns', []).shallow('macro_expanders', []).method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
-      field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
+  caterwaul_core = function (f) {return configurable(f).configure(macroexpansion).
+    method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
+     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
-      field('global', function () {return caterwaul_global}).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).
-      field('decompile', parse).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
+     field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
 
-     method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).
-     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
-                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}).
-
-     method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
-     method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
-                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
+    method('init', function (f) {return this.compile(this.macroexpand(this.decompile(f)))}).field('global', function () {return caterwaul_global}).
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
 
   Utility library.
   Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the
@@ -2274,7 +2285,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
 
   caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__b810239a1b7a6e3ef998e0564b9755b3
+__c48610a9336ea5d2f11854cb237ec712
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
@@ -3669,22 +3680,24 @@ test('caterwaul.std.lvalue', function () {
   }) (eq);
 });
 __5c3dc5fb4b8f2015070f760692845285
-meta::sdoc('js::modules/caterwaul.std.test/macro-definition', <<'__d2905e3abea4a1e89d520b308270a9ec');
+meta::sdoc('js::modules/caterwaul.std.test/macro-definition', <<'__091833e70addeb9353e6c0e38f1c8b45');
 Macro definition tests.
 
 test('caterwaul.std.macro-definition', function () {
-  var c = caterwaul.clone('std.qs', function () {
-    this.rmacro(qs[fn[_][_]], function (params, expression) {return qs[function (_vars) {return _expression}].replace({_vars: params, _expression: expression})});
-  });
+  var c = caterwaul.clone('std.qs');
 
-  c.configure(function () {
+  c.configure(c(function () {
+    this.rmacro(qs[fn[_][_]], function (params, expression) {return qs[function (_vars) {return _expression}].replace({_vars: params, _expression: expression})});
+  }));
+
+  c.configure(c(function () {
     this.rmacro(qs[l(_ = _) in _], fn[v, e, n][qs[fn[variable][expression].call(this, value)].replace({variable: v, expression: n, value: e})]);
-  });
+  }));
 
   eq(c(function () {return fn[x, y][x + y]})()(3, 5), 8);
   eq(c(function () {return l(x = 5) in x + 1})(), 6);
 });
-__d2905e3abea4a1e89d520b308270a9ec
+__091833e70addeb9353e6c0e38f1c8b45
 meta::sdoc('js::modules/caterwaul.std.test/overlapping-macros', <<'__4edbd39d917dd2d511e6522856bcce37');
 Test for an uncommon but important macro case:
 
