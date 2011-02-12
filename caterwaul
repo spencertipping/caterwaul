@@ -1016,7 +1016,7 @@ These modules are actually parts of Caterwaul's basis:
 Replication is fairly straightforward; there isn't much of an interface required of the function being replicated. Macroexpansion, on the other hand, involves some inversion of control with
 respect to syntax trees. So, in order to work with this macroexpander, the tree should support an rmap() method. (More details in the code.)
 __92e7978739a04aa66d1b7859a730e367
-meta::note('q', <<'__441059e30021a0ac12dafcb7eef21aef');
+meta::note('q', <<'__3b7f512462ac64a4b7b985661978d908');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
 
@@ -1051,13 +1051,18 @@ Caterwaul does the right thing 99% of the time. This section is for the 1% when 
   Something about constructors and how the sequence library implements inheritance from arrays. I'm not married to the idea of implementing proper inheritance here; it comes with enough
   problems.
 
+Future modules.
+
+| 1. Recon module (but this has been in the works for ages).
+  2. Parser module. A good set of memoized parser combinators would benefit greatly from macro support.
+
 Ideas.
 Unimportant things that might help at some point in the future.
 
   Hashed syntax nodes.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
-__441059e30021a0ac12dafcb7eef21aef
+__3b7f512462ac64a4b7b985661978d908
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
