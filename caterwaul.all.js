@@ -860,6 +860,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     // Global configuration using 'this'
 //   });
 
+//   Core interface.
+//   The core API for replicable functions is exposed as 'caterwaul.replica'. This is primarily of use to API developers and not to end users. Also of use is the configuration
+//   'caterwaul.configurable', which when applied to a replicable function will install Caterwaul's configurability onto it. For example:
+
+//   | var my_compiler = caterwaul.configurable(caterwaul.replica());
+//     my_compiler.method('init', function () {/* custom compiler behavior */});
+//     my_compiler.clone();        // A new instance
+
+//   You can then customize this function, which will have the same replication interface that Caterwaul has but won't have Caterwaul's default behavior. (A less elegant way to achieve the same
+//   thing is to clone caterwaul and give it a new 'init' method.)
+
 //   Attributes and methods.
 //   Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
 //   so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
@@ -894,9 +905,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                               return this.associate(name, 'method', function (attribute, value) {return this.associate(attribute, name, value)})}).
                                                             behavior('method', g.behaviors.method);
 
-                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})};
-
-  return caterwaul = merge(copy_of({behaviors: {method: function (v) {return bind(v, this)}}}), {deglobalize: function () {caterwaul = _caterwaul; return this}}).
+                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
 
 //   Bootstrapping method behavior.
 //   Setting up the behavior(), method(), field(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the
@@ -906,69 +915,76 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
 
-    method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).behavior('field').behavior('shallow', shallow_copy).
-    method('configuration',  function          (name, f) {this.configurations[name] = f; return this}).method('namespace', function (s) {return this[s] || this.shallow(s, {})[s]}).
+         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f}),
+
+//   Configuration and cloning.
+//   Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
+
+//   | caterwaul.configure('std.fn');
+//     // Longhand access to the function:
+//     caterwaul.configurations['std.fn']
+
+//   You can also pass these libraries into a clone() call:
+
+//   | var copy = caterwaul.clone('std.fn', 'some_other_library', function () {
+//       ...
+//     });
+
+//   Generally you will just configure with 'std', which includes all of the standard configurations (see caterwaul.std.js.sdoc in the modules/ directory).
+
+//   Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
+//   idea. Named configurations, on the other hand, are not explicitly transformed; so when you define a custom configuration in a named way, you will want to manually transform it. (The reason
+//   for this is that we don't want to force the configuration author to lose closure state, since it's arguably more important in a library setting than an end-user setting.) Alternatively you
+//   can use tconfigure(), which takes a series of configurations to use to transform your configuration function. (This makes more sense in code than in English; see how the configurations below
+//   are written...)
+
+//   Named configurations are made idempotent; that is, they cannot be applied twice. This is done through the 'has' hash, which can be manually reset if you actually do need to apply a
+//   configuration multiple times (though you're probably doing something wrong if you do need to do that).
+
+    configurable = function (f) {return f.
+      shallow('configurations', {}).shallow('has', {}).method('configuration', function (name, f) {this.configurations[name] = f; return this}).
+       method('namespace', function (s) {return this[s] || this.shallow(s, {})[s]}).
+
+       method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
+       method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                          if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
+                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
+                                                                          else                        throw new Error('error: configuration "' + _ + '" does not exist');
+                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : this(_).call(this); return this})},
 
 // Global Caterwaul setup.
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
 
-    shallow('macro_patterns', []).shallow('macro_expanders', []).shallow('configurations', {}).shallow('has', {}).
+  caterwaul_core = function (f) {return configurable(f).
+    shallow('macro_patterns', []).shallow('macro_expanders', []).method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
       field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
-      field('global', function () {return caterwaul}).
+      field('global', function () {return caterwaul_global}).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).
       field('decompile', parse).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
 
      method('init',   function                 (f) {return this.compile(this.macroexpand(this.decompile(f)))}).
-     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('caterwaul.rmacro: Cannot define macro with non-function expander');
+     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}).
 
      method('macroexpand',  function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
      method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
                                                                         erase_configurations || (result.configurations = this.configurations); return result}).
 
-// Utility library.
-// Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the variables
-// I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function that is
-// being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
+//   Utility library.
+//   Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the
+//   variables I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function
+//   that is being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
 
     shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map, qw: qw}).
 
-// Magic.
-// Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are
-// considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
+//   Magic.
+//   Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are
+//   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
-     method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({})).
+     method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))},
 
-// Configuration and cloning.
-// Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
-
-// | caterwaul.configure('std.fn');
-//   // Longhand access to the function:
-//   caterwaul.configurations['std.fn']
-
-// You can also pass these libraries into a clone() call:
-
-// | var copy = caterwaul.clone('std.fn', 'some_other_library', function () {
-//     ...
-//   });
-
-// Generally you will just configure with 'std', which includes all of the standard configurations (see caterwaul.std.js.sdoc in the modules/ directory).
-
-// Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
-// idea. Named configurations, on the other hand, are not explicitly transformed; so when you define a custom configuration in a named way, you will want to manually transform it. (The reason for
-// this is that we don't want to force the configuration author to lose closure state, since it's arguably more important in a library setting than an end-user setting.) Alternatively you can use
-// tconfigure(), which takes a series of configurations to use to transform your configuration function. (This makes more sense in code than in English; see how the configurations below are
-// written...)
-
-// Named configurations are made idempotent; that is, they cannot be applied twice. This is done through the 'has' hash, which can be manually reset if you actually do need to apply a
-// configuration multiple times (though you're probably doing something wrong if you do need to do that).
-
-    method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
-    method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                       if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
-                                                                       if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this) || this);
-                                                                       else                        throw new Error('caterwaul.configure error: configuration "' + _ + '" does not exist');
-                                       else _ instanceof Array ? this.configure.apply(this, _.slice()) : this(_).call(this); return this})});
+  caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
+  return caterwaul_global});
 // Generated by SDoc 
 
 // Caterwaul standard library | Spencer Tipping
