@@ -8,37 +8,54 @@
 // Note that parsers generated here are not at all insightful or necessarily performant. In particular, left-recursion isn't resolved, meaning that the parser will loop forever in this case. (And
 // consume arbitrarily much memory without causing a stack overflow, too, since it's in CPS.)
 
-// Usage.
-// The parser library is built to work with strings, but you can extend it to do a number of different things. Technically you can use the parser combinators without macros, but because of the
-// CPS conversion it's so miserable that you probably shouldn't bother.
+//   Basis and acknowledgements.
+//   This parser library is based heavily on Chris Double's JSParse (available at github.com/doublec/jsparse), which implements a memoized combinatory PEG parser. If you are looking for a simple
+//   and well-designed parsing library, I highly recommend JSParse; it will be easier to use and more predictable than caterwaul.parser. Like JSParse, these parsers are memoized and use parsing
+//   expression grammars. Unlike JSParse, this library uses CPS-conversion and macros to prevent stack overflows (which can be a drawback in the case of accidental infinite left-recursion) and to
+//   maximize expressiveness, respectively.
 
-//   Parsing strings.
-//   There are three kinds of parsers. One is a terminal, another is a sequence, and the final is an alternative. For the sake of convenience I've added some others, but they are variants of
-//   these three. Here's an example of a parser that parses simple (addition and multiplication) arithmetic expressions:
+// Notation.
+// Parsers are written as collections of named nonterminals. Each nonterminal contains a mandatory expansion and an optional binding:
 
-//   | var arithmetic = cfg[expression = term   & '+' & expression | '',
-//                          term       = number & '*' & term       | '',
-//                          number     = /\d/ & number | ''];
+// | peg[start[c('a') % c('b')]]                           // A grammar that recognizes the character 'a' followed by the character 'b'
+//   peg[start[c('a') % c('b')] >>= fn[ab][ab[0] + ab[1]]] // The same grammar, but the AST transformation step appends the two characters
 
-//   Now you can use it like this:
+// The >>= notation is borrowed from Haskell; the idea is that the optional binding is a monadic transform on the parse-state monad. (The only difference is that you don't have to re-wrap the
+// result in a new parse state using 'return' as you would in Haskell -- the return here is implied.) The right-hand side of >>= can be any expression that returns a function. It will be
+// evaluated directly within its lexical context, so the peg[] macro is scope-transparent modulo gensyms.
 
-//   | l*[result         = arithmetic('3+4*5'),
-//        evaluate(node) = node.rule === 'expression' ? evaluate(node[0]) + evaluate(node[2]) :
-//                         node.rule === 'term'       ? evaluate(node[0]) * evaluate(node[2]) :
-//                         node.rule === 'number'     ? Number(node[0] + evaluate(node[1])) : null] in
-//     evaluate(result);
+// Parsers are transparent over parentheses. Only the operators described below are converted specially.
 
-//   Generated parse trees.
-//   Parse trees are flattened for convenience, and they also implement sequences annotated by the names of the rules they used. A terminal generates an atom (not a sequence), a series of &
-//   operators generates a flattened sequence of its operands, and the | operator generates whichever of its alternatives succeeded. For example:
+//   Sequences.
+//   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
 
-//   | cfg[top = 'a' & 'b' & 'c']('abc')     // -> {rule: 'top', alternative: 0, length: 3, '0': 'a', '1': 'b', '2', 'c'}
-//     cfg[top = 'a' | 'b' & 'c']('a')       // -> {rule: 'top', alternative: 0, length: 1, '0': 'a'}
-//     cfg[top = 'a' | 'b' & 'c']('bc')      // -> {rule: 'top', alternative: 1, length: 2, '0': 'b', '1': 'c'}
+//   | peg[x[c('a') % c('b') % c('c')]]('abc')                     // -> ['a', 'b', 'c']
+//     peg[x[c('a') % c('b')] >>= fn[xs][xs.join('/')]]('ab')      // -> 'a/b'
 
-//   Equivalence classes and comparisons.
-//   Single elements in the incoming sequence are handed to the various functions that get generated from the parse tree. By this point, the parse tree already encodes the possible type
-//   coercisions that have taken place. The interesting part is what happens when the cfg[] macro converts things to functions.
+//   Alternatives.
+//   Denoted using the '/' operator. Alternation is transparent; that is, the chosen entry is returned identically. Entries are tried from left to right without backtracking. For example:
 
-//   The parser combinators use a caterwaul instance to build up the parser as a function. Ultimately it gets emitted as a fairly complex function that relies on continuation macros.
+//   | peg[x[c('a') / c('b')]]('a')                                // -> 'a'
+
+//   Repetition.
+//   Denoted using subscripted ranges, similar to the notation used in regular expressions. For example:
+
+//   | peg[x[c('a')[0]]]                   // Zero or more 'a's
+//     peg[x[c('b')[1,4]]                  // Between 1 and 4 'b's
+
+//   Optional things.
+//   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
+
+//   | peg[x[c('a') % [c('b')] % c('c')]]  // a followed by optional b followed by c
+
+//   Negation.
+//   Denoted using !:
+
+//   | peg[x[!c('a')]]                     // Any character that isn't an a
+
+//   Positive and negative matches.
+//   Denoted using unary + and -, respectively. These consume no input but make assertions:
+
+//   | peg[x[c('a') % +c('b')]]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
+//     peg[x[c('a') % -c('b')]]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 // Generated by SDoc 
