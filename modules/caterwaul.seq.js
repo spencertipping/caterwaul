@@ -34,7 +34,7 @@
 
     tconfiguration('std opt', 'seq.finite.mutability', function () {
       l[push = Array.prototype.push, slice = Array.prototype.slice] in
-      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /se[this.length = this.l, this],
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /re[this.length = this.l, this],
                                                                  _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
 

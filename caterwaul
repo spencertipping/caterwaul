@@ -453,6 +453,10 @@ join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [gre
 __acdc3ca5777ab9c7c430d493a7555998
 meta::function('ls-a', 'ls(\'-ad\', @_);');
 meta::function('lss', '# Attribute function::lss');
+meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
+my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
+edit($modules[0]);
+__3167c4c7bc087a3b0d524cada827fe55
 meta::function('minify', 'node([qw/js::caterwaul js::minify/], @_);');
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
@@ -487,9 +491,9 @@ $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
 meta::function('reload', 'execute($_) for grep ! /^bootstrap::/, keys %data;');
 meta::function('render', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;');
-meta::function('rendera', <<'__19b50e645745d1d9dd39768ca2ece353');
+meta::function('rendera', <<'__e9d2317ad3353aa07fa297b3c420c102');
 # Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
-my @files = qw|caterwaul modules/caterwaul.std modules/caterwaul.continuation modules/caterwaul.opt modules/caterwaul.seq|;
+my @files = qw|caterwaul modules/caterwaul.std modules/caterwaul.continuation modules/caterwaul.opt modules/caterwaul.seq modules/caterwaul.heap|;
 
 render();
 file::write("caterwaul.all.js", cat(map "js::$_", @files));
@@ -516,7 +520,7 @@ $scripts
 </body>
 </html>
 EOF
-__19b50e645745d1d9dd39768ca2ece353
+__e9d2317ad3353aa07fa297b3c420c102
 meta::function('repl', <<'__17de81e24ac3fb6c4a3dda5d78ed780b');
 # Runs a REPL of your source, minus the webserver.
 generate();
@@ -653,6 +657,10 @@ my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
 $hash = fast_hash("$data{$_}|$hash") for @keys;
 $hash;
 __119111f84c3e32a5536838ac84bc6f10
+meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
+my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
+edit($tests[0]);
+__f23723801f5d89769169e40894b9dba6
 meta::function('test', <<'__8d09ec97ad9caeb8050bbe3f183a1f18');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
@@ -2572,6 +2580,87 @@ Indentation is two spaces, and each block-style construct triggers additional in
                                           op})});
 
 __bfade7f23414fb344e443cdd6a61e4c5
+meta::sdoc('js::modules/caterwaul.heap', <<'__0de58fc36044652470964f57fb7dd68f');
+Heap implementation | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This module provides a basic heap implementation on top of finite caterwaul sequences. The heap is parameterized by a function that orders elements, returning true if the element belongs more
+towards the root and false otherwise. (So a minheap on numbers or strings would use the function fn[x, y][x < y].)
+
+Usage.
+caterwaul.heap is a function that takes an order function and returns a constructor for heaps implementing that ordering. So, for example:
+
+| var minheap = caterwaul.heap(fn[x, y][x < y]);
+  var h = new minheap();
+  h.insert(10).insert(20).root()        // -> 10
+  h.rroot()                             // -> 10, removes the root
+
+  caterwaul.tconfiguration('std seq', 'heap', function () {
+    this.heap(less) = fc_[null] /se.c[c.prototype = new caterwaul.seq.finite() /se[_.constructor = c] /se[
+      _.insert(x) = this.push(x).heapify_up(this.size() - 1),
+      _.root()    = this[0],
+      _.rroot()   = this[0] /se[this.pop() /se[this[0] = _, this.heapify_down(0), when[this.size()]]],
+
+Implementation.
+There's some less-than-obvious math going on here. Down-heapifying requires comparing an element to its two children and finding the top of the three. We then swap that element into the top
+position and heapify the tree that we swapped.
+
+Normally in a heap the array indexes are one-based, but this is inconvenient considering that everything else in Javascript is zero-based. To remedy this, I'm using some makeshift offsets. We
+basically transform the index in one-based space, but then subtract one to get its zero-based offset. Normally the left and right offsets are 2i and 2i + 1, respectively; in this case, here's
+the math:
+
+| right = 2(i + 1) + 1 - 1 = 2(i + 1)
+  left  = 2(i + 1) - 1     = right - 1
+
+      _.swap(i, j)      = this /se[_[j] = _[i], _[i] = temp, where[temp = _[j]]],
+      _.heapify_up(i)   = this /se[_.swap(i, p).heapify_up(p), when[less.call(_, _[i], _[p])], where[p = i >> 1]],
+      _.heapify_down(i) = this /se[_.swap(lr, i).heapify_down(lr), unless[lr === i],
+                                   where*[s = _.size(), r = i + 1 << 1, l = r - 1, ll = l < s && less.call(_, _[l], _[i]) ? l : i, lr = r < s && less.call(_, _[r], _[ll]) ? r : ll]]]]});
+__0de58fc36044652470964f57fb7dd68f
+meta::sdoc('js::modules/caterwaul.heap.test/minheap', <<'__9fe45d54621677356c7e564a882f442b');
+Minheap tests.
+
+test('caterwaul.heap.minheap', function () {
+  var c = caterwaul.clone('std heap');
+  c(function (eq) {
+    var minheap = caterwaul.heap(fn[x, y][x < y]);
+    var h = new minheap();
+    eq(h.insert(8).root(), 8);
+    eq(h.insert(5).root(), 5);
+    eq(h.insert(3).root(), 3);
+    eq(h.insert(7).root(), 3);
+    eq(h.insert(2).root(), 2);
+    eq(h.rroot(), 2);
+    eq(h.rroot(), 3);
+    eq(h.rroot(), 5);
+    eq(h.rroot(), 7);
+    eq(h.rroot(), 8);
+    eq(h.size(), 0);
+  })(eq);
+});
+__9fe45d54621677356c7e564a882f442b
+meta::sdoc('js::modules/caterwaul.memoize', <<'__9a30dfe29caa2148a5f34c58e1db415a');
+Memoization module | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This memoizer is implemented a bit differently from Perl's memoize module; this one leaves more up to the user. To mitigate the difficulty involved in using it I've written a couple of default
+proxy functions. The basic model is that functions are assumed to map some 'state' (which obviously involves their arguments, but could involve other things as well) into either a return value
+or an exception. This memoization library lets you introduce a proxy around a function call:
+
+| var proxy = fn[invocation, f, fstate][f.apply(invocation.context, invocation.args)];  // Identity memoizer (does nothing)
+  var memoizer = caterwaul.memoize(proxy);
+  var fibonacci = memoizer(fn[x][x < 2 ? x : fibonacci(x - 1) + fibonacci(x - 2)]);     // Just as slow as ever
+
+Here the 'fstate' argument represents state specific to the function being memoized. 'f' isn't the real function; it's a wrapper that returns an object describing the return value. This object
+contains:
+
+| 1. The amount of time spent executing the function. This can be used later to expire memoized results.
+  2. Any exceptions thrown by the function.
+  3. Any value returned by the function.
+
+__9a30dfe29caa2148a5f34c58e1db415a
 meta::sdoc('js::modules/caterwaul.opt', <<'__3ad104ae3ec152b0f9255c949d3c42bd');
 Caterwaul optimization library | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2673,7 +2762,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__41f1294243e6f01bc4849242484fa84b');
+meta::sdoc('js::modules/caterwaul.parser', <<'__402f0688b876572d13ce18973b8878e2');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2690,11 +2779,21 @@ consume arbitrarily much memory without causing a stack overflow, too, since it'
   expression grammars. Unlike JSParse, this library uses CPS-conversion and macros to prevent stack overflows (which can be a drawback in the case of accidental infinite left-recursion) and to
   maximize expressiveness, respectively.
 
+Internals.
+Memoization is restricted to a session rather than being global. This prevents the space leak that would otherwise occur if the parser outlived the result. Behind the scenes the parser
+promotes the input into a parse-state (very much like the ps() function in JSParse). Like other caterwaul libraries, this one uses non-macro constructs behind the scenes. You can easily get at
+this by accessing stuff inside the caterwaul.parser namespace.
+
+  |caterwaul.tconfiguration('std seq continuation', 'parser.core', function () {
+    this.namespace('parser') /se[_.parse_state(input, position, result, memo) = undefined /se[this.input = input, this.position = position, this.result = result, this.memo = memo],
+                                 _.parse_state.from_input(input)              = new _.parse_state(input, 0, null, {}),
+                                 _.parsers                                    = {}]}).
+
 Notation.
 Parsers are written as collections of named nonterminals. Each nonterminal contains a mandatory expansion and an optional binding:
 
-| peg[start[c('a') % c('b')]]                           // A grammar that recognizes the character 'a' followed by the character 'b'
-  peg[start[c('a') % c('b')] >>= fn[ab][ab[0] + ab[1]]] // The same grammar, but the AST transformation step appends the two characters
+| peg[c('a') % c('b')]                                  // A grammar that recognizes the character 'a' followed by the character 'b'
+  peg[c('a') % c('b') >>= fn[ab][ab[0] + ab[1]]]        // The same grammar, but the AST transformation step appends the two characters
 
 The >>= notation is borrowed from Haskell; the idea is that the optional binding is a monadic transform on the parse-state monad. (The only difference is that you don't have to re-wrap the
 result in a new parse state using 'return' as you would in Haskell -- the return here is implied.) The right-hand side of >>= can be any expression that returns a function. It will be
@@ -2702,40 +2801,57 @@ evaluated directly within its lexical context, so the peg[] macro is scope-trans
 
 Parsers are transparent over parentheses. Only the operators described below are converted specially.
 
+  Strings.
+  Strings are parsable by using the c(x) function, which is named this because it matches a constant.
+
+  | peg[c('x')]         // Parses the string 'x'
+    peg[c('foo bar')]   // Parses the string 'foo bar'
+
+  |tconfiguration('std seq continuation', 'parser.c', function () {
+    this.configure('parser.core').parser.parsers.c(x) =
+
   Sequences.
   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
 
-  | peg[x[c('a') % c('b') % c('c')]]('abc')                     // -> ['a', 'b', 'c']
-    peg[x[c('a') % c('b')] >>= fn[xs][xs.join('/')]]('ab')      // -> 'a/b'
+  | peg[c('a') % c('b') % c('c')]('abc')                     // -> ['a', 'b', 'c']
+    peg[c('a') % c('b')] >>= fn[xs][xs.join('/')]('ab')      // -> 'a/b'
 
   Alternatives.
   Denoted using the '/' operator. Alternation is transparent; that is, the chosen entry is returned identically. Entries are tried from left to right without backtracking. For example:
 
-  | peg[x[c('a') / c('b')]]('a')                                // -> 'a'
+  | peg[c('a') / c('b')]('a')                                // -> 'a'
 
   Repetition.
   Denoted using subscripted ranges, similar to the notation used in regular expressions. For example:
 
-  | peg[x[c('a')[0]]]                   // Zero or more 'a's
-    peg[x[c('b')[1,4]]                  // Between 1 and 4 'b's
+  | peg[c('a')[0]]                   // Zero or more 'a's
+    peg[c('b')[1,4]                  // Between 1 and 4 'b's
 
   Optional things.
   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
 
-  | peg[x[c('a') % [c('b')] % c('c')]]  // a followed by optional b followed by c
+  | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
 
   Negation.
   Denoted using !:
 
-  | peg[x[!c('a')]]                     // Any character that isn't an a
+  | peg[!c('a')]                     // Any character that isn't an a
 
   Positive and negative matches.
   Denoted using unary + and -, respectively. These consume no input but make assertions:
 
-  | peg[x[c('a') % +c('b')]]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
-    peg[x[c('a') % -c('b')]]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
-__41f1294243e6f01bc4849242484fa84b
-meta::sdoc('js::modules/caterwaul.seq', <<'__f8615f858f201fc9ede229b6b4a6c8aa');
+  | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
+    peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
+
+  Lazy matching.
+  Because all peg[] expressions eta-expand the functions they generate, you can refer to rules that don't exist at definition-time:
+
+  | parse('xyz'),
+    where*[rule1 = peg[c('x') / rule2 >>= fn_['x']],
+           rule2 = peg[c('X')],
+           parse = peg[rule1 % c('y') % c('z')]];
+__402f0688b876572d13ce18973b8878e2
+meta::sdoc('js::modules/caterwaul.seq', <<'__875f109c0bc0c0707ce386403b0d124b');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2772,7 +2888,7 @@ will always be 0 on IE7.
 
     tconfiguration('std opt', 'seq.finite.mutability', function () {
       l[push = Array.prototype.push, slice = Array.prototype.slice] in
-      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /se[this.length = this.l, this],
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /re[this.length = this.l, this],
                                                                  _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
                                                                  _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
 
@@ -3001,7 +3117,7 @@ Rather than including individual configurations above, you'll probably just want
 
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
                                                             'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.dsl')});
-__f8615f858f201fc9ede229b6b4a6c8aa
+__875f109c0bc0c0707ce386403b0d124b
 meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__8bbf15c78ec6b8316138afc180d80b41');
 Sequence DSL tests.
 
@@ -3077,6 +3193,24 @@ test('caterwaul.seq.dsl', function () {
   })(eq);
 });
 __8bbf15c78ec6b8316138afc180d80b41
+meta::sdoc('js::modules/caterwaul.seq.test/finite.core', <<'__4c1df949aae430af5eb950a2e943a4a2');
+Finite sequence core method tests.
+
+test('caterwaul.seq.finite.core', function () {
+  var c = caterwaul.clone('std seq');
+  c(function (eq) {
+    var s = new caterwaul.seq.finite();
+    eq(s.size(), 0);
+    eq('0' in s, false);
+    eq(s.push(1), s);
+    eq('0' in s, true);
+    eq(s.size(), 1);
+    eq(s.pop(), 1);
+    eq('0' in s, false);
+    eq(s.size(), 0);
+  })(eq);
+});
+__4c1df949aae430af5eb950a2e943a4a2
 meta::sdoc('js::modules/caterwaul.seq.test/finite.filter', <<'__489c5503235513ad2009f842729c3660');
 Finite sequence filter tests.
 
