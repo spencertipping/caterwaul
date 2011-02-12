@@ -491,9 +491,9 @@ $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
 meta::function('reload', 'execute($_) for grep ! /^bootstrap::/, keys %data;');
 meta::function('render', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;');
-meta::function('rendera', <<'__e9d2317ad3353aa07fa297b3c420c102');
+meta::function('rendera', <<'__b022b926f8368f9df3367639c6493e2b');
 # Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
-my @files = qw|caterwaul modules/caterwaul.std modules/caterwaul.continuation modules/caterwaul.opt modules/caterwaul.seq modules/caterwaul.heap|;
+my @files = ('caterwaul', map "modules/caterwaul.$_", qw|std opt continuation seq heap memoize|);
 
 render();
 file::write("caterwaul.all.js", cat(map "js::$_", @files));
@@ -520,7 +520,7 @@ $scripts
 </body>
 </html>
 EOF
-__e9d2317ad3353aa07fa297b3c420c102
+__b022b926f8368f9df3367639c6493e2b
 meta::function('repl', <<'__17de81e24ac3fb6c4a3dda5d78ed780b');
 # Runs a REPL of your source, minus the webserver.
 generate();
@@ -2640,7 +2640,7 @@ test('caterwaul.heap.minheap', function () {
   })(eq);
 });
 __9fe45d54621677356c7e564a882f442b
-meta::sdoc('js::modules/caterwaul.memoize', <<'__9a30dfe29caa2148a5f34c58e1db415a');
+meta::sdoc('js::modules/caterwaul.memoize', <<'__84dccc7f686f85cddf66f9ca814a9f79');
 Memoization module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2649,18 +2649,64 @@ This memoizer is implemented a bit differently from Perl's memoize module; this 
 proxy functions. The basic model is that functions are assumed to map some 'state' (which obviously involves their arguments, but could involve other things as well) into either a return value
 or an exception. This memoization library lets you introduce a proxy around a function call:
 
-| var proxy = fn[invocation, f, fstate][f.apply(invocation.context, invocation.args)];  // Identity memoizer (does nothing)
-  var memoizer = caterwaul.memoize(proxy);
-  var fibonacci = memoizer(fn[x][x < 2 ? x : fibonacci(x - 1) + fibonacci(x - 2)]);     // Just as slow as ever
+| var null_proxy = fn[context, args, f][f.apply(context, args)];                                        // Identity memoizer (does no memoization)
+  var memo_proxy = fn[context, args, f][this[args[0]] || (this[args[0]] = f.apply(context, args))];     // Memoizes on first argument
+  var identity = caterwaul.memoize.from(null_proxy);
+  var memoizer = caterwaul.memoize.from(memo_proxy);
+  var fibonacci = memoizer(fn[x][x < 2 ? x : fibonacci(x - 1) + fibonacci(x - 2)]);                     // O(n) time
 
 Here the 'fstate' argument represents state specific to the function being memoized. 'f' isn't the real function; it's a wrapper that returns an object describing the return value. This object
 contains:
 
-| 1. The amount of time spent executing the function. This can be used later to expire memoized results.
+| 1. The amount of time spent executing the function. This can be used later to expire memoized results (see the 'heap' module for one way to do this).
   2. Any exceptions thrown by the function.
   3. Any value returned by the function.
 
-__9a30dfe29caa2148a5f34c58e1db415a
+Internals.
+The core interface is the proxy function, which governs the memoization process at a low level. It is invoked with three parameters: the invocation context, the original 'arguments' object,
+and the function being memoized (wrapped by a helper, explained below). It also receives an implicit fourth as 'this', which is bound to a generic object specific to the memoized function. The
+proxy function owns this object, so it's allowed to manipulate it in any way.
+
+  Helpers.
+  The function passed into the proxy isn't the original. It's been wrapped by a result handler that captures the full range of things the function can do, including throwing an exception. This
+  guarantees the following things:
+
+  | 1. The wrapped function will never throw an exception.
+    2. The wrapped function will always return a truthy value, and it will be an object.
+    3. Each invocation of the wrapped function is automatically timed, and the time is accessible via the .time attribute on its return value.
+
+  The proxy function is expected to return one of these values, which will then be translated into the corresponding real action.
+
+  caterwaul.tconfiguration('std seq continuation', 'memoize', function () {
+    this.namespace('memoize') /se.m[m.wrap(f) = fn_[l[as = arguments, start = +new Date()] in unwind_protect[{error: e}][{result: f.apply(this, as)}] /se[_.time = +new Date() - start]],
+                                    m.perform(result) = result.error ? unwind[result.error] : result.result,
+                                    m.from(proxy) = fn[f][l[state = {}, g = m.wrap(f)] in fn_[m.perform(proxy.call(state, this, arguments, g))]]]});
+__84dccc7f686f85cddf66f9ca814a9f79
+meta::sdoc('js::modules/caterwaul.memoize.test/fib', <<'__1cf835634927d2aca7f5252efd1a2276');
+Fibonacci memoization test (trivial).
+
+test('caterwaul.memoize.fib', function () {
+  var c = caterwaul.clone('std memoize');
+  c(function (eq) {
+    var memo = caterwaul.memoize.from(fn[c, as, f][this[as[0]] || (this[as[0]] = f.apply(c, as))]);
+    var c1   = 0;
+    var c2   = 0;
+    var fib  = fn[x][++c1, x < 2 ? x : fib(x - 1) + fib(x - 2)];
+    var fibm = memo(fn[x][++c2, x < 2 ? x : fibm(x - 1) + fibm(x - 2)]);
+
+    eq(fib(20), fibm(20));
+    eq(c2, 21);
+    eq(c1 > c2, true);
+
+    var c1old = c1;
+    var c2old = c2;
+
+    eq(fib(20), fibm(20));
+    eq(c1, c1old * 2);
+    eq(c2, c2old);
+  })(eq);
+});
+__1cf835634927d2aca7f5252efd1a2276
 meta::sdoc('js::modules/caterwaul.opt', <<'__3ad104ae3ec152b0f9255c949d3c42bd');
 Caterwaul optimization library | Spencer Tipping
 Licensed under the terms of the MIT source code license
