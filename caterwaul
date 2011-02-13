@@ -2809,7 +2809,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__0a67a3ab1dcf63cd8ccc4fb1f2cb713d');
+meta::sdoc('js::modules/caterwaul.parser', <<'__3250ba84638d7acfd6c63c89b0fe4039');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2829,8 +2829,9 @@ this by accessing stuff inside the caterwaul.parser namespace.
 
   caterwaul.tconfiguration('std seq continuation memoize', 'parser.core', function () {
     this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
-                                 _.parse_state /se.s[s.from_input(input)      = new _.parse_state(input, 0, null, {}),
-                                                     s.prototype.accept(n, r) = new this.constructor(this.input, n, r, this.memo)],
+                                 _.parse_state /se.s[s.from_input(input) = new _.parse_state(input, 0, null, {}),
+                                                     s.prototype /se[_.accept(n, r) = new this.constructor(this.input, n, r, this.memo),
+                                                                     _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.r}]']],
 
                                  _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
                                                                                                where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
@@ -2874,7 +2875,7 @@ Parsers are transparent over parentheses. Only the operators described below are
   Alternatives.
   Denoted using the '/' operator. Alternation is transparent; that is, the chosen entry is returned identically. Entries are tried from left to right without backtracking. For example:
 
-  | peg[c('a') / c('b')]('a')                                // -> 'a'
+  | peg[c('a') / c('b')]('a')        // -> 'a'
 
     tconfiguration('std seq', 'parser.alt', function () {
       this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[r = _(state)]] && r, where[r = null]]])}).
@@ -2887,10 +2888,9 @@ Parsers are transparent over parentheses. Only the operators described below are
 
     tconfiguration('std opt seq continuation', 'parser.times', function () {
       this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
-        upper && (upper -= lower),
-        call/cc[fn[cc][opt.unroll[i, lower][(state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
-        call/cc[l*[count = 0, loop(cc) = (! upper || ++count < upper) && (state = p(state)) ? result.push(state.result) && call/tail[loop(cc)] : cc(state.accept(state.i, result))] in loop],
-        where[result = []]]])}).
+        call/cc[fn[cc][opt.unroll[i, lower][++count, (state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
+        call/cc[l*[loop(cc) = (! upper || count++ < upper) && p(state) /se[state = _, when[_]] ? result.push(state.result) && call/tail[loop(cc)] :
+                                                                                                 cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
 
   Optional things.
   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
@@ -2915,8 +2915,8 @@ Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match')});
-__0a67a3ab1dcf63cd8ccc4fb1f2cb713d
-meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__f5b379b2bb9ea3eb842b5d8cf2c163e7');
+__3250ba84638d7acfd6c63c89b0fe4039
+meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__56dfd6ab727f644ab7319ae74198588b');
 Basic parser combinator tests.
 
 test('caterwaul.parser.basic', function () {
@@ -2948,9 +2948,29 @@ test('caterwaul.parser.basic', function () {
     eq(!! ab_c('abbc'), false);
     eq(!! ab_c('adc'), false);
     eq(!! ab_c('aabc'), false);
+
+    eq(p.times(p.c('abab'), 1, 2)('abab').result.join(','), 'abab');
+    eq(p.times(p.c('abab'), 1, 2)('abababab').result.join(','), 'abab,abab');
+    eq(p.times(p.c('ab'), 1, 3)('ababab').result.join(','), 'ab,ab,ab');
+    eq(p.times(p.c('ab'), 0, 3)('ab').result.join(','), 'ab');
+    eq(p.times(p.c('ab'), 0, 3)('abab').result.join(','), 'ab,ab');
+
+    var abbc = p.seq(p.c('a'), p.times(p.c('b'), 1, 3), p.c('c'));
+    eq(abbc('abc').result[1].join(','), 'b');
+    eq(abbc('abbc').result[1].join(','), 'b,b');
+    eq(abbc('abbbc').result[1].join(','), 'b,b,b');
+    eq(abbc('abbbbc'), false);
+    eq(abbc('ac'), false);
+
+    var ac = p.seq(p.c('a'), p.times(p.c('b'), 0, 2), p.c('c'));
+    eq(ac('abc').result[1].join(','), 'b');
+    eq(ac('abbc').result[1].join(','), 'b,b');
+    eq(ac('abbbc'), false);
+    eq(ac('abbbbc'), false);
+    eq(ac('ac').result[1].length, 0);
   })(eq);
 });
-__f5b379b2bb9ea3eb842b5d8cf2c163e7
+__56dfd6ab727f644ab7319ae74198588b
 meta::sdoc('js::modules/caterwaul.seq', <<'__875f109c0bc0c0707ce386403b0d124b');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
