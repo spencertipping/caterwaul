@@ -491,9 +491,9 @@ $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
 meta::function('reload', 'execute($_) for grep ! /^bootstrap::/, keys %data;');
 meta::function('render', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;');
-meta::function('rendera', <<'__b022b926f8368f9df3367639c6493e2b');
+meta::function('rendera', <<'__c1baaa980dfd855b0b4cc0179ce26bf5');
 # Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
-my @files = ('caterwaul', map "modules/caterwaul.$_", qw|std opt continuation seq heap memoize|);
+my @files = ('caterwaul', map "modules/caterwaul.$_", qw|std opt continuation seq heap memoize parser|);
 
 render();
 file::write("caterwaul.all.js", cat(map "js::$_", @files));
@@ -520,7 +520,7 @@ $scripts
 </body>
 </html>
 EOF
-__b022b926f8368f9df3367639c6493e2b
+__c1baaa980dfd855b0b4cc0179ce26bf5
 meta::function('repl', <<'__17de81e24ac3fb6c4a3dda5d78ed780b');
 # Runs a REPL of your source, minus the webserver.
 generate();
@@ -2640,7 +2640,7 @@ test('caterwaul.heap.minheap', function () {
   })(eq);
 });
 __9fe45d54621677356c7e564a882f442b
-meta::sdoc('js::modules/caterwaul.memoize', <<'__84dccc7f686f85cddf66f9ca814a9f79');
+meta::sdoc('js::modules/caterwaul.memoize', <<'__706a518f525bc0e31bb93f2d05c6083d');
 Memoization module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2678,10 +2678,11 @@ proxy function owns this object, so it's allowed to manipulate it in any way.
   The proxy function is expected to return one of these values, which will then be translated into the corresponding real action.
 
   caterwaul.tconfiguration('std seq continuation', 'memoize', function () {
-    this.namespace('memoize') /se.m[m.wrap(f) = fn_[l[as = arguments, start = +new Date()] in unwind_protect[{error: e}][{result: f.apply(this, as)}] /se[_.time = +new Date() - start]],
+    this.namespace('memoize') /se.m[m.wrap(f) = fn_[l[as = arguments, start = +new Date()] in unwind_protect[{error: e}][{result: f.apply(this, as)}] /se[_.time = +new Date() - start]]
+                                                /se[_.original = f],
                                     m.perform(result) = result.error ? unwind[result.error] : result.result,
                                     m.from(proxy) = fn[f][l[state = {}, g = m.wrap(f)] in fn_[m.perform(proxy.call(state, this, arguments, g))]]]});
-__84dccc7f686f85cddf66f9ca814a9f79
+__706a518f525bc0e31bb93f2d05c6083d
 meta::sdoc('js::modules/caterwaul.memoize.test/fib', <<'__1cf835634927d2aca7f5252efd1a2276');
 Fibonacci memoization test (trivial).
 
@@ -2808,7 +2809,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__4be9bd6ee7f706d6b42986324ed71078');
+meta::sdoc('js::modules/caterwaul.parser', <<'__0a67a3ab1dcf63cd8ccc4fb1f2cb713d');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2819,7 +2820,7 @@ Note that parsers generated here are not at all insightful or necessarily perfor
   Basis and acknowledgements.
   This parser library is based heavily on Chris Double's JSParse (available at github.com/doublec/jsparse), which implements a memoized combinatory PEG parser. If you are looking for a simple
   and well-designed parsing library, I highly recommend JSParse; it will be easier to use and more predictable than caterwaul.parser. Like JSParse, these parsers are memoized and use parsing
-  expression grammars.
+  expression grammars. However, this parser is probably quite a lot slower.
 
 Internals.
 Memoization is restricted to a session rather than being global. This prevents the space leak that would otherwise occur if the parser outlived the result. Behind the scenes the parser
@@ -2828,17 +2829,16 @@ this by accessing stuff inside the caterwaul.parser namespace.
 
   caterwaul.tconfiguration('std seq continuation memoize', 'parser.core', function () {
     this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
-                                 _.parse_state /se[_.from_input(input) = new _.parse_state(input, 0, null, {}),
-                                                   _.prototype /se[
-                                   _.accept(n, r) = new this.constructor(this.input, this.i + n, r, this.memo),
-                                   _.then(state)  = this.accept(state.i - this.i, this.result instanceof Array ? this.result.concat([state.result]) : [this.result, state.result]),
-                                   _.fail()       = false]],
+                                 _.parse_state /se.s[s.from_input(input)      = new _.parse_state(input, 0, null, {}),
+                                                     s.prototype.accept(n, r) = new this.constructor(this.input, n, r, this.memo)],
 
-                                 _.memoize                             = caterwaul.memoize.from(fn[c, as, f][m[f.id] || (m[f.id] = f.apply(c, as)), where[m = as[0].memo]]),
-                                 _.identify(f)                         = f /se[_.id = caterwaul.gensym()],
-                                 _.parser(f)                           = _.identify(_.memoize(f)),
-                                 _.defparser(name, f)                  = _.parsers[name]() = _.parser(f.apply(this, arguments)),
-                                 _.parsers                             = {}]}).
+                                 _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
+                                                                                               where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
+                                 _.promote_non_states(f) = fn[state][f.call(this, state.constructor === _.parse_state ? state : _.parse_state.from_input(state))],
+                                 _.identify(f)           = f /se[_.memo_id = caterwaul.gensym()],
+                                 _.parser(f)             = _.promote_non_states(_.memoize(_.identify(f))),
+                                 _.defparser(name, f)    = _.parsers[name]() = _.parser(f.apply(this, arguments)),
+                                 _.parsers               = {}]}).
 
 Notation.
 Parsers are written as collections of named nonterminals. Each nonterminal contains a mandatory expansion and an optional binding:
@@ -2858,25 +2858,26 @@ Parsers are transparent over parentheses. Only the operators described below are
   | peg[c('x')]         // Parses the string 'x'
     peg[c('foo bar')]   // Parses the string 'foo bar'
 
-  tconfiguration('std seq continuation', 'parser.c', function () {
-    this.configure('parser.core').parser.defparser('c', fn[x][fn[state][state.accept(x.length, x), when[x === state.input.substring(state.i, x.length)]]])}).
+    tconfiguration('std seq continuation', 'parser.c', function () {
+      this.configure('parser.core').parser.defparser('c', fn[x][fn[state][state.accept(state.i + x.length, x), when[x === state.input.substr(state.i, x.length)]]])}).
 
   Sequences.
   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
 
   | peg[c('a') % c('b') % c('c')]('abc')                     // -> ['a', 'b', 'c']
-    peg[c('a') % c('b')] >>= fn[xs][xs.join('/')]('ab')      // -> 'a/b'
+    peg[c('a') % c('b') >>= fn[xs][xs.join('/')]]('ab')      // -> 'a/b'
 
-  tconfiguration('std seq continuation', 'parser.seq', function () {
-    this.configure('parser.core').parser.defparser('seq', fn_[l[as = seq[~arguments]] in fn[state][as.foldl(fn[st, f][st && st.then(f(st))], state)]])}).
+    tconfiguration('std opt seq continuation', 'parser.seq', function () {
+      this.configure('parser.core').parser.defparser('seq', fn_[l[as = arguments] in fn[state][
+        call/cc[fn[cc][opt.unroll[i, as.length][(state = as[i](state)) ? result.push(state.result) : cc(false)], state.accept(state.i, result)]], where[result = []]]])}).
 
   Alternatives.
   Denoted using the '/' operator. Alternation is transparent; that is, the chosen entry is returned identically. Entries are tried from left to right without backtracking. For example:
 
   | peg[c('a') / c('b')]('a')                                // -> 'a'
 
-  tconfiguration('std seq continuation', 'parser.alt', function () {
-    this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][as.exists(fn[f][f(state)])]])}).
+    tconfiguration('std seq', 'parser.alt', function () {
+      this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[r = _(state)]] && r, where[r = null]]])}).
 
   Repetition.
   Denoted using subscripted ranges, similar to the notation used in regular expressions. For example:
@@ -2884,19 +2885,20 @@ Parsers are transparent over parentheses. Only the operators described below are
   | peg[c('a')[0]]                   // Zero or more 'a's
     peg[c('b')[1,4]                  // Between 1 and 4 'b's
 
-  tconfiguration('std seq continuation', 'parser.times', function () {
-    this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
-      upper -= lower,
-      call/cc[fn[cc][opt.unroll[i, lower][(state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
-      call/cc[l*[count = 0, loop(cc) = ++count < upper ? (state = p(state)) ? result.push(state.result) && call/tail[loop(cc)] : cc(false) : cc(state.accept(0, result))] in loop]]])}).
+    tconfiguration('std opt seq continuation', 'parser.times', function () {
+      this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
+        upper && (upper -= lower),
+        call/cc[fn[cc][opt.unroll[i, lower][(state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
+        call/cc[l*[count = 0, loop(cc) = (! upper || ++count < upper) && (state = p(state)) ? result.push(state.result) && call/tail[loop(cc)] : cc(state.accept(state.i, result))] in loop],
+        where[result = []]]])}).
 
   Optional things.
   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
 
   | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
 
-  tconfiguration('std seq continuation', 'parser.opt', function () {
-    this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s && s.i - state.i, r = s && s.result]]])}).
+    tconfiguration('std seq continuation', 'parser.opt', function () {
+      this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s ? s.i : state.i, r = s && s.result]]])}).
 
   Positive and negative matches.
   Denoted using unary + and -, respectively. These consume no input but make assertions:
@@ -2904,18 +2906,51 @@ Parsers are transparent over parentheses. Only the operators described below are
   | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 
-  tconfiguration('std seq continuation', 'parser.match', function () {
-    this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(0, _.result)]]]),
-                                             _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(0, null)]]])]}).
+    tconfiguration('std seq continuation', 'parser.match', function () {
+      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(0, _.result)]]]),
+                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(0, null)]]])]}).
 
-  Lazy matching.
-  Because all peg[] expressions eta-expand the functions they generate, you can refer to rules that don't exist at definition-time:
+Final configuration.
+Loads both the classes and the peg[] macro.
 
-  | parse('xyz'),
-    where*[rule1 = peg[c('x') / rule2 >>= fn_['x']],
-           rule2 = peg[c('X')],
-           parse = peg[rule1 % c('y') % c('z')]];
-__4be9bd6ee7f706d6b42986324ed71078
+  configuration('parser', function () {
+    this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match')});
+__0a67a3ab1dcf63cd8ccc4fb1f2cb713d
+meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__f5b379b2bb9ea3eb842b5d8cf2c163e7');
+Basic parser combinator tests.
+
+test('caterwaul.parser.basic', function () {
+  var c = caterwaul.clone('std parser');
+
+  c(function (eq) {
+    var p = caterwaul.parser.parsers;
+
+    var a = p.c('a');
+    eq(a('a').result, 'a');
+
+    var abc = p.seq(p.c('a'), p.c('b'), p.c('c'));
+    eq(abc('abc').result.join(','), 'a,b,c');
+    eq(!! abc('abd'), false);
+    eq(!! abc('ab'), false);
+
+    var abBc = p.seq(p.c('a'), p.alt(p.c('b'), p.c('B')), p.c('c'));
+    eq(abBc('abc').result.join(','), 'a,b,c');
+    eq(abBc('aBc').result.join(','), 'a,B,c');
+    eq(!! abBc('acc'), false);
+    eq(!! abBc('aac'), false);
+    eq(!! abBc('abb'), false);
+    eq(!! abBc('abC'), false);
+    eq(!! abBc('Abc'), false);
+
+    var ab_c = p.seq(p.c('a'), p.opt(p.c('b')), p.c('c'));
+    eq(ab_c('abc').result.join(','), 'a,b,c');
+    eq(ab_c('ac').result.join(','), 'a,false,c');
+    eq(!! ab_c('abbc'), false);
+    eq(!! ab_c('adc'), false);
+    eq(!! ab_c('aabc'), false);
+  })(eq);
+});
+__f5b379b2bb9ea3eb842b5d8cf2c163e7
 meta::sdoc('js::modules/caterwaul.seq', <<'__875f109c0bc0c0707ce386403b0d124b');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
