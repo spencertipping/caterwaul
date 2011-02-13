@@ -103,7 +103,7 @@
 //   denoted by the >>= operator.
 
     tconfiguration('std seq continuation', 'parser.bind', function () {
-      this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && state.accept(state.i, f.call(state, state.result))]]])]}).
+      this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
 
 // DSL macro.
 // Most of the time you'll want to use the peg[] macro rather than hand-coding the grammar. The macro both translates the tree and introduces all of the parsers as local variables (like a with()
@@ -115,13 +115,16 @@
                                                              _parser:   this.parser.dsl.macroexpand(x)}),
                                                            where[outer = this]]),
     this.parser.dsl = caterwaul.global().clone() /se[
-      _.macro(qs[_], fn[x][x]) /se.dsl[seq[sp[unary]  *![dsl.rmacro(_[1], fn[x]   [qs[_f(_x)]    .replace({_f: _[0], _x: x})])]],
-                                       seq[sp[binary] *![dsl.rmacro(_[1], fn[x, y][qs[_f(_x, _y)].replace({_f: _[0], _x: x, _y: y})])]]],
+      _.macro(qs[_], fn[x][x]) /se.dsl[
+        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: x})])]],
+        seq[sp[binary] %[_[1].constructor === String] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]) /se[_.data = ',']}), when[t.data === op[1]]])]]],
 
-      _.rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
-        rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
+      _.macro(qs[_ >>= _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
 
-      where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: qs[_ / _], seq: qs[_ % _], bind: qs[_ >>= _]}]]}).
+      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')]).rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
+                                                              rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
+
+      where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: '/', seq: '%'}]]}).
 
 // Final configuration.
 // Loads both the classes and the peg[] macro.
