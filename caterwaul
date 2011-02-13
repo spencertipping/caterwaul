@@ -1305,10 +1305,10 @@ __24f211bef7e65af28726dfe6075c671f
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
-meta::retriever('sdocp', <<'__2fe74510364ec3ea28fefc4f66b864b3');
+meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
-exists $data{"sdoc::$_[0]"} ? sdocp("sdoc::$_[0]") : undef;
-__2fe74510364ec3ea28fefc4f66b864b3
+exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
+__fef74cd94fa8761618662802f0bfc171
 meta::sdoc('js::caterwaul', <<'__b1586f8800d8276ac8eb625a4a77ee90');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license

@@ -1,0 +1,1 @@
+sdocp('sdoc::js::test/lex-semicolon-failure', 'test(\'lex-semicolon-failure\', function () {\n  var t = function (s, s2) {return eq(caterwaul.parse(s).inspect(), s2)};\n\n  Semicolons (in response to a failure)\n\n  t(\'x;y;z\', \'(; (; (x) (y)) (z))\');\n  t(\'x;/foo/g\', \'(; (x) (/foo/g))\');\n  t(\'/foo/g;/bar/g\', \'(; (/foo/g) (/bar/g))\');\n});');
