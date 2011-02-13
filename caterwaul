@@ -2818,7 +2818,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__b4265060da2b36016b9acaf313e5e74e');
+meta::sdoc('js::modules/caterwaul.parser', <<'__4f9b556a7e199a51df3ef55bcf3fa1d7');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2865,11 +2865,46 @@ Parsers are transparent over parentheses. Only the operators described below are
   Strings.
   Strings are parsable by using the c(x) function, which is named this because it matches a constant.
 
-  | peg[c('x')]         // Parses the string 'x'
-    peg[c('foo bar')]   // Parses the string 'foo bar'
+  | peg[c('x')]                 // Parses the string 'x'
+    peg[c('foo bar')]           // Parses the string 'foo bar'
+    peg[c(['foo', 'bar'])]      // Parses either the string 'foo' or the string 'bar', in mostly-constant time in the size of the array (see below)
+    peg[c({foo: 1, bar: 2})]    // Parses either the string 'foo' or the string 'bar'; returns 1 if 'foo' matched, 2 if 'bar' matched (also in mostly-constant time)
+    peg[c(/\d+/, 1)]            // Parses strings of digits with a minimum length of 1. The parse is greedy, and the regexp's exec() method output is returned.
+    peg[c(fn[s][3])]            // Always takes three characters, regardless of what they are.
+
+  The c() function can take other arguments as well. One is an array of strings; in this case, it matches against any string in the array. (Matching time is O(l), where l is the number of
+  distinct lengths of strings.) Another is an object; if any directly-contained (!) attribute of the key is parsed and consumed, then the value associated with that key is returned. The time
+  for this algorithm is O(l), where l is the number of distinct lengths of the keys in the object.
+
+  Another option is specifying a regular expression with a minimum length. The rule is that the parser fails immediately if the regexp doesn't match the minimum length of characters. If it
+  does match, then the maximum matching length is found. This ends up performing O(log n) regexp-matches against the input, for a total runtime of O(n log n). (The algorithm here is an
+  interesting one: Repeatedly double the match length until matching fails, then binary split between the last success and the first failure.) Because of the relatively low performance of this
+  regexp approach, it may be faster to use a regular finite-automaton approach for routine parsing and lexing. Then again, O(log n) linear-time native code calls may be faster than O(n)
+  constant-time calls in practice.
+
+  Finally, you can also specify a function. If you do this, the function will be invoked on the input and the current offset, and should return the number of characters it intends to consume.
+  It returns a falsy value to indicate failure.
+
+    Implementation.
+    The O(l) complexity bound is guaranteed by pre-indexing potential matches by their lengths. Then the matching process proceeds in terms of suppositions: "Do any 8-character substrings
+    match? If so, return it; otherwise try shorter strings." (I'm actually fudging the number a bit. It's really O(sum(l[i])), where l is the array of string lengths.) All substring lengths
+    have to be tested, and unfortunately from longest to shortest -- this means that the average case is basically the worst case. However, neither is all that bad for a parser.
 
     tconfiguration('std seq continuation', 'parser.c', function () {
-      this.configure('parser.core').parser.defparser('c', fn[x][fn[state][state.accept(state.i + x.length, x), when[x === state.input.substr(state.i, x.length)]]])}).
+      this.configure('parser.core').parser.defparser('c', fn[x, l][
+        x.constructor === String   ? fn[state][state.accept(state.i + x.length, x), when[x === state.input.substr(state.i, x.length)]] :
+        x.constructor === Array    ? l[index = index_entries(x)] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, _)]] :
+        x.constructor === RegExp   ? fn[state][maximum_length(x, state.input, state.i, l) /re[_ && split_lengths(x, state.input, state.i, l, _)
+                                                                                                   /re[state.accept(state.i + _, x.exec(state.input.substr(state.i, _)))]]] :
+        x.constructor === Function ? fn[state][x.call(state, state.input, state.i) /re[_ && state.accept(state.i + _, state.input.substr(state.i, _))]] :
+                                     l[index = index_entries(seq[sk[x]])] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, x[_])]],
+
+        where*[index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[!(xsp *[[_.length, true]])] *+Number]] in seq[~ls.sort(fn[x, y][y - x]) *~l[xsp %[_.length === l] *[['@#{_}', true]]]],
+               check_index(i, s, p) = l[r = false, has = Object.prototype.hasOwnProperty] in seq[~i |[has.call(_, '@' + s) && (r = s), where[s = s.substr(p, _.length)]]] /re[r],
+
+               fail_length(re, s, p, l)      = p + l < s.length && re.test(s.substr(p, l)) ? find_maximum_length(re, s, p, l << 1) : l,
+               split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? re.test(s.substr(p, u)) ? call/tail[b(cc, l + (u - l >> 1), u)] : call/tail[b(cc, l, u - (u - l >> 1))] : cc(l)] in
+                                               call/cc[fn[cc][b(cc, l1, l2)]]]])}).
 
   Sequences.
   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
@@ -2952,7 +2987,7 @@ Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
-__b4265060da2b36016b9acaf313e5e74e
+__4f9b556a7e199a51df3ef55bcf3fa1d7
 meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__56dfd6ab727f644ab7319ae74198588b');
 Basic parser combinator tests.
 
