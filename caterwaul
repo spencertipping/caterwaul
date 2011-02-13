@@ -457,6 +457,10 @@ meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
 my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
 edit($modules[0]);
 __3167c4c7bc087a3b0d524cada827fe55
+meta::function('me', <<'__ba8d14b1caf169f49834baa8018001c0');
+# Macroexpands stuff.
+node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::macroexpander'], @_);
+__ba8d14b1caf169f49834baa8018001c0
 meta::function('minify', 'node([qw/js::caterwaul js::minify/], @_);');
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
@@ -988,6 +992,10 @@ terminal::warning("$@ when running with_exported()") if $@;
 unlink $name;
 $result;
 __fc4f32c46d95c6deed0414364d1c7410
+meta::js('macroexpander', <<'__c21d8a4d0fee3d39aef360d077637bd1');
+// A quick macroexpander REPL:
+console.log('%s', caterwaul.clone('format').format(caterwaul.clone('std seq opt continuation parser').macroexpand(caterwaul.parse(process.argv.slice(2).join(' ')))));
+__c21d8a4d0fee3d39aef360d077637bd1
 meta::library('terminal', <<'__0ec2ca45ce7b9b56c05c9b284a7ee78a');
 # Functions for nice-looking terminal output.
 package terminal;
