@@ -110,10 +110,10 @@
 // block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
   tconfiguration('std seq continuation', 'parser.dsl', function () {
-    l[outer = this] in this.configure('parser.core').rmacro(qs[peg[_]], fn[x][with_gensyms[_gs][qg[l*[_bindings, _gs = _parser]][fn_[_gs.apply(this, arguments) /re[_ && _.result]]]].replace({
-                         _bindings: new outer.syntax(',', seq[sp[outer.parser.parsers] *[new outer.syntax(':', _[0], new outer.ref(_[1]))]]).as('{'),
-                         _parser:   outer.parser.dsl.macroexpand(x)})]),
-
+    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][with_gensyms[_gs][qg[l*[_bindings, _gs = _parser] in fn_[_gs.apply(this, arguments) /re[_ && _.result]]]].replace({
+                                                             _bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
+                                                             _parser:   this.parser.dsl.macroexpand(x)}),
+                                                           where[outer = this]]),
     this.parser.dsl = caterwaul.global().clone() /se[
       _.macro(qs[_], fn[x][x]) /se.dsl[seq[sp[unary]  *![dsl.rmacro(_[1], fn[x]   [qs[_f(_x)]    .replace({_f: _[0], _x: x})])]],
                                        seq[sp[binary] *![dsl.rmacro(_[1], fn[x, y][qs[_f(_x, _y)].replace({_f: _[0], _x: x, _y: y})])]]],
@@ -121,7 +121,7 @@
       _.rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
         rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
 
-      where*[unary = {opt: qs[[_]], match: qs[+x], reject: qs[-x]}, binary = {alt: qs[_ / _], seq: qs[_ % _]}]]}).
+      where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: qs[_ / _], seq: qs[_ % _], bind: qs[_ >>= _]}]]}).
 
 // Final configuration.
 // Loads both the classes and the peg[] macro.
