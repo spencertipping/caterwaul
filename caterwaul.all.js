@@ -1811,7 +1811,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                                  _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
                                                                                                where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
-                                 _.promote_non_states(f) = fn[state][f.call(this, state.constructor === _.parse_state ? state : _.parse_state.from_input(state))],
+                                 _.promote_non_states(f) = fn[state][state instanceof _.parse_state ? f.call(this, state) : f.call(this, _.parse_state.from_input(state)) /re[_ && _.result]],
                                  _.identify(f)           = f /se[_.memo_id = caterwaul.gensym()],
                                  _.parser(f)             = _.promote_non_states(_.memoize(_.identify(f))),
                                  _.defparser(name, f)    = _.parsers[name]() = _.parser(f.apply(this, arguments)),
@@ -1830,7 +1830,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // Parsers are transparent over parentheses. Only the operators described below are converted specially.
 
-//   Strings.
+//   Constants.
 //   Strings are parsable by using the c(x) function, which is named this because it matches a constant.
 
 //   | peg[c('x')]                 // Parses the string 'x'
@@ -1855,18 +1855,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     tconfiguration('std seq continuation', 'parser.c', function () {
       this.configure('parser.core').parser.defparser('c', fn[x, l][
-        x.constructor === String   ? fn[state][state.accept(state.i + x.length, x), when[x === state.input.substr(state.i, x.length)]] :
-        x instanceof Array         ? l[index = index_entries(x)] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, _)]] :
-        x.constructor === RegExp   ? fn[state][fail_length(x, state.input, state.i, l) /re[_ > l && split_lengths(x, state.input, state.i, l, _)
-                                                                                                    /re[state.accept(state.i + _, x.exec(state.input.substr(state.i, _)))]]] :
-        x.constructor === Function ? fn[state][x.call(state, state.input, state.i) /re[_ && state.accept(state.i + _, state.input.substr(state.i, _))]] :
-                                     l[index = index_entries(seq[sk[x]])] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, x[_])]],
+        x.constructor === String   ? fn[st][st.accept(st.i + x.length, x), when[x === st.input.substr(st.i, x.length)]] :
+        x instanceof Array         ? l[index = index_entries(x)] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, _)]] :
+        x.constructor === RegExp   ? fn[st][fail_length(x, st.input, st.i, l) /re[_ > l && split_lengths(x, st.input, st.i, l, _) /re[st.accept(st.i + _, x.exec(st.input.substr(st.i, _)))]]] :
+        x.constructor === Function ? fn[st][x.call(st, st.input, st.i) /re[_ && st.accept(st.i + _, st.input.substr(st.i, _))]] :
+                                     l[index = index_entries(seq[sk[x]])] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, x[_])]],
 
         where*[check_index(i, s, p) = seq[i |[_['@#{s}'] && s, where[s = s.substr(p, _.length)]]],
-               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[!(xsp *[[_.length, true]])] *[Number(_)]]] in
+               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[seq[!(xsp *[[_.length, true]])]] *[Number(_)]]] in
                                       seq[~ls.slice().sort(fn[x, y][y - x]) *~l[!(xsp %[_.length === l] *[['@#{_}', true]] + [['length', l]])]],
 
-               fail_length(re, s, p, l)      = p + l < s.length && re.test(s.substr(p, l)) ? fail_length(re, s, p, l << 1) : l,
+               fail_length(re, s, p, l)      = re.test(s.substr(p, l)) ? p + (l << 1) <= s.length ? fail_length(re, s, p, l << 1) : l << 1 : l,
                split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? re.test(s.substr(p, u)) ? call/tail[b(cc, l + (u - l >> 1), u)] : call/tail[b(cc, l, u - (u - l >> 1))] : l] in
                                                call/cc[fn[cc][b(cc, l, u)]]]])}).
 
@@ -1930,19 +1929,19 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
   tconfiguration('std seq continuation', 'parser.dsl', function () {
-    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][with_gensyms[_gs][qg[l*[_bindings, _gs = _parser] in fn_[_gs.apply(this, arguments) /re[_ && _.result]]]].replace({
+    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][qs[qg[l*[_bindings] in qg[_parser]]].replace({
                                                              _bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
                                                              _parser:   this.parser.dsl.macroexpand(x)}),
                                                            where[outer = this]]),
     this.parser.dsl = caterwaul.global().clone() /se[
       _.macro(qs[_], fn[x][x]) /se.dsl[
-        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: x})])]],
-        seq[sp[binary] %[_[1].constructor === String] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]) /se[_.data = ',']}), when[t.data === op[1]]])]]],
+        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: this.macroexpand(x)})])]],
+        seq[sp[binary] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]).map(this.macroexpand) /se[_.data = ',']}), when[t.data === op[1]]])]]],
 
       _.macro(qs[_ >> _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
 
-      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')]).rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
-                                                              rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
+      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')])        .rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
+        macro(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: x, _y: y})]).rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
 
       where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: '/', seq: '%'}]]}).
 

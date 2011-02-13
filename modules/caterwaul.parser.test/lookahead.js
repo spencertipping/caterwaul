@@ -7,15 +7,15 @@ test('caterwaul.parser.lookahead', function () {
     var p = caterwaul.parser.parsers;
     
     var aa = p.seq(p.c('a'), p.match(p.c('a')), p.alt(p.c('a'), p.c('b')));
-    eq(aa('aa').result.join(','), 'a,a,a');
+    eq(aa('aa').join(','), 'a,a,a');
     eq(aa('ab'), false);
     eq(aa('a'), false);
 
     var ab = p.seq(p.c('a'), p.reject(p.c('a')), p.alt(p.c('a'), p.c('b')));
-    eq(ab('ab').result.length, 3);
-    eq(ab('ab').result[0], 'a');
-    eq(ab('ab').result[1], null);
-    eq(ab('ab').result[2], 'b');
+    eq(ab('ab').length, 3);
+    eq(ab('ab')[0], 'a');
+    eq(ab('ab')[1], null);
+    eq(ab('ab')[2], 'b');
     eq(ab('aa'), false);
     eq(ab('a'), false);
   })(eq);

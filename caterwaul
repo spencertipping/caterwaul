@@ -2818,7 +2818,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__2cb44c57439b5259c8494694d02cbac9');
+meta::sdoc('js::modules/caterwaul.parser', <<'__c80d6524905dce429fcb3c43960719ec');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2844,7 +2844,7 @@ this by accessing stuff inside the caterwaul.parser namespace.
 
                                  _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
                                                                                                where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
-                                 _.promote_non_states(f) = fn[state][f.call(this, state.constructor === _.parse_state ? state : _.parse_state.from_input(state))],
+                                 _.promote_non_states(f) = fn[state][state instanceof _.parse_state ? f.call(this, state) : f.call(this, _.parse_state.from_input(state)) /re[_ && _.result]],
                                  _.identify(f)           = f /se[_.memo_id = caterwaul.gensym()],
                                  _.parser(f)             = _.promote_non_states(_.memoize(_.identify(f))),
                                  _.defparser(name, f)    = _.parsers[name]() = _.parser(f.apply(this, arguments)),
@@ -2863,7 +2863,7 @@ caterwaul.parser.parsers.
 
 Parsers are transparent over parentheses. Only the operators described below are converted specially.
 
-  Strings.
+  Constants.
   Strings are parsable by using the c(x) function, which is named this because it matches a constant.
 
   | peg[c('x')]                 // Parses the string 'x'
@@ -2888,18 +2888,17 @@ Parsers are transparent over parentheses. Only the operators described below are
 
     tconfiguration('std seq continuation', 'parser.c', function () {
       this.configure('parser.core').parser.defparser('c', fn[x, l][
-        x.constructor === String   ? fn[state][state.accept(state.i + x.length, x), when[x === state.input.substr(state.i, x.length)]] :
-        x instanceof Array         ? l[index = index_entries(x)] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, _)]] :
-        x.constructor === RegExp   ? fn[state][fail_length(x, state.input, state.i, l) /re[_ > l && split_lengths(x, state.input, state.i, l, _)
-                                                                                                    /re[state.accept(state.i + _, x.exec(state.input.substr(state.i, _)))]]] :
-        x.constructor === Function ? fn[state][x.call(state, state.input, state.i) /re[_ && state.accept(state.i + _, state.input.substr(state.i, _))]] :
-                                     l[index = index_entries(seq[sk[x]])] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, x[_])]],
+        x.constructor === String   ? fn[st][st.accept(st.i + x.length, x), when[x === st.input.substr(st.i, x.length)]] :
+        x instanceof Array         ? l[index = index_entries(x)] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, _)]] :
+        x.constructor === RegExp   ? fn[st][fail_length(x, st.input, st.i, l) /re[_ > l && split_lengths(x, st.input, st.i, l, _) /re[st.accept(st.i + _, x.exec(st.input.substr(st.i, _)))]]] :
+        x.constructor === Function ? fn[st][x.call(st, st.input, st.i) /re[_ && st.accept(st.i + _, st.input.substr(st.i, _))]] :
+                                     l[index = index_entries(seq[sk[x]])] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, x[_])]],
 
         where*[check_index(i, s, p) = seq[i |[_['@#{s}'] && s, where[s = s.substr(p, _.length)]]],
-               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[!(xsp *[[_.length, true]])] *[Number(_)]]] in
+               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[seq[!(xsp *[[_.length, true]])]] *[Number(_)]]] in
                                       seq[~ls.slice().sort(fn[x, y][y - x]) *~l[!(xsp %[_.length === l] *[['@#{_}', true]] + [['length', l]])]],
 
-               fail_length(re, s, p, l)      = p + l < s.length && re.test(s.substr(p, l)) ? fail_length(re, s, p, l << 1) : l,
+               fail_length(re, s, p, l)      = re.test(s.substr(p, l)) ? p + (l << 1) <= s.length ? fail_length(re, s, p, l << 1) : l << 1 : l,
                split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? re.test(s.substr(p, u)) ? call/tail[b(cc, l + (u - l >> 1), u)] : call/tail[b(cc, l, u - (u - l >> 1))] : l] in
                                                call/cc[fn[cc][b(cc, l, u)]]]])}).
 
@@ -2963,19 +2962,19 @@ Most of the time you'll want to use the peg[] macro rather than hand-coding the 
 block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
   tconfiguration('std seq continuation', 'parser.dsl', function () {
-    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][with_gensyms[_gs][qg[l*[_bindings, _gs = _parser] in fn_[_gs.apply(this, arguments) /re[_ && _.result]]]].replace({
+    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][qs[qg[l*[_bindings] in qg[_parser]]].replace({
                                                              _bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
                                                              _parser:   this.parser.dsl.macroexpand(x)}),
                                                            where[outer = this]]),
     this.parser.dsl = caterwaul.global().clone() /se[
       _.macro(qs[_], fn[x][x]) /se.dsl[
-        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: x})])]],
-        seq[sp[binary] %[_[1].constructor === String] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]) /se[_.data = ',']}), when[t.data === op[1]]])]]],
+        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: this.macroexpand(x)})])]],
+        seq[sp[binary] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]).map(this.macroexpand) /se[_.data = ',']}), when[t.data === op[1]]])]]],
 
       _.macro(qs[_ >> _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
 
-      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')]).rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
-                                                              rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
+      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')])        .rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
+        macro(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: x, _y: y})]).rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
 
       where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: '/', seq: '%'}]]}).
 
@@ -2984,8 +2983,8 @@ Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
-__2cb44c57439b5259c8494694d02cbac9
-meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__56dfd6ab727f644ab7319ae74198588b');
+__c80d6524905dce429fcb3c43960719ec
+meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__97627ef6b160d10fdc2de836f65c32d5');
 Basic parser combinator tests.
 
 test('caterwaul.parser.basic', function () {
@@ -2995,16 +2994,16 @@ test('caterwaul.parser.basic', function () {
     var p = caterwaul.parser.parsers;
 
     var a = p.c('a');
-    eq(a('a').result, 'a');
+    eq(a('a'), 'a');
 
     var abc = p.seq(p.c('a'), p.c('b'), p.c('c'));
-    eq(abc('abc').result.join(','), 'a,b,c');
+    eq(abc('abc').join(','), 'a,b,c');
     eq(!! abc('abd'), false);
     eq(!! abc('ab'), false);
 
     var abBc = p.seq(p.c('a'), p.alt(p.c('b'), p.c('B')), p.c('c'));
-    eq(abBc('abc').result.join(','), 'a,b,c');
-    eq(abBc('aBc').result.join(','), 'a,B,c');
+    eq(abBc('abc').join(','), 'a,b,c');
+    eq(abBc('aBc').join(','), 'a,B,c');
     eq(!! abBc('acc'), false);
     eq(!! abBc('aac'), false);
     eq(!! abBc('abb'), false);
@@ -3012,39 +3011,39 @@ test('caterwaul.parser.basic', function () {
     eq(!! abBc('Abc'), false);
 
     var ab_c = p.seq(p.c('a'), p.opt(p.c('b')), p.c('c'));
-    eq(ab_c('abc').result.join(','), 'a,b,c');
-    eq(ab_c('ac').result.join(','), 'a,false,c');
+    eq(ab_c('abc').join(','), 'a,b,c');
+    eq(ab_c('ac').join(','), 'a,false,c');
     eq(!! ab_c('abbc'), false);
     eq(!! ab_c('adc'), false);
     eq(!! ab_c('aabc'), false);
 
-    eq(p.times(p.c('abab'), 1, 2)('abab').result.join(','), 'abab');
-    eq(p.times(p.c('abab'), 1, 2)('abababab').result.join(','), 'abab,abab');
-    eq(p.times(p.c('ab'), 1, 3)('ababab').result.join(','), 'ab,ab,ab');
-    eq(p.times(p.c('ab'), 0, 3)('ab').result.join(','), 'ab');
-    eq(p.times(p.c('ab'), 0, 3)('abab').result.join(','), 'ab,ab');
+    eq(p.times(p.c('abab'), 1, 2)('abab').join(','), 'abab');
+    eq(p.times(p.c('abab'), 1, 2)('abababab').join(','), 'abab,abab');
+    eq(p.times(p.c('ab'), 1, 3)('ababab').join(','), 'ab,ab,ab');
+    eq(p.times(p.c('ab'), 0, 3)('ab').join(','), 'ab');
+    eq(p.times(p.c('ab'), 0, 3)('abab').join(','), 'ab,ab');
 
     var abbc = p.seq(p.c('a'), p.times(p.c('b'), 1, 3), p.c('c'));
-    eq(abbc('abc').result[1].join(','), 'b');
-    eq(abbc('abbc').result[1].join(','), 'b,b');
-    eq(abbc('abbbc').result[1].join(','), 'b,b,b');
+    eq(abbc('abc')[1].join(','), 'b');
+    eq(abbc('abbc')[1].join(','), 'b,b');
+    eq(abbc('abbbc')[1].join(','), 'b,b,b');
     eq(abbc('abbbbc'), false);
     eq(abbc('ac'), false);
 
     var ac = p.seq(p.c('a'), p.times(p.c('b'), 0, 2), p.c('c'));
-    eq(ac('abc').result[1].join(','), 'b');
-    eq(ac('abbc').result[1].join(','), 'b,b');
+    eq(ac('abc')[1].join(','), 'b');
+    eq(ac('abbc')[1].join(','), 'b,b');
     eq(ac('abbbc'), false);
     eq(ac('abbbbc'), false);
-    eq(ac('ac').result[1].length, 0);
+    eq(ac('ac')[1].length, 0);
   })(eq);
 });
-__56dfd6ab727f644ab7319ae74198588b
-meta::sdoc('js::modules/caterwaul.parser.test/c', <<'__7c34431e75235e454d07049a05c12df5');
+__97627ef6b160d10fdc2de836f65c32d5
+meta::sdoc('js::modules/caterwaul.parser.test/c', <<'__85945b3cf80c849b8681cefb12e29c04');
 Tests for the constant parser.
 
 test('caterwaul.parser.c', function () {
-  var c = caterwaul.clone('std parser');
+  var c = caterwaul.clone('std seq parser');
 
   c(function (eq) {
     eq(peg[c('foo')]('foo'), 'foo');
@@ -3058,9 +3057,66 @@ test('caterwaul.parser.c', function () {
     eq(peg[c(['foo', 'bar'])]('bar'), 'bar');
     eq(peg[c(['foo', 'bar'])]('Bar'), false);
     eq(peg[c(['foo', 'bar'])]('Foo'), false);
+
+    eq(peg[c(['foo', 'food'])]('foo'), 'foo');
+    eq(peg[c(['foo', 'food'])]('food'), 'food');
+    eq(peg[c(['foo', 'fooD']) % [c('d')] >> fn[xs][seq[~xs %[_]].join('')]]('food'), 'food');
+    eq(peg[c(['foo', 'fooD']) % [c('d')] >> fn[xs][seq[~xs %[_]].join('')]]('fooD'), 'fooD');
+
+    eq(peg[c({foo: 1, bar: 2})]('foo'), 1);
+    eq(peg[c({foo: 1, bar: 2})]('bar'), 2);
+    eq(peg[c({foo: 1, bar: 2})]('bif'), false);
+
+    eq(peg[c({foo: 1, b: 2})]('foo'), 1);
+    eq(peg[c({foo: 1, b: 2})]('b'), 2);
+    eq(peg[c({foo: 1, b: 2})]('c'), false);
+
+    eq(peg[c(/\d+/, 1)]('012345')[0], '012345');
+    eq(peg[c(/\d+/, 1)]('0')[0], '0');
+    eq(peg[c(/\d+/, 1)]('0abc')[0], '0');
+    eq(peg[c(/\d+/, 1)]('01bc')[0], '01');
+    eq(peg[c(/\d+/, 1)]('012bc')[0], '012');
+    eq(peg[c(/\d+/, 2)]('012bc')[0], '012');
+    eq(peg[c(/\d+/, 3)]('012bc')[0], '012');
+    eq(peg[c(/\d+/, 1)]('0123bc')[0], '0123');
+    eq(peg[c(/\d+/, 2)]('0123bc')[0], '0123');
+    eq(peg[c(/\d+/, 3)]('0123bc')[0], '0123');
+    eq(peg[c(/\d+/, 4)]('0123bc')[0], '0123');
+    eq(peg[c(/\d+/, 2)]('0abc'), false);
+    eq(peg[c(/\d+/, 1)]('abc'), false);
+
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('alkawemo + quux'), 'alkawemo');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_alkawemo + quux'), '_alkawemo');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_alkawemo+quux'), '_alkawemo');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_alkawemo2+quux'), '_alkawemo2');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_alkawemo2+quux'), '_alkawemo2');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_AlKaWeMo2+'), '_AlKaWeMo2');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_AlKa%wemo'), '_AlKa');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('$foo'), false);
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar23'), '_foobar23');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar8++++++++++'), '_foobar8');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar7++++++++'), '_foobar7');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar6++++'), '_foobar6');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar5++'), '_foobar5');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar4+'), '_foobar4');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar2'), '_foobar2');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foobar'), '_foobar');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_fooba'), '_fooba');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foob'), '_foob');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foo'), '_foo');
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('3alkawemo2+quux'), false);
+
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('Quotation'), 'uotation');
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('QuotatioN'), 'uotatio');
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('QuoTatioN'), 'uo');
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('FooBar'), 'oo');
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('Foobar'), 'oobar');
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('Foo bar'), 'oo');
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('F'), false);
+    eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('oobar'), false);
   })(eq);
 });
-__7c34431e75235e454d07049a05c12df5
+__85945b3cf80c849b8681cefb12e29c04
 meta::sdoc('js::modules/caterwaul.parser.test/dsl', <<'__d91c34dfdff7b878d782be839abdb8fe');
 DSL tests for the caterwaul parser.
 
@@ -3101,7 +3157,7 @@ test('caterwaul.parser.dsl', function () {
   })(eq);
 });
 __d91c34dfdff7b878d782be839abdb8fe
-meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__2932285792d5160b7541f344f3ba29d3');
+meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__612b755f1543d5784d525d14a8ac6d20');
 Tests for lookahead assertions.
 
 test('caterwaul.parser.lookahead', function () {
@@ -3111,20 +3167,20 @@ test('caterwaul.parser.lookahead', function () {
     var p = caterwaul.parser.parsers;
     
     var aa = p.seq(p.c('a'), p.match(p.c('a')), p.alt(p.c('a'), p.c('b')));
-    eq(aa('aa').result.join(','), 'a,a,a');
+    eq(aa('aa').join(','), 'a,a,a');
     eq(aa('ab'), false);
     eq(aa('a'), false);
 
     var ab = p.seq(p.c('a'), p.reject(p.c('a')), p.alt(p.c('a'), p.c('b')));
-    eq(ab('ab').result.length, 3);
-    eq(ab('ab').result[0], 'a');
-    eq(ab('ab').result[1], null);
-    eq(ab('ab').result[2], 'b');
+    eq(ab('ab').length, 3);
+    eq(ab('ab')[0], 'a');
+    eq(ab('ab')[1], null);
+    eq(ab('ab')[2], 'b');
     eq(ab('aa'), false);
     eq(ab('a'), false);
   })(eq);
 });
-__2932285792d5160b7541f344f3ba29d3
+__612b755f1543d5784d525d14a8ac6d20
 meta::sdoc('js::modules/caterwaul.seq', <<'__98f016c7cb9d82811677e7067f7763de');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -9186,7 +9242,7 @@ test('tostring-jquery', function () {
   });
 });
 __27d306f38b559870a5f3423cbca2f03e
-meta::sdoc('js::unit', <<'__bf2577ed945ae60c28459a283fc44377');
+meta::sdoc('js::unit', <<'__458b2d5ecb12b34e383495edda6c830d');
 Unit testing library functions
 
 var original_caterwaul = caterwaul.deglobalize();
@@ -9197,7 +9253,7 @@ var log = function (message) {
 };
 
 var on_error = function (name, e) {
-  log('Error at eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
+  log('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
   throw new Error(e);
 };
 
@@ -9205,7 +9261,7 @@ var eq_count = 0;
 var eq = function (x, y, message) {
   ++eq_count;
   if (x == y) return true;
-  else        return on_error(current_test, (message ? message + ': ' : ' (eq ' + eq_count + ')') + '\n' + x + ' !== ' + y);
+  else        return on_error(current_test, (message || '') + x + ' !== ' + y);
 };
 
 var current_test = null;
@@ -9224,7 +9280,7 @@ var test = function (name, f) {
     on_error(name, e);
   }
 };
-__bf2577ed945ae60c28459a283fc44377
+__458b2d5ecb12b34e383495edda6c830d
 meta::sdoc('js::unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
 Client-side unit testing hooks.
 

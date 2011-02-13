@@ -8,7 +8,7 @@ var log = function (message) {
 };
 
 var on_error = function (name, e) {
-  log('Error at eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
+  log('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
   throw new Error(e);
 };
 
@@ -16,7 +16,7 @@ var eq_count = 0;
 var eq = function (x, y, message) {
   ++eq_count;
   if (x == y) return true;
-  else        return on_error(current_test, (message ? message + ': ' : ' (eq ' + eq_count + ')') + '\n' + x + ' !== ' + y);
+  else        return on_error(current_test, (message || '') + x + ' !== ' + y);
 };
 
 var current_test = null;
