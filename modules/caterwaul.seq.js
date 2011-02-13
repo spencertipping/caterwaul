@@ -22,10 +22,10 @@
 
   tconfiguration('std opt', 'seq.finite.core', function () {
     this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
-      _.size() = this.l || this.length, _.array() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
+      _.size() = this.l || this.length, _.slice() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
 
   tconfiguration('std', 'seq.finite.serialization', function () {
-    this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.array().join(", ")}]', _.join(x) = this.array().join(x)]}).
+    this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.slice().join(", ")}]', _.join(x) = this.slice().join(x)]}).
 
 //   Mutability.
 //   Sequences can be modified in-place. Depending on how Javascript optimizes this case it may be much faster than reallocating. Note that the methods here are not quite the same as the regular
@@ -93,13 +93,15 @@
           l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
            [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
             l[l = as.map(fn[x][x.size ? x.size() : x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
-            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).array()))]]]]]}).
+            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
 
 //   Quantification.
-//   Functions to determine whether all sequence elements have some property. exists() returns the element that satisfies the predicate if it's truthy; otherwise it just returns true.
+//   Functions to determine whether all sequence elements have some property. If an element satisfying the predicate is found, exists() returns the output of the predicate for that element. (So,
+//   for example, xs.exists(fn[x][x.length]) would return the length of the nonempty item, which we know to be truthy.) forall() has no such behavior, since the quantifier is decided when the
+//   predicate returns a falsy value and there are only a few falsy values in Javascript.
 
     tconfiguration('std opt continuation', 'seq.finite.quantification', function () {
-      this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.l][f.call(this, this[i], i) && cc(this[i] || true)], false]],
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.l][f.call(this, this[i], i) /re[_ && cc(_)]], false]],
                                                                  _.forall(f) = ! this.exists(fn_[! f.apply(this, arguments)])]}).
 
 // Stream API.

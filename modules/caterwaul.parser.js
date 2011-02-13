@@ -32,12 +32,13 @@
 // Notation.
 // Parsers are written as collections of named nonterminals. Each nonterminal contains a mandatory expansion and an optional binding:
 
-// | peg[c('a') % c('b')]                                  // A grammar that recognizes the character 'a' followed by the character 'b'
-//   peg[c('a') % c('b') >>= fn[ab][ab[0] + ab[1]]]        // The same grammar, but the AST transformation step appends the two characters
+// | peg[c('a') % c('b')]                                 // A grammar that recognizes the character 'a' followed by the character 'b'
+//   peg[c('a') % c('b') >> fn[ab][ab[0] + ab[1]]]        // The same grammar, but the AST transformation step appends the two characters
 
-// The >>= notation is borrowed from Haskell; the idea is that the optional binding is a monadic transform on the parse-state monad. (The only difference is that you don't have to re-wrap the
-// result in a new parse state using 'return' as you would in Haskell -- the return here is implied.) The right-hand side of >>= can be any expression that returns a function. It will be
-// evaluated directly within its lexical context, so the peg[] macro is scope-transparent modulo gensyms.
+// The >> notation is borrowed from Haskell (would have been >>=, but this requires a genuine lvalue on the left); the idea is that the optional binding is a monadic transform on the parse-state
+// monad. (The only difference is that you don't have to re-wrap the result in a new parse state using 'return' as you would in Haskell -- the return here is implied.) The right-hand side of >>
+// can be any expression that returns a function. It will be evaluated directly within its lexical context, so the peg[] macro is scope-transparent modulo gensyms and the namespace importing of
+// caterwaul.parser.parsers.
 
 // Parsers are transparent over parentheses. Only the operators described below are converted specially.
 
@@ -64,32 +65,28 @@
 //   Finally, you can also specify a function. If you do this, the function will be invoked on the input and the current offset, and should return the number of characters it intends to consume.
 //   It returns a falsy value to indicate failure.
 
-//     Implementation.
-//     The O(l) complexity bound is guaranteed by pre-indexing potential matches by their lengths. Then the matching process proceeds in terms of suppositions: "Do any 8-character substrings
-//     match? If so, return it; otherwise try shorter strings." (I'm actually fudging the number a bit. It's really O(sum(l[i])), where l is the array of string lengths.) All substring lengths
-//     have to be tested, and unfortunately from longest to shortest -- this means that the average case is basically the worst case. However, neither is all that bad for a parser.
-
     tconfiguration('std seq continuation', 'parser.c', function () {
       this.configure('parser.core').parser.defparser('c', fn[x, l][
         x.constructor === String   ? fn[state][state.accept(state.i + x.length, x), when[x === state.input.substr(state.i, x.length)]] :
-        x.constructor === Array    ? l[index = index_entries(x)] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, _)]] :
-        x.constructor === RegExp   ? fn[state][maximum_length(x, state.input, state.i, l) /re[_ && split_lengths(x, state.input, state.i, l, _)
-                                                                                                   /re[state.accept(state.i + _, x.exec(state.input.substr(state.i, _)))]]] :
+        x instanceof Array         ? l[index = index_entries(x)] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, _)]] :
+        x.constructor === RegExp   ? fn[state][fail_length(x, state.input, state.i, l) /re[_ > l && split_lengths(x, state.input, state.i, l, _)
+                                                                                                    /re[state.accept(state.i + _, x.exec(state.input.substr(state.i, _)))]]] :
         x.constructor === Function ? fn[state][x.call(state, state.input, state.i) /re[_ && state.accept(state.i + _, state.input.substr(state.i, _))]] :
                                      l[index = index_entries(seq[sk[x]])] in fn[state][check_index(index, state.input, state.i) /re[_ && state.accept(state.i + _.length, x[_])]],
 
-        where*[index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[!(xsp *[[_.length, true]])] *+Number]] in seq[~ls.sort(fn[x, y][y - x]) *~l[xsp %[_.length === l] *[['@#{_}', true]]]],
-               check_index(i, s, p) = l[r = false, has = Object.prototype.hasOwnProperty] in seq[~i |[has.call(_, '@' + s) && (r = s), where[s = s.substr(p, _.length)]]] /re[r],
+        where*[check_index(i, s, p) = seq[i |[_['@#{s}'] && s, where[s = s.substr(p, _.length)]]],
+               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[!(xsp *[[_.length, true]])] *[Number(_)]]] in
+                                      seq[~ls.slice().sort(fn[x, y][y - x]) *~l[!(xsp %[_.length === l] *[['@#{_}', true]] + [['length', l]])]],
 
-               fail_length(re, s, p, l)      = p + l < s.length && re.test(s.substr(p, l)) ? find_maximum_length(re, s, p, l << 1) : l,
-               split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? re.test(s.substr(p, u)) ? call/tail[b(cc, l + (u - l >> 1), u)] : call/tail[b(cc, l, u - (u - l >> 1))] : cc(l)] in
-                                               call/cc[fn[cc][b(cc, l1, l2)]]]])}).
+               fail_length(re, s, p, l)      = p + l < s.length && re.test(s.substr(p, l)) ? fail_length(re, s, p, l << 1) : l,
+               split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? re.test(s.substr(p, u)) ? call/tail[b(cc, l + (u - l >> 1), u)] : call/tail[b(cc, l, u - (u - l >> 1))] : l] in
+                                               call/cc[fn[cc][b(cc, l, u)]]]])}).
 
 //   Sequences.
 //   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
 
 //   | peg[c('a') % c('b') % c('c')]('abc')                     // -> ['a', 'b', 'c']
-//     peg[c('a') % c('b') >>= fn[xs][xs.join('/')]]('ab')      // -> 'a/b'
+//     peg[c('a') % c('b') >> fn[xs][xs.join('/')]]('ab')       // -> 'a/b'
 
     tconfiguration('std opt seq continuation', 'parser.seq', function () {
       this.configure('parser.core').parser.defparser('seq', fn_[l[as = arguments] in fn[state][
@@ -101,7 +98,7 @@
 //   | peg[c('a') / c('b')]('a')        // -> 'a'
 
     tconfiguration('std seq', 'parser.alt', function () {
-      this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[r = _(state)]] && r, where[r = null]]])}).
+      this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[_(state)]]]])}).
 
 //   Repetition.
 //   Denoted using subscripted ranges, similar to the notation used in regular expressions. For example:
@@ -135,7 +132,7 @@
 
 //   Binding.
 //   This is fairly straightforward; a parser is 'bound' to a function by mapping through the function if it is successful. The function then returns a new result based on the old one. Binding is
-//   denoted by the >>= operator.
+//   denoted by the >> operator.
 
     tconfiguration('std seq continuation', 'parser.bind', function () {
       this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
@@ -154,7 +151,7 @@
         seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: x})])]],
         seq[sp[binary] %[_[1].constructor === String] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]) /se[_.data = ',']}), when[t.data === op[1]]])]]],
 
-      _.macro(qs[_ >>= _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
+      _.macro(qs[_ >> _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
 
       _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')]).rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
                                                               rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
