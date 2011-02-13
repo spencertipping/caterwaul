@@ -521,17 +521,19 @@ $scripts
 </html>
 EOF
 __c1baaa980dfd855b0b4cc0179ce26bf5
-meta::function('repl', <<'__17de81e24ac3fb6c4a3dda5d78ed780b');
+meta::function('repl', <<'__31ce26877d3622ecdda1025b308ae6aa');
 # Runs a REPL of your source, minus the webserver.
-generate();
+render();
 hook('bin/before-repl');
 
+my $repl_base = retrieve('data::repl-base') or die 'You need to define data::main-base to be a newline-separated list of files to load for the REPL.';
+
 my ($file, $name) = ('/tmp/' . state() . '-repl.js', name());
-file::write($file, -f 'repl.js' ? file::read('repl.js') : "require('repl').start('$name> ')");
-node(dependencies(), $file);
+file::write($file, -f 'repl.js' ? 'repl.js' : "id::require('repl').start('$name> ')");
+node([split(/ /, $repl_base), $file]);
 
 hook('bin/after-repl');
-__17de81e24ac3fb6c4a3dda5d78ed780b
+__31ce26877d3622ecdda1025b308ae6aa
 meta::function('rm', <<'__26d4a78ddb47259b3d8dcabe390426bd');
 exists $data{$_} or terminal::warning("$_ does not exist") for @_;
 delete @data{@_};
@@ -2543,7 +2545,7 @@ test('caterwaul.continuation.delimited', function () {
   })(eq);
 });
 __3a506c5150e3570d7729f673f48ee686
-meta::sdoc('js::modules/caterwaul.format', <<'__bfade7f23414fb344e443cdd6a61e4c5');
+meta::sdoc('js::modules/caterwaul.format', <<'__7d67d57915c2722f359b8c24b594b451');
 Code formatting module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2578,8 +2580,7 @@ Indentation is two spaces, and each block-style construct triggers additional in
                                             '#{op} #{serialize()(tree[0])} #{serialize()(tree[1])};\n#{spaces}#{serialize()(tree[2])}' :
                                             '#{op} #{map(serialize(), tree).join(" ")}' :
                                           op})});
-
-__bfade7f23414fb344e443cdd6a61e4c5
+__7d67d57915c2722f359b8c24b594b451
 meta::sdoc('js::modules/caterwaul.heap', <<'__0de58fc36044652470964f57fb7dd68f');
 Heap implementation | Spencer Tipping
 Licensed under the terms of the MIT source code license
