@@ -2809,7 +2809,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__3250ba84638d7acfd6c63c89b0fe4039');
+meta::sdoc('js::modules/caterwaul.parser', <<'__aa13a29daa7297d39f570b3e6b90846f');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2907,15 +2907,15 @@ Parsers are transparent over parentheses. Only the operators described below are
     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 
     tconfiguration('std seq continuation', 'parser.match', function () {
-      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(0, _.result)]]]),
-                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(0, null)]]])]}).
+      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
+                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
 
 Final configuration.
 Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match')});
-__3250ba84638d7acfd6c63c89b0fe4039
+__aa13a29daa7297d39f570b3e6b90846f
 meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__56dfd6ab727f644ab7319ae74198588b');
 Basic parser combinator tests.
 
@@ -2971,6 +2971,30 @@ test('caterwaul.parser.basic', function () {
   })(eq);
 });
 __56dfd6ab727f644ab7319ae74198588b
+meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__2932285792d5160b7541f344f3ba29d3');
+Tests for lookahead assertions.
+
+test('caterwaul.parser.lookahead', function () {
+  var c = caterwaul.clone('std parser');
+
+  c(function (eq) {
+    var p = caterwaul.parser.parsers;
+    
+    var aa = p.seq(p.c('a'), p.match(p.c('a')), p.alt(p.c('a'), p.c('b')));
+    eq(aa('aa').result.join(','), 'a,a,a');
+    eq(aa('ab'), false);
+    eq(aa('a'), false);
+
+    var ab = p.seq(p.c('a'), p.reject(p.c('a')), p.alt(p.c('a'), p.c('b')));
+    eq(ab('ab').result.length, 3);
+    eq(ab('ab').result[0], 'a');
+    eq(ab('ab').result[1], null);
+    eq(ab('ab').result[2], 'b');
+    eq(ab('aa'), false);
+    eq(ab('a'), false);
+  })(eq);
+});
+__2932285792d5160b7541f344f3ba29d3
 meta::sdoc('js::modules/caterwaul.seq', <<'__875f109c0bc0c0707ce386403b0d124b');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license

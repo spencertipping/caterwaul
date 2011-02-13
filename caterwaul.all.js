@@ -1881,8 +1881,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 
     tconfiguration('std seq continuation', 'parser.match', function () {
-      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(0, _.result)]]]),
-                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(0, null)]]])]}).
+      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
+                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
 
 // Final configuration.
 // Loads both the classes and the peg[] macro.
