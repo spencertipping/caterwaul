@@ -317,6 +317,7 @@ return edit($name) if exists $data{$name};
 associate($name, defined $value ? $value : '');
 edit($name) unless defined $value;
 __7ca9912feb8e43dc446bab9a0c79821a
+meta::function('ct', 'create("sdoc::js::modules/caterwaul.$_[0].test/$_[1]");');
 meta::function('current-state', <<'__d83ae43551c0f58d1d0ce576402a315a');
 my @valid_keys   = grep ! /^state::/, sort keys %data;
 my @ordered_keys = (grep(/^meta::/, @valid_keys), grep(! /^meta::/, @valid_keys));
@@ -2818,7 +2819,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__9cdf335b2a1da16fc0ef04865805d3f3');
+meta::sdoc('js::modules/caterwaul.parser', <<'__66b34740cbb440c18697701c791ee64f');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2840,6 +2841,7 @@ this by accessing stuff inside the caterwaul.parser namespace.
     this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
                                  _.parse_state /se.s[s.from_input(input) = new _.parse_state(input, 0, null, {}),
                                                      s.prototype /se[_.accept(n, r) = new this.constructor(this.input, n, r, this.memo),
+                                                                     _.has_input()  = this.i < this.input.length,
                                                                      _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.r}]']],
 
                                  _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
@@ -2934,8 +2936,8 @@ Parsers are transparent over parentheses. Only the operators described below are
     tconfiguration('std opt seq continuation', 'parser.times', function () {
       this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
         call/cc[fn[cc][opt.unroll[i, lower][++count, (state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
-        call/cc[l*[loop(cc) = (! upper || count++ < upper) && p(state) /se[state = _, when[_]] ? result.push(state.result) && call/tail[loop(cc)] :
-                                                                                                 cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
+        call/cc[l*[loop(cc) = (! upper || count++ < upper) && state.has_input() && p(state) /se[state = _, when[_]] ?
+                              result.push(state.result) && call/tail[loop(cc)] : cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
 
   Optional things.
   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
@@ -2984,7 +2986,7 @@ Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
-__9cdf335b2a1da16fc0ef04865805d3f3
+__66b34740cbb440c18697701c791ee64f
 meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__97627ef6b160d10fdc2de836f65c32d5');
 Basic parser combinator tests.
 
@@ -3189,6 +3191,34 @@ test('caterwaul.parser.dsl', function () {
   })(eq);
 });
 __595f0a43936f994088d95cf2c2504923
+meta::sdoc('js::modules/caterwaul.parser.test/infinite-loop-failure', <<'__424ffe9cb36a30fd9d3851923dc06fe1');
+An observed failure involving infinite looping.
+The original case is in the Figment parser:
+
+| l*[literate     = peg[c(/[A-Z\|](?:[^\n]+\n?)*/, 1) >> fn_['']],
+     paragraph    = peg[c(/([^\n]+\n?)*/, 1) >> fn[xs][xs[0]]],
+     paragraphs   = peg[([c(/\n\n+/, 2)] % (literate / paragraph) >> fn[xs][xs.join('')])[0] >> fn[xs][xs.join('')]],
+     line_comment = peg[c(/[-\/]\s*/, 1) % c(/[A-Z][^\n]*/, 1) % c('\n') >> fn_['']],
+     code         = peg[(line_comment / c(['-', '/']) / c(/[^-\/]+/, 1))[1] >> fn[xs][xs.join('')]]] in
+  fn[s][code(paragraphs(s))]
+
+test('caterwaul.parser.infinite-loop-failure', function () {
+  var c = caterwaul.clone('std parser');
+  c(function (eq) {
+    l*[literate     = peg[c(/[A-Z\|](?:[^\n]+\n?)+/, 2) >> fn_['']],
+       paragraph    = peg[c(/(?:[^\n]+\n?)+/, 1) >> fn[xs][xs[0]]],
+       paragraphs   = peg[(literate / paragraph % ([c(/\n\n+/, 2)] >> fn_['']) >> fn[xs][xs.join('')])[1] >> fn[xs][xs.join('')]],
+       line_comment = peg[c(/[-\/]\s*/, 1) % c(/[A-Z][^\n]*/, 1) % c('\n') >> fn_['']],
+       code         = peg[(line_comment / c(['-', '/']) / c(/[^-\/]+/, 1))[1] >> fn[xs][xs.join('')]]] in
+    eq(code(paragraphs('foo')), 'foo');
+
+    // The failure case is triggered by this (the "one or more" combinator failed to recognize end of input):
+    eq(peg[c(/.*/, 1)[1]]('abcdef').join(''), 'abcdef');
+    eq(peg[c(/.*/, 1)[1]]('abc').join(''), 'abc');
+    eq(peg[c(/.*/, 1)[1]]('a').join(''), 'a');
+  })(eq);
+});
+__424ffe9cb36a30fd9d3851923dc06fe1
 meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__612b755f1543d5784d525d14a8ac6d20');
 Tests for lookahead assertions.
 

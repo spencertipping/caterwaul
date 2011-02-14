@@ -19,6 +19,7 @@
     this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
                                  _.parse_state /se.s[s.from_input(input) = new _.parse_state(input, 0, null, {}),
                                                      s.prototype /se[_.accept(n, r) = new this.constructor(this.input, n, r, this.memo),
+                                                                     _.has_input()  = this.i < this.input.length,
                                                                      _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.r}]']],
 
                                  _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
@@ -113,8 +114,8 @@
     tconfiguration('std opt seq continuation', 'parser.times', function () {
       this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
         call/cc[fn[cc][opt.unroll[i, lower][++count, (state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
-        call/cc[l*[loop(cc) = (! upper || count++ < upper) && p(state) /se[state = _, when[_]] ? result.push(state.result) && call/tail[loop(cc)] :
-                                                                                                 cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
+        call/cc[l*[loop(cc) = (! upper || count++ < upper) && state.has_input() && p(state) /se[state = _, when[_]] ?
+                              result.push(state.result) && call/tail[loop(cc)] : cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
 
 //   Optional things.
 //   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
