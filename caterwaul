@@ -2818,7 +2818,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__c80d6524905dce429fcb3c43960719ec');
+meta::sdoc('js::modules/caterwaul.parser', <<'__aac5a4350ee07514ea0d686052e92e15');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2962,28 +2962,24 @@ Most of the time you'll want to use the peg[] macro rather than hand-coding the 
 block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
   tconfiguration('std seq continuation', 'parser.dsl', function () {
-    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][qs[qg[l*[_bindings] in qg[_parser]]].replace({
-                                                             _bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
-                                                             _parser:   this.parser.dsl.macroexpand(x)}),
-                                                           where[outer = this]]),
-    this.parser.dsl = caterwaul.global().clone() /se[
-      _.macro(qs[_], fn[x][x]) /se.dsl[
-        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: this.macroexpand(x)})])]],
-        seq[sp[binary] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]).map(this.macroexpand) /se[_.data = ',']}), when[t.data === op[1]]])]]],
+    this.configure('parser.core').rmacro(qs[peg[_]],
+      fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
+                                                      _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),
 
-      _.macro(qs[_ >> _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
-
-      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')])        .rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
-        macro(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: x, _y: y})]).rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
-
-      where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: '/', seq: '%'}]]}).
+    this.parser.dsl = caterwaul.global().clone() /se.dsl[dsl.macro /se[
+      _(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: e(x), _y: y})]),
+      _(qs[_ / _], fb('/', 'alt')), _(qs[_ % _], fb('%', 'seq')), _(qs[_ >> _], b('bind')), _(qs[[_]], u('opt')), _(qs[_].as('('), fn[x][e(x).as('(')]),
+      _(qs[_[_]], fn[x, l][qs[times(_x, _l)].replace({_x: e(x), _l: l})]), _(qs[_[_, _]], fn[x, l, u][qs[times(_x, _l, _u)].replace({_x: e(x), _l: l, _u: u})]),
+      where*[e = dsl.macroexpand, fb(op, name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: x.flatten(op).map(e) /se[_.data = ','], _y: e(y)}),
+                                       b(name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: e(x), _y: y}),
+                                          u(name)(x) = qs[_name(_x)]    .replace({_name: name, _x: e(x)})]]]}).
 
 Final configuration.
 Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
-__c80d6524905dce429fcb3c43960719ec
+__aac5a4350ee07514ea0d686052e92e15
 meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__97627ef6b160d10fdc2de836f65c32d5');
 Basic parser combinator tests.
 
@@ -3130,7 +3126,7 @@ test('caterwaul.parser.c', function () {
   })(eq);
 });
 __7219340ca6445be167310c99b2a240bf
-meta::sdoc('js::modules/caterwaul.parser.test/dsl', <<'__d91c34dfdff7b878d782be839abdb8fe');
+meta::sdoc('js::modules/caterwaul.parser.test/dsl', <<'__595f0a43936f994088d95cf2c2504923');
 DSL tests for the caterwaul parser.
 
 test('caterwaul.parser.dsl', function () {
@@ -3167,9 +3163,15 @@ test('caterwaul.parser.dsl', function () {
     eq(peg[c('a') % c('b')[1] >> fn[xs]['#{xs.length}|#{xs.join("")}']]('abbbb'), '2|ab,b,b,b');
     eq(peg[c('a') % c('b')[1] >> fn[xs]['#{xs.length}|#{xs.join("")}']]('ab'), '2|ab');
     eq(peg[c('a') % c('b')[1] >> fn[xs]['#{xs.length}|#{xs.join("")}']]('a'), false);
+
+    eq(peg[c('a') % ((c('b') / c('c'))[0] >> fn[xs]['[#{xs.join("")}]']) % c('d') >> fn[xs][xs.join('')]]('abd'), 'a[b]d');
+    eq(peg[c('a') % ((c('b') / c('c'))[0] >> fn[xs]['[#{xs.join("")}]']) % c('d') >> fn[xs][xs.join('')]]('acd'), 'a[c]d');
+    eq(peg[c('a') % ((c('b') / c('c'))[0] >> fn[xs]['[#{xs.join("")}]']) % c('d') >> fn[xs][xs.join('')]]('abcd'), 'a[bc]d');
+    eq(peg[c('a') % ((c('b') / c('c'))[0] >> fn[xs]['[#{xs.join("")}]']) % c('d') >> fn[xs][xs.join('')]]('abcbbccd'), 'a[bcbbcc]d');
+    eq(peg[c('a') % ((c('b') / c('c'))[0] >> fn[xs]['[#{xs.join("")}]']) % c('d') >> fn[xs][xs.join('')]]('abcbbcc'), false);
   })(eq);
 });
-__d91c34dfdff7b878d782be839abdb8fe
+__595f0a43936f994088d95cf2c2504923
 meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__612b755f1543d5784d525d14a8ac6d20');
 Tests for lookahead assertions.
 

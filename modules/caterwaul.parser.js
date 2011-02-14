@@ -141,21 +141,17 @@
 // block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
   tconfiguration('std seq continuation', 'parser.dsl', function () {
-    this.configure('parser.core').rmacro(qs[peg[_]], fn[x][qs[qg[l*[_bindings] in qg[_parser]]].replace({
-                                                             _bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
-                                                             _parser:   this.parser.dsl.macroexpand(x)}),
-                                                           where[outer = this]]),
-    this.parser.dsl = caterwaul.global().clone() /se[
-      _.macro(qs[_], fn[x][x]) /se.dsl[
-        seq[sp[unary]  *![dsl.rmacro(_[1], fn[x][qs[_f(_x)].replace({_f: _[0], _x: this.macroexpand(x)})])]],
-        seq[sp[binary] *!op[dsl.rmacro(qs[_], fn[t][qs[_f(_t)].replace({_f: op[0], _t: t.flatten(op[1]).map(this.macroexpand) /se[_.data = ',']}), when[t.data === op[1]]])]]],
+    this.configure('parser.core').rmacro(qs[peg[_]],
+      fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
+                                                      _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),
 
-      _.macro(qs[_ >> _], fn[p, f][qs[bind(_p, _f)].replace({_p: this.macroexpand(p), _f: f})]),
-
-      _.macro(qs[_].as('('), fn[x][_.macroexpand(x).as('(')])        .rmacro(qs[_[_]],    fn[x, lower]       [qs[times(_x, _lower, 0)]     .replace({_x: x, _lower: lower})]).
-        macro(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: x, _y: y})]).rmacro(qs[_[_, _]], fn[x, lower, upper][qs[times(_x, _lower, _upper)].replace({_x: x, _lower: lower, _upper: upper})]),
-
-      where*[unary = {opt: qs[[_]], match: qs[+_], reject: qs[-_]}, binary = {alt: '/', seq: '%'}]]}).
+    this.parser.dsl = caterwaul.global().clone() /se.dsl[dsl.macro /se[
+      _(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: e(x), _y: y})]),
+      _(qs[_ / _], fb('/', 'alt')), _(qs[_ % _], fb('%', 'seq')), _(qs[_ >> _], b('bind')), _(qs[[_]], u('opt')), _(qs[_].as('('), fn[x][e(x).as('(')]),
+      _(qs[_[_]], fn[x, l][qs[times(_x, _l)].replace({_x: e(x), _l: l})]), _(qs[_[_, _]], fn[x, l, u][qs[times(_x, _l, _u)].replace({_x: e(x), _l: l, _u: u})]),
+      where*[e = dsl.macroexpand, fb(op, name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: x.flatten(op).map(e) /se[_.data = ','], _y: e(y)}),
+                                       b(name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: e(x), _y: y}),
+                                          u(name)(x) = qs[_name(_x)]    .replace({_name: name, _x: e(x)})]]]}).
 
 // Final configuration.
 // Loads both the classes and the peg[] macro.
