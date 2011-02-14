@@ -331,6 +331,7 @@ rm($_) for grep /^cached_dependency::/, keys %data;
 my %dependencies = dependencies();
 associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_})) for keys %dependencies;
 __9eb9747ca6d4cdcb7d863ca9ed13f80a
+meta::function('e', 'edit(\'sdoc::js::caterwaul\')');
 meta::function('edit', <<'__c74a5d1c0dbd922acaf1397f89190fce');
 my ($name, %options) = @_;
 my $extension = extension_for($name);
