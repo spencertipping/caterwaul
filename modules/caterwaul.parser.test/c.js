@@ -29,8 +29,16 @@ test('caterwaul.parser.c', function () {
     eq(peg[c({foo: 1, b: 2})]('b'), 2);
     eq(peg[c({foo: 1, b: 2})]('c'), false);
 
-    eq(peg[c(/\d+/, 1)]('012345')[0], '012345');
+    eq(peg[c(/[ab]+/, 1)]('a'), 'a');
+    eq(peg[c(/[ab]+/, 1)]('ab'), 'ab');
+    eq(peg[c(/[ab]+/, 1)]('aba'), 'aba');
+    eq(peg[c(/[ab]+/, 1)]('ac'), 'a');
+    eq(peg[c(/[ab]+/, 1)]('abbc'), 'abb');
+    eq(peg[c(/[ab]+/, 1)]('abbac'), 'abba');
+    eq(peg[c(/[ab]+/, 1)]('abc'), 'ab');
+
     eq(peg[c(/\d+/, 1)]('0')[0], '0');
+    eq(peg[c(/\d+/, 1)]('012345')[0], '012345');
     eq(peg[c(/\d+/, 1)]('0abc')[0], '0');
     eq(peg[c(/\d+/, 1)]('01bc')[0], '01');
     eq(peg[c(/\d+/, 1)]('012bc')[0], '012');
@@ -63,6 +71,10 @@ test('caterwaul.parser.c', function () {
     eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foob'), '_foob');
     eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('_foo'), '_foo');
     eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 1) >> fn[x][x[0]]]('3alkawemo2+quux'), false);
+
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 2) >> fn[x][x[0]]]('+_alkawemo+quux'), false);
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 2) >> fn[x][x[0]]]('+_alkawemo2+quux'), false);
+    eq(peg[c(/[A-Za-z_][A-Za-z0-9_$]*/, 2) >> fn[x][x[0]]]('+_alkawemo2+quux'), false);
 
     eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('Quotation'), 'uotation');
     eq(peg[c(/[A-Z]([a-z]+)/, 2) >> fn[x][x[1]]]('QuotatioN'), 'uotatio');

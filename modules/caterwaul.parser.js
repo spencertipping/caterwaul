@@ -59,8 +59,11 @@
 //   Another option is specifying a regular expression with a minimum length. The rule is that the parser fails immediately if the regexp doesn't match the minimum length of characters. If it
 //   does match, then the maximum matching length is found. This ends up performing O(log n) regexp-matches against the input, for a total runtime of O(n log n). (The algorithm here is an
 //   interesting one: Repeatedly double the match length until matching fails, then binary split between the last success and the first failure.) Because of the relatively low performance of this
-//   regexp approach, it may be faster to use a regular finite-automaton approach for routine parsing and lexing. Then again, O(log n) linear-time native code calls may be faster than O(n)
-//   constant-time calls in practice.
+//   regexp approach, it may be faster to use a regular finite-automaton for routine parsing and lexing. Then again, O(log n) linear-time native code calls may be faster than O(n) constant-time
+//   calls in practice.
+
+//   Note that if you specify a regular expression, the parser library will recompile it into a new one that is anchored at both ends. This is necessary for sane behavior; nobody would ever want
+//   anything else. This means that matching on /foo/ will internally generate /^foo$/.
 
 //   Finally, you can also specify a function. If you do this, the function will be invoked on the input and the current offset, and should return the number of characters it intends to consume.
 //   It returns a falsy value to indicate failure.
@@ -69,7 +72,8 @@
       this.configure('parser.core').parser.defparser('c', fn[x, l][
         x.constructor === String   ? fn[st][st.accept(st.i + x.length, x), when[x === st.input.substr(st.i, x.length)]] :
         x instanceof Array         ? l[index = index_entries(x)] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, _)]] :
-        x.constructor === RegExp   ? fn[st][fail_length(x, st.input, st.i, l) /re[_ > l && split_lengths(x, st.input, st.i, l, _) /re[st.accept(st.i + _, x.exec(st.input.substr(st.i, _)))]]] :
+        x.constructor === RegExp   ? l[x = add_absolute_anchors_to(x)] in
+                                     fn[st][fail_length(x, st.input, st.i, l) /re[_ > l && split_lengths(x, st.input, st.i, l, _) /re[st.accept(st.i + _, x.exec(st.input.substr(st.i, _)))]]] :
         x.constructor === Function ? fn[st][x.call(st, st.input, st.i) /re[_ && st.accept(st.i + _, st.input.substr(st.i, _))]] :
                                      l[index = index_entries(seq[sk[x]])] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, x[_])]],
 
@@ -77,8 +81,9 @@
                index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[seq[!(xsp *[[_.length, true]])]] *[Number(_)]]] in
                                       seq[~ls.slice().sort(fn[x, y][y - x]) *~l[!(xsp %[_.length === l] *[['@#{_}', true]] + [['length', l]])]],
 
+               add_absolute_anchors_to(x)    = l[parts = /^\/(.*)\/(\w*)$/.exec(x.toString())] in new RegExp('^#{parts[1]}$', parts[2]),
                fail_length(re, s, p, l)      = re.test(s.substr(p, l)) ? p + (l << 1) <= s.length ? fail_length(re, s, p, l << 1) : l << 1 : l,
-               split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? re.test(s.substr(p, u)) ? call/tail[b(cc, l + (u - l >> 1), u)] : call/tail[b(cc, l, u - (u - l >> 1))] : l] in
+               split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? (l + (u - l >> 1)) /re.m[re.test(s.substr(p, m)) ? call/tail[b(cc, m, u)] : call/tail[b(cc, l, m)]] : l] in
                                                call/cc[fn[cc][b(cc, l, u)]]]])}).
 
 //   Sequences.
