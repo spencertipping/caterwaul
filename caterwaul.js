@@ -993,7 +993,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
 
-    method('init', function (f) {return this.compile(this.macroexpand(this.decompile(f)))}).field('global', function () {return caterwaul_global}).
+    method('init', function (f, environment) {return this.compile(this.macroexpand(this.decompile(f)), environment)}).field('global', function () {return caterwaul_global}).
     method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 

@@ -1319,7 +1319,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::caterwaul', <<'__b1586f8800d8276ac8eb625a4a77ee90');
+meta::sdoc('js::caterwaul', <<'__d69a409067fab9e90bdbf89dec86441f');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2315,7 +2315,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
 
-    method('init', function (f) {return this.compile(this.macroexpand(this.decompile(f)))}).field('global', function () {return caterwaul_global}).
+    method('init', function (f, environment) {return this.compile(this.macroexpand(this.decompile(f)), environment)}).field('global', function () {return caterwaul_global}).
     method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
@@ -2334,7 +2334,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
 
   caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__b1586f8800d8276ac8eb625a4a77ee90
+__d69a409067fab9e90bdbf89dec86441f
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
@@ -4375,6 +4375,17 @@ test('caterwaul.std.with-gensyms', function () {
   }) (eq);
 });
 __4e155c3e238324595969eae32fb99185
+meta::sdoc('js::test/environment', <<'__3b875a9598a9d647dc99d31e953b6c82');
+Environment compilation test.
+Makes sure that Caterwaul compiles a function within the right environment.
+
+test('environment', function () {
+  var c = caterwaul.clone('std');
+  eq(c(function () {return x}, {x: 5})(), 5);
+  eq(c(function () {return x}, {x: false})(), false);
+  eq(c(function () {return x}, {x: 'foo bar bif'})(), 'foo bar bif');
+});
+__3b875a9598a9d647dc99d31e953b6c82
 meta::sdoc('js::test/lex-atom', <<'__07d87be64b62f3ca01c849fa138d66a5');
 Atom lexing unit tests
 
