@@ -491,6 +491,10 @@ meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
 create("note::$_[0]");
 __bcbfeac6dd2112f47296265444570a6e
 meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
+meta::function('parse', <<'__d74e1dc365978bc2ce245d9c4d22e123');
+# Parses stuff.
+node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::parser'], @_);
+__d74e1dc365978bc2ce245d9c4d22e123
 meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
@@ -998,6 +1002,10 @@ meta::js('macroexpander', <<'__c21d8a4d0fee3d39aef360d077637bd1');
 // A quick macroexpander REPL:
 console.log('%s', caterwaul.clone('format').format(caterwaul.clone('std seq opt continuation parser').macroexpand(caterwaul.parse(process.argv.slice(2).join(' ')))));
 __c21d8a4d0fee3d39aef360d077637bd1
+meta::js('parser', <<'__ae8553a05bf29ed84554d0a426ca1406');
+// A quick parser REPL:
+console.log('%s', caterwaul.parse(process.argv.slice(2).join(' ')).toString());
+__ae8553a05bf29ed84554d0a426ca1406
 meta::library('terminal', <<'__0ec2ca45ce7b9b56c05c9b284a7ee78a');
 # Functions for nice-looking terminal output.
 package terminal;
