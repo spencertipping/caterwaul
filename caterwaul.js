@@ -986,24 +986,23 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // Composition behavior.
 // New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
-// example: http://github.com/spencertipping/figment). Composition is achieved by invoking after(), which governs the behavior of the macroexpand() function. Composed caterwaul functions can be
-// expected by invoking the after() method with no arguments:
+// example: http://github.com/spencertipping/figment). Composition is achieved by invoking after(), which governs the behavior of the macroexpand() function. The list of functions to be invoked
+// after a caterwaul function can be inspected by invoking after() with no arguments.
 
 // | var f = caterwaul.clone(), g = caterwaul.clone();
-//   var fg = f.after(g);  // Runs g on f's output; that is, g is an after-effect of f.
-//   fg.macro(...);        // Only affects fg, not f
+//   f.after(g);           // Causes g to be run on f's output; that is, g is an after-effect of f.
+//   f.after(h);           // Adds another after function, to be run after all of the others.
+//   f.after();            // -> [g, h]
 
-// What actually happens is kind of interesting. We can't create a caterwaul function with a replaced macroexpand() method, since then its macro() and rmacro() methods wouldn't work. Instead, we
-// do macroexpand-chaining: Replace the macroexpand method with one that composes the 'after' caterwaul function onto the output of the original macroexpand(). The after() function returns a
-// clone without modifying the original; that is:
+// The design for this feature is different in 0.6.5. The problem with the original design, in which after() returned a clone of the original function, was that you couldn't set up
+// after-composition from within a configuration (since, reasonably enough, configuration is closed over the caterwaul instance).
 
-// | f.after(g) !== f
-
-// Note that O(n) stack frames will be used for caterwaul functions produced by n invocations of after(). Maybe this isn't a problem, since you probably won't be using after() a lot. But it's
-// something to be aware of.
+// There is deliberately no before() method. The reason for this is that when you define a macro on a caterwaul function, it should take precedence over all other macros that get run. Obviously
+// this doesn't happen for g if g comes after f, but generally that relationship is obvious from the setup code (which it might not be if a before() method could be invoked by configurations).
 
   composition = function (f) {return f.
-    method('after', function (g) {return se(this.clone(), function (n) {var m = n.macroexpand; n.method('macroexpand', function () {return g.call(this, m.apply(this, arguments))})})})},
+    shallow('after_functions', []).method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
+                                                                else                  return this.after_functions})},
 
 // Global Caterwaul setup.
 // Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes. As of version 0.6.4, the init() property is
@@ -1022,7 +1021,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-    method('init', function (f, environment) {return f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment)}).
+    method('init', function (f, environment) {var result = f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment);
+                                              if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
+                                              return result}).
+
     method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 

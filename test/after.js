@@ -7,11 +7,17 @@ test('after', function () {
     eq(c1.after.constructor, Function); literal[c1(function () {defsubst[_x + _y][_x * _y]})];
     eq(c2.after.constructor, Function); literal[c2(function () {defsubst[_x * _y][_x + _y]})];
 
-    var c12 = c1.after(c2);
+    var c12 = c1.clone();
+    eq(c12.after(c2), c12);
+    eq(c12.after().length, 1);
+    eq(c12.after()[0], c2);
     eq(c12(qs[x + y]).data, '+');
     eq(c12(qs[x * y]).data, '+');
 
-    var c21 = c2.after(c1);
+    var c21 = c2.clone();
+    eq(c21.after(c1), c21);
+    eq(c21.after().length, 1);
+    eq(c21.after()[0], c1);
     eq(c21(qs[x + y]).data, '*');
     eq(c21(qs[x * y]).data, '*');
   })(eq);
