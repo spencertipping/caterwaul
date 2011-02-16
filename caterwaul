@@ -420,16 +420,18 @@ terminal::error($@) if $@;
 reload();
 verify();
 __0bddb2edf7d13e60bf47e7bce8c8c011
-meta::function('loc', <<'__dfe41cc08b7be0baa9a396df86e9b8e2');
+meta::function('loc', <<'__5638d6e2ed9d88e3cfffe22fc7e4e087');
 # Counts SLOC, whitespace, and total LOC in the codebase.
-my @lines      = map split(/\n/, file::read($_)), dependencies(), main();
-my $comments   = grep /^\s*\/\//, @lines;
+my $criteria   = join '|', @_;
+my @attributes = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
+my @lines      = map split(/\n/, $_), retrieve(@attributes);
+my $comments   = grep /^\s*\/\// || /^\s*#/, @lines;
 my $whitespace = grep /^\s*$/, @lines;
 my $source     = @lines - $comments - $whitespace;
 
-print "(Figures below include library code)\n";
-print "$source SLOC, $whitespace whitespace lines, $comments comment lines\n";
-__dfe41cc08b7be0baa9a396df86e9b8e2
+terminal::info("Total LOC of these attributes:", map "  $_", @attributes);
+terminal::info("$source SLOC, $whitespace whitespace lines, $comments comment lines");
+__5638d6e2ed9d88e3cfffe22fc7e4e087
 meta::function('lock', 'chmod_self(sub {$_[0] & 0555});');
 meta::function('ls', <<'__acdc3ca5777ab9c7c430d493a7555998');
 my ($options, @criteria) = separate_options(@_);
@@ -673,15 +675,16 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__8d09ec97ad9caeb8050bbe3f183a1f18');
+meta::function('test', <<'__f6402da2226ada1989b3b95d79cfaf37');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
 
-my @tests = grep s/^sdoc:://, select_keys('--criteria' => '^sdoc::js::.*test/');
+my @tests = grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*test/$_[0]");
 rendera();
+terminal::info('running ' . join(' ', @tests));
 node([qw/caterwaul.all.js unit.js/, @tests]);
-__8d09ec97ad9caeb8050bbe3f183a1f18
+__f6402da2226ada1989b3b95d79cfaf37
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'chmod_self(sub {$_[0] | 0200});');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -1006,7 +1009,7 @@ meta::js('parser', <<'__ae8553a05bf29ed84554d0a426ca1406');
 // A quick parser REPL:
 console.log('%s', caterwaul.parse(process.argv.slice(2).join(' ')).toString());
 __ae8553a05bf29ed84554d0a426ca1406
-meta::library('terminal', <<'__0ec2ca45ce7b9b56c05c9b284a7ee78a');
+meta::library('terminal', <<'__c52308d05ebb4ff61c5fc36e6d9c7a8a');
 # Functions for nice-looking terminal output.
 package terminal;
 
@@ -1015,11 +1018,11 @@ my $process = ::name();
 sub message {print STDERR "[$_[0]] $_[1]\n"}
 sub color {
   my ($name, $color) = @_;
-  *{"terminal::$name"} = sub {chomp $_, print STDERR "\033[1;30m$process(\033[1;${color}m$name\033[1;30m)\033[0;0m $_\n" for @_}}
+  *{"terminal::$name"} = sub {chomp($_), print STDERR "\033[1;30m$process(\033[1;${color}m$name\033[1;30m)\033[0;0m $_\n" for map join('', $_), @_}}
 
 my %preloaded = (info => 32, progress => 32, state => 34, debug => 34, warning => 33, error => 31);
 color $_, $preloaded{$_} for keys %preloaded;
-__0ec2ca45ce7b9b56c05c9b284a7ee78a
+__c52308d05ebb4ff61c5fc36e6d9c7a8a
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
@@ -1319,7 +1322,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::caterwaul', <<'__d69a409067fab9e90bdbf89dec86441f');
+meta::sdoc('js::caterwaul', <<'__68ca9584b4707a85422e57b42390cad1');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2306,16 +2309,45 @@ order for this to work, your syntax trees must:
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
-Global Caterwaul setup.
-Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes.
+Composition behavior.
+New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
+example: http://github.com/spencertipping/figment). Composition is achieved by invoking after(), which governs the behavior of the macroexpand() function. Composed caterwaul functions can be
+expected by invoking the after() method with no arguments:
 
-  caterwaul_core = function (f) {return configurable(f).configure(macroexpansion).
+| var f = caterwaul.clone(), g = caterwaul.clone();
+  var fg = f.after(g);  // Runs g on f's output; that is, g is an after-effect of f.
+  fg.macro(...);        // Only affects fg, not f
+
+What actually happens is kind of interesting. We can't create a caterwaul function with a replaced macroexpand() method, since then its macro() and rmacro() methods wouldn't work. Instead, we
+do macroexpand-chaining: Replace the macroexpand method with one that composes the 'after' caterwaul function onto the output of the original macroexpand(). The after() function returns a
+clone without modifying the original; that is:
+
+| f.after(g) !== f
+
+Note that O(n) stack frames will be used for caterwaul functions produced by n invocations of after(). Maybe this isn't a problem, since you probably won't be using after() a lot. But it's
+something to be aware of.
+
+  composition = function (f) {return f.
+    method('after', function (g) {return se(this.clone(), function (n) {var m = n.macroexpand; n.method('macroexpand', function () {return g.call(this, m.apply(this, arguments))})})})},
+
+Global Caterwaul setup.
+Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes. As of version 0.6.4, the init() property is
+polymorphic in semantics as well as structure. There are two cases:
+
+| 1. You invoke caterwaul on a syntax node. In this case only macroexpansion is performed.
+  2. You invoke caterwaul on anything else. In this case the object is decompiled, macroexpanded, and then compiled.
+
+This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
+context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
+
+  caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
     method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
      field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
+     field('composition', composition).field('global', function () {return caterwaul_global}).
 
-    method('init', function (f, environment) {return this.compile(this.macroexpand(this.decompile(f)), environment)}).field('global', function () {return caterwaul_global}).
+    method('init', function (f, environment) {return f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment)}).
     method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
@@ -2334,7 +2366,7 @@ Now that we've defined lexing, parsing, and macroexpansion, we can create a glob
 
   caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__d69a409067fab9e90bdbf89dec86441f
+__68ca9584b4707a85422e57b42390cad1
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
@@ -4375,6 +4407,26 @@ test('caterwaul.std.with-gensyms', function () {
   }) (eq);
 });
 __4e155c3e238324595969eae32fb99185
+meta::sdoc('js::test/after', <<'__288b7fd5b4c3a3b5623167befec5bdb5');
+Tests for composition via the after() method.
+
+test('after', function () {
+  caterwaul.clone('std')(function (eq) {
+    var c1 = caterwaul.clone('std'), c2 = caterwaul.clone('std');
+
+    eq(c1.after.constructor, Function); literal[c1(function () {defsubst[_x + _y][_x * _y]})];
+    eq(c2.after.constructor, Function); literal[c2(function () {defsubst[_x * _y][_x + _y]})];
+
+    var c12 = c1.after(c2);
+    eq(c12(qs[x + y]).data, '+');
+    eq(c12(qs[x * y]).data, '+');
+
+    var c21 = c2.after(c1);
+    eq(c21(qs[x + y]).data, '*');
+    eq(c21(qs[x * y]).data, '*');
+  })(eq);
+});
+__288b7fd5b4c3a3b5623167befec5bdb5
 meta::sdoc('js::test/environment', <<'__3b875a9598a9d647dc99d31e953b6c82');
 Environment compilation test.
 Makes sure that Caterwaul compiles a function within the right environment.
