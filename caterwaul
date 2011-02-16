@@ -300,6 +300,7 @@ enable();
 qx($child_name update-from $0 -nu);
 disable();
 __9b5175a0e9b94998754cad35582b987a
+meta::function('cloc', 'loc(\'modules/caterwaul\\.(?!format)[^/]+$\', \'caterwaul$\')');
 meta::function('clone', <<'__5a30a4ba6293e250ed22884d609e4781');
 for (grep length, @_) {
   file::write($_, serialize(), noclobber => 1);
@@ -420,18 +421,29 @@ terminal::error($@) if $@;
 reload();
 verify();
 __0bddb2edf7d13e60bf47e7bce8c8c011
-meta::function('loc', <<'__5638d6e2ed9d88e3cfffe22fc7e4e087');
+meta::function('loc', <<'__ce427fbd35d560bbcc08f542f56a306a');
 # Counts SLOC, whitespace, and total LOC in the codebase.
-my $criteria   = join '|', @_;
-my @attributes = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
-my @lines      = map split(/\n/, $_), retrieve(@attributes);
-my $comments   = grep /^\s*\/\// || /^\s*#/, @lines;
-my $whitespace = grep /^\s*$/, @lines;
-my $source     = @lines - $comments - $whitespace;
+my $criteria    = join '|', @_;
+my @attributes  = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
+my $tcomments   = 0;
+my $twhitespace = 0;
+my $tsource     = 0;
 
-terminal::info("Total LOC of these attributes:", map "  $_", @attributes);
-terminal::info("$source SLOC, $whitespace whitespace lines, $comments comment lines");
-__5638d6e2ed9d88e3cfffe22fc7e4e087
+my $line = sub {
+  my ($source, $whitespace, $comments, $name) = @_;
+  sprintf "%5d total, %4d SLOC, %5d[%4d%%] whitespace, %5d[%4d%%] comment [%s]",
+          $source + $whitespace + $comments, $source, $whitespace, int($whitespace / $source * 100), $comments, int($comments / $source * 100), $name};
+
+my $loc = sub {
+  my @lines    = map split(/\n/, $_), retrieve($_[0]);
+  $tcomments   += (my $comments   = grep /^\s*\/\// || /^\s*#/, @lines);
+  $twhitespace += (my $whitespace = grep /^\s*$/, @lines);
+  $tsource     += (my $source     = @lines - $comments - $whitespace);
+  &$line($source, $whitespace, $comments, $_[0])};
+
+terminal::info(map &$loc($_), @attributes);
+terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
+__ce427fbd35d560bbcc08f542f56a306a
 meta::function('lock', 'chmod_self(sub {$_[0] & 0555});');
 meta::function('ls', <<'__acdc3ca5777ab9c7c430d493a7555998');
 my ($options, @criteria) = separate_options(@_);
