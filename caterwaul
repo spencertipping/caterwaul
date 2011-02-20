@@ -325,13 +325,16 @@ my @ordered_keys = (grep(/^meta::/, @valid_keys), grep(! /^meta::/, @valid_keys)
 join "\n", map serialize_single($_), @ordered_keys;
 __d83ae43551c0f58d1d0ce576402a315a
 meta::function('disable', 'chmod_self(sub {$_[0] & 0666});');
-meta::function('dupdate', <<'__9eb9747ca6d4cdcb7d863ca9ed13f80a');
+meta::function('dupdate', <<'__0dea14d6eee0043b3664098a1613144e');
 # Update the repository based on the dependencies it lists.
 use LWP::Simple ();
 rm($_) for grep /^cached_dependency::/, keys %data;
 my %dependencies = dependencies();
-associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_})) for keys %dependencies;
-__9eb9747ca6d4cdcb7d863ca9ed13f80a
+
+for (keys %dependencies) {
+  terminal::info("Retrieving $dependencies{$_} as $_");
+  associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
+__0dea14d6eee0043b3664098a1613144e
 meta::function('e', 'edit(\'sdoc::js::caterwaul\')');
 meta::function('edit', <<'__c74a5d1c0dbd922acaf1397f89190fce');
 my ($name, %options) = @_;
