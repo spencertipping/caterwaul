@@ -1014,8 +1014,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
 // context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
 
+// New in version 0.6.5 is the ability to bind closure variables during a tconfiguration(). This makes it simpler to close over non-globals such as node.js's require() function.
+
   caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
-    method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
+    method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
      field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).

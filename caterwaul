@@ -1334,7 +1334,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::caterwaul', <<'__f6cd464cf20cb174a8385d409e2a8e41');
+meta::sdoc('js::caterwaul', <<'__6dc93a50f1a98cc4915ba558666949fe');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2351,8 +2351,10 @@ polymorphic in semantics as well as structure. There are two cases:
 This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
 context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
 
+New in version 0.6.5 is the ability to bind closure variables during a tconfiguration(). This makes it simpler to close over non-globals such as node.js's require() function.
+
   caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
-    method('tconfiguration', function (configs, name, f) {this.configurations[name] = this.clone(configs)(f); return this}).
+    method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
      field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
@@ -2380,7 +2382,7 @@ context of tree -> tree compilers (macroexpansion). Having such an arrangement i
 
   caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__f6cd464cf20cb174a8385d409e2a8e41
+__6dc93a50f1a98cc4915ba558666949fe
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
