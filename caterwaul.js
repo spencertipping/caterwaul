@@ -851,10 +851,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 // An optional second parameter 'environment' can contain a hash of variable->value bindings. These will be defined as locals within the compiled function.
 
+// New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
+
   compile = function (tree, environment) {      // Despite the coincidence of 'tree' and 'environment' on this line, I'm seriously not pushing a green agenda :)
     var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
     var code = map(function (v) {return 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
-    try {return (new Function(s, code))(bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}},
+    try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}},
 
 // Configurations.
 // Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
