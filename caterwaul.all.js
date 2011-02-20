@@ -1841,9 +1841,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   caterwaul.tconfiguration('std seq continuation memoize', 'parser.core', function () {
     this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
                                  _.parse_state /se.s[s.from_input(input) = new _.parse_state(input, 0, null, {}),
-                                                     s.prototype /se[_.accept(n, r) = new this.constructor(this.input, n, r, this.memo),
+                                                     s.prototype /se[_.accept(i, r) = new this.constructor(this.input, i, r, this.memo),
                                                                      _.has_input()  = this.i < this.input.length,
-                                                                     _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.r}]']],
+                                                                     _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.result}]']],
 
                                  _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
                                                                                                where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
@@ -1886,8 +1886,15 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   regexp approach, it may be faster to use a regular finite-automaton for routine parsing and lexing. Then again, O(log n) linear-time native code calls may be faster than O(n) constant-time
 //   calls in practice.
 
+//   In order for a regular expression to work sensibly in this context, it needs to have a couple of properties. One is that it partitions two contiguous ranges of substrings into matching and
+//   non-matching groups, and that the matching group, if it exists, contains shorter substrings than the non-matching group. Put differently, there exists some k such that substrings from length
+//   minimum (the minimum that you specify as the second argument to c()) to k all match, and substrings longer than k characters all fail to match. The other property is that the initial match
+//   length must be enough to accept or reject the regular expression. So, for example, c(/[a-zA-Z0-9]+/, 1) is a poor way to match against identifiers since it will also quite happily take an
+//   integer.
+
 //   Note that if you specify a regular expression, the parser library will recompile it into a new one that is anchored at both ends. This is necessary for sane behavior; nobody would ever want
-//   anything else. This means that matching on /foo/ will internally generate /^foo$/.
+//   anything else. This means that matching on /foo/ will internally generate /^foo$/. This recompilation process preserves the flags on the original however. (Though you seriously shouldn't use
+//   /g -- I have no idea what this would do.)
 
 //   Finally, you can also specify a function. If you do this, the function will be invoked on the input and the current offset, and should return the number of characters it intends to consume.
 //   It returns a falsy value to indicate failure.
@@ -1907,8 +1914,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
                add_absolute_anchors_to(x)    = l[parts = /^\/(.*)\/(\w*)$/.exec(x.toString())] in new RegExp('^#{parts[1]}$', parts[2]),
                fail_length(re, s, p, l)      = re.test(s.substr(p, l)) ? p + (l << 1) <= s.length ? fail_length(re, s, p, l << 1) : l << 1 : l,
-               split_lengths(re, s, p, l, u) = l*[b(cc, l, u) = l + 1 < u ? (l + (u - l >> 1)) /re.m[re.test(s.substr(p, m)) ? call/tail[b(cc, m, u)] : call/tail[b(cc, l, m)]] : l] in
-                                               call/cc[fn[cc][b(cc, l, u)]]]])}).
+               split_lengths(re, s, p, l, u) = l*[b(l, u) = l + 1 < u ? (l + (u - l >> 1)) /re.m[re.test(s.substr(p, m)) ? b(m, u) : b(l, m)] : l] in b(l, u)]])}).
 
 //   Sequences.
 //   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
