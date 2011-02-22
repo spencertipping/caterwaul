@@ -354,6 +354,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 //     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
 
+//     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
+//     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
+
         toString: function () {return this.inspect()},
          inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                       (this.r ? ' -> ' + this.r.inspect() : '')},
@@ -363,7 +366,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                           has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                             has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
-                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
+                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
                                     has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
                                                                      op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
                                                                      op + space + map(syntax_node_tostring, this).join('') :

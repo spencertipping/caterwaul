@@ -1337,7 +1337,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::caterwaul', <<'__35984550d5f255171c6f69b5c72b595a');
+meta::sdoc('js::caterwaul', <<'__cd92c6c2017359df183e583cd1fbdbfb');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1694,6 +1694,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
 
+    Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
+    postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
+
         toString: function () {return this.inspect()},
          inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                       (this.r ? ' -> ' + this.r.inspect() : '')},
@@ -1703,7 +1706,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                           has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                             has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
-                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, '') + space + (this[0] ? this[0].serialize() : '') :
+                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
                                     has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
                                                                      op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
                                                                      op + space + map(syntax_node_tostring, this).join('') :
@@ -2387,7 +2390,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
 
   caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__35984550d5f255171c6f69b5c72b595a
+__cd92c6c2017359df183e583cd1fbdbfb
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
@@ -4719,7 +4722,7 @@ test('parse-arithmetic', function () {
   p('foo().bar().bif()()', '(() (() (. (() (. (() (foo) (<>)) (bar)) (<>)) (bif)) (<>)) (<>))');
 });
 __b00daffcaa4ad72898ef2168448d686c
-meta::sdoc('js::test/parse-empty-for-initializer-failure', <<'__674c6f05edc8d25ec7bd4f9727188571');
+meta::sdoc('js::test/parse-empty-for-initializer-failure', <<'__f7217b68f07f632a6bc18ec3f1557a2b');
 Test case for 'for (; foo; bar)' loops (in response to jQuery identity failure)
 
 test('parse-empty-for-initializer-failure', function () {
@@ -4736,11 +4739,11 @@ test('parse-empty-for-initializer-failure', function () {
   p('for (a;;b){}', '(for (( (i; (; (a) (; (<>) (<>))) (b))) ({))');
 
   i(';;');
-  i('for (;i<l;++i){}');
-  i('for (;;++i){}');
+  i('for (;i<l; ++i){}');
+  i('for (;; ++i){}');
   i('for (;i<l;){}');
 });
-__674c6f05edc8d25ec7bd4f9727188571
+__f7217b68f07f632a6bc18ec3f1557a2b
 meta::sdoc('js::test/parse-function-object-failure', <<'__0212323a45220e742e39079bcf20e575');
 Odd failure involving the word 'function' in an object
 
@@ -4848,6 +4851,17 @@ test('parse-ternary', function () {
   s('var x = foo() ? (foo + bar)() : (t + u)()', 'var x=foo()?(foo+bar)():(t+u)()');
 });
 __cac941cdd6d24ed2c2d9cb469b11de7f
+meta::sdoc('js::test/plus-plus-failure', <<'__3ab920bca03680a014abb07604264501');
+A failure case involving prefix and infix plus.
+
+test('plus-plus-failure', function () {
+  caterwaul.clone('std')(function (eq) {
+    var x = 5;
+    var y = x + +x;
+    eq(y, 10);
+  })(eq);
+});
+__3ab920bca03680a014abb07604264501
 meta::sdoc('js::test/replica', <<'__db2a7930c22d8a2dd292fc7927052f8c');
 Replica interface tests.
 
