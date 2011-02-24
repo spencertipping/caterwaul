@@ -1109,6 +1109,10 @@ Unimportant things that might help at some point in the future.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
 __d818392ddbca2ffd2b72f3661d4483d6
+meta::note('recon', <<'__c42c1079626dd15cf75d78c3b01ba77e');
+Recon module notes.
+The recon module is about more than just tracing the execution of code. It's also about providing an interface to interactively step through code.
+__c42c1079626dd15cf75d78c3b01ba77e
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
