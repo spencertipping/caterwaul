@@ -64,3 +64,22 @@ Documentation
 This README isn't intended to document Caterwaul; to learn how to use it, I recommend starting off with `Client-Side Caterwaul
 <http://spencertipping.com/caterwaul/doc/client-side-caterwaul.pdf>`_. If you're feeling adventurous, you might also want to check out the `annotated source code
 <http://spencertipping.com/caterwaul/caterwaul.html>`_.
+
+Hacking Caterwaul
+-----------------
+
+All of the SDoc-wrapped Javascript is now bundled into the ``caterwaul`` file, which is a `self-modifying Perl script <http://github.com/spencertipping/perl-objects>`_ that knows how to run
+unit tests and compile the regular Javascript files. It's not hard to hack on Caterwaul though::
+
+    $ ./caterwaul
+    caterwaul4012 ls-a sdoc::js
+    <a bunch of attributes>
+    caterwaul4012 edit sdoc::js::caterwaul      # To edit the caterwaul core
+    caterwaul4012 e                             # An alias (run ls-a alias:: to see all of them)
+    caterwaul4012 test                          # Run all of the unit tests
+    caterwaul4012 rendera                       # Render all of the files, including minified ones
+    caterwaul4012 ^D                            # Exit, saving changes
+    $
+
+If you haven't used self-modifying Perl before, then you should definitely read `writing self-modifying Perl <http://github.com/spencertipping/writing-self-modifying-perl>`_, which covers the
+concept in depth.
