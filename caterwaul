@@ -3348,7 +3348,7 @@ test('caterwaul.parser.lookahead', function () {
   })(eq);
 });
 __612b755f1543d5784d525d14a8ac6d20
-meta::sdoc('js::modules/caterwaul.seq', <<'__98f016c7cb9d82811677e7067f7763de');
+meta::sdoc('js::modules/caterwaul.seq', <<'__454cedfb87f4bc53b9aaaf2b715bd15d');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -3589,7 +3589,7 @@ Method calls are treated normally and arguments are untransformed; so you can ca
                                   _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('-',  qs[x.flat_map(y)], qs[_, _i]),
                                   _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]), _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
-          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.size() + y.size()].clone() /se[_.data = op]))]),
+          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[qg[x].size() + qg[y].size()].clone() /se[_.data = op]))]),
 
           l[e(x) = _.macroexpand(x)] in
           _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = x][xp && xp.size() ? y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = x][xp && xp.size() ? xp : y]]])),
@@ -3616,7 +3616,7 @@ Rather than including individual configurations above, you'll probably just want
 
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
                                                             'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.dsl')});
-__98f016c7cb9d82811677e7067f7763de
+__454cedfb87f4bc53b9aaaf2b715bd15d
 meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__8bbf15c78ec6b8316138afc180d80b41');
 Sequence DSL tests.
 

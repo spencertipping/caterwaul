@@ -238,7 +238,7 @@
                                   _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('-',  qs[x.flat_map(y)], qs[_, _i]),
                                   _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]), _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
 
-          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[x.size() + y.size()].clone() /se[_.data = op]))]),
+          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[qg[x].size() + qg[y].size()].clone() /se[_.data = op]))]),
 
           l[e(x) = _.macroexpand(x)] in
           _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = x][xp && xp.size() ? y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = x][xp && xp.size() ? xp : y]]])),
