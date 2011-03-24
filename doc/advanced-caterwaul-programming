@@ -375,10 +375,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __3c6177256de0fddb721f534c3ad8c0ee
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/advanced-caterwaul-programming.LiYx/document.pdf');
+meta::data('pdf-output-file', '/tmp/advanced-caterwaul-programming.3CKp/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
-meta::data('source-directory', './src');
+meta::data('source-directory', '.');
 meta::data('table-of-contents', '1');
 meta::data('tex-command', 'latex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('watching', '0');
@@ -1462,7 +1462,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::section('creating-markup', <<'__bdf275e9f694c1d611a396a57e706301');
+meta::section('creating-markup', <<'__99d8a03f252ad1c1ab6e509fb481dd80');
 - sc Creating Markup
   Montenegro was written to integrate markup creation into the page logic. Before you vote to have me excommunicated for suggesting that this is a good thing, let's consider the simplicity it
   offers.
@@ -1485,7 +1485,44 @@ meta::section('creating-markup', <<'__bdf275e9f694c1d611a396a57e706301');
         name_and_email() = html[table[row_for('name'), row_for('email')]],
         row_for(field)   = html[tr(td['#{field}: '], td(input /addClass(field)))]];
     - end
-__bdf275e9f694c1d611a396a57e706301
+
+    - quote << end
+      \textbf{N.B.}
+      This code illustrates a design pattern I've found to be very useful: {\it one concern per line}. As I'll discuss later on, Caterwaul code can be very terse, and it's often useful to
+      leverage that terseness without creating spaghetti code.
+    - end
+    
+  - s1 Side-effects
+    Normally in functional style you want to use as few side-effects as possible and have each function be pure. However, this breaks down when you have to work with continuations. The classic
+    example is loading some content via AJAX:
+
+    - quote << end
+      - verbatim << end
+        // side-effect at toplevel
+        name_and_email(fn[element][$('body').append(element)]),
+        where*[
+          name_and_email(cc) = l/cps[data <- $.getJSON('...', _)] in
+                               cc(name_and_email_helper(data)),
+          name_and_email_helper(data) = html[table[row_for('name'), row_for('email')]],
+          row_for(field) = /* same as before */];
+      - end
+    - end
+
+    \noindent The problem here is obvious; we haven't really gotten rid of the side-effect, we've just pushed it up to the toplevel. More useful is to push the side-effect into the abstraction
+    so that we have the usual behavior from \verb|name_and_email|. Here's how to do it:
+
+    - quote << end
+      - verbatim << end
+        // side-effect encapsulated inside name_and_email()
+        $('body').append(name_and_email()),
+        where*[
+          name_and_email() = html[div] /se[populate(_)],
+          populate(div)    = l/cps[data <- $.getJSON('...', _)] in
+                             div.append(html[table[row_for('name'), row_for('email')]]),
+          row_for(field)   = /* same as before */];
+      - end
+    - end
+__99d8a03f252ad1c1ab6e509fb481dd80
 meta::section('introduction', <<'__5130c8609cc62af4ec724419684f0e7d');
 - sc Introduction
   {\it Client-Side Caterwaul} introduces Caterwaul in an applied context. This guide talks about leveraging the more advanced features of Caterwaul to write rich client and server
@@ -1521,7 +1558,7 @@ meta::section('introduction', <<'__5130c8609cc62af4ec724419684f0e7d');
 
     {\tt page.js} is the page driver, and that's where all of the logic will end up.
 __5130c8609cc62af4ec724419684f0e7d
-meta::section('main', <<'__967f996c044d01024e2d2cdd830c0a0a');
+meta::section('main', <<'__2d27a42ac0ce0819917fdedaa1d9f17e');
 - documentclass report
 - include resource::header
 
@@ -1534,8 +1571,83 @@ meta::section('main', <<'__967f996c044d01024e2d2cdd830c0a0a');
 
   - include section::introduction
   - include section::creating-markup
+  - include section::sequences
 - end
-__967f996c044d01024e2d2cdd830c0a0a
+__2d27a42ac0ce0819917fdedaa1d9f17e
+meta::section('sequences', <<'__a27d7c8738c7a118256820168a1a4a22');
+- sc Sequences
+  {\tt seq} is probably my favorite Caterwaul library. It can reduce complex map/fold/filter expressions down to a single line and can represent most if not all of the cases where bulkier
+  constructs such as {\tt while} and {\tt for} would normally be used.
+
+  - s1 The {\tt seq[]} macro
+    As with most macros in Caterwaul, {\tt seq[]} creates a context in which operators are reinterpreted. However, none of the functionality exposed by {\tt seq[]} is created by the macro; all
+    generated code refers to public methods of the sequence classes. For example:
+
+    - verbatim << end
+      seq[xs *[_ + 1]]   ->   xs.map(fn[_, _i][_ + 1])
+      seq[xs %[_]]       ->   xs.filter(fn[_, _i][_])
+      seq[xs *~[_ *[_]]] ->   xs.map(fn[_, _i][_.map(fn[_, _i][_])])
+    - end
+
+    All of the transformations are documented in the source code.\footnote{\url{http://github.com/spencertipping/caterwaul/blob/master/modules/caterwaul.seq.js}} Operators apply with their
+    usual precedence, which generally is intuitive except in the case of flat-map, represented by {\tt -}.\footnote{Sadly, I ran out of multiplication-precedence operators and had to go down
+    one level. It's unfortunate, but still usable.}
+
+    I'll explain the semantics of the operations encoded by various operators as I go. It will probably be handy to have the source code available, and perhaps also the Caterwaul live
+    compiler.\footnote{\url{http://spencertipping.com/caterwaul/compiler}}
+
+  - s1 Use case: A list of resources
+    Often in AJAX applications there's some list of stuff that needs to be displayed to the user. For simplicity, let's assume that we have an index of things, each of which can be clicked on
+    to view the whole object. In straight jQuery/HTML a common way to code this would be (preserving the functional-DOM pattern):
+
+    - quote << end
+      - verbatim << end
+        var a_thing = function (name) {
+          return $('<a>').text(name).attr('href', 'javascript:void(0)').
+                                    click(open_page_for(name));
+        };
+        var list_of_things = function () {
+          var result = $('<div>');
+          $.getJSON('/index', function (items) {
+            for (var i = 0, l = items.length; i < l; ++i)
+              result.append(a_thing(items[i]));
+          });
+          return result;
+        };
+        $('body').append(list_of_things());
+      - end
+    - end
+
+    \noindent This Caterwaul code does the same thing:
+
+    - quote << end
+      - verbatim << end
+        $('body').append(list_of_things()),
+        where*[
+          list_of_things() = html[div] /se[add_things_to(_)],
+          add_things_to(x) = l/cps[things <- $.getJSON('/index', _)] in
+                             seq[~things *+a_thing *![x.append(_)]],
+          a_thing(name)    = html[a[name] *href('javascript:void(0)')
+                                          /click(open_page_for(name))]];
+      - end
+    - end
+
+    \noindent We saved the most space with {\tt l/cps} and {\tt seq[]}. Here's how to read the \verb|add_things_to| function:
+
+    - quote << end
+      Pull {\it things} from a {\tt getJSON} call using a callback. {\tt l/cps} stands for 'let-in-continuation-passing-style', so it binds a variable when the continuation gets invoked.
+      - verbatim << end
+        l/cps[things <- $.getJSON('/index', _)] in
+      - end
+    - end
+
+    - quote << end
+      Promote the array {\it things} into a Caterwaul finite sequence. Then map each one through the function \verb|a_thing|. For each element in this new sequence, append it to {\tt x}.
+      - verbatim << end
+        seq[~things *+a_thing *![x.append(_)]]
+      - end
+    - end
+__a27d7c8738c7a118256820168a1a4a22
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__eb0b1058649eb2d833f348540516b358');
 my $result = eval $_[0];
