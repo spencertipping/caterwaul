@@ -206,6 +206,7 @@ meta::configure 'state', inherit => 0, extension => '.pl';
 meta::define_form 'state', \&meta::bootstrap::implementation;
 __c1f29670be26f1df6100ffe4334e1202
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
+meta::alias('e', 'edit sdoc::js::caterwaul');
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -354,7 +355,6 @@ for (keys %dependencies) {
   terminal::info("Retrieving $dependencies{$_} as $_");
   associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
 __1c0273217c5b9f2756bb14a4a00aa7e2
-meta::function('e', 'edit(\'sdoc::js::caterwaul\')');
 meta::function('edit', <<'__6da7b44df34219cf87876b642d6fe500');
 my ($name, %options) = @_;
 my $extension = extension_for($name);
@@ -494,7 +494,6 @@ join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [gre
                                                     $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : ());
 __acdc3ca5777ab9c7c430d493a7555998
 meta::function('ls-a', 'ls(\'-ad\', @_);');
-meta::function('lss', '# Attribute function::lss');
 meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
 my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
 edit($modules[0]);
