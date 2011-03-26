@@ -426,18 +426,6 @@ my ($attribute, @criteria) = @_;
 my ($options, @stuff) = separate_options(@criteria);
 grep $_ eq $attribute, select_keys(%$options);
 __5d4fddb72b0715694b83aa0c925a8d04
-meta::function('lib', <<'__1fdcdc3310118791c100b533f6c11070');
-# Regenerates lib/ directory
-hook('bin/before-lib');
-hook('bin/before-lib-clean');
-rm($_) for grep /^js::dependency::/, keys %data;
-hook('bin/after-lib-clean');
-
-hook('bin/before-lib-download');
-qx|cd lib && wget -nv $_| for split /\n+/, libraries();
-hook('bin/after-lib-download');
-hook('bin/after-lib');
-__1fdcdc3310118791c100b533f6c11070
 meta::function('load-state', <<'__ea18db867bd62a294e067f60e6975dcf');
 around_hook('load-state', @_, sub {
   my ($state_name) = @_;
@@ -455,8 +443,10 @@ around_hook('load-state', @_, sub {
   reload();
   verify()});
 __ea18db867bd62a294e067f60e6975dcf
-meta::function('loc', <<'__ce427fbd35d560bbcc08f542f56a306a');
+meta::function('loc', <<'__5a1885d8e743dd80dcda866050f84434');
 # Counts SLOC, whitespace, and total LOC in the codebase.
+hook('before-loc', @_);
+
 my $criteria    = join '|', @_;
 my @attributes  = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
 my $tcomments   = 0;
@@ -477,7 +467,9 @@ my $loc = sub {
 
 terminal::info(map &$loc($_), @attributes);
 terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
-__ce427fbd35d560bbcc08f542f56a306a
+
+hook('after-loc', @_);
+__5a1885d8e743dd80dcda866050f84434
 meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
 meta::function('ls', <<'__acdc3ca5777ab9c7c430d493a7555998');
 my ($options, @criteria) = separate_options(@_);
@@ -523,28 +515,28 @@ my $name = $0;
 $name =~ s/^.*\///;
 $name;
 __6848cbc257e4b6d7441b25acb04e23c9
-meta::function('node', <<'__0dbdfd4cc670051c20430f7ff167ccab');
+meta::function('node', <<'__3522fde8f76947a5f70bca33f1ee0016');
 # Runs node on a collection of source files and arguments. The format is:
 # node([@source_strings], @process_args);
 my ($sources, @args) = @_;
 
 with_exported(@$sources, sub {
-  hook('bin/before-node', $_[0], @args);
+  hook('before-node', $_[0], @args);
   sh('node', $_[0], @args);
-  hook('bin/after-node', $_[0], @args);
+  hook('after-node', $_[0], @args);
 });
-__0dbdfd4cc670051c20430f7ff167ccab
-meta::function('node-custom', <<'__accbe0c73db6f402198448fd92d5f515');
+__3522fde8f76947a5f70bca33f1ee0016
+meta::function('node-custom', <<'__c2f4063798c997ec7f78a3543b1240b3');
 # Runs node on a collection of source files and arguments. The format is:
 # &{'node-custom'}([@source_strings], [@node_arguments], @process_args);
 my ($sources, $node_args, @args) = @_;
 
 with_exported(@$sources, sub {
-  hook('bin/before-node-custom', @$node_args, $_[0], @args);
+  hook('before-node-custom', @$node_args, $_[0], @args);
   sh('node', @$node_args, $_[0], @args);
-  hook('bin/after-node-custom', @$node_args, $_[0], @args);
+  hook('after-node-custom', @$node_args, $_[0], @args);
 });
-__accbe0c73db6f402198448fd92d5f515
+__c2f4063798c997ec7f78a3543b1240b3
 meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
 # Creates a note with a given name, useful for jotting things down.
 create("note::$_[0]");
@@ -560,50 +552,12 @@ my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
-meta::function('render', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;');
-meta::function('rendera', <<'__c1baaa980dfd855b0b4cc0179ce26bf5');
-# Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
-my @files = ('caterwaul', map "modules/caterwaul.$_", qw|std opt continuation seq heap memoize parser|);
-
-render();
-file::write("caterwaul.all.js", cat(map "js::$_", @files));
-file::write("$_.js.sdocp", cat("sdocp::js::$_"), mkpath => 1) for grep s/^sdoc::js:://, keys %data;
-minify("$_.js") for @files, "caterwaul.all";
-
-my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/.*)$/\1.js/, sort keys %data;
-
-file::write('test/index.html', <<EOF);
-<!doctype html>
-<html>
-<head>
-<title>Caterwaul unit tests</title>
-<script src="../caterwaul.all.js"></script>
-<script src="../unit.js"></script>
-<script src="../unit.client.js"></script>
-<style>
-body {font-family: monospace}
-</style>
-</head>
-<body>
-<div id='log'></div>
-$scripts
-</body>
-</html>
-EOF
-__c1baaa980dfd855b0b4cc0179ce26bf5
-meta::function('repl', <<'__31ce26877d3622ecdda1025b308ae6aa');
-# Runs a REPL of your source, minus the webserver.
-render();
-hook('bin/before-repl');
-
-my $repl_base = retrieve('data::repl-base') or die 'You need to define data::main-base to be a newline-separated list of files to load for the REPL.';
-
-my ($file, $name) = ('/tmp/' . state() . '-repl.js', name());
-file::write($file, -f 'repl.js' ? 'repl.js' : "id::require('repl').start('$name> ')");
-node([split(/ /, $repl_base), $file]);
-
-hook('bin/after-repl');
-__31ce26877d3622ecdda1025b308ae6aa
+meta::function('render', <<'__d11b6e7522980db1022b1ccd575bdc30');
+hook('before-render');
+file::write(attribute($_) .            '.js',       retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;
+file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/sdocp::js::/, keys %data;
+hook('after-render');
+__d11b6e7522980db1022b1ccd575bdc30
 meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -740,16 +694,16 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__f6402da2226ada1989b3b95d79cfaf37');
+meta::function('test', <<'__ce87fef84e844723aef6293497ac5e67');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
 
 my @tests = grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*test/$_[0]");
-rendera();
+render();
 terminal::info('running ' . join(' ', @tests));
 node([qw/caterwaul.all.js unit.js/, @tests]);
-__f6402da2226ada1989b3b95d79cfaf37
+__ce87fef84e844723aef6293497ac5e67
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -802,6 +756,35 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
+meta::hook('after-render::minify', <<'__82392bd3e04d3e90452e040727a169ea');
+# Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
+my @files = ('caterwaul', map "modules/caterwaul.$_", qw|std opt continuation seq heap memoize parser|);
+
+file::write("caterwaul.all.js", cat(map "js::$_", @files));
+file::write("$_.js.sdocp", cat("sdocp::js::$_"), mkpath => 1) for grep s/^sdoc::js:://, keys %data;
+minify("$_.js") for @files, "caterwaul.all";
+
+my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/.*)$/\1.js/, sort keys %data;
+
+file::write('test/index.html', <<EOF);
+<!doctype html>
+<html>
+<head>
+<title>Caterwaul unit tests</title>
+<script src="../caterwaul.all.js"></script>
+<script src="../unit.js"></script>
+<script src="../unit.client.js"></script>
+<style>
+body {font-family: monospace}
+</style>
+</head>
+<body>
+<div id='log'></div>
+$scripts
+</body>
+</html>
+EOF
+__82392bd3e04d3e90452e040727a169ea
 meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -1192,20 +1175,18 @@ meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa306
 meta::type::configuration
 parent::/home/spencertipping/bin/object
 __511208c99d8bc2caa3067db9f1824163
-meta::parent('/home/spencertipping/bin/node-base', <<'__384732ad24be298a4346bb0dd8a044df');
-function::lib
+meta::parent('/home/spencertipping/bin/node-base', <<'__cb3ede4ac84dd70a220e31df5e90c4d6');
 function::loc
 function::node
 function::node-custom
 function::render
-function::repl
 function::run-forever
 internal_function::dep
 message_color::test
 meta::type::js
 parent::/home/spencertipping/bin/repository
 parent::/home/spencertipping/conjectures/perl-objects/sdoc
-__384732ad24be298a4346bb0dd8a044df
+__cb3ede4ac84dd70a220e31df5e90c4d6
 meta::parent('/home/spencertipping/bin/object', <<'__ebddf828b1c914a7461db84c344b9ebd');
 bootstrap::initialization
 bootstrap::perldoc
