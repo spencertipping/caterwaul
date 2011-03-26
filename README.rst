@@ -77,7 +77,7 @@ unit tests and compile the regular Javascript files. It's not hard to hack on Ca
     caterwaul4012 edit sdoc::js::caterwaul      # To edit the caterwaul core
     caterwaul4012 e                             # An alias (run ls-a alias:: to see all of them)
     caterwaul4012 test                          # Run all of the unit tests
-    caterwaul4012 rendera                       # Render all of the files, including minified ones
+    caterwaul4012 render                        # Render all of the files, including minified ones
     caterwaul4012 ^D                            # Exit, saving changes
     $
 
