@@ -1288,15 +1288,14 @@ function::dupdate
 meta::type::cached_dependency
 parent::/home/spencertipping/bin/configuration
 __f88c2b0e5725507b3fdb5719fd65e6d3
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__2d47795f5a2f946e1655dcc68b32aadd');
-function::lss
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__6b80e7e220f0ce19851eaf5bb9cf2fc7');
 function::sdoc
 function::sdocp
 meta::type::sdoc
 parent::/home/spencertipping/bin/object
 retriever::sdoc
 retriever::sdocp
-__2d47795f5a2f946e1655dcc68b32aadd
+__6b80e7e220f0ce19851eaf5bb9cf2fc7
 meta::parent('notes', <<'__885245820bcb60424dfcbd480e5b966e');
 function::note
 function::notes
