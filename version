@@ -6,7 +6,7 @@ if [[ -d stable/$1 ]]; then
   return 1
 fi
 
-./caterwaul rendera
+./caterwaul render || return 1
 ./caterwaul test | tee test-log
 
 grep 'Error' test-log && return 1
