@@ -1364,8 +1364,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
   tconfiguration('std', 'continuation.unwind', function () {
     this.configure('std.fn continuation.core').continuation /se[_.unwind_protect = function (escape, f) {try {return f()} catch (e) {return escape(e)}},
                                                                 _.unwind         = function (e) {throw e}];
-    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qse[_f(fb[e][_escape], fb_[_body])].replace({_f: new this.ref(this.continuation.unwind_protect), _escape: escape, _body: body})]).
-         rmacro(qs[unwind[_]], fn[e][qs[_f(_e)].replace({_f: new this.ref(this.continuation.unwind), _e: e})])}).
+    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qse[_f(fb[e][_escape], fb_[_body])].replace({_f: qs[caterwaul.continuation.unwind_protect], _escape: escape, _body: body})]).
+         rmacro(qs[unwind[_]], fn[e][qs[caterwaul.continuation.unwind(_e)].replace({_e: e})])}).
 
 // CPS-conversion.
 // Converting a whole program to CPS to get re-entrant continuations is a lot of work, so I'm not even trying that. But localized CPS is really useful, especially for nested AJAX calls and such.
@@ -1460,14 +1460,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | caterwaul.continuation.call_tail.call(f, arg1, arg2, ...);
 
   tconfiguration('std', 'continuation.delimited', function () {
-    l[magic = this.configure('continuation.core').continuation.magic = this.magic('continuation.delimited')] in
+    l[magic = this.configure('std.qg continuation.core').continuation.magic = this.magic('continuation.delimited')] in
     this.continuation /se[_.call_cc     = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
                                                         try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
                                                         catch (e) {if (escaped) return e; else throw e}},
                           _.call_tail() = {magic: magic, continuation: this, parameters: arguments}];
 
-    this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[_call_cc.call(this, _f)]].   replace({_call_cc:   new this.ref(this.continuation.call_cc),   _f: f})]).
-         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[_call_tail.call(_f, _args)]].replace({_call_tail: new this.ref(this.continuation.call_tail), _f: f, _args: args})])}).
+    this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[caterwaul.continuation.call_cc.call(this, _f)]].   replace({_f: f})]).
+         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[caterwaul.continuation.call_tail.call(_f, _args)]].replace({_f: f, _args: args})])}).
 
 // End-user library.
 
