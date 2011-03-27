@@ -208,6 +208,7 @@ __c1f29670be26f1df6100ffe4334e1202
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::alias('e', 'edit sdoc::js::caterwaul');
 meta::alias('me', 'macroexpand');
+meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -694,16 +695,16 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__ce87fef84e844723aef6293497ac5e67');
+meta::function('test', <<'__fb76551943aeee67504bb9481ea31698');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
 
-my @tests = grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*test/$_[0]");
+my @tests = grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$_[0]\\.?test/$_[1]");
 render();
 terminal::info('running ' . join(' ', @tests));
 node([qw/caterwaul.all.js unit.js/, @tests]);
-__ce87fef84e844723aef6293497ac5e67
+__fb76551943aeee67504bb9481ea31698
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -3418,7 +3419,7 @@ test('caterwaul.parser.lookahead', function () {
   })(eq);
 });
 __612b755f1543d5784d525d14a8ac6d20
-meta::sdoc('js::modules/caterwaul.seq', <<'__454cedfb87f4bc53b9aaaf2b715bd15d');
+meta::sdoc('js::modules/caterwaul.seq', <<'__acc8857765c8820d3076fd2b3da12691');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -3510,11 +3511,11 @@ will always be 0 on IE7.
 
     tconfiguration('std opt', 'seq.finite.zip', function () {
       this.configure('seq.finite.traversal').seq.finite
-        /se[l[seq = _, slice = Array.prototype.slice][_.prototype.zip() =
-          l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
-           [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
-            l[l = as.map(fn[x][x.size ? x.size() : x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
-            new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]]]]}).
+        /se[_.prototype.zip() = l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
+                                 [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
+                                  l[l = as.map(fn[x][x.size ? x.size() : x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
+                                  new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]],
+            where[seq = _, slice = Array.prototype.slice]]}).
 
   Quantification.
   Functions to determine whether all sequence elements have some property. If an element satisfying the predicate is found, exists() returns the output of the predicate for that element. (So,
@@ -3537,7 +3538,7 @@ element of the stream, and the latter returns a stream containing the rest of th
           _.def('k',    fn   [x][this._x = x],              fn_[this._x], fn_[this])]}).
 
   Anamorphisms via fixed-point.
-  Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns f(x), f(f(x)), f(f(f(x))), ....
+  Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns x, f(x), f(f(x)), f(f(f(x))), ....
 
     tconfiguration('std', 'seq.infinite.y', function () {
       this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
@@ -3566,6 +3567,28 @@ element of the stream, and the latter returns a stream containing the rest of th
         /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
             _.take(f) = l*[xs = new finite(), next(s)(cc) = l[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
 
+Sequence utilities.
+These methods are useful both for finite and for infinite sequences. Probably the most useful here is n(), which produces a bounded sequence of integers. You use n() like this:
+
+| caterwaul.seq.n(10)                   -> [0, 1, 2, ..., 8, 9]
+  caterwaul.seq.n(1, 10)                -> [1, 2, ..., 8, 9]
+  caterwaul.seq.n(1, 10, 0.5)           -> [1, 1.5, 2, 2.5, ..., 8, 8.5, 9, 9.5]
+  caterwaul.seq.n(-10)                  -> [0, -1, -2, ..., -8, -9]
+  caterwaul.seq.n(-1, -10)              -> [-1, -2, ..., -8, -9]
+  caterwaul.seq.n(-1, -10, 0.5)         -> [-1, -1.5, -2, ..., -8, -8.5, -9, -9.5]
+
+Also useful is the infinite stream of natural numbers and its companion function naturals_from:
+
+| caterwaul.seq.naturals                -> [0, 1, 2, 3, ...]
+  caterwaul.seq.naturals_from(2)        -> [2, 3, 4, 5, ...]
+
+  tconfiguration('std opt', 'seq.numeric', function () {
+    this.configure('seq.infinite.core seq.infinite.y seq.finite.core').seq /se[
+      _.naturals_from(x) = new _.infinite.y(fn[n][n + 1], x),
+      _.naturals         = _.naturals_from(0),
+      _.n(l, u, s)       = l[lower = arguments.length > 1 ? l : 0, upper = arguments.length > 1 ? u : l]
+                            [l[step = Math.abs(s || 1) * (lower < upper ? 1 : -1)] in new _.infinite.y(fn[n][n + step], lower).take(fn[x][(upper - lower) * (upper - x) > 0])]]}).
+
 Sequence manipulation language.
 Using methods to manipulate sequences can be clunky, so the sequence library provides a macro to enable sequence-specific manipulation. You enter this mode by using seq[], and expressions
 inside the brackets are interpreted as sequence transformations. For example, here is some code translated into the seq[] macro:
@@ -3577,6 +3600,8 @@ These operators are supported and take their normal Javascript precedence and as
 
 | x *[_ + 2]            // x.map(fn[_, _i][_ + 2])
   x *~[_ + xs]          // x.map(fn[_, _i][_.concat(xs)])
+  x *-[_ + 2]           // x.map(fb[_, _i][_ + 2])
+  x *~-[_ + xs]         // x.map(fb[_, _i][_.concat(xs)])
   x *+(console/mb/log)  // x.map(console/mb/log)
   x *!+f                // x.each(f)
   x *![console.log(_)]  // x.each(fn[_, _i][console.log(_)])
@@ -3602,8 +3627,8 @@ These operators are supported and take their normal Javascript precedence and as
   x -~i[~[i, i + 1]]    // x.flat_map(fn[i, ii][seq[~[i, i + 1]]])
   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
-  x || y                // x && x.size() ? x : y
-  x && y                // x && x.size() ? y : x
+  x || y                // x && x.size() ? x : y        // except that each sequence is evaluated at most once, and if x && x.size() then y is not evaluated at all
+  x && y                // x && x.size() ? y : x        // same here, except evaluation semantics are for && instead of ||
   x > y                 // x.size() > y.size()
   x >= y                // x.size() >= y.size()
   x < y                 // x.size() < y.size()
@@ -3615,21 +3640,40 @@ These operators are supported and take their normal Javascript precedence and as
   sk[x]                 // caterwaul.seq.finite.keys(x)
   sv[x]                 // caterwaul.seq.finite.values(x)
   sp[x]                 // caterwaul.seq.finite.pairs(x)
+  n[...]                // caterwaul.seq.n(...)
+  N                     // caterwaul.seq.naturals
+  N[x]                  // caterwaul.seq.naturals_from
   x ^ y                 // x.zip(y)
   x + y                 // x.concat(y)
   !x                    // x.object()
   ~x                    // new caterwaul.seq.finite(x)
-  +(x)                  // x    (this means 'literal')
+  +(x)                  // x    (this means 'literal', so no sequence transformations are applied to x)
 
-Method calls are treated normally and arguments are untransformed; so you can call methods normally.
+Method calls are treated normally and arguments are untransformed; so you can call methods normally. Also, each operator above makes sure to evaluate each operand at most once (basically
+mirroring the semantics of the Javascript operators in terms of evaluation).
 
   Modifiers.
   There are patterns in the above examples. For instance, x %[_ + 1] is the root form of the filter operator, but you can also write x %n[n + 1] to use a different variable name. The ~
   modifier is available as well; this evaluates the expression inside brackets in sequence context rather than normal Javascript. (e.g. xs %~[_ |[_ === 1]] finds all subsequences that contain
   1.) Finally, some operators have a ! variant (fully listed in the table above). In this case, the ! always precedes the ~.
 
+  New in Caterwaul 0.6.7 is the unary - modifier, which preserves a function's binding. For example, seq[~xs *[this]] returns a sequence containing references to itself, whereas seq[~xs
+  *-[this]] returns a sequence containing references to whatever 'this' was in the context containing the sequence comprehension. The difference is whether an fn[] or fb[] is used.
+
   Another modifier is +; this lets you use point-free form rather than creating a callback function. For example, xs %+divisible_by(3) expands into xs.filter(divisible_by(3)). This modifier
   goes where ~ would have gone.
+
+  Bound variables.
+  In addition to providing operator-to-method conversion, the seq[] macro also provides some functions. Prior to Caterwaul 0.6.7 you had to manually construct anamorphic sequences of integers,
+  so a lot of code looked like seq[(0 >>>[_ + 1]) *![...]]. Caterwaul 0.6.7 introduces the following shorthands:
+
+  | seq[N]              // caterwaul.seq.naturals
+    seq[N[10]]          // caterwaul.seq.naturals_from(10)
+    seq[n[10]]          // caterwaul.seq.n(10), which becomes [0, 1, ..., 9]
+    seq[n[5, 10]]       // caterwaul.seq.n(5, 10), which becomes [5, 6, 7, 8, 9]
+    seq[n[5, 8, 0.5]]   // caterwaul.seq.n(5, 8, 0.5)
+
+  These should eliminate most if not all occurrences of manual anamorphic generation.
 
   Inside the DSL code.
   This code probably looks really intimidating, but it isn't actually that complicated. The first thing I'm doing is setting up a few methods to help with tree manipulation. The
@@ -3651,43 +3695,48 @@ Method calls are treated normally and arguments are untransformed; so you can ca
 
       /se[_.prefix_substitute(tree, prefix)      = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
           _.define_functional(op, expansion, xs) = trees_for(op).map(fn[t, i][_.macro(t,
-            fn[l, v, r][expansion.replace({x: _.macroexpand(l), y: i < 4 ? qs[fn[xs][y]].replace({xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
-                                                                                                   y: (i & 2 ? _.macroexpand : fn[x][x])(r || v)}) : v})])]),
+            fn[l, v, r][expansion.replace({_x: _.macroexpand(l), _y: i >= 8 ? v : qs[fn[xs][y]].replace({fn: i & 2 ? qs[fb] : qs[fn], xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
+                                                                                                                                      y: (i & 4 ? _.macroexpand : fn[x][x])(r || v)})})])]),
 
-          _.define_functional /se[_('%',  qs[x.filter(y)],                      qs[_, _i]), _('*',  qs[x.map(y)],    qs[_, _i]), _('/',  qs[x.foldl(y)],    qs[_, _0, _i]),
-                                  _('%!', qs[x.filter(c(y))].replace({c: not}), qs[_, _i]), _('*!', qs[x.each(y)],   qs[_, _i]), _('/!', qs[x.foldr(y)],    qs[_, _0, _i]),
-                                  _('&',  qs[x.forall(y)],                      qs[_, _i]), _('|',  qs[x.exists(y)], qs[_, _i]), _('-',  qs[x.flat_map(y)], qs[_, _i]),
-                                  _('>>', qs[x.drop(y)],  qs[_]), _('<<', qs[x.take(y)], qs[_]), _('>>>', qs[new r(y, x)].replace({r: new this.ref(this.seq.infinite.y)}), qs[_])],
+          _.define_functional /se[_('%',  qs[_x.filter(_y)],                      qs[_, _i]), _('*',  qs[_x.map(_y)],    qs[_, _i]), _('/',  qs[_x.foldl(_y)],    qs[_, _0, _i]),
+                                  _('%!', qs[_x.filter(c(_y))].replace({c: not}), qs[_, _i]), _('*!', qs[_x.each(_y)],   qs[_, _i]), _('/!', qs[_x.foldr(_y)],    qs[_, _0, _i]),
+                                  _('&',  qs[_x.forall(_y)],                      qs[_, _i]), _('|',  qs[_x.exists(_y)], qs[_, _i]), _('-',  qs[_x.flat_map(_y)], qs[_, _i]),
+                                  _('>>', qs[_x.drop(_y)],  qs[_]), _('<<', qs[_x.take(_y)], qs[_]), _('>>>', qs[new caterwaul.seq.infinite.y(_y, _x)], qs[_])],
 
-          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[qg[x].size() + qg[y].size()].clone() /se[_.data = op]))]),
+          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[qg[_x].size() + qg[_y].size()].clone() /se[_.data = op]))]),
 
           l[e(x) = _.macroexpand(x)] in
-          _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = x][xp && xp.size() ? y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = x][xp && xp.size() ? xp : y]]])),
-                      _(qs[_ === _], rxy(qs[qg[l[xp = x, yp = y][xp === yp ||  xp.size() === yp.size() && xp.zip(yp).forall(fn[p][p[0] === p[1]])]]])),
-                      _(qs[_ !== _], rxy(qs[qg[l[xp = x, yp = y][xp !== yp && (xp.size() !== yp.size() || xp.zip(yp).exists(fn[p][p[0] !== p[1]]))]]])),
+          _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = _x][xp && xp.size() ? _y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = _x][xp && xp.size() ? xp : _y]]])),
+                      _(qs[_ === _], rxy(qs[qg[l[xp = _x, yp = _y][xp === yp ||  xp.size() === yp.size() && xp.zip(yp).forall(fn[p][p[0] === p[1]])]]])),
+                      _(qs[_ !== _], rxy(qs[qg[l[xp = _x, yp = _y][xp !== yp && (xp.size() !== yp.size() || xp.zip(yp).exists(fn[p][p[0] !== p[1]]))]]])),
 
-                      _(qs[_ ^ _], rxy(qs[x.zip(y)])), _(qs[_ + _], rxy(qs[x.concat(y)])), _(qs[!_], rxy(qs[x.object()])), _(qs[_, _], rxy(qs[x, y])),
-                      _(qs[~_], rxy(qs[new r(x)].as('(').replace({r: new this.ref(this.seq.finite)}))), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
+                      _(qs[_ ^ _], rxy(qs[_x.zip(_y)])), _(qs[_ + _], rxy(qs[_x.concat(_y)])), _(qs[!_], rxy(qs[_x.object()])), _(qs[_, _], rxy(qs[_x, _y])),
+                      _(qs[~_], rxy(qs[qg[new caterwaul.seq.finite(_x)]])), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
 
-                      l[rx(t)(x, y) = t.replace({x: e(x), y: y})][_(qs[_(_)], rx(qs[x(y)])), _(qs[_[_]], rx(qs[x[y]])), _(qs[_._], rx(qs[x.y])), _(qs[_].as('('), rx(qs[qg[x]]))],
+                      l[rx(t)(x, y) = t.replace({_x: e(x), _y: y})][_(qs[_(_)], rx(qs[_x(_y)])), _(qs[_[_]], rx(qs[_x[_y]])), _(qs[_._], rx(qs[_x._y])), _(qs[_].as('('), rx(qs[qg[_x]]))],
                       _(qs[+_], fn[x][x]),
 
-                      seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), fb[x][qs[r(x)].replace({r: new this.ref(this.seq.finite[p[1]]), x: x})])])],
+                      l[rx(t)(x) = t.replace({x: x})][_(qs[N], fn_[qs[caterwaul.seq.naturals]]), _(qs[N[_]], rx(qs[caterwaul.seq.naturals_from(x)])), _(qs[n[_]], rx(qs[caterwaul.seq.n(x)]))],
+
+                      seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), fn[x][qs[caterwaul.seq.finite.r(x)].replace({r: p[1], x: x})])])],
 
           this.rmacro(qs[seq[_]], _.macroexpand),
 
-          where*[template(op)(t) = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw, not = new this.ref(fn[f][fn_[!f.apply(this, arguments)]]),
-                 trees_for(op) = op.charAt(op.length - 1) === '!' ? seq([qs[![_]], qs[!_[_]], qs[!~[_]], qs[!~_[_]], qs[!+_]]).map(template(op.substring(0, op.length - 1))) :
-                                                                    seq([qs[[_]],  qs[_[_]],  qs[~[_]],  qs[~_[_]],  qs[+_]]). map(template(op)),
-                 rxy(tree)(x, y) = tree.replace({x: _.macroexpand(x), y: y && _.macroexpand(y)}), seq = fb[xs][new this.seq.finite(xs)]]]}).
+          where*[rxy(tree)(x, y)      = tree.replace({_x: _.macroexpand(x), _y: y && _.macroexpand(y)}), seq = fb[xs][new this.seq.finite(xs)],
+                 prepend(operator)(x) = qs[-x].replace({x: x}) /se[_.data = operator],
+                 tree_forms           = l*[base = seq([qs[[_]], qs[_[_]]]), mod(fs, op) = fs.concat(fs.map(prepend(op)))] in mod(mod(base, 'u-'), 'u~').concat(seq([qs[+_]])),
+
+                 template(op)(t)      = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw, not = qs[qg[fn[f][fn_[!f.apply(this, arguments)]]]],
+                 trees_for(op)        = tree_forms /re[op.charAt(op.length - 1) === '!' ? _.map(prepend('u!')) : _] /re[_.map(template(op.replace(/!$/, '')))]]]}).
 
 Final configuration.
 Rather than including individual configurations above, you'll probably just want to include this one.
 
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
-                                                            'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.dsl')});
-__454cedfb87f4bc53b9aaaf2b715bd15d
-meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__8bbf15c78ec6b8316138afc180d80b41');
+                                                            'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal ' +
+                                                            'seq.numeric seq.dsl')});
+__acc8857765c8820d3076fd2b3da12691
+meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__3502609e09551b17c6963c7c4872f50c');
 Sequence DSL tests.
 
 test('caterwaul.seq.dsl', function () {
@@ -3760,8 +3809,22 @@ test('caterwaul.seq.dsl', function () {
     var ten = seq[(~[1, 2, 3, 4] -[[_]]) /[_ + _0]];
     eq(ten, 10);
   })(eq);
+
+  c(function (eq) {
+    var s1 = seq[~[1, 2, 3]];
+    var s2 = seq[s1 -[this]];
+
+    eq(s2.size(), 9);
+    eq(s2.join(' '), '1 2 3 1 2 3 1 2 3');
+
+    var s3 = seq[s1 *-[this]];
+
+    eq(s3[0], this);
+    eq(s3[1], this);
+    eq(s3[2], this);
+  })(eq);
 });
-__8bbf15c78ec6b8316138afc180d80b41
+__3502609e09551b17c6963c7c4872f50c
 meta::sdoc('js::modules/caterwaul.seq.test/finite.core', <<'__4c1df949aae430af5eb950a2e943a4a2');
 Finite sequence core method tests.
 
@@ -4050,6 +4113,32 @@ test('caterwaul.seq.infinite.y', function () {
   })(eq);
 });
 __03fea126b6398edcb55191f34120c1f7
+meta::sdoc('js::modules/caterwaul.seq.test/numeric', <<'__b0a2d54c0f5713cd919ec25076478def');
+Numeric sequence tests.
+
+test('caterwaul.seq.numeric', function () {
+  var c = caterwaul.clone('std seq continuation');
+
+  c(function (eq) {
+    eq(caterwaul.seq.naturals.take(fn[x][x < 5]).join(','), '0,1,2,3,4');
+
+    eq(caterwaul.seq.naturals.h(), 0);
+    eq(caterwaul.seq.naturals.t().h(), 1);
+    eq(caterwaul.seq.naturals.t().t().h(), 2);
+
+    eq(seq[N].h(), 0);
+    eq(seq[N].t().h(), 1);
+    eq(seq[N].t().t().h(), 2);
+
+    eq(seq[N[10]].h(), 10);
+    eq(seq[N[10]].t().h(), 11);
+
+    eq(caterwaul.seq.n(5).join(','), '0,1,2,3,4');
+    eq(caterwaul.seq.n(1, 5).join(','), '1,2,3,4');
+    eq(caterwaul.seq.n(1, 5, 0.5).join(','), '1,1.5,2,2.5,3,3.5,4,4.5');
+  })(eq);
+});
+__b0a2d54c0f5713cd919ec25076478def
 meta::sdoc('js::modules/caterwaul.std', <<'__d4d7f32b713e344f72b86f274c2f05dc');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
