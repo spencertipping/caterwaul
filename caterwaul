@@ -207,6 +207,7 @@ meta::define_form 'state', \&meta::bootstrap::implementation;
 __c1f29670be26f1df6100ffe4334e1202
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::alias('e', 'edit sdoc::js::caterwaul');
+meta::alias('me', 'macroexpand');
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -498,7 +499,7 @@ meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
 my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
 edit($modules[0]);
 __3167c4c7bc087a3b0d524cada827fe55
-meta::function('me', <<'__ba8d14b1caf169f49834baa8018001c0');
+meta::function('macroexpand', <<'__ba8d14b1caf169f49834baa8018001c0');
 # Macroexpands stuff.
 node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::macroexpander'], @_);
 __ba8d14b1caf169f49834baa8018001c0
@@ -755,6 +756,10 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
+meta::hook('after-render::cleanup', <<'__bed5f344bd83acce36cb48d6e4038dc3');
+# Nuke some things that get created by render().
+unlink qw/macroexpander.js parser.js/;
+__bed5f344bd83acce36cb48d6e4038dc3
 meta::hook('after-render::minify', <<'__82392bd3e04d3e90452e040727a169ea');
 # Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
 my @files = ('caterwaul', map "modules/caterwaul.$_", qw|std opt continuation seq heap memoize parser|);

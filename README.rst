@@ -81,5 +81,15 @@ unit tests and compile the regular Javascript files. It's not hard to hack on Ca
     caterwaul4012 ^D                            # Exit, saving changes
     $
 
+Also potentially useful are ``parse`` and ``macroexpand``::
+
+    $ ./caterwaul parse 'foo.bar.bif'
+    (. (. foo bar) bif)
+    $ ./caterwaul macroexpand 'seq[xs *[_ + 1]]'
+    xs.map((function (_, _i) {
+      return _ + 1
+    }))
+    $
+
 If you haven't used self-modifying Perl before, then you should definitely read `writing self-modifying Perl <http://github.com/spencertipping/writing-self-modifying-perl>`_, which covers the
 concept in depth.
