@@ -1,14 +1,12 @@
 /* General styling.*/
 
-body {font-family: sans-serif; margin: 0; overflow: hidden}
+* {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace; font-size: 9pt}
+body {margin: 0; overflow: hidden}
 
 /* Fonts.*/
 /* Most components here use the Droid mono font.*/
 
 @import url(http://fonts.googleapis.com/css?family=Droid%20Sans%20Mono&subset=latin);
-
-.fixed {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace}
-.large {font-size: 9pt}
 
 /* Styling for the input area.*/
 /* Both the input and macroexpansion areas float inside a container just below the history log. This is a direct child of the body.*/
@@ -26,7 +24,9 @@ input:focus {border: none}
 
 .shell {max-height: 100%; overflow: auto}
 .log {padding: 10px}
-.log pre {font-size: 9pt; margin: 1px; padding: 2px}
+.log pre {margin: 1px; padding: 2px}
+
+.clickable {cursor: pointer}
 
 .log .input pre {color: #777}
 .log .error pre {color: #a53}

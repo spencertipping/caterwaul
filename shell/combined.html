@@ -28,8 +28,8 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
          up_arrow_keycode         = options.history_up_keycode   || 38,
          down_arrow_keycode       = options.history_down_keycode || 40,
 
-         value_inspector(v)       = html[div.inspector]
-                                    /se.i[i.append(specific()),
+         value_inspector(v)       = html[div.inspector(pre.clickable /text('' + v))]
+                                    /se.i[i.click(fn_[i.empty().append(specific())]),
                                     
                                           where*[nullish_inspector(v)     = html[div.nullish_inspector(pre /text('' + v))],
                                                  array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'))],
@@ -76,7 +76,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                restart_timer()             = timer /se[_ && clearTimeout(_), timer = setTimeout(do_timer_action, input_syntax_check_delay)],
 
                                syntax_errors(s)            = s ? unwind_protect[e.toString()][new Function('return (#{s})') && ''] : ' ',
-                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
+                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global.clone()(caterwaul.parse(code))),
 
                                result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
                                compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}', environment)],
@@ -112,15 +112,13 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
 </script>
   <style>/* General styling.*/
 
-body {font-family: sans-serif; margin: 0; overflow: hidden}
+* {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace; font-size: 9pt}
+body {margin: 0; overflow: hidden}
 
 /* Fonts.*/
 /* Most components here use the Droid mono font.*/
 
 @import url(http://fonts.googleapis.com/css?family=Droid%20Sans%20Mono&subset=latin);
-
-.fixed {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace}
-.large {font-size: 9pt}
 
 /* Styling for the input area.*/
 /* Both the input and macroexpansion areas float inside a container just below the history log. This is a direct child of the body.*/
@@ -138,7 +136,9 @@ input:focus {border: none}
 
 .shell {max-height: 100%; overflow: auto}
 .log {padding: 10px}
-.log pre {font-size: 9pt; margin: 1px; padding: 2px}
+.log pre {margin: 1px; padding: 2px}
+
+.clickable {cursor: pointer}
 
 .log .input pre {color: #777}
 .log .error pre {color: #a53}

@@ -20,8 +20,8 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
          up_arrow_keycode         = options.history_up_keycode   || 38,
          down_arrow_keycode       = options.history_down_keycode || 40,
 
-         value_inspector(v)       = html[div.inspector]
-                                    /se.i[i.append(specific()),
+         value_inspector(v)       = html[div.inspector(pre.clickable /text('' + v))]
+                                    /se.i[i.click(fn_[i.empty().append(specific())]),
                                     
                                           where*[nullish_inspector(v)     = html[div.nullish_inspector(pre /text('' + v))],
                                                  array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'))],
@@ -68,7 +68,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                restart_timer()             = timer /se[_ && clearTimeout(_), timer = setTimeout(do_timer_action, input_syntax_check_delay)],
 
                                syntax_errors(s)            = s ? unwind_protect[e.toString()][new Function('return (#{s})') && ''] : ' ',
-                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
+                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global.clone()(caterwaul.parse(code))),
 
                                result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
                                compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}', environment)],

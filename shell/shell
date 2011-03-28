@@ -1178,18 +1178,16 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('css::index', <<'__9090397f330212f49a0b2dea4c5b1c7a');
+meta::sdoc('css::index', <<'__a1f6bcaaccc0bfef282b0cbf5b49d56e');
 General styling.
 
-body {font-family: sans-serif; margin: 0; overflow: hidden}
+* {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace; font-size: 9pt}
+body {margin: 0; overflow: hidden}
 
 Fonts.
 Most components here use the Droid mono font.
 
 @import url(http://fonts.googleapis.com/css?family=Droid%20Sans%20Mono&subset=latin);
-
-.fixed {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace}
-.large {font-size: 9pt}
 
 Styling for the input area.
 Both the input and macroexpansion areas float inside a container just below the history log. This is a direct child of the body.
@@ -1207,12 +1205,14 @@ These are color-coded by role.
 
 .shell {max-height: 100%; overflow: auto}
 .log {padding: 10px}
-.log pre {font-size: 9pt; margin: 1px; padding: 2px}
+.log pre {margin: 1px; padding: 2px}
+
+.clickable {cursor: pointer}
 
 .log .input pre {color: #777}
 .log .error pre {color: #a53}
 .log .value pre {color: #222}
-__9090397f330212f49a0b2dea4c5b1c7a
+__a1f6bcaaccc0bfef282b0cbf5b49d56e
 meta::sdoc('html::index', <<'__2d67831279ef6cbafa02f8f8b25248f1');
 <!doctype html>
 <html>
@@ -1238,7 +1238,7 @@ $(caterwaul.clone('std seq continuation')(function () {
   where*[adjust_sizing() = $('body').css({height: $(window).height()})];
 }));
 __566456a1ca5a7d13d6e117c1abd0aa0a
-meta::sdoc('js::shell', <<'__63eebd0831a67a5f4f789002478de0df');
+meta::sdoc('js::shell', <<'__232f1e37815e082e39d2ad0d670363a8');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1261,8 +1261,8 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
          up_arrow_keycode         = options.history_up_keycode   || 38,
          down_arrow_keycode       = options.history_down_keycode || 40,
 
-         value_inspector(v)       = html[div.inspector]
-                                    /se.i[i.append(specific()),
+         value_inspector(v)       = html[div.inspector(pre.clickable /text('' + v))]
+                                    /se.i[i.click(fn_[i.empty().append(specific())]),
                                     
                                           where*[nullish_inspector(v)     = html[div.nullish_inspector(pre /text('' + v))],
                                                  array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'))],
@@ -1309,7 +1309,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                restart_timer()             = timer /se[_ && clearTimeout(_), timer = setTimeout(do_timer_action, input_syntax_check_delay)],
 
                                syntax_errors(s)            = s ? unwind_protect[e.toString()][new Function('return (#{s})') && ''] : ' ',
-                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
+                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global.clone()(caterwaul.parse(code))),
 
                                result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
                                compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}', environment)],
@@ -1332,7 +1332,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                logging_functions()         = {log: log_value, error: log_error},
                                timing_functions()          = {profile: fn[f][l[start = +new Date()] in f() /se[log_value('#{+new Date() - start}ms')]]},
                                environment                 = caterwaul.util.merge(options.environment || {}, {console: console_object()})]]]});
-__63eebd0831a67a5f4f789002478de0df
+__232f1e37815e082e39d2ad0d670363a8
 internal::main();
 
 __END__
