@@ -1,6 +1,6 @@
 /* General styling.*/
 
-body {font-family: sans-serif; margin: 10px}
+body {font-family: sans-serif; margin: 0; overflow: hidden}
 
 /* Fonts.*/
 /* Most components here use the Droid mono font.*/
@@ -24,6 +24,8 @@ input:focus {border: none}
 /* History log elements.*/
 /* These are color-coded by role.*/
 
+.shell {max-height: 100%; overflow: auto}
+.log {padding: 10px}
 .log pre {font-size: 9pt; margin: 1px; padding: 2px}
 
 .log .input pre {color: #777}

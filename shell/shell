@@ -1178,10 +1178,10 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('css::index', <<'__53672a80ad34e8e103dab2ed26778e83');
+meta::sdoc('css::index', <<'__97f066c169aac25d9b4167f1e7c602b3');
 General styling.
 
-body {font-family: sans-serif; margin: 10px}
+body {font-family: sans-serif; margin: 0; overflow: hidden}
 
 Fonts.
 Most components here use the Droid mono font.
@@ -1205,12 +1205,14 @@ input:focus {border: none}
 History log elements.
 These are color-coded by role.
 
+.shell {max-height: 100%; overflow: auto}
+.log {padding: 10px}
 .log pre {font-size: 9pt; margin: 1px; padding: 2px}
 
 .log .input pre {color: #777}
 .log .error pre {color: #a53}
 .log .value pre {color: #222}
-__53672a80ad34e8e103dab2ed26778e83
+__97f066c169aac25d9b4167f1e7c602b3
 meta::sdoc('html::index', <<'__2d67831279ef6cbafa02f8f8b25248f1');
 <!doctype html>
 <html>
@@ -1227,12 +1229,16 @@ meta::sdoc('html::index', <<'__2d67831279ef6cbafa02f8f8b25248f1');
   <body></body>
 </html>
 __2d67831279ef6cbafa02f8f8b25248f1
-meta::sdoc('js::index', <<'__38e18c1deb106c6e5b6b414649daebed');
-$(function () {
+meta::sdoc('js::index', <<'__eb20c6cea01425382dfadfec48e43e3f');
+$(caterwaul.clone('std seq continuation')(function () {
   $('body').append(shell());
-});
-__38e18c1deb106c6e5b6b414649daebed
-meta::sdoc('js::shell', <<'__32eedbbf36cbf7ecfca09aec9ba4d232');
+  setTimeout(fn_[$('.prompt .input').focus()], 10);
+
+  adjust_sizing(), $(window).resize(),
+  where*[adjust_sizing() = $('body').css({height: $(window).height()})];
+}));
+__eb20c6cea01425382dfadfec48e43e3f
+meta::sdoc('js::shell', <<'__8f4b79087d3f0c8b5390331a778618d8');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1263,6 +1269,8 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                         where*[edit_history                = seq[~[]],
                                edit_index                  = 0,
 
+                               event(name)                 = l[f = options[name]][f && f.apply(this, seq[~arguments].slice(1))],
+
                                navigate_through_history(e) = e.which === up_arrow_keycode ? history_up() : history_down(),
                                history_up()                = edit_index > 0                   && stash_current_entry() && load_new_entry(edit_index - 1),
                                history_down()              = edit_index < edit_history.size() && stash_current_entry() && load_new_entry(edit_index + 1),
@@ -1271,27 +1279,29 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                load_new_entry(index)       = p.find('.input') /se[_.val(edit_history[edit_index = index] || '')],
 
                                timer                       = null,
-                               do_timer_action()           = p.find('.macroexpansion').text(macroexpand(p.find('.input').val())),
+                               do_timer_action()           = l[expanded = macroexpand(p.find('.input').val())][event('macroexpansion', expanded), p.find('.macroexpansion').text(expanded)],
                                restart_timer()             = timer /se[_ && clearTimeout(_), timer = setTimeout(do_timer_action, input_syntax_check_delay)],
 
-                               syntax_errors(s)            = unwind_protect[e.toString()][new Function('return (#{s})') && ''],
+                               syntax_errors(s)            = s ? unwind_protect[e.toString()][new Function('return (#{s})') && ''] : ' ',
                                macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
 
                                result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
                                compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}')],
 
-                               accept_input(text, f)       = run_user_input(text, f) /se[history_append(text), p.find('.input, .macroexpansion').val('').text('')],
+                               accept_input(text, f)       = run_user_input(text, f) /se[history_append(text), clear_fields(), event('input_accepted', text, f)],
                                bombproof_execute(f)        = unwind_protect[{error: e}][{result: f()}],
+                               clear_fields()              = p.find('.input, .macroexpansion').val('').text(''),
                                run_user_input(text, f)     = l[result = bombproof_execute(f)][log_user_input(text), result.error ? log_error(result.error) : log_value(result.result)],
 
-                               reject_input(f)             = null,
+                               reject_input(f)             = event('input_rejected', f),
 
-                               after_log()                 = setTimeout(fn_[p.parent().scrollTop($('.prompt .macroexpansion').position().top + 80 - p.parent().height())], 0),
+                               adjust_scrolling()          = p.up('.shell').scrollTop(l[h = p.up('.shell').height()] in p.parent().height() - h * 5/3),
+                               after_log()                 = event('appended_to_log') /se[setTimeout(adjust_scrolling, 0)],
 
                                log_error(e)                = p.before(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
                                log_user_input(s)           = p.before(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
                                log_value(v)                = p.before(html[div.value(pre.fixed /text(v == null ? '' + v : v.toString()))]) /se[after_log()]]]]});
-__32eedbbf36cbf7ecfca09aec9ba4d232
+__8f4b79087d3f0c8b5390331a778618d8
 internal::main();
 
 __END__

@@ -28,6 +28,8 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                         where*[edit_history                = seq[~[]],
                                edit_index                  = 0,
 
+                               event(name)                 = l[f = options[name]][f && f.apply(this, seq[~arguments].slice(1))],
+
                                navigate_through_history(e) = e.which === up_arrow_keycode ? history_up() : history_down(),
                                history_up()                = edit_index > 0                   && stash_current_entry() && load_new_entry(edit_index - 1),
                                history_down()              = edit_index < edit_history.size() && stash_current_entry() && load_new_entry(edit_index + 1),
@@ -36,22 +38,24 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                load_new_entry(index)       = p.find('.input') /se[_.val(edit_history[edit_index = index] || '')],
 
                                timer                       = null,
-                               do_timer_action()           = p.find('.macroexpansion').text(macroexpand(p.find('.input').val())),
+                               do_timer_action()           = l[expanded = macroexpand(p.find('.input').val())][event('macroexpansion', expanded), p.find('.macroexpansion').text(expanded)],
                                restart_timer()             = timer /se[_ && clearTimeout(_), timer = setTimeout(do_timer_action, input_syntax_check_delay)],
 
-                               syntax_errors(s)            = unwind_protect[e.toString()][new Function('return (#{s})') && ''],
+                               syntax_errors(s)            = s ? unwind_protect[e.toString()][new Function('return (#{s})') && ''] : ' ',
                                macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
 
                                result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
                                compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}')],
 
-                               accept_input(text, f)       = run_user_input(text, f) /se[history_append(text), p.find('.input, .macroexpansion').val('').text('')],
+                               accept_input(text, f)       = run_user_input(text, f) /se[history_append(text), clear_fields(), event('input_accepted', text, f)],
                                bombproof_execute(f)        = unwind_protect[{error: e}][{result: f()}],
+                               clear_fields()              = p.find('.input, .macroexpansion').val('').text(''),
                                run_user_input(text, f)     = l[result = bombproof_execute(f)][log_user_input(text), result.error ? log_error(result.error) : log_value(result.result)],
 
-                               reject_input(f)             = null,
+                               reject_input(f)             = event('input_rejected', f),
 
-                               after_log()                 = setTimeout(fn_[p.parent().scrollTop($('.prompt .macroexpansion').position().top + 80 - p.parent().height())], 0),
+                               adjust_scrolling()          = p.up('.shell').scrollTop(l[h = p.up('.shell').height()] in p.parent().height() - h * 5/3),
+                               after_log()                 = event('appended_to_log') /se[setTimeout(adjust_scrolling, 0)],
 
                                log_error(e)                = p.before(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
                                log_user_input(s)           = p.before(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
