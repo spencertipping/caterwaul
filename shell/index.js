@@ -50,7 +50,7 @@ $(caterwaul.clone('std format seq continuation montenegro')(function () {
 
                                reject_input(f)             = null,
 
-                               after_log()                 = setTimeout(fn_[$(window).scrollTop($('.prompt .macroexpansion').offset().top + 20 - $(window).height())], 0),
+                               after_log()                 = setTimeout(fn_[$(window).scrollTop($('.prompt .macroexpansion').offset().top + 80 - $(window).height())], 0),
 
                                log_error(e)                = $('#log').append(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
                                log_user_input(s)           = $('#log').append(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],

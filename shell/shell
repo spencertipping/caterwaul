@@ -1217,7 +1217,7 @@ meta::sdoc('html::index', <<'__ff76a39841f5ca1884b0d3c319a202c3');
   <body></body>
 </html>
 __ff76a39841f5ca1884b0d3c319a202c3
-meta::sdoc('js::index', <<'__2975dc8a769f7775becfebb14f83ed41');
+meta::sdoc('js::index', <<'__fc3af35e769f7775becfebb14f83ed41');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1270,14 +1270,14 @@ $(caterwaul.clone('std format seq continuation montenegro')(function () {
 
                                reject_input(f)             = null,
 
-                               after_log()                 = setTimeout(fn_[$(window).scrollTop($('.prompt .macroexpansion').offset().top + 20 - $(window).height())], 0),
+                               after_log()                 = setTimeout(fn_[$(window).scrollTop($('.prompt .macroexpansion').offset().top + 80 - $(window).height())], 0),
 
                                log_error(e)                = $('#log').append(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
                                log_user_input(s)           = $('#log').append(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
                                log_value(v)                = $('#log').append(html[div.value(pre.fixed /text(v == null ? '' + v : v.toString()))]) /se[after_log()]]],
 
          log = html[div *id('log')]]}));
-__2975dc8a769f7775becfebb14f83ed41
+__fc3af35e769f7775becfebb14f83ed41
 internal::main();
 
 __END__
