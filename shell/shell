@@ -504,7 +504,6 @@ my @flags       = map {my $k = $_; join '', map($flag_hashes{$_}{$k} ? $_ : '-',
 join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [grep length, @externals], $dereference ? ([@externals]) : (),
                                                     $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : ());
 __acdc3ca5777ab9c7c430d493a7555998
-meta::function('lss', '# Attribute function::lss');
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
@@ -1162,15 +1161,14 @@ function::dupdate
 meta::type::cached_dependency
 parent::/home/spencertipping/bin/configuration
 __f88c2b0e5725507b3fdb5719fd65e6d3
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__2d47795f5a2f946e1655dcc68b32aadd');
-function::lss
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__6b80e7e220f0ce19851eaf5bb9cf2fc7');
 function::sdoc
 function::sdocp
 meta::type::sdoc
 parent::/home/spencertipping/bin/object
 retriever::sdoc
 retriever::sdocp
-__2d47795f5a2f946e1655dcc68b32aadd
+__6b80e7e220f0ce19851eaf5bb9cf2fc7
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
