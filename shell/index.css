@@ -19,7 +19,7 @@ input:focus {border: none}
 .prompt {width: 100%; margin-top: -3px}
 
 .prompt .input          {width: 100%; padding: 2px}
-.prompt .macroexpansion {width: 100%; padding: 2px; min-height: 500px; margin: 0; color: #888}
+.prompt .macroexpansion {width: 100%; padding: 2px; min-height: 200px; margin: 0; color: #888; overflow: auto}
 
 /* History log elements.*/
 /* These are color-coded by role.*/

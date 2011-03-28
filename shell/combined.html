@@ -28,6 +28,32 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
          up_arrow_keycode         = options.history_up_keycode   || 38,
          down_arrow_keycode       = options.history_down_keycode || 40,
 
+         value_inspector(v)       = html[div.inspector]
+                                    /se.i[i.append(specific()),
+                                    
+                                          where*[nullish_inspector(v)     = html[div.nullish_inspector(pre /text('' + v))],
+                                                 array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'))],
+                                                 regexp_inspector(v)      = html[div.regexp_inspector(pre /text(v.toString()), div.interact)]
+                                                                            /se.i[i.find('.interact').append(html[input /keyup(test) /change(test) /blur(test)]),
+                                                                                  where*[test() = i.find('input') /se[_.css({color: v.test(_.val()) ? 'green' : 'red'})]]],
+                                                 html_inspector(v)        = html[div.html_inspector(pre /text(v.outerHTML))],
+                                                 boxed_inspector(v)       = html[div.boxed_inspector(primitive_inspector(v), object_inspector(v))],
+                                                 function_inspector(v)    = html[div.function_inspector(pre /text(caterwaul.clone('format').format(caterwaul.parse(v.toString()))))],
+                                                 object_inspector(v)      = html[div.object_inspector(table)]
+                                                                            /se.i[i.find('table').append(rows()),
+                                                                                  where*[rows()    = seq[sp[v] *[row(_[0], _[1])]],
+                                                                                         row(k, v) = html[tr(td.key /text(k), td.value(value_inspector(v)))]]],
+                                                 primitive_inspector(v)   = html[div.primitive_inspector(pre /text('' + v))],
+
+                                                 specific()               = v instanceof RegExp                                                                        ? regexp_inspector(v) :
+                                                                            v instanceof Function                                                                      ? function_inspector(v) :
+                                                                            typeof v === 'object' ? v == null                                                          ? nullish_inspector(v) :
+                                                                                                    v instanceof Array || 'length' in v && v.length - 1 in v           ? array_inspector(v) :
+                                                                                                    v instanceof HTMLElement                                           ? html_inspector(v) :
+                                                                                                    v instanceof String || v instanceof Number || v instanceof Boolean ? boxed_inspector(v) :
+                                                                                                                                                                         object_inspector(v) :
+                                                                                                    primitive_inspector(v)]],
+
          prompt = html[div.prompt(input.input.fixed.large, pre.macroexpansion.fixed.large *readonly('true'))]
                   /se.p[p.find('.input').keyup(restart_timer).
                                          keyup(fn[e][navigate_through_history(e), when[e.which === up_arrow_keycode || e.which === down_arrow_keycode]]).
@@ -53,28 +79,33 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
 
                                result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
-                               compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}')],
+                               compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}', environment)],
 
                                accept_input(text, f)       = run_user_input(text, f) /se[history_append(text), clear_fields(), event('input_accepted', text, f)],
                                bombproof_execute(f)        = unwind_protect[{error: e}][{result: f()}],
                                clear_fields()              = p.find('.input, .macroexpansion').val('').text(''),
-                               run_user_input(text, f)     = l[result = bombproof_execute(f)][log_user_input(text), result.error ? log_error(result.error) : log_value(result.result)],
+                               run_user_input(text, f)     = log_user_input(text) /se[l[result = bombproof_execute(f)][result.error ? log_error(result.error) : log_value(result.result)]],
 
                                reject_input(f)             = event('input_rejected', f),
 
-                               adjust_scrolling()          = p.up('.shell').scrollTop(l[h = p.up('.shell').height()] in p.parent().height() - h * 5/3),
+                               adjust_scrolling()          = p.up('.shell').scrollTop(l[h = p.up('.shell').height()] in p.parent().height() - h),
                                after_log()                 = event('appended_to_log') /se[setTimeout(adjust_scrolling, 0)],
 
-                               log_error(e)                = p.before(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
-                               log_user_input(s)           = p.before(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
-                               log_value(v)                = p.before(html[div.value(pre.fixed /text(v == null ? '' + v : v.toString()))]) /se[after_log()]]]]});
+                               log_error(e)                = e /se[p.before(html[div.error(value_inspector(e))]) /se[after_log()]],
+                               log_user_input(s)           = s /se[p.before(html[div.input(pre.fixed /text(s))]) /se[after_log()]],
+                               log_value(v)                = v /se[p.before(html[div.value(value_inspector(v))]) /se[after_log()]],
+
+                               console_object()            = caterwaul.util.merge({}, logging_functions(), timing_functions()),
+                               logging_functions()         = {log: log_value, error: log_error},
+                               timing_functions()          = {profile: fn[f][l[start = +new Date()] in f() /se[log_value('#{+new Date() - start}ms')]]},
+                               environment                 = caterwaul.util.merge(options.environment || {}, {console: console_object()})]]]});
 // Generated by SDoc 
 </script>
   <script>$(caterwaul.clone('std seq continuation')(function () {
   $('body').append(shell());
   setTimeout(fn_[$('.prompt .input').focus()], 10);
 
-  adjust_sizing(), $(window).resize(),
+  adjust_sizing(), $(window).resize(adjust_sizing),
   where*[adjust_sizing() = $('body').css({height: $(window).height()})];
 }));
 // Generated by SDoc 
@@ -100,7 +131,7 @@ input:focus {border: none}
 .prompt {width: 100%; margin-top: -3px}
 
 .prompt .input          {width: 100%; padding: 2px}
-.prompt .macroexpansion {width: 100%; padding: 2px; min-height: 500px; margin: 0; color: #888}
+.prompt .macroexpansion {width: 100%; padding: 2px; min-height: 200px; margin: 0; color: #888; overflow: auto}
 
 /* History log elements.*/
 /* These are color-coded by role.*/
