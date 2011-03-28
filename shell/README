@@ -1,0 +1,6 @@
+Caterwaul shell
+This is a REPL that macroexpands code you type into it. Below the prompt is a
+macroexpansion preview. The default shell page has external dependencies, but
+combined.html is self-contained (modulo jQuery and Caterwaul, which are loaded
+over HTTP) and can be served from anywhere to have a powerful API testing
+interface.
