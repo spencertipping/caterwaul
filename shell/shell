@@ -1,0 +1,1283 @@
+#!/usr/bin/perl
+# Run perldoc on this file for documentation.
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value, %options) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value unless $options{no_binding};
+    $delegate->($name, $value) unless $options{no_delegate}}}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name")};
+
+meta::meta('configure', <<'__25976e07665878d3fae18f050160343f');
+# A function to configure transients. Transients can be used to store any number of
+# different things, but one of the more common usages is type descriptors.
+
+sub meta::configure {
+  my ($datatype, %options) = @_;
+  $transient{$_}{$datatype} = $options{$_} for keys %options;
+}
+__25976e07665878d3fae18f050160343f
+meta::meta('externalize', <<'__9141b4e8752515391385516ae94b23b5');
+# Function externalization. Data types should call this method when defining a function
+# that has an external interface.
+
+sub meta::externalize {
+  my ($name, $attribute, $implementation) = @_;
+  $externalized_functions{$name} = $attribute;
+  *{"::$name"} = $implementation || $attribute;
+}
+__9141b4e8752515391385516ae94b23b5
+meta::meta('functor::editable', <<'__e3d2ede6edf65ffe2123584b2bd5dab7');
+# An editable type. This creates a type whose default action is to open an editor
+# on whichever value is mentioned. This can be changed using different flags.
+
+sub meta::functor::editable {
+  my ($typename, %options) = @_;
+
+  meta::configure $typename, %options;
+  meta::define_form $typename, sub {
+    my ($name, $value) = @_;
+
+    $options{on_bind} && &{$options{on_bind}}($name, $value);
+
+    meta::externalize $options{prefix} . $name, "${typename}::$name", sub {
+      my $attribute             = "${typename}::$name";
+      my ($command, @new_value) = @_;
+
+      return &{$options{default}}(retrieve($attribute)) if ref $options{default} eq 'CODE' and not defined $command;
+      return edit($attribute) if $command eq 'edit' or $options{default} eq 'edit' and not defined $command;
+      return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
+      return retrieve($attribute)}}}
+__e3d2ede6edf65ffe2123584b2bd5dab7
+meta::meta('type::alias', <<'__11f7dad00d90cc0277bb72b1364ec535');
+meta::configure 'alias', inherit => 0;
+meta::define_form 'alias', \&meta::bootstrap::implementation;
+__11f7dad00d90cc0277bb72b1364ec535
+meta::meta('type::bootstrap', <<'__297d03fb32df03b46ea418469fc4e49e');
+# Bootstrap attributes don't get executed. The reason for this is that because
+# they are serialized directly into the header of the file (and later duplicated
+# as regular data attributes), they will have already been executed when the
+# file is loaded.
+
+meta::configure 'bootstrap', extension => '.pl', inherit => 1;
+meta::define_form 'bootstrap', sub {};
+__297d03fb32df03b46ea418469fc4e49e
+meta::meta('type::cached_dependency', <<'__e9455b403cbff27bbcc41d917fef482f');
+meta::configure 'cached_dependency', inherit => 0, extension => '';
+meta::define_form 'cached_dependency', \&meta::bootstrap::implementation;
+__e9455b403cbff27bbcc41d917fef482f
+meta::meta('type::configuration', <<'__d67e10a128e6b1d958c5b9d3bbe25aa4');
+meta::functor::editable 'configuration', inherit => 0, extension => '.conf', default => sub {
+  # Any lines starting with #, with or without leading whitespace, are treated as comments.
+  # Comments are not parsed in option text; that is, you could specify an option that contained
+  # a # and the # and following text would be considered part of that option.
+  my ($data) = @_;
+  my @options = grep /:/o && ! /^\h*#/o && ! /^\h*$/o, split(/\v+/o, $data);
+  s/^\h+//o for @options;
+  my @key_values = map split(/\s*:\s*/o, $_, 2), @options;
+  $key_values[$_ << 1] and $key_values[$_ << 1] =~ s/\s/_/go for 0 .. @key_values >> 1;
+  $key_values[$_ << 1] and $key_values[$_ << 1] = lc $key_values[$_ << 1] for 0 .. @key_values >> 1;
+  @key_values;
+};
+__d67e10a128e6b1d958c5b9d3bbe25aa4
+meta::meta('type::css', 'meta::functor::editable \'css\', extension => \'.css\', inherit => 1;');
+meta::meta('type::data', 'meta::functor::editable \'data\', extension => \'\', inherit => 0, default => \'cat\';');
+meta::meta('type::function', <<'__d93b3cc15693707dac518e3d6b1f5648');
+meta::configure 'function', extension => '.pl', inherit => 1;
+meta::define_form 'function', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "function::$name", meta::eval_in("sub {\n$value\n}", "function::$name");
+};
+__d93b3cc15693707dac518e3d6b1f5648
+meta::meta('type::hook', <<'__f55a3f728ddfb90204dff3fe5d86845c');
+meta::configure 'hook', extension => '.pl', inherit => 0;
+meta::define_form 'hook', sub {
+  my ($name, $value) = @_;
+  *{"hook::$name"} = meta::eval_in("sub {\n$value\n}", "hook::$name");
+};
+__f55a3f728ddfb90204dff3fe5d86845c
+meta::meta('type::html', 'meta::functor::editable \'html\', extension => \'.html\', inherit => 1;');
+meta::meta('type::inc', <<'__c95915391b969734305f2f492d5ca8e3');
+meta::configure 'inc', inherit => 1, extension => '.pl';
+meta::define_form 'inc', sub {
+  use File::Path 'mkpath';
+  use File::Basename qw/basename dirname/;
+
+  my ($name, $value) = @_;
+  my $tmpdir   = basename($0) . '-' . $$;
+  my $filename = "/tmp/$tmpdir/$name";
+
+  push @INC, "/tmp/$tmpdir" unless grep /^\/tmp\/$tmpdir$/, @INC;
+
+  mkpath(dirname($filename));
+  unless (-e $filename) {
+    open my $fh, '>', $filename;
+    print $fh $value;
+    close $fh;
+  }
+};
+__c95915391b969734305f2f492d5ca8e3
+meta::meta('type::internal_function', <<'__34abb44c67c7e282569e28ef6f4d62ab');
+meta::configure 'internal_function', extension => '.pl', inherit => 1;
+meta::define_form 'internal_function', sub {
+  my ($name, $value) = @_;
+  *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
+};
+__34abb44c67c7e282569e28ef6f4d62ab
+meta::meta('type::js', 'meta::functor::editable \'js\', extension => \'.js\', inherit => 1;');
+meta::meta('type::library', <<'__a9c0193f297bbc96a78eb5e27727fd30');
+meta::configure 'library', extension => '.pl', inherit => 1;
+meta::define_form 'library', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "library::$name");
+  meta::externalize $name, "library::$name", sub {
+    edit("library::$name");
+  };
+};
+__a9c0193f297bbc96a78eb5e27727fd30
+meta::meta('type::message_color', <<'__794bf137c425293738f07636bcfb5c55');
+meta::configure 'message_color', extension => '', inherit => 1;
+meta::define_form 'message_color', sub {
+  my ($name, $value) = @_;
+  terminal::color($name, $value);
+};
+__794bf137c425293738f07636bcfb5c55
+meta::meta('type::meta', <<'__640f25635ce2365b0648962918cf9932');
+# This doesn't define a new type. It customizes the existing 'meta' type
+# defined in bootstrap::initialization. Note that horrible things will
+# happen if you redefine it using the editable functor.
+
+meta::configure 'meta', extension => '.pl', inherit => 1;
+__640f25635ce2365b0648962918cf9932
+meta::meta('type::parent', <<'__607e9931309b1b595424bedcee5dfa45');
+meta::define_form 'parent', \&meta::bootstrap::implementation;
+meta::configure 'parent', extension => '', inherit => 1;
+__607e9931309b1b595424bedcee5dfa45
+meta::meta('type::retriever', <<'__6e847a9d205e4a5589765a3366cdd115');
+meta::configure 'retriever', extension => '.pl', inherit => 1;
+meta::define_form 'retriever', sub {
+  my ($name, $value) = @_;
+  $transient{retrievers}{$name} = meta::eval_in("sub {\n$value\n}", "retriever::$name");
+};
+__6e847a9d205e4a5589765a3366cdd115
+meta::meta('type::sdoc', <<'__392c65eddae300e2aa67014b85884979');
+# A meta-type for other types. So retrieve('js::main') will work if you have
+# the attribute 'sdoc::js::main'. The filename will be main.js.sdoc.
+
+meta::functor::editable 'sdoc', inherit => 1, extension => sub {
+  extension_for(attribute($_[0])) . '.sdoc';
+};
+__392c65eddae300e2aa67014b85884979
+meta::meta('type::state', <<'__c1f29670be26f1df6100ffe4334e1202');
+# Allows temporary or long-term storage of states. Nothing particularly insightful
+# is done about compression, so storing alternative states will cause a large
+# increase in size. Also, states don't contain other states -- otherwise the size
+# increase would be exponential.
+
+# States are created with the save-state function.
+
+meta::configure 'state', inherit => 0, extension => '.pl';
+meta::define_form 'state', \&meta::bootstrap::implementation;
+__c1f29670be26f1df6100ffe4334e1202
+meta::alias('eih', 'edit sdoc::html::index');
+meta::alias('eij', 'edit sdoc::js::index');
+meta::alias('eis', 'edit sdoc::css::index');
+meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
+#!/usr/bin/perl
+# Run perldoc on this file for documentation.
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value, %options) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value unless $options{no_binding};
+    $delegate->($name, $value) unless $options{no_delegate}}}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name")};
+
+__8774229a1a0ce7fd056d81ba0b077f79
+meta::bootstrap('perldoc', <<'__c63395cbc6f7160b603befbb2d9b6700');
+=head1 Self-modifying Perl script
+
+=head2 Original implementation by Spencer Tipping L<http://spencertipping.com>
+
+The prototype for this script is licensed under the terms of the MIT source code license.
+However, this script in particular may be under different licensing terms. To find out how
+this script is licensed, please contact whoever sent it to you. Alternatively, you may
+run it with the 'license' argument if they have specified a license that way.
+
+You should not edit this file directly. For information about how it was constructed, go
+to L<http://spencertipping.com/writing-self-modifying-perl>. For quick usage guidelines,
+run this script with the 'usage' argument.
+
+=cut
+
+__c63395cbc6f7160b603befbb2d9b6700
+meta::configuration('dependencies', <<'__e6452f707a2f0de738e51033b8e9d792');
+# Named dependencies:
+#caterwaul.all.js:     http://spencertipping.com/caterwaul/caterwaul.all.min.js
+#montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
+__e6452f707a2f0de738e51033b8e9d792
+meta::data('default-action', 'shell');
+meta::data('libraries', <<'__cca38bdfe6664615b581ec6dff43cf46');
+# URLs of libraries to be downloaded into the lib/ directory.
+http://spencertipping.com/caterwaul/caterwaul.all.js
+http://spencertipping.com/montenegro/montenegro.server.js
+__cca38bdfe6664615b581ec6dff43cf46
+meta::data('license', <<'__3c6177256de0fddb721f534c3ad8c0ee');
+MIT License
+Copyright (c) 2010 Spencer Tipping
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+__3c6177256de0fddb721f534c3ad8c0ee
+meta::data('main', 'server.js');
+meta::data('name', 'node-base');
+meta::data('page-template', <<'__0cda2f47463d4cf1f19ae8c7b106fdd9');
+<!doctype html>
+<html>
+  <head>
+  <title></title>
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.js'></script>
+  <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
+  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='__SCRIPT__'></script>
+  <link rel='stylesheet' href='__STYLE__'/>
+  </head>
+  <body></body>
+</html>
+__0cda2f47463d4cf1f19ae8c7b106fdd9
+meta::data('quiet', '1');
+meta::data('watching', '1');
+meta::function('alias', <<'__ea18a693d64c2a14659f0a3edd20a3fa');
+my ($name, @stuff) = @_;
+@stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
+__ea18a693d64c2a14659f0a3edd20a3fa
+meta::function('cat', 'join "\\n", retrieve(@_);');
+meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
+# Stashes a quick one-line continuation. (Used to remind me what I was doing.)
+@_ ? associate('data::current-continuation', hook('set-cc', join(' ', @_))) : retrieve('data::current-continuation');
+__c4d52b1d8f52a480f07b81b93c3aac7b
+meta::function('child', <<'__f69646398c3123d3d939a7f2b3156606');
+around_hook('child', @_, sub {
+  my ($child_name) = @_;
+  clone($child_name);
+  enable();
+  qx($child_name update-from $0 -n);
+  disable()});
+__f69646398c3123d3d939a7f2b3156606
+meta::function('clone', <<'__54e00ff2103e54423d4c9febb97ce063');
+for (grep length, @_) {
+  around_hook('clone', $_, sub {
+    hypothetically(sub {
+      rm('data::permanent-identity');
+      file::write($_, serialize(), noclobber => 1);
+      chmod(0700, $_)})})}
+__54e00ff2103e54423d4c9febb97ce063
+meta::function('cp', <<'__e5fee448a74ecbf4ae215e6b43dfc048');
+my $from = shift @_;
+my $value = retrieve($from);
+associate($_, $value) for @_;
+__e5fee448a74ecbf4ae215e6b43dfc048
+meta::function('create', <<'__090c342a2dc304b39c643d53350474a0');
+my ($name, $value) = @_;
+around_hook('create', $name, $value, sub {
+  return edit($name) if exists $data{$name};
+  associate($name, defined $value ? $value : '');
+  edit($name) unless defined $value});
+__090c342a2dc304b39c643d53350474a0
+meta::function('current-state', <<'__d83ae43551c0f58d1d0ce576402a315a');
+my @valid_keys   = grep ! /^state::/, sort keys %data;
+my @ordered_keys = (grep(/^meta::/, @valid_keys), grep(! /^meta::/, @valid_keys));
+join "\n", map serialize_single($_), @ordered_keys;
+__d83ae43551c0f58d1d0ce576402a315a
+meta::function('disable', 'hook(\'disable\', chmod_self(sub {$_[0] & 0666}));');
+meta::function('dupdate', <<'__1c0273217c5b9f2756bb14a4a00aa7e2');
+# Update the repository based on the dependencies it lists.
+use LWP::Simple ();
+rm(grep /^cached_dependency::/, keys %data);
+my %dependencies = dependencies();
+
+for (keys %dependencies) {
+  terminal::info("Retrieving $dependencies{$_} as $_");
+  associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
+__1c0273217c5b9f2756bb14a4a00aa7e2
+meta::function('edit', <<'__6da7b44df34219cf87876b642d6fe500');
+my ($name, %options) = @_;
+my $extension = extension_for($name);
+
+die "Attribute $name does not exist" unless exists $data{$name};
+die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || exists $options{'-f'};
+
+around_hook('edit', @_, sub {
+  associate($name, invoke_editor_on($data{$name} || "# Attribute $name", %options, attribute => $name, extension => $extension),
+            execute => $name !~ /^bootstrap::/)});
+save();
+'';
+__6da7b44df34219cf87876b642d6fe500
+meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
+meta::function('export', <<'__388e0cc60507443cb1c0cc3e2658cfef');
+# Exports data into a text file.
+#   export attr1 attr2 attr3 ... file.txt
+my $name = pop @_;
+@_ or die 'Expected filename';
+file::write($name, join "\n", retrieve(@_));
+__388e0cc60507443cb1c0cc3e2658cfef
+meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
+meta::function('grep', <<'__a32de7e18e12734fff127c8cb904cf53');
+# Looks through attributes for a pattern. Usage is grep pattern [options], where
+# [options] is the format as provided to select_keys.
+
+my $pattern              = shift @_ or die 'Must specify a pattern to search for';
+my ($options, @criteria) = separate_options(@_);
+my @attributes           = select_keys(%$options, '--criteria' => join('|', @criteria));
+
+my @m_attributes, @m_line_numbers, @m_lines;
+
+for my $k (@attributes) {
+  next unless length $k;
+  my @lines = split /\n/, retrieve($k);
+  for (0 .. $#lines) {
+    next unless $lines[$_] =~ /$pattern/;
+    push @m_attributes,   $k;
+    push @m_line_numbers, $_ + 1;
+    push @m_lines,        $lines[$_] // ''}} 
+
+if ($$options{'-c'}) {
+  s/($pattern)/\033[1;31m\1\033[0;0m/g for @m_lines;
+  s/^/\033[1;34m/o for @m_attributes;
+  s/^/\033[1;32m/o && s/$/\033[0;0m/o for @m_line_numbers}
+
+table_display([@m_attributes], [@m_line_numbers], [@m_lines]);
+__a32de7e18e12734fff127c8cb904cf53
+meta::function('hash', 'fast_hash(@_);');
+meta::function('hook', <<'__d74d8e2b611342af6a0897e0bd62e6e6');
+my ($hook, @args) = @_;
+$transient{active_hooks}{$hook} = 1;
+dangerous('', sub {&$_(@args)}) for grep /^hook::${hook}::/, sort keys %data;
+@args;
+__d74d8e2b611342af6a0897e0bd62e6e6
+meta::function('hooks', 'join "\\n", sort keys %{$transient{active_hooks}};');
+meta::function('identity', 'retrieve(\'data::permanent-identity\') || associate(\'data::permanent-identity\', fast_hash(rand() . name() . serialize()));');
+meta::function('import', <<'__ac86cbe9c9fb12fc8cef2cc88e80c01e');
+my $name = pop @_;
+associate($name, @_ ? join('', map(file::read($_), @_)) : join('', <STDIN>)); 
+__ac86cbe9c9fb12fc8cef2cc88e80c01e
+meta::function('initial-state', '$transient{initial};');
+meta::function('is', <<'__5d4fddb72b0715694b83aa0c925a8d04');
+my ($attribute, @criteria) = @_;
+my ($options, @stuff) = separate_options(@criteria);
+grep $_ eq $attribute, select_keys(%$options);
+__5d4fddb72b0715694b83aa0c925a8d04
+meta::function('load-state', <<'__ea18db867bd62a294e067f60e6975dcf');
+around_hook('load-state', @_, sub {
+  my ($state_name) = @_;
+  my $state = retrieve("state::$state_name");
+
+  terminal::state('saving current state into _...');
+  &{'save-state'}('_');
+
+  delete $data{$_} for grep ! /^state::/, keys %data;
+  %externalized_functions = ();
+
+  terminal::state("restoring state $state_name...");
+  meta::eval_in($state, "state::$state_name");
+  terminal::error(hook('load-state-failed', $@)) if $@;
+  reload();
+  verify()});
+__ea18db867bd62a294e067f60e6975dcf
+meta::function('loc', <<'__5a1885d8e743dd80dcda866050f84434');
+# Counts SLOC, whitespace, and total LOC in the codebase.
+hook('before-loc', @_);
+
+my $criteria    = join '|', @_;
+my @attributes  = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
+my $tcomments   = 0;
+my $twhitespace = 0;
+my $tsource     = 0;
+
+my $line = sub {
+  my ($source, $whitespace, $comments, $name) = @_;
+  sprintf "%5d total, %4d SLOC, %5d[%4d%%] whitespace, %5d[%4d%%] comment [%s]",
+          $source + $whitespace + $comments, $source, $whitespace, int($whitespace / $source * 100), $comments, int($comments / $source * 100), $name};
+
+my $loc = sub {
+  my @lines    = map split(/\n/, $_), retrieve($_[0]);
+  $tcomments   += (my $comments   = grep /^\s*\/\// || /^\s*#/, @lines);
+  $twhitespace += (my $whitespace = grep /^\s*$/, @lines);
+  $tsource     += (my $source     = @lines - $comments - $whitespace);
+  &$line($source, $whitespace, $comments, $_[0])};
+
+terminal::info(map &$loc($_), @attributes);
+terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
+
+hook('after-loc', @_);
+__5a1885d8e743dd80dcda866050f84434
+meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
+meta::function('ls', <<'__acdc3ca5777ab9c7c430d493a7555998');
+my ($options, @criteria) = separate_options(@_);
+my ($all, $shadows, $dereference, $sizes, $flags) = @$options{qw(-a -s -d -z -l)};
+$all   ||= $dereference;
+$sizes ||= $flags;
+
+return table_display([grep ! exists $data{$externalized_functions{$_}}, sort keys %externalized_functions]) if $shadows;
+
+my $criteria    = join('|', @criteria);
+my @definitions = select_keys('--criteria' => $criteria, %$options);
+
+my %inverses  = map {$externalized_functions{$_} => $_} keys %externalized_functions;
+my @externals = map $inverses{$_}, grep length, @definitions;
+my @internals = grep length $inverses{$_}, @definitions;
+my @sizes     = map sprintf('%6d %6d', length(serialize_single($_)), length(retrieve($_))), @{$all ? \@definitions : \@internals} if $sizes;
+
+my %flag_hashes = map {$_ => {map {$_ => 1} select_keys("-$_" => 1)}} qw(m u i) if $flags;
+my @flags       = map {my $k = $_; join '', map($flag_hashes{$_}{$k} ? $_ : '-', sort keys %flag_hashes)} @definitions if $flags;
+
+join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [grep length, @externals], $dereference ? ([@externals]) : (),
+                                                    $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : ());
+__acdc3ca5777ab9c7c430d493a7555998
+meta::function('lss', '# Attribute function::lss');
+meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
+my ($from, $to) = @_;
+die "'$from' does not exist" unless exists $data{$from};
+associate($to, retrieve($from));
+rm($from);
+__52e95180e3c7019116bd798e0da0fdda
+meta::function('name', <<'__6848cbc257e4b6d7441b25acb04e23c9');
+my $name = $0;
+$name =~ s/^.*\///;
+$name;
+__6848cbc257e4b6d7441b25acb04e23c9
+meta::function('node', <<'__3522fde8f76947a5f70bca33f1ee0016');
+# Runs node on a collection of source files and arguments. The format is:
+# node([@source_strings], @process_args);
+my ($sources, @args) = @_;
+
+with_exported(@$sources, sub {
+  hook('before-node', $_[0], @args);
+  sh('node', $_[0], @args);
+  hook('after-node', $_[0], @args);
+});
+__3522fde8f76947a5f70bca33f1ee0016
+meta::function('node-custom', <<'__c2f4063798c997ec7f78a3543b1240b3');
+# Runs node on a collection of source files and arguments. The format is:
+# &{'node-custom'}([@source_strings], [@node_arguments], @process_args);
+my ($sources, $node_args, @args) = @_;
+
+with_exported(@$sources, sub {
+  hook('before-node-custom', @$node_args, $_[0], @args);
+  sh('node', @$node_args, $_[0], @args);
+  hook('after-node-custom', @$node_args, $_[0], @args);
+});
+__c2f4063798c997ec7f78a3543b1240b3
+meta::function('page', <<'__4a782390491075bb8018cfb4e78c59a6');
+my ($name) = @_;
+my $page_template = retrieve('data::page-template');
+
+$page_template =~ s/__SCRIPT__/$name.js/;
+$page_template =~ s/__STYLE__/$name.css/;
+associate("sdoc::html::$name", $page_template)   unless exists $data{"sdoc::html::$name"};
+associate("sdoc::js::$name", "Driver for $name") unless exists $data{"sdoc::js::$name"};
+associate("sdoc::css::$name", "Style for $name") unless exists $data{"sdoc::css::$name"};
+
+my $alias_base = 'e' . substr($name, 0, 1);
+alias("${alias_base}j", 'edit', "sdoc::js::$name")   unless exists $data{"alias::${alias_base}j"};
+alias("${alias_base}h", 'edit', "sdoc::html::$name") unless exists $data{"alias::${alias_base}h"};
+alias("${alias_base}s", 'edit', "sdoc::css::$name")  unless exists $data{"alias::${alias_base}s"};
+
+terminal::info("page $name created",
+               "  html -> sdoc::html::$name (type '${alias_base}h' to edit)",
+               "  js   -> sdoc::js::$name   (type '${alias_base}j' to edit)",
+               "  css  -> sdoc::css::$name  (type '${alias_base}s' to edit)");
+__4a782390491075bb8018cfb4e78c59a6
+meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
+meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
+my $result = eval(join ' ', @_);
+$@ ? terminal::error($@) : $result;
+__986a274c013b77fe08d29726ce3799fe
+meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
+meta::function('render', <<'__d11b6e7522980db1022b1ccd575bdc30');
+hook('before-render');
+file::write(attribute($_) .            '.js',       retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;
+file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/sdocp::js::/, keys %data;
+hook('after-render');
+__d11b6e7522980db1022b1ccd575bdc30
+meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
+around_hook('rm', @_, sub {
+  exists $data{$_} or terminal::warning("$_ does not exist") for @_;
+  delete @data{@_}});
+__7cecfb1691a7bf86741f00058bcc54ca
+meta::function('run-forever', <<'__76175932a2d2692fc802856c28d0848d');
+# Runs your application indefinitely, restarting each time it fails.
+# There's a one-second delay between restarts to prevent a tight loop.
+# Takes one argument, which is the function to run forever.
+my ($f, @args) = @_;
+hook('bin/before-run-forever');
+&$f(@args) while sleep 0.1 && ! -f 'stop';
+hook('bin/after-run-forever');
+__76175932a2d2692fc802856c28d0848d
+meta::function('save', 'around_hook(\'save\', sub {dangerous(\'\', sub {file::write($0, serialize()); $transient{initial} = state()}) if verify()});');
+meta::function('save-state', <<'__863e4d9fa75ca198ef7a755248d1002a');
+# Creates a named copy of the current state and stores it.
+my ($state_name) = @_;
+around_hook('save-state', $state_name, sub {
+  associate("state::$state_name", &{'current-state'}(), execute => 1)});
+__863e4d9fa75ca198ef7a755248d1002a
+meta::function('sdoc', <<'__060cfa349e629eb90a82b87a8ba00c1d');
+# Applies SDoc processing to a file or attribute. Takes the file or attribute
+# name as the first argument and returns the processed text.
+
+my %comments_for_extension = 
+  qw|c     /*,*/  cpp   //    cc   //    h    //    java //  py  #    rb   #    pl  #   pm   #         ml   (*,*)  js  //
+     hs    --     sh    #     lisp ;;;   lsp  ;;;   s    ;   scm ;;;  sc   ;;;  as  //  html <!--,-->  mli  (*,*)  cs  //
+     vim   "      elisp ;     bas  '     ada  --    asm  ;   awk #    bc   #    boo #   tex  %         fss  (*,*)  erl %
+     scala //     hx    //    io   //    j    NB.   lua  --  n   //   m    %    php //  sql  --        pov  //     pro %
+     r     #      self  ","   tcl  #     texi @c    tk   #   csh #    vala //   vbs '   v    /*,*/     vhdl --     ss  ;;;
+     haml  -#     sass  /*,*/ scss /*,*/ css  /*,*/ fig  /|;
+
+# No extension suggests a shebang line, which generally requires # to denote a comment.
+$comments_for_extension{''} = '#';
+
+my $generated_string = 'Generated by SDoc';
+
+sub is_code    {map /^\s*[^A-Z\|\s]/o, @_}
+sub is_blank   {map /^\n/o, @_}
+sub comment    {my ($text, $s, $e) = @_; join "\n", map("$s $_$e", split /\n/, $text)}
+
+sub paragraphs {map split(/(\n{2,})/, $_), @_}
+
+my ($filename) = @_;
+
+# Two possibilities here. One is that the filename is an attribute, in which case
+# we want to look up the extension in the transients table. The other is that
+# it's a real filename.
+my ($extension)       = $filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo;
+my ($other_extension) = extension_for(attribute($filename));
+$other_extension =~ s/^\.//o;
+
+my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $extension)};
+
+join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
+         "\n$start $generated_string $end\n";
+__060cfa349e629eb90a82b87a8ba00c1d
+meta::function('sdocp', <<'__8b7ed5bbd537234ae53c0691b6d02c97');
+# Renders an attribute as SDocP. This logic was taken directly from the sdoc script.
+my $attribute = retrieve($_[0]);
+sub escape {my @results = map {s/\\/\\\\/go; s/\n/\\n/go; s/'/\\'/go; $_} @_; wantarray ? @results : $results[0]}
+"sdocp('" . escape($_[0]) . "', '" . escape($attribute) . "');";
+__8b7ed5bbd537234ae53c0691b6d02c97
+meta::function('serialize', <<'__5148e8ca46eeb3e297f76d098e496bcf');
+my ($options, @criteria) = separate_options(@_);
+my $partial     = $$options{'-p'};
+my $criteria    = join '|', @criteria;
+my @attributes  = map serialize_single($_), select_keys(%$options, '-m' => 1, '--criteria' => $criteria), select_keys(%$options, '-M' => 1, '--criteria' => $criteria);
+my @final_array = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__END__']};
+join "\n", @final_array;
+__5148e8ca46eeb3e297f76d098e496bcf
+meta::function('serialize_single', <<'__ef0f63556d22816ed102d3bbe2172b28');
+# Serializes a single attribute and optimizes for content.
+
+my $name          = $_[0] || $_;
+my $contents      = $data{$name};
+my $meta_function = 'meta::' . namespace($name);
+my $invocation    = attribute($name);
+my $escaped       = $contents;
+$escaped =~ s/\\/\\\\/go;
+$escaped =~ s/'/\\'/go;
+
+return "$meta_function('$invocation', '$escaped');" unless $escaped =~ /\v/;
+
+my $delimiter = '__' . fast_hash($contents);
+return "$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
+__ef0f63556d22816ed102d3bbe2172b28
+meta::function('sh', 'system(@_);');
+meta::function('shell', <<'__6a61e32b2dbfe3565ed6ef41d1d77c39');
+use Term::ReadLine;
+
+my $term = new Term::ReadLine "$0 shell";
+$term->ornaments(0);
+my $attribs = $term->Attribs;
+my $name = name();
+$attribs->{completion_entry_function} = $attribs->{list_completion_function};
+
+my $prompt = sub {
+  my $state  = state();
+  my $other  = $state ne $transient{initial} ? 33 : 30;
+  my $locked = is_locked() ? "\033[1;31mlocked\033[0;0m" : '';
+  "\033[1;32m$name\033[1;${other}m" . substr($state, 0, 4) . "\033[0;0m$locked "};
+
+my $split = sub {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
+my $resolve_aliases = sub {
+  my ($command, @args) = @_;
+  exists $data{"alias::$command"} ? (&$split(retrieve("alias::$command")), @args) : @_};
+
+while ($attribs->{completion_word} = [sort keys %data, sort keys %externalized_functions], defined($_ = $term->readline(&$prompt()))) {
+  my @parsed = &$resolve_aliases(&$split($_));
+  my $function_name = shift(@parsed) or next;
+
+  terminal::warning("$function_name invalid (use 'ls' to see available commands)"), next unless $externalized_functions{$function_name};
+
+  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @parsed;
+  around_hook('shell-command', $function_name, @parsed, sub {
+    print dangerous('', sub {&$function_name(@parsed)}), "\n"})}
+__6a61e32b2dbfe3565ed6ef41d1d77c39
+meta::function('size', 'length(serialize());');
+meta::function('snapshot', <<'__d3d84a364524eeb8ee90623f545187e8');
+my ($name) = @_;
+file::write(my $finalname = temporary_name($name), serialize(), noclobber => 1);
+chmod 0700, $finalname;
+hook('snapshot', $finalname);
+__d3d84a364524eeb8ee90623f545187e8
+meta::function('state', <<'__119111f84c3e32a5536838ac84bc6f10');
+my @keys = sort keys %data;
+my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
+$hash = fast_hash("$data{$_}|$hash") for @keys;
+$hash;
+__119111f84c3e32a5536838ac84bc6f10
+meta::function('touch', 'associate($_, \'\') for @_;');
+meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
+meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
+meta::function('update-from', <<'__4872d8da1fee53aace2c4f422841c0ba');
+# Upgrade all attributes that aren't customized. Customization is defined when the data type is created,
+# and we determine it here by checking for $transient{inherit}{$type}.
+
+# Note that this assumes you trust the remote script. If you don't, then you shouldn't update from it.
+
+around_hook('before-update-from-invocation', separate_options(@_), sub {
+  my ($options, @targets) = @_;
+
+  @targets or return;
+  my $save_state = ! ($$options{'-n'} || $$options{'--no-save'});
+  my $no_parents =    $$options{'-P'} || $$options{'--no-parent'} || $$options{'--no-parents'};
+  my $force      =    $$options{'-f'} || $$options{'--force'};
+
+  &{'save-state'}('before-update') if $save_state;
+
+  for my $target (@targets) {
+    around_hook('update-from', $target, sub {
+    dangerous("updating from $target", sub {
+      my $attributes = join '', qx($target ls -aiu);
+      die "skipping unreachable $target" unless $attributes;
+
+      rm(split /\n/, retrieve("parent::$target")) if $data{"parent::$target"};
+      associate("parent::$target", $attributes) unless $no_parents;
+
+      dangerous('', sub {eval qx($target serialize -ipmu)});
+      dangerous('', sub {eval qx($target serialize -ipMu)});
+      reload()})})}
+
+  if (verify()) {hook('update-from-succeeded', $options, @targets);
+                 terminal::info("Successfully updated. Run 'load-state before-update' to undo this change.") if $save_state}
+  elsif ($force) {hook('update-from-failed', $options, @targets);
+                  terminal::warning('Failed to verify: at this point your object will not save properly, though backup copies will be created.',
+                                    'Run "load-state before-update" to undo the update and return to a working state.') if $save_state}
+  else {hook('update-from-failed', $options, @targets);
+        terminal::error('Verification failed after the upgrade was complete.');
+        terminal::info("$0 has been reverted to its pre-upgrade state.", "If you want to upgrade and keep the failure state, then run 'update-from $target --force'.") if $save_state;
+        return &{'load-state'}('before-update') if $save_state}});
+__4872d8da1fee53aace2c4f422841c0ba
+meta::function('usage', '"Usage: $0 action [arguments]\\nUnique actions (run \'$0 ls\' to see all actions):" . ls(\'-u\');');
+meta::function('verify', <<'__d31b85fffd464ddf516d2afeb63dcbde');
+file::write(my $other = $transient{temporary_filename} = temporary_name(), my $serialized_data = serialize());
+chomp(my $observed = join '', qx|perl '$other' state|);
+
+unlink $other if my $result = $observed eq (my $state = state());
+terminal::error("Verification failed; expected $state but got $observed from $other") unless $result;
+hook('after-verify', $result, observed => $observed, expected => $state);
+$result;
+__d31b85fffd464ddf516d2afeb63dcbde
+meta::hook('after-render::markup', <<'__a9c032a0fd93e028d509e4ea7bcd974a');
+file::write(attribute($_) . '.html', retrieve($_)) for grep s/^sdoc::html::/html::/x, keys %data;
+file::write(attribute($_) . '.css',  retrieve($_)) for grep s/^sdoc::css:: /css::/x,  keys %data;
+__a9c032a0fd93e028d509e4ea7bcd974a
+meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
+# around_hook('hookname', @args, sub {
+#   stuff;
+# });
+
+# Invokes 'before-hookname' on @args before the sub runs, invokes the
+# sub on @args, then invokes 'after-hookname' on @args afterwards.
+# The after-hook is not invoked if the sub calls 'die' or otherwise
+# unwinds the stack.
+
+my $hook = shift @_;
+my $f    = pop @_;
+
+hook("before-$hook", @_);
+my $result = &$f(@_);
+hook("after-$hook", @_);
+$result;
+__e1cd17b80d4e8165df9c94facd9f239b
+meta::internal_function('associate', <<'__fc4f785bcf3ffe3225a73a1fdd314703');
+my ($name, $value, %options) = @_;
+die "Namespace does not exist" unless exists $datatypes{namespace($name)};
+$data{$name} = $value;
+execute($name) if $options{'execute'};
+$value;
+__fc4f785bcf3ffe3225a73a1fdd314703
+meta::internal_function('attribute', <<'__62efb9f22157835940af1d5feae98d98');
+my ($name) = @_;
+$name =~ s/^[^:]*:://;
+$name;
+__62efb9f22157835940af1d5feae98d98
+meta::internal_function('chmod_self', <<'__b13487447c65f2dc790bd6b21dde89dd');
+my ($mode_function)      = @_;
+my (undef, undef, $mode) = stat $0;
+chmod &$mode_function($mode), $0;
+__b13487447c65f2dc790bd6b21dde89dd
+meta::internal_function('dangerous', <<'__167c759b4f9e54a667222dd3d405200d');
+# Wraps a computation that may produce an error.
+my ($message, $computation) = @_;
+terminal::info($message) if $message;
+my $result = eval {&$computation()};
+terminal::warning(translate_backtrace($@)), return undef if $@;
+$result;
+__167c759b4f9e54a667222dd3d405200d
+meta::internal_function('debug_trace', <<'__77644ab45a770a6e172680f659911507');
+terminal::debug(join ', ', @_);
+wantarray ? @_ : $_[0];
+__77644ab45a770a6e172680f659911507
+meta::internal_function('dep', <<'__bad9b934374b176318ed2295b63130bc');
+# A variadic function to prepend cached_dependency:: onto things.
+# Used like this: dep(qw/caterwaul.all.js montenegro.server.js/)
+map "cached_dependency::$_", @_;
+__bad9b934374b176318ed2295b63130bc
+meta::internal_function('execute', <<'__4b4efc33bc6767a7aade7f427eedf83f');
+my ($name, %options) = @_;
+my $namespace = namespace($name);
+eval {&{"meta::$namespace"}(attribute($name), retrieve($name))};
+warn $@ if $@ && $options{'carp'};
+__4b4efc33bc6767a7aade7f427eedf83f
+meta::internal_function('exported', <<'__27414e8f2ceeaef3555b9726e690eb0f');
+# Allocates a temporary file containing the concatenation of attributes you specify,
+# and returns the filename. The filename will be safe for deletion anytime.
+my $filename = temporary_name();
+file::write($filename, cat(@_));
+$filename;
+__27414e8f2ceeaef3555b9726e690eb0f
+meta::internal_function('extension_for', <<'__65e48f50f20bc04aa561720b03bf494c');
+my $extension = $transient{extension}{namespace($_[0])};
+$extension = &$extension($_[0]) if ref $extension eq 'CODE';
+$extension || '';
+__65e48f50f20bc04aa561720b03bf494c
+meta::internal_function('fast_hash', <<'__ac70f469e697725cfb87629833434ab1');
+my ($data)     = @_;
+my $piece_size = length($data) >> 3;
+
+my @pieces     = (substr($data, $piece_size * 8) . length($data), map(substr($data, $piece_size * $_, $piece_size), 0 .. 7));
+my @hashes     = (fnv_hash($pieces[0]));
+
+push @hashes, fnv_hash($pieces[$_ + 1] . $hashes[$_]) for 0 .. 7;
+
+$hashes[$_] ^= $hashes[$_ + 4] >> 16 | ($hashes[$_ + 4] & 0xffff) << 16 for 0 .. 3;
+$hashes[0]  ^= $hashes[8];
+
+sprintf '%08x' x 4, @hashes[0 .. 3];
+__ac70f469e697725cfb87629833434ab1
+meta::internal_function('file::read', <<'__186bbcef8f6f0dd8b72ba0fdeb1de040');
+my $name = shift;
+open my($handle), "<", $name;
+my $result = join "", <$handle>;
+close $handle;
+$result;
+__186bbcef8f6f0dd8b72ba0fdeb1de040
+meta::internal_function('file::write', <<'__eb7b1efebe0db73378b0cce46681788d');
+use File::Path     'mkpath';
+use File::Basename 'dirname';
+
+my ($name, $contents, %options) = @_;
+die "Choosing not to overwrite file $name" if $options{noclobber} and -f $name;
+mkpath(dirname($name)) if $options{mkpath};
+
+open my($handle), $options{append} ? '>>' : '>', $name or die "Can't open $name for writing";
+print $handle $contents;
+close $handle;
+__eb7b1efebe0db73378b0cce46681788d
+meta::internal_function('fnv_hash', <<'__8d001a3a7988631bab21a41cee559758');
+# A rough approximation to the Fowler-No Voll hash. It's been 32-bit vectorized
+# for efficiency, which may compromise its effectiveness for short strings.
+
+my ($data) = @_;
+
+my ($fnv_prime, $fnv_offset) = (16777619, 2166136261);
+my $hash                     = $fnv_offset;
+my $modulus                  = 2 ** 32;
+
+$hash = ($hash ^ ($_ & 0xffff) ^ ($_ >> 16)) * $fnv_prime % $modulus for unpack 'L*', $data . substr($data, -4) x 8;
+$hash;
+__8d001a3a7988631bab21a41cee559758
+meta::internal_function('hypothetically', <<'__33ee2e1595d3877bd1d9accaa72305c8');
+# Applies a temporary state and returns a serialized representation.
+# The original state is restored after this, regardless of whether the
+# temporary state was successful.
+
+my %data_backup   = %data;
+my ($side_effect) = @_;
+my $return_value  = eval {&$side_effect()};
+%data = %data_backup;
+
+die $@ if $@;
+$return_value;
+__33ee2e1595d3877bd1d9accaa72305c8
+meta::internal_function('internal::main', <<'__903bc413b89dc2709a6b0eddb546eed7');
+disable();
+
+$SIG{'INT'} = sub {snapshot(); exit 1};
+
+$transient{initial}      = state();
+chomp(my $default_action = retrieve('data::default-action'));
+
+my $function_name = shift(@ARGV) || $default_action || 'usage';
+terminal::warning("unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
+
+around_hook('main-function', $function_name, @ARGV, sub {
+  chomp(my $result = &$function_name(@ARGV));
+  print "$result\n" if $result});
+
+save() unless state() eq $transient{initial};
+
+END {
+  enable();
+}
+__903bc413b89dc2709a6b0eddb546eed7
+meta::internal_function('invoke_editor_on', <<'__1448132d5294a4b8390b4a684d8a78f9');
+my ($data, %options) = @_;
+my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
+my $options   = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
+my $attribute = $options{attribute};
+$attribute =~ s/\//-/g;
+my $filename  = temporary_name() . "-$attribute$options{extension}";
+
+file::write($filename, $data);
+system("$editor $options '$filename'");
+
+my $result = file::read($filename);
+unlink $filename;
+$result;
+__1448132d5294a4b8390b4a684d8a78f9
+meta::internal_function('is_locked', '!((stat($0))[2] & 0222);');
+meta::internal_function('namespace', <<'__93213d60cafb9627e0736b48cd1f0760');
+my ($name) = @_;
+$name =~ s/::.*$//;
+$name;
+__93213d60cafb9627e0736b48cd1f0760
+meta::internal_function('retrieve', <<'__0b6f4342009684fdfa259f45ac75ae37');
+my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
+wantarray ? @results : $results[0];
+__0b6f4342009684fdfa259f45ac75ae37
+meta::internal_function('retrieve_with_hooks', <<'__5186a0343624789d08d1cc2084550f3d');
+# Uses the hooks defined in $transient{retrievers}, and returns undef if none work.
+my ($attribute) = @_;
+my $result      = undef;
+
+defined($result = &$_($attribute)) and return $result for map $transient{retrievers}{$_}, sort keys %{$transient{retrievers}};
+return undef;
+__5186a0343624789d08d1cc2084550f3d
+meta::internal_function('select_keys', <<'__8ee1d5fa37927c66d9eec4d0d8269493');
+my %options   = @_;
+my %inherited = map {$_ => 1} split /\n/o, join "\n", retrieve(grep /^parent::/o, sort keys %data) if $options{'-u'} or $options{'-U'};
+my $criteria  = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
+
+grep /$criteria/ && (! $options{'-u'} || ! $inherited{$_}) && (! $options{'-U'} || $inherited{$_}) &&
+                    (! $options{'-I'} || ! $transient{inherit}{namespace($_)}) && (! $options{'-i'} || $transient{inherit}{namespace($_)}) &&
+                    (! $options{'-S'} || ! /^state::/o) && (! $options{'-M'} || ! /^meta::/o) && (! $options{'-m'} || /^meta::/o), sort keys %data;
+__8ee1d5fa37927c66d9eec4d0d8269493
+meta::internal_function('separate_options', <<'__d47e8ee23fe55e27bb523c9fcb2f5ca1');
+# Things with one dash are short-form options, two dashes are long-form.
+# Characters after short-form are combined; so -auv4 becomes -a -u -v -4.
+# Also finds equivalences; so --foo=bar separates into $$options{'--foo'} eq 'bar'.
+# Stops processing at the -- option, and removes it. Everything after that
+# is considered to be an 'other' argument.
+
+# The only form not supported by this function is the short-form with argument.
+# To pass keyed arguments, you need to use long-form options.
+
+my @parseable;
+push @parseable, shift @_ until ! @_ or $_[0] eq '--';
+
+my @singles = grep /^-[^-]/, @parseable;
+my @longs   = grep /^--/,    @parseable;
+my @others  = grep ! /^-/,   @parseable;
+
+my @singles = map /-(.{2,})/ ? map("-$_", split(//, $1)) : $_, @singles;
+
+my %options;
+  $options{$1} = $2 for grep /^([^=]+)=(.*)$/, @longs;
+++$options{$_}      for grep ! /=/, @singles, @longs;
+
+({%options}, @others, @_);
+__d47e8ee23fe55e27bb523c9fcb2f5ca1
+meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
+meta::internal_function('table_display', <<'__8a6897e093f36bf05477a3889b84a61d');
+# Displays an array of arrays as a table; that is, with alignment. Arrays are
+# expected to be in column-major order.
+
+sub maximum_length_in {
+  my $maximum = 0;
+  length > $maximum and $maximum = length for @_;
+  $maximum;
+}
+
+my @arrays    = @_;
+my @lengths   = map maximum_length_in(@$_), @arrays;
+my @row_major = map {my $i = $_; [map $$_[$i], @arrays]} 0 .. $#{$arrays[0]};
+my $format    = join '  ', map "%-${_}s", @lengths;
+
+join "\n", map strip(sprintf($format, @$_)), @row_major;
+__8a6897e093f36bf05477a3889b84a61d
+meta::internal_function('temporary_name', <<'__0fb1402061581b69822f913631b4a9d9');
+use File::Temp 'tempfile';
+my (undef, $temporary_filename) = tempfile("$0." . 'X' x 4, OPEN => 0);
+$temporary_filename;
+__0fb1402061581b69822f913631b4a9d9
+meta::internal_function('translate_backtrace', <<'__06fad3d85833a6484e426401b95e0206');
+my ($trace) = @_;
+$trace =~ s/\(eval (\d+)\)/$locations{$1 - 1}/g;
+$trace;
+__06fad3d85833a6484e426401b95e0206
+meta::internal_function('with_exported', <<'__fc4f32c46d95c6deed0414364d1c7410');
+# Like exported(), but removes the file after running some function.
+# Usage is with_exported(@files, sub {...});
+my $f      = pop @_;
+my $name   = exported(@_);
+my $result = eval {&$f($name)};
+terminal::warning("$@ when running with_exported()") if $@;
+unlink $name;
+$result;
+__fc4f32c46d95c6deed0414364d1c7410
+meta::library('terminal', <<'__c52308d05ebb4ff61c5fc36e6d9c7a8a');
+# Functions for nice-looking terminal output.
+package terminal;
+
+my $process = ::name();
+
+sub message {print STDERR "[$_[0]] $_[1]\n"}
+sub color {
+  my ($name, $color) = @_;
+  *{"terminal::$name"} = sub {chomp($_), print STDERR "\033[1;30m$process(\033[1;${color}m$name\033[1;30m)\033[0;0m $_\n" for map join('', $_), @_}}
+
+my %preloaded = (info => 32, progress => 32, state => 34, debug => 34, warning => 33, error => 31);
+color $_, $preloaded{$_} for keys %preloaded;
+__c52308d05ebb4ff61c5fc36e6d9c7a8a
+meta::message_color('state', 'purple');
+meta::message_color('states', 'yellow');
+meta::message_color('test', 'purple');
+meta::parent('/home/spencertipping/bin/client-base', <<'__96221fb07cd57a3668fbc169adfa497a');
+function::page
+meta::type::css
+meta::type::html
+parent::/home/spencertipping/bin/node-base
+__96221fb07cd57a3668fbc169adfa497a
+meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
+meta::type::configuration
+parent::/home/spencertipping/bin/object
+__511208c99d8bc2caa3067db9f1824163
+meta::parent('/home/spencertipping/bin/node-base', <<'__cb3ede4ac84dd70a220e31df5e90c4d6');
+function::loc
+function::node
+function::node-custom
+function::render
+function::run-forever
+internal_function::dep
+message_color::test
+meta::type::js
+parent::/home/spencertipping/bin/repository
+parent::/home/spencertipping/conjectures/perl-objects/sdoc
+__cb3ede4ac84dd70a220e31df5e90c4d6
+meta::parent('/home/spencertipping/bin/object', <<'__ebddf828b1c914a7461db84c344b9ebd');
+bootstrap::initialization
+bootstrap::perldoc
+function::alias
+function::cat
+function::cc
+function::child
+function::clone
+function::cp
+function::create
+function::current-state
+function::disable
+function::edit
+function::enable
+function::export
+function::extern
+function::grep
+function::hash
+function::hook
+function::hooks
+function::identity
+function::import
+function::initial-state
+function::is
+function::load-state
+function::lock
+function::ls
+function::mv
+function::name
+function::parents
+function::perl
+function::reload
+function::rm
+function::save
+function::save-state
+function::serialize
+function::serialize_single
+function::sh
+function::shell
+function::size
+function::snapshot
+function::state
+function::touch
+function::unlock
+function::update
+function::update-from
+function::usage
+function::verify
+internal_function::around_hook
+internal_function::associate
+internal_function::attribute
+internal_function::chmod_self
+internal_function::dangerous
+internal_function::debug_trace
+internal_function::execute
+internal_function::exported
+internal_function::extension_for
+internal_function::fast_hash
+internal_function::file::read
+internal_function::file::write
+internal_function::fnv_hash
+internal_function::hypothetically
+internal_function::internal::main
+internal_function::invoke_editor_on
+internal_function::is_locked
+internal_function::namespace
+internal_function::retrieve
+internal_function::retrieve_with_hooks
+internal_function::select_keys
+internal_function::separate_options
+internal_function::strip
+internal_function::table_display
+internal_function::temporary_name
+internal_function::translate_backtrace
+internal_function::with_exported
+library::terminal
+message_color::state
+message_color::states
+meta::configure
+meta::externalize
+meta::functor::editable
+meta::type::alias
+meta::type::bootstrap
+meta::type::data
+meta::type::function
+meta::type::hook
+meta::type::inc
+meta::type::internal_function
+meta::type::library
+meta::type::message_color
+meta::type::meta
+meta::type::parent
+meta::type::retriever
+meta::type::state
+retriever::file
+retriever::id
+__ebddf828b1c914a7461db84c344b9ebd
+meta::parent('/home/spencertipping/bin/repository', <<'__f88c2b0e5725507b3fdb5719fd65e6d3');
+function::dupdate
+meta::type::cached_dependency
+parent::/home/spencertipping/bin/configuration
+__f88c2b0e5725507b3fdb5719fd65e6d3
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__2d47795f5a2f946e1655dcc68b32aadd');
+function::lss
+function::sdoc
+function::sdocp
+meta::type::sdoc
+parent::/home/spencertipping/bin/object
+retriever::sdoc
+retriever::sdocp
+__2d47795f5a2f946e1655dcc68b32aadd
+meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
+meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
+meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
+meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
+my $attribute = attribute($_[0]);
+exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
+__fef74cd94fa8761618662802f0bfc171
+meta::sdoc('css::index', <<'__8094514bad34e8e103dab2ed5a87dd1a');
+General styling.
+
+body {font-family: sans-serif; margin: 10px}
+
+Fonts.
+Most components here use the Droid mono font.
+
+@import url(http://fonts.googleapis.com/css?family=Droid%20Sans%20Mono&subset=latin);
+
+.fixed {font-family: 'Droid Sans Mono', 'Inconsolata', 'Monaco', 'Liberation Mono', monospace}
+.large {font-size: 9pt}
+
+Styling for the input area.
+Both the input and macroexpansion areas float inside a container just below the history log. This is a direct child of the body.
+
+input       {border: none; padding: 0; margin: 0}
+input:focus {border: none}
+
+.prompt {width: 100%; margin-top: -3px}
+
+.prompt .input          {width: 100%; padding: 2px}
+.prompt .macroexpansion {width: 100%; padding: 2px; min-height: 500px; margin: 0; color: #888}
+
+History log elements.
+These are color-coded by role.
+
+#log pre {font-size: 9pt; margin: 1px; padding: 2px}
+
+#log .input pre {color: #777}
+#log .error pre {color: #a53}
+#log .value pre {color: #222}
+__8094514bad34e8e103dab2ed5a87dd1a
+meta::sdoc('html::index', <<'__ff76a39841f5ca1884b0d3c319a202c3');
+<!doctype html>
+<html>
+  <head>
+  <title></title>
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.js'></script>
+  <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
+  <script src='http://spencertipping.com/caterwaul/modules/caterwaul.format.js'></script>
+  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='index.js'></script>
+  <link rel='stylesheet' href='index.css'/>
+  </head>
+  <body></body>
+</html>
+__ff76a39841f5ca1884b0d3c319a202c3
+meta::sdoc('js::index', <<'__996fe6b51827e2c6c6dfb0bcac65ba4e');
+Caterwaul interactive shell | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This page provides the user with an interactive way to execute Caterwaul code. It compiles code, shows macroexpansions, and allows the user to inspect return values in some detail. If I've
+done my job correctly, it should be useful to (1) learn Caterwaul, and (2) drop onto a webserver to have a quick and powerful way to access APIs for troubleshooting.
+
+UI structure.
+Like most REPLs, this interface provides a prompt and a history area. Unlike most REPLs, though, the interface macroexpands the user's code in realtime. It also maintains a list of variables
+defined by the user and lets the user interactively inspect objects, arrays, and other values.
+
+$(caterwaul.clone('std format seq continuation montenegro')(function () {
+  $('body').append(log, prompt),
+  setTimeout(fn_[$('.prompt .input').focus()], 0),
+
+  where*[caterwaul_global = caterwaul.clone('std seq continuation opt montenegro parser'),
+
+         input_syntax_check_delay = 100,
+         up_arrow_keycode         = 38,
+         down_arrow_keycode       = 40,
+
+         prompt = html[div.prompt(input.input.fixed.large, pre.macroexpansion.fixed.large *readonly('true'))]
+                  /se.p[p.find('.input').keyup(restart_timer).
+                                         keyup(fn[e][navigate_through_history(e), when[e.which === up_arrow_keycode || e.which === down_arrow_keycode]]).
+                                         enter_key(fn[e][result($(this).val())]),
+
+                        where*[edit_history                = seq[~[]],
+                               edit_index                  = 0,
+
+                               navigate_through_history(e) = e.which === up_arrow_keycode ? history_up() : history_down(),
+                               history_up()                = edit_index > 0                   && stash_current_entry() && load_new_entry(edit_index - 1),
+                               history_down()              = edit_index < edit_history.size() && stash_current_entry() && load_new_entry(edit_index + 1),
+                               history_append(text)        = edit_index = edit_history.push(text).size(),
+                               stash_current_entry()       = edit_history /se[_[edit_index] = p.find('.input').val(), when[edit_index < _.size()]],
+                               load_new_entry(index)       = p.find('.input') /se[_.val(edit_history[edit_index = index] || '')],
+
+                               timer                       = null,
+                               do_timer_action()           = p.find('.macroexpansion').text(macroexpand(p.find('.input').val())),
+                               restart_timer()             = timer /se[_ && clearTimeout(_), timer = setTimeout(do_timer_action, input_syntax_check_delay)],
+
+                               syntax_errors(s)            = unwind_protect[e.toString()][new Function('return (#{s})') && ''],
+                               macroexpand(code)           = syntax_errors(code) || caterwaul.format(caterwaul_global(caterwaul.parse(code))),
+
+                               result(text)                = compile_into_function(text) /se[_ ? accept_input(text, _) : reject_input()],
+                               compile_into_function(text) = unwind_protect[false][caterwaul_global('function () {return (#{text})}')],
+
+                               accept_input(text, f)       = run_user_input(text, f) /se[history_append(text), p.find('.input, .macroexpansion').val('').text('')],
+                               bombproof_execute(f)        = unwind_protect[{error: e}][{result: f()}],
+                               run_user_input(text, f)     = l[result = bombproof_execute(f)][log_user_input(text), result.error ? log_error(result.error) : log_value(result.result)],
+
+                               reject_input(f)             = null,
+
+                               after_log()                 = setTimeout(fn_[$(window).scrollTop($('#log').children() /re[_[_.length - 2]] /re[$(_).offset().top])], 0),
+
+                               log_error(e)                = $('#log').append(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
+                               log_user_input(s)           = $('#log').append(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
+                               log_value(v)                = $('#log').append(html[div.value(pre.fixed /text(v == null ? '' + v : v.toString()))]) /se[after_log()]]],
+
+         log = html[div *id('log')]]}));
+__996fe6b51827e2c6c6dfb0bcac65ba4e
+internal::main();
+
+__END__
