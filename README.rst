@@ -11,7 +11,8 @@ know if anything fails. My goal is to make this project completely cross-browser
 As of version 0.5.4, all of the standard library works IE6, IE7, IE8, Google Chrome, Firefox 3.5, and Safari. The sequence library didn't work on IE7 before this version.
 
 Documentation is in the doc/ directory (in the form of applied guides; these should be a great place to start), and the annotated source is up at
-http://spencertipping.com/caterwaul/caterwaul.html. Another way to learn Caterwaul is to experiment with the `live compiler <http://spencertipping.com/caterwaul/compiler>`_.
+http://spencertipping.com/caterwaul/caterwaul.html. Another way to learn Caterwaul is to experiment with the `live compiler <http://spencertipping.com/caterwaul/compiler>`_ and `Caterwaul REPL
+<http://spencertipping.com/caterwaul/shell>_`.
 
 Using Caterwaul
 ---------------
