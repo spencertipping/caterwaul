@@ -869,14 +869,18 @@ __c52308d05ebb4ff61c5fc36e6d9c7a8a
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('watch', 'blue');
-meta::note('queue', <<'__517a1420df06797becd6eda846cfd0da');
+meta::note('queue', <<'__a2ca58d3c038ce0f785a6abbae1606b6');
 Inspector features.
 It would be cool if the inspector formed a uniform wrapper around values, kind of like jQuery does for DOM nodes. This way it would be possible to have things like uniform search across
 complex data structures.
 
 Directions.
 Tangentially, it would also be very cool if the inspector were used in a Caterwaul-based debugging extension. That would be so useful!
-__517a1420df06797becd6eda846cfd0da
+
+Callbacks.
+A stash interface seems ideal here. You use console.stash as a callback, and it pushes an element onto the stash[] sequence for you when the callback is invoked. As a shorthand, stash.last()
+gives you the most recent one, and maybe console.stashg('name') allocates a global.
+__a2ca58d3c038ce0f785a6abbae1606b6
 meta::parent('/home/spencertipping/bin/notes', <<'__885245820bcb60424dfcbd480e5b966e');
 function::note
 function::notes
