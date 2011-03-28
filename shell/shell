@@ -209,6 +209,7 @@ __c1f29670be26f1df6100ffe4334e1202
 meta::alias('eih', 'edit sdoc::html::index');
 meta::alias('eij', 'edit sdoc::js::index');
 meta::alias('eis', 'edit sdoc::css::index');
+meta::alias('esj', 'edit sdoc::js::shell');
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -1177,7 +1178,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('css::index', <<'__8094514bad34e8e103dab2ed5a87dd1a');
+meta::sdoc('css::index', <<'__53672a80ad34e8e103dab2ed26778e83');
 General styling.
 
 body {font-family: sans-serif; margin: 10px}
@@ -1204,13 +1205,13 @@ input:focus {border: none}
 History log elements.
 These are color-coded by role.
 
-#log pre {font-size: 9pt; margin: 1px; padding: 2px}
+.log pre {font-size: 9pt; margin: 1px; padding: 2px}
 
-#log .input pre {color: #777}
-#log .error pre {color: #a53}
-#log .value pre {color: #222}
-__8094514bad34e8e103dab2ed5a87dd1a
-meta::sdoc('html::index', <<'__44357315ee36d8f24e59e45ed364501a');
+.log .input pre {color: #777}
+.log .error pre {color: #a53}
+.log .value pre {color: #222}
+__53672a80ad34e8e103dab2ed26778e83
+meta::sdoc('html::index', <<'__2d67831279ef6cbafa02f8f8b25248f1');
 <!doctype html>
 <html>
   <head>
@@ -1219,13 +1220,19 @@ meta::sdoc('html::index', <<'__44357315ee36d8f24e59e45ed364501a');
   <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
   <script src='http://spencertipping.com/caterwaul/modules/caterwaul.format.js'></script>
   <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='shell.js'></script>
   <script src='index.js'></script>
   <link rel='stylesheet' href='index.css'/>
   </head>
   <body></body>
 </html>
-__44357315ee36d8f24e59e45ed364501a
-meta::sdoc('js::index', <<'__fc3af35e769f7775becfebb14f83ed41');
+__2d67831279ef6cbafa02f8f8b25248f1
+meta::sdoc('js::index', <<'__38e18c1deb106c6e5b6b414649daebed');
+$(function () {
+  $('body').append(shell());
+});
+__38e18c1deb106c6e5b6b414649daebed
+meta::sdoc('js::shell', <<'__32eedbbf36cbf7ecfca09aec9ba4d232');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1237,15 +1244,16 @@ UI structure.
 Like most REPLs, this interface provides a prompt and a history area. Unlike most REPLs, though, the interface macroexpands the user's code in realtime. It also maintains a list of variables
 defined by the user and lets the user interactively inspect objects, arrays, and other values.
 
-$(caterwaul.clone('std format seq continuation montenegro')(function () {
-  $('body').append(log, prompt),
-  setTimeout(fn_[$('.prompt .input').focus()], 0),
+shell = caterwaul.clone('std format seq continuation montenegro')(function (options) {
+  options = options || {};
+
+  return html[div.shell(div.log(prompt))],
 
   where*[caterwaul_global = caterwaul.clone('std seq continuation opt montenegro parser'),
 
-         input_syntax_check_delay = 100,
-         up_arrow_keycode         = 38,
-         down_arrow_keycode       = 40,
+         input_syntax_check_delay = options.syntax_check_delay   || 30,
+         up_arrow_keycode         = options.history_up_keycode   || 38,
+         down_arrow_keycode       = options.history_down_keycode || 40,
 
          prompt = html[div.prompt(input.input.fixed.large, pre.macroexpansion.fixed.large *readonly('true'))]
                   /se.p[p.find('.input').keyup(restart_timer).
@@ -1278,14 +1286,12 @@ $(caterwaul.clone('std format seq continuation montenegro')(function () {
 
                                reject_input(f)             = null,
 
-                               after_log()                 = setTimeout(fn_[$(window).scrollTop($('.prompt .macroexpansion').offset().top + 80 - $(window).height())], 0),
+                               after_log()                 = setTimeout(fn_[p.parent().scrollTop($('.prompt .macroexpansion').position().top + 80 - p.parent().height())], 0),
 
-                               log_error(e)                = $('#log').append(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
-                               log_user_input(s)           = $('#log').append(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
-                               log_value(v)                = $('#log').append(html[div.value(pre.fixed /text(v == null ? '' + v : v.toString()))]) /se[after_log()]]],
-
-         log = html[div *id('log')]]}));
-__fc3af35e769f7775becfebb14f83ed41
+                               log_error(e)                = p.before(html[div.error(pre.fixed /text(e.toString()))])                      /se[after_log()],
+                               log_user_input(s)           = p.before(html[div.input(pre.fixed /text(s))])                                 /se[after_log()],
+                               log_value(v)                = p.before(html[div.value(pre.fixed /text(v == null ? '' + v : v.toString()))]) /se[after_log()]]]]});
+__32eedbbf36cbf7ecfca09aec9ba4d232
 internal::main();
 
 __END__
