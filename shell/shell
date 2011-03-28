@@ -753,6 +753,14 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
+meta::hook('after-render::combined', <<'__e7d0a6d7f34917d7c04a8b207c44964f');
+# Creates a combined page with scripts and stylesheets embedded.
+my $page_contents = retrieve('html::index');
+$page_contents =~ s/<script\s+src='(?!http:)([^']+)'><\/script>/'<script>' . file::read($1) . '<\/script>'/eg;
+$page_contents =~ s/<link\s+rel='stylesheet'\s+href='([^']+)'\s*\/>/'<style>' . file::read($1) . '<\/style>'/eg;
+
+file::write('combined.html', $page_contents);
+__e7d0a6d7f34917d7c04a8b207c44964f
 meta::hook('after-render::markup', <<'__a9c032a0fd93e028d509e4ea7bcd974a');
 file::write(attribute($_) . '.html', retrieve($_)) for grep s/^sdoc::html::/html::/x, keys %data;
 file::write(attribute($_) . '.css',  retrieve($_)) for grep s/^sdoc::css:: /css::/x,  keys %data;
@@ -1202,11 +1210,11 @@ These are color-coded by role.
 #log .error pre {color: #a53}
 #log .value pre {color: #222}
 __8094514bad34e8e103dab2ed5a87dd1a
-meta::sdoc('html::index', <<'__ff76a39841f5ca1884b0d3c319a202c3');
+meta::sdoc('html::index', <<'__44357315ee36d8f24e59e45ed364501a');
 <!doctype html>
 <html>
   <head>
-  <title></title>
+  <title>Caterwaul Shell</title>
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.js'></script>
   <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
   <script src='http://spencertipping.com/caterwaul/modules/caterwaul.format.js'></script>
@@ -1216,7 +1224,7 @@ meta::sdoc('html::index', <<'__ff76a39841f5ca1884b0d3c319a202c3');
   </head>
   <body></body>
 </html>
-__ff76a39841f5ca1884b0d3c319a202c3
+__44357315ee36d8f24e59e45ed364501a
 meta::sdoc('js::index', <<'__fc3af35e769f7775becfebb14f83ed41');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
