@@ -445,6 +445,21 @@ around_hook('load-state', @_, sub {
   reload();
   verify()});
 __ea18db867bd62a294e067f60e6975dcf
+meta::function('load-time', <<'__599109fa7c6ded3f10c9723dc2c1f53b');
+render();
+
+terminal::info('benchmarking GJS load time (SpiderMonkey)');
+terminal::info('loading caterwaul.all.js');
+  bench(sub {sh('gjs caterwaul.all.js > /dev/null 2>&1')});
+terminal::info('loading caterwaul.all.min.js');
+  bench(sub {sh('gjs caterwaul.all.min.js > /dev/null 2>&1')});
+
+terminal::info('', 'benchmarking node load time (V8)');
+terminal::info('loading caterwaul.all.js');
+  bench(sub {sh('node caterwaul.all.js > /dev/null 2>&1')});
+terminal::info('loading caterwaul.all.min.js');
+  bench(sub {sh('node caterwaul.all.min.js > /dev/null 2>&1')});
+__599109fa7c6ded3f10c9723dc2c1f53b
 meta::function('loc', <<'__5a1885d8e743dd80dcda866050f84434');
 # Counts SLOC, whitespace, and total LOC in the codebase.
 hook('before-loc', @_);
@@ -820,45 +835,20 @@ my ($name) = @_;
 $name =~ s/^[^:]*:://;
 $name;
 __62efb9f22157835940af1d5feae98d98
+meta::internal_function('bench', <<'__d77400a4154b5004d42b6086bbd9b02c');
+use Time::HiRes qw/gettimeofday tv_interval/;
+
+my ($f) = @_;
+my $start_time = [gettimeofday];
+&$f();
+my $duration = tv_interval($start_time);
+terminal::info("$duration seconds elapsed");
+__d77400a4154b5004d42b6086bbd9b02c
 meta::internal_function('chmod_self', <<'__b13487447c65f2dc790bd6b21dde89dd');
 my ($mode_function)      = @_;
 my (undef, undef, $mode) = stat $0;
 chmod &$mode_function($mode), $0;
 __b13487447c65f2dc790bd6b21dde89dd
-meta::internal_function('complete', <<'__f14ae2337c0653b6bb6fd02bb6493646');
-my @functions  = sort keys %externalized_functions;
-my @attributes = sort keys %data;
-
-sub match {
-  my ($text, @options) = @_;
-  my @matches = sort grep /^$text/, @options;
-
-  if    (@matches == 0) {return undef;}
-  elsif (@matches == 1) {return $matches [0];}
-  elsif (@matches >  1) {return ((longest ($matches [0], $matches [@matches - 1])), @matches);}
-}
-
-sub longest {
-  my ($s1, $s2) = @_; 
-  return substr ($s1, 0, length $1) if ($s1 ^ $s2) =~ /^(\0*)/;
-  return ''; 
-}
-
-# This is another way to implement autocompletion.
-#
-# my $attribs = $term->Attribs;
-# $attribs->{completion_entry_function} = $attribs->{list_completion_function};
-# $attribs->{completion_word} = [sort keys %data, sort keys %externalized_functions];
-
-my ($text, $line) = @_;
-if ($line =~ / /) {
-  # Start matching attribute names.
-  match ($text, @attributes);
-} else {
-  # Start of line, so it's a function.
-  match ($text, @functions);
-}
-__f14ae2337c0653b6bb6fd02bb6493646
 meta::internal_function('dangerous', <<'__167c759b4f9e54a667222dd3d405200d');
 # Wraps a computation that may produce an error.
 my ($message, $computation) = @_;
