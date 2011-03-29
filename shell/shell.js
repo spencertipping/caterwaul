@@ -20,36 +20,39 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
          up_arrow_keycode         = options.history_up_keycode   || 38,
          down_arrow_keycode       = options.history_down_keycode || 40,
 
-         value_inspector(v)       = html[div.inspector(pre.clickable /text('' + v))]
-                                    /se.i[i.click(fn_[i.empty().append(specific())]),
-                                    
-                                          where*[nullish_inspector(v)     = html[div.nullish_inspector(pre /text('' + v))],
-                                                 array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'))],
-                                                 regexp_inspector(v)      = html[div.regexp_inspector(pre /text(v.toString()), div.interact)]
-                                                                            /se.i[i.find('.interact').append(html[input /keyup(test) /change(test) /blur(test)]),
-                                                                                  where*[test() = i.find('input') /se[_.css({color: v.test(_.val()) ? 'green' : 'red'})]]],
-                                                 html_inspector(v)        = html[div.html_inspector(pre /text(v.outerHTML))],
-                                                 boxed_inspector(v)       = html[div.boxed_inspector(primitive_inspector(v), object_inspector(v))],
-                                                 function_inspector(v)    = html[div.function_inspector(pre /text(caterwaul.clone('format').format(caterwaul.parse(v.toString()))))],
-                                                 object_inspector(v)      = html[div.object_inspector(table)]
-                                                                            /se.i[i.find('table').append(rows()),
-                                                                                  where*[rows()    = seq[sp[v] *[row(_[0], _[1])]],
-                                                                                         row(k, v) = html[tr(td.key /text(k), td.value(value_inspector(v)))]]],
-                                                 primitive_inspector(v)   = html[div.primitive_inspector(pre /text('' + v))],
+         value_inspector(v) = html[div.inspector(pre.clickable /text('' + v))]
+                              /se.i[i.find('.clickable').click(fn_[i.children('.specific') /re[_.length ? _.remove() : i.append(html[div.specific(specific())])]]),
+                                    is_primitive(v) && i.find('.clickable').unbind('click').removeClass('clickable'),
 
-                                                 specific()               = v instanceof RegExp                                                                        ? regexp_inspector(v) :
-                                                                            v instanceof Function                                                                      ? function_inspector(v) :
-                                                                            typeof v === 'object' ? v == null                                                          ? nullish_inspector(v) :
-                                                                                                    v instanceof Array || 'length' in v && v.length - 1 in v           ? array_inspector(v) :
-                                                                                                    v instanceof HTMLElement                                           ? html_inspector(v) :
-                                                                                                    v instanceof String || v instanceof Number || v instanceof Boolean ? boxed_inspector(v) :
-                                                                                                                                                                         object_inspector(v) :
-                                                                                                    primitive_inspector(v)]],
+                                    where*[is_primitive(v)          = v == null || typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean',
+                                    
+                                           array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'), object_inspector(v))],
+                                           regexp_inspector(v)      = html[div.regexp_inspector(div.interact, object_inspector(v))]
+                                                                      /se.i[i.find('.interact').append(html[input /keyup(test) /change(test) /blur(test)]),
+                                                                            where*[test() = i.find('.interact input') /se[_.css({color: v.test(_.val()) ? 'green' : 'red'})]]],
+                                           html_inspector(v)        = html[div.html_inspector(pre /text(v.outerHTML), object_inspector(v))],
+                                           boxed_inspector(v)       = html[div.boxed_inspector(primitive_inspector(v), object_inspector(v))],
+                                           function_inspector(v)    = html[div.function_inspector(object_inspector(v))],
+                                           object_inspector(v)      = html[div.object_inspector(table.properties)]
+                                                                      /se.i[i.find('table').append(rows()),
+                                                                            where*[rows()        = seq[sorted_keys() %![_.constructor === Number || /^\d+$/.test(_)] *[row(_[0], _[1])]],
+                                                                                   sorted_keys() = seq[~sp[v].sort(fn[x, y][x[0] < y[0] ? -1 : 1])],
+                                                                                   row(k, v)     = html[tr(td.key /text(k), td.value(value_inspector(v)))]]],
+
+                                           specific()               = v instanceof RegExp                                                ? regexp_inspector(v) :
+                                                                      v instanceof Function                                              ? function_inspector(v) :
+                                                                      v instanceof Array || 'length' in v && v.length - 1 in v           ? array_inspector(v) :
+                                                                      v instanceof HTMLElement                                           ? html_inspector(v) :
+                                                                      v instanceof String || v instanceof Number || v instanceof Boolean ? boxed_inspector(v) :
+                                                                                                                                           object_inspector(v)]],
 
          prompt = html[div.prompt(input.input.fixed.large, pre.macroexpansion.fixed.large *readonly('true'))]
                   /se.p[p.find('.input').keyup(restart_timer).
                                          keyup(fn[e][navigate_through_history(e), when[e.which === up_arrow_keycode || e.which === down_arrow_keycode]]).
                                          enter_key(fn[e][result($(this).val())]),
+
+                        options.no_macroexpansion && p.find('.macroexpansion').remove(),
+                        p.find('.macroexpansion').click(fn_[p.find('.input').focus()]),
 
                         where*[edit_history                = seq[~[]],
                                edit_index                  = 0,
