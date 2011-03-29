@@ -1115,7 +1115,7 @@ These modules are actually parts of Caterwaul's basis:
 Replication is fairly straightforward; there isn't much of an interface required of the function being replicated. Macroexpansion, on the other hand, involves some inversion of control with
 respect to syntax trees. So, in order to work with this macroexpander, the tree should support an rmap() method. (More details in the code.)
 __92e7978739a04aa66d1b7859a730e367
-meta::note('q', <<'__d818392ddbca2ffd2b72f3661d4483d6');
+meta::note('q', <<'__aa827ca1111d91b79161c3be664c69ca');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
 
@@ -1150,6 +1150,10 @@ Caterwaul does the right thing 99% of the time. This section is for the 1% when 
   Something about constructors and how the sequence library implements inheritance from arrays. I'm not married to the idea of implementing proper inheritance here; it comes with enough
   problems.
 
+Important features.
+Caterwaul needs an offline precompiler. This is necessary mostly for performance reasons; it takes 7 seconds to load in GJS on a netbook, which is unacceptably slow. I should probably also
+profile the code to make sure the delays aren't caused by something else, for instance macroexpansion.
+
 Future modules.
 
 | 1. Recon module (but this has been in the works for ages).
@@ -1161,7 +1165,7 @@ Unimportant things that might help at some point in the future.
   Hashed syntax nodes.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
-__d818392ddbca2ffd2b72f3661d4483d6
+__aa827ca1111d91b79161c3be664c69ca
 meta::note('recon', <<'__c42c1079626dd15cf75d78c3b01ba77e');
 Recon module notes.
 The recon module is about more than just tracing the execution of code. It's also about providing an interface to interactively step through code.
