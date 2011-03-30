@@ -818,6 +818,12 @@ $scripts
 EOF
 __6dce5e00589b400e88c43e6ef2ab035c
 meta::hook('before-render::notify', 'terminal::info(\'rendering\');');
+meta::hook('hackery::coarse-profiling', <<'__5485ce8ba5cc41be8b23d0615e325d2c');
+# Render versions of caterwaul.all.js, but leave out the core caterwaul.
+my $filename = 'hackery/coarse-profiling/caterwaul.configurations.js';
+file::write($filename, cat(map "js::modules/caterwaul.$_", grep $_ ne 'std', split /\n/, &{'module-order'}()));
+minify($filename);
+__5485ce8ba5cc41be8b23d0615e325d2c
 meta::hook('hackery::partials', <<'__a95834118615197b87ea8792bee8ac43');
 # Builds partial versions of Caterwaul to test the loading time of each.
 my @accepted_modules;

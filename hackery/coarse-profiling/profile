@@ -1,0 +1,18 @@
+#!/bin/bash
+
+cat ../../caterwaul.js ../../modules/caterwaul.std.js caterwaul.profiled.js activate-profiling.js caterwaul.configurations.js     > caterwaul.all-profiled.js
+cat ../../caterwaul.js ../../modules/caterwaul.std.js caterwaul.profiled.js activate-profiling.js caterwaul.configurations.min.js > caterwaul.all-profiled.min.js
+
+echo 'profiling with GJS'
+echo 'unminified'
+gjs caterwaul.all-profiled.js |& grep -v ERROR
+
+echo 'minified'
+gjs caterwaul.all-profiled.min.js
+
+echo 'profiling with node'
+echo 'unminified'
+node caterwaul.all-profiled.js
+
+echo 'minified'
+node caterwaul.all-profiled.min.js
