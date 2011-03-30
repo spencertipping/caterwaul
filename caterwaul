@@ -818,13 +818,14 @@ $scripts
 </html>
 EOF
 __b6cb2b9b09d1b2623a50a6c16ea64e4a
-meta::hook('hackery::partials', <<'__26b3fb61553f9b4b89a5c8ce7735a6dc');
+meta::hook('hackery::partials', <<'__a95834118615197b87ea8792bee8ac43');
 # Builds partial versions of Caterwaul to test the loading time of each.
 my @accepted_modules;
 
 sub build_caterwaul {
   my @modules = @_;
-  my $filename = "hackery/partials/caterwaul-$#modules.js";
+  my $modules = join '-', @modules;
+  my $filename = "hackery/partials/caterwaul-$modules.js";
   file::write($filename, cat('js::caterwaul', map "js::modules/caterwaul.$_", @modules));
   minify($filename);
 }
@@ -834,7 +835,7 @@ for (@all_modules) {
   push @accepted_modules, $_;
   build_caterwaul(@accepted_modules);
 }
-__26b3fb61553f9b4b89a5c8ce7735a6dc
+__a95834118615197b87ea8792bee8ac43
 meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
 # around_hook('hookname', @args, sub {
 #   stuff;
