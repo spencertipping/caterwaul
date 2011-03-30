@@ -1,0 +1,3 @@
+This directory contains various data and tests used to make optimization
+decisions about the macroexpander. See also the note 'macroexpander-optimization'
+in the caterwaul script.
