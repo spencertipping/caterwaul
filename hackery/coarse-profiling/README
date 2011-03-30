@@ -1,0 +1,7 @@
+This is an attempt to find out which part of Caterwaul is slow and why. I'm
+basically logging everything that Caterwaul does at a high-level and timing each
+step. I'm logging both under a SpiderMonkey-based runtime and with V8 to see
+whether the bottleneck is implementation-dependent.
+
+You can find out what I'm doing to Caterwaul by looking at the 'profile' script
+and by searching for // CUSTOM tags in caterwaul.0.6.7.custom.js.

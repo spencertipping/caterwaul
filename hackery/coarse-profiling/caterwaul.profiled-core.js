@@ -822,8 +822,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern. It is optimized, though, to reject invalid nodes
 //   quickly -- that is, if there is any mismatch in arity or data.
 
+      invocation_count = 0,     // CUSTOM
+
       macro_array_push = Array.prototype.push,
-      macro_try_match  = function (pattern, t) {if (pattern.data === '_')                                   return [t];
+      macro_try_match  = function (pattern, t) {++invocation_count;     // CUSTOM
+                                                //log('macro_try_match called on ' + pattern.serialize() + ' and ' + (t ? t.serialize() : '<>'));
+                                                if (pattern.data === '_')                                   return [t];
                                                 if (pattern.data !== t.data || pattern.length !== t.length) return null;
                                                 for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
                                                   if (match = macro_try_match(pattern[i], t[i])) macro_array_push.apply(wildcards, match);
@@ -988,7 +992,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
   macroexpansion = function (f) {return f.
     shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
+    shallow('macro_expanders', []).field('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).        // CUSTOM
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
@@ -1030,6 +1034,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
+
+    method('invocation_count', function () {return invocation_count}).  // CUSTOM
 
     method('init', function (f, environment) {var result = f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment);
                                               if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+./render
+echo 'profiling with node'
+echo 'unminified'
+node caterwaul.all-profiled.js >& log-node-u
+
+echo 'minified'
+node caterwaul.all-profiled.min.js >& log-node-m
+
+echo 'profiled core'
+node caterwaul.profiled-core.js >& log-node-c

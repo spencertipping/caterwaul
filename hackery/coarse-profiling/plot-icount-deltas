@@ -1,0 +1,4 @@
+#!/bin/bash
+echo 'note: make sure log-node-c is up to date'
+grep '^macroexpand' log-node-c | sed -r 's/^[^\/]*\/ *([0-9]+)\): *([0-9]+).*$/\1 \2/' > log-node-c.points.dat
+gnuplot -e 'plot "log-node-c.points.dat"'

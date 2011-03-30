@@ -4,23 +4,3 @@ cat ../../caterwaul.js     ../../modules/caterwaul.std.js     caterwaul.profiled
 cat ../../caterwaul.min.js ../../modules/caterwaul.std.min.js caterwaul.profiled.js activate-profiling.js caterwaul.configurations.min.js > caterwaul.all-profiled.min.js
 
 cat caterwaul.0.6.7.custom.js ../../modules/caterwaul.std.js caterwaul.profiled.js activate-profiling.js caterwaul.configurations.js > caterwaul.profiled-core.js
-
-echo 'profiling with GJS'
-echo 'unminified'
-gjs caterwaul.all-profiled.js >& log-gjs-u
-
-echo 'minified'
-gjs caterwaul.all-profiled.min.js >& log-gjs-m
-
-echo 'profiled core'
-gjs caterwaul.profiled-core.js >& log-gjs-c
-
-echo 'profiling with node'
-echo 'unminified'
-node caterwaul.all-profiled.js >& log-node-u
-
-echo 'minified'
-node caterwaul.all-profiled.min.js >& log-node-m
-
-echo 'profiled core'
-node caterwaul.profiled-core.js >& log-node-c
