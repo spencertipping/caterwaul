@@ -10,9 +10,11 @@ caterwaul.tconfiguration('std', 'profile', function () {
          log(x)                      = log_function(x) /re[x],
          icount(c)                   = c.invocation_count && c.invocation_count(),
 
-         total_icount                = 0,
-         total_complexity            = 0,
+         icount_stack                = [],
+
+         enter(c, t)                 = icount_stack.push(icount(c)),
+         exit(c, t)                  = log('#{complexity_of(t)} #{(icount(c) - icount_stack.pop()) / c.macro_patterns.length}'),
 
          complexity_of(tree)         = l[total = 1] in tree.reach(fn_[++total]) /re[total],
 
-         profile(name, f)(t)         = f.apply(this, arguments) /se[log('#{total_icount += icount(this)} #{total_complexity += complexity_of(t)}')]]});
+         profile(name, f)(t)         = enter(this, t) && f.apply(this, arguments) /se[exit(this, t)]]});
