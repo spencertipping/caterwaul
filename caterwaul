@@ -817,6 +817,7 @@ $scripts
 </html>
 EOF
 __6dce5e00589b400e88c43e6ef2ab035c
+meta::hook('before-render::notify', 'terminal::info(\'rendering\');');
 meta::hook('hackery::partials', <<'__a95834118615197b87ea8792bee8ac43');
 # Builds partial versions of Caterwaul to test the loading time of each.
 my @accepted_modules;
