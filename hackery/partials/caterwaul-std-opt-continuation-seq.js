@@ -81,6 +81,7 @@
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
     gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    genint = (function (n) {return function () {return ++n}})(0),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -182,10 +183,10 @@
             pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x, this},
 
 //     Identification.
-//     You can request that a syntax node identify itself, in which case it will give you a string identifier if it hasn't already. The identity is not determined until the first time it is
-//     requested, and after that it is stable.
+//     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
+//     and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy.
 
-      id: function () {return this.id || (this.id = gensym())},
+      id: function () {return this.id || (this.id = genint())},
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,

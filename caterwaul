@@ -1466,7 +1466,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::caterwaul', <<'__f51868c7daf488b5eb698c3beafcdb2a');
+meta::sdoc('js::caterwaul', <<'__f1dde233c8c8ddb3401127a7809c4548');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1550,6 +1550,7 @@ See the 'Macroexpansion' section some distance below for more information about 
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
     gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    genint = (function (n) {return function () {return ++n}})(0),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -1651,10 +1652,10 @@ nodes. At the end of folding there is only one child per paren-group.
             pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x, this},
 
     Identification.
-    You can request that a syntax node identify itself, in which case it will give you a string identifier if it hasn't already. The identity is not determined until the first time it is
-    requested, and after that it is stable.
+    You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
+    and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy.
 
-      id: function () {return this.id || (this.id = gensym())},
+      id: function () {return this.id || (this.id = genint())},
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -2522,7 +2523,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
 
   caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__f51868c7daf488b5eb698c3beafcdb2a
+__f1dde233c8c8ddb3401127a7809c4548
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
