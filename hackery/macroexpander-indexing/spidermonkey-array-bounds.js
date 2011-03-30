@@ -12,10 +12,17 @@ var l = typeof console === 'undefined' ? print : function (x) {console.log(x)};
 
 bench(iterations, function () {array[Math.random() * array.length]});   // Warm-up
 
-l('in-bounds index with integers:       ' + (bench(iterations, function () {if (array[++count & 0x3ff]) ++total; else ++total}) - 0));
-l('in-bounds index with strings:        ' + (bench(iterations, function () {if (array[(++count & 0x3ff).toString()]) ++total; else ++total}) - 0));
+l('in-bounds index with integers:         ' + (bench(iterations, function () {if (array[++count % 1023]) ++total; else ++total}) - 0));
+l('in-bounds index with strings:          ' + (bench(iterations, function () {if (array[(++count % 1023).toString()]) ++total; else ++total}) - 0));
 
-l('out-of-bounds index with integers:   ' + (bench(iterations, function () {if (array[++count & 0x7ffff]) ++total; else ++total}) - 0));
-l('out-of-bounds index with strings:    ' + (bench(iterations, function () {if (array[(++count & 0x7ffff).toString()]) ++total; else ++total}) - 0));
+l('out-of-bounds index with integers:     ' + (bench(iterations, function () {if (array[++count % 0x7ffff]) ++total; else ++total}) - 0));
+l('out-of-bounds index with strings:      ' + (bench(iterations, function () {if (array[(++count % 0x7ffff).toString()]) ++total; else ++total}) - 0));
+
+l('in-bounds mod-index with integers:     ' + (bench(iterations, function () {if (array[++count % 1023]) ++total; else ++total}) - 0));
+l('in-bounds mod-index with strings:      ' + (bench(iterations, function () {if (array[(++count % 1023).toString()]) ++total; else ++total}) - 0));
+
+l('out-of-bounds mod-index with integers: ' + (bench(iterations, function () {if (array[++count % 0x7ffff]) ++total; else ++total}) - 0));
+l('out-of-bounds mod-index with strings:  ' + (bench(iterations, function () {if (array[(++count % 0x7ffff).toString()]) ++total; else ++total}) - 0));
+
 
 l(total);
