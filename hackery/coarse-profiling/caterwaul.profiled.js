@@ -6,6 +6,8 @@ caterwaul.tconfiguration('std', 'profile', function () {
 
   this.method('macroexpand', profile('macroexpand', this.macroexpand)),
 
+  log(icount(caterwaul)),
+
   setTimeout(fn_[log(total_complexity)], 0),
 
   where*[log_function                = typeof console !== 'undefined' ? console/mb/log : print,
@@ -17,7 +19,7 @@ caterwaul.tconfiguration('std', 'profile', function () {
          icount_stack                = [],
 
          enter(c, t)                 = icount_stack.push(icount(c)),
-         exit(c, t)                  = log('#{complexity_of(t)} #{(icount(c) - icount_stack.pop()) / c.macro_patterns.length}')
+         exit(c, t)                  = log('#{complexity_of(t)} #{(icount(c) - icount_stack.pop())} #{c.macro_patterns.length} #{icount(c)}')
                                        /se[icount_stack.length || (total_complexity += complexity_of(t))],
 
          complexity_of(tree)         = l[total = 1] in tree.reach(fn_[++total]) /re[total],

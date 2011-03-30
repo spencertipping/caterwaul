@@ -1,4 +1,4 @@
-156 NaN
+undefined
 
 node.js:178
         throw e; // process.nextTick error, or 'error' event on first tick
@@ -7,7 +7,7 @@ ReferenceError: qs is not defined
     at Function.<anonymous> (eval at <anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:1:16116))
     at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:1:17762)
     at Function.configure (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:1:471)
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:26:500)
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:28:500)
     at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:1:17762)
     at /home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:1:471
     at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.min.js:1:17468)
