@@ -1,1 +1,0 @@
-sdocp('sdoc::js::unit.client', 'Client-side unit testing hooks.\n\nlog = function (message) {\n  var d = document.createElement(\'div\');\n  d.appendChild(document.createTextNode(message));\n  document.getElementById(\'log\').appendChild(d);\n};');

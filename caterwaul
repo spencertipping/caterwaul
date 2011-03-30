@@ -719,7 +719,7 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__fb76551943aeee67504bb9481ea31698');
+meta::function('test', <<'__e659775b0754f4646d3e3274b313e6cc');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
@@ -727,8 +727,8 @@ meta::function('test', <<'__fb76551943aeee67504bb9481ea31698');
 my @tests = grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$_[0]\\.?test/$_[1]");
 render();
 terminal::info('running ' . join(' ', @tests));
-node([qw/caterwaul.all.js unit.js/, @tests]);
-__fb76551943aeee67504bb9481ea31698
+node([qw(caterwaul.all.js test/lib/unit.js), @tests]);
+__e659775b0754f4646d3e3274b313e6cc
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -781,20 +781,19 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::cleanup', <<'__bed5f344bd83acce36cb48d6e4038dc3');
+meta::hook('after-render::cleanup', <<'__53d7a659ec1b2c1702f61651a956d38c');
 # Nuke some things that get created by render().
-unlink qw/macroexpander.js parser.js/;
-__bed5f344bd83acce36cb48d6e4038dc3
+unlink qw/macroexpander.js parser.js minify.js minify.js.sdocp/;
+__53d7a659ec1b2c1702f61651a956d38c
 meta::hook('after-render::hackery', <<'__062241e6c594421bc7bb77b89daca84b');
 # Runs the hackery generation hooks (which happen after a render)
 hook('hackery');
 __062241e6c594421bc7bb77b89daca84b
-meta::hook('after-render::minify', <<'__b6cb2b9b09d1b2623a50a6c16ea64e4a');
+meta::hook('after-render::minify', <<'__6dce5e00589b400e88c43e6ef2ab035c');
 # Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
 my @files = ('caterwaul', map "modules/caterwaul.$_", split /\n/, &{'module-order'}());
 
 file::write("caterwaul.all.js", cat(map "js::$_", @files));
-file::write("$_.js.sdocp", cat("sdocp::js::$_"), mkpath => 1) for grep s/^sdoc::js:://, keys %data;
 minify("$_.js") for @files, "caterwaul.all";
 
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/.*)$/\1.js/, sort keys %data;
@@ -805,8 +804,8 @@ file::write('test/index.html', <<EOF);
 <head>
 <title>Caterwaul unit tests</title>
 <script src="../caterwaul.all.js"></script>
-<script src="../unit.js"></script>
-<script src="../unit.client.js"></script>
+<script src="lib/unit.js"></script>
+<script src="lib/unit.client.js"></script>
 <style>
 body {font-family: monospace}
 </style>
@@ -817,7 +816,7 @@ $scripts
 </body>
 </html>
 EOF
-__b6cb2b9b09d1b2623a50a6c16ea64e4a
+__6dce5e00589b400e88c43e6ef2ab035c
 meta::hook('hackery::partials', <<'__a95834118615197b87ea8792bee8ac43');
 # Builds partial versions of Caterwaul to test the loading time of each.
 my @accepted_modules;
@@ -4961,6 +4960,54 @@ test('lex-semicolon-failure', function () {
   t('/foo/g;/bar/g', '(; (/foo/g) (/bar/g))');
 });
 __49490aff075a90b745e45ad9bad59b7a
+meta::sdoc('js::test/lib/unit', <<'__458b2d5ecb12b34e383495edda6c830d');
+Unit testing library functions
+
+var original_caterwaul = caterwaul.deglobalize();
+
+var log = function (message) {
+  if (typeof console === 'undefined') print(message);
+  else                                console.log(message);
+};
+
+var on_error = function (name, e) {
+  log('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
+  throw new Error(e);
+};
+
+var eq_count = 0;
+var eq = function (x, y, message) {
+  ++eq_count;
+  if (x == y) return true;
+  else        return on_error(current_test, (message || '') + x + ' !== ' + y);
+};
+
+var current_test = null;
+var test = function (name, f) {
+  log('[unit] starting test ' + (current_test = name));
+
+  try {
+    eq_count  = 0;
+    caterwaul = original_caterwaul.clone();
+    f();
+
+    eq_count  = 0;
+    caterwaul = caterwaul.reinitialize(caterwaul);
+    f();
+  } catch (e) {
+    on_error(name, e);
+  }
+};
+__458b2d5ecb12b34e383495edda6c830d
+meta::sdoc('js::test/lib/unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
+Client-side unit testing hooks.
+
+log = function (message) {
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(message));
+  document.getElementById('log').appendChild(d);
+};
+__28f25ce7ee14450256238f801d4e6aac
 meta::sdoc('js::test/parse-arithmetic', <<'__b00daffcaa4ad72898ef2168448d686c');
 Arithmetic/expression tests for the parser.
 
@@ -9751,54 +9798,6 @@ test('tostring-jquery', function () {
   });
 });
 __27d306f38b559870a5f3423cbca2f03e
-meta::sdoc('js::unit', <<'__458b2d5ecb12b34e383495edda6c830d');
-Unit testing library functions
-
-var original_caterwaul = caterwaul.deglobalize();
-
-var log = function (message) {
-  if (typeof console === 'undefined') print(message);
-  else                                console.log(message);
-};
-
-var on_error = function (name, e) {
-  log('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
-  throw new Error(e);
-};
-
-var eq_count = 0;
-var eq = function (x, y, message) {
-  ++eq_count;
-  if (x == y) return true;
-  else        return on_error(current_test, (message || '') + x + ' !== ' + y);
-};
-
-var current_test = null;
-var test = function (name, f) {
-  log('[unit] starting test ' + (current_test = name));
-
-  try {
-    eq_count  = 0;
-    caterwaul = original_caterwaul.clone();
-    f();
-
-    eq_count  = 0;
-    caterwaul = caterwaul.reinitialize(caterwaul);
-    f();
-  } catch (e) {
-    on_error(name, e);
-  }
-};
-__458b2d5ecb12b34e383495edda6c830d
-meta::sdoc('js::unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
-Client-side unit testing hooks.
-
-log = function (message) {
-  var d = document.createElement('div');
-  d.appendChild(document.createTextNode(message));
-  document.getElementById('log').appendChild(d);
-};
-__28f25ce7ee14450256238f801d4e6aac
 internal::main();
 
 __END__
