@@ -363,19 +363,18 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //     Update for Caterwaul 0.7.0: Syntax nodes now use semi-stateful arrays for serialization. Hopefully this will make the process faster. (Testing in progress.)
 
-       serialize: function (xs) {var ys = xs || [], op = this.data, sop = ' ' + op + ' ', sopt = /\w/.test(op) ? sop : op,
-                                   push = function (f, xs) {for (var i = 0, l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys};
-                                 has(parse_invisible, op) ? push(syntax_node_tostring, this) :
-                                has(parse_invocation, op) ? push(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]) :
-                                   has(parse_ternary, op) ? push(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]) :
-                                     has(parse_group, op) ? ys.push(op) && push(syntax_node_tostring, this) && ys.push(parse_group[op]) :
-                                        has(parse_lr, op) ? this.length ? push(syntax_node_tostring, [this[0], this[1] ? sopt : '', this[1], this[2] ? sopt : '', this[2]]) : ys.push(op) :
-            has(parse_r, op) || has(parse_r_optional, op) ? ys.push(op.replace(/^u/, ' ') + ' ') && ys.push(this[0] ? this[0].serialize() : '') :
-                             has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                              ys.push(op) && push(syntax_node_tostring, [this[0], this[1], ';', this[2]]) :
-                                                              ys.push(op) && push(syntax_node_tostring, this) :
-                                         has(parse_l, op) ? ys.push(this[0] ? this[0].serialize() : '') && ys.push(sop) : ys.push(op);
-                                 return xs ? ys : ys.join('')}},
+       serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
+                                    s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+                                       has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
+                                          has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
+                                            has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
+                                               has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
+                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
+                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
+                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
+                                                                     op + space + map(syntax_node_tostring, this).join('') :
+                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
+                               return right ? s + right : s}},
 
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
@@ -1269,12 +1268,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 caterwaul.tconfiguration('std', 'profile', function () {
   this.field('decompile',   profile('decompile',   this.decompile)),
   this.field('compile',     profile('compile',     this.compile)),
-  this.field('macroexpand', profile('macroexpand', this.macroexpand)),
+  this.field('macroexpand', profile_args('macroexpand', this.macroexpand)),
+  this.method('clone',      profile_args('clone',       this.clone)),
+  this.method('configure',  profile_args('configure',   this.configure)),
 
-  where*[log                = typeof console !== 'undefined' ? console/mb/log : print,
-         profile(name, f)() = l[start = +new Date(), result = f.apply(this, arguments)] in result /se[log('#{name}: #{+new Date() - start}ms')]]});
+  where*[log                     = typeof console !== 'undefined' ? console/mb/log : print,
+         recursion               = {},
+         enter(name)             = recursion[name] = (recursion[name] || 0) + 1,
+         exit(name)              = --recursion[name],
+
+         profile_args(name, f)() = l[args = arguments] in profile(name, f).apply(this, args) /se[log(Array.prototype.slice.call(args).join(', '))],
+         profile(name, f)()      = l[start = +new Date(), result = f.apply(this, arguments)] in result /se[log('#{name} (#{enter(name)}): #{+new Date() - start}ms'), exit(name)]]});
 caterwaul.configure('profile');
-console.log(caterwaul.has);
 // Caterwaul optimization library | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
