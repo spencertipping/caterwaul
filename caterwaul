@@ -719,16 +719,16 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__e659775b0754f4646d3e3274b313e6cc');
+meta::function('test', <<'__bdd96e96cb6ffbc5d42dc0dc67d10a7a');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
 
-my @tests = grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$_[0]\\.?test/$_[1]");
+my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$_[0]\\.?test/$_[1]");
 render();
 terminal::info('running ' . join(' ', @tests));
 node([qw(caterwaul.all.js test/lib/unit.js), @tests]);
-__e659775b0754f4646d3e3274b313e6cc
+__bdd96e96cb6ffbc5d42dc0dc67d10a7a
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
