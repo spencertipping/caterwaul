@@ -357,10 +357,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
 //     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
 
-        toString: function () {return this.inspect()},
-         inspect: function () {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
-                                      (this.r ? ' -> ' + this.r.inspect() : '')},
-       serialize: function () {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
+        toString: function ()   {return this.inspect()},
+         inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
+                                        (this.r ? ' -> ' + this.r.inspect() : '')},
+
+//     Update for Caterwaul 0.7.0: Syntax nodes now use semi-stateful arrays for serialization. Hopefully this will make the process faster. (Testing in progress.)
+
+       serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
                                     s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                        has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
                                           has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
