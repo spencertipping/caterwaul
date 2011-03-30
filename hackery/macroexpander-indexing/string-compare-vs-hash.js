@@ -18,6 +18,7 @@ l('index with integers: (adj) ' + (bench(iterations, function () {if (object[++c
 l('index with strings: (adj)  ' + (bench(iterations, function () {if (object[(++count).toString()]) ++total}) - to_s));
 l('index with integers:       ' + (bench(iterations, function () {if (object[++count]) ++total}) - 0));
 l('index with strings:        ' + (bench(iterations, function () {if (object[(++count).toString()]) ++total}) - 0));
+
 l('integer compare ===:       ' + (bench(iterations, function () {if (count === ++count) ++total}) - 0));
 l('string compare ===:        ' + (bench(iterations, function () {if (count.toString() === (++count).toString()) ++total}) - 0 * 2));
 l('integer compare <=:        ' + (bench(iterations, function () {if (count <= ++count) ++total}) - 0));
