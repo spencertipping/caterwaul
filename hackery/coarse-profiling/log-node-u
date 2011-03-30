@@ -7,7 +7,7 @@ ReferenceError: qs is not defined
     at Function.<anonymous> (eval at <anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:865:18))
     at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:975:156)
     at Function.configure (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:85:123)
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1361:52)
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1365:52)
     at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:975:156)
     at /home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:85:123
     at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:972:90)

@@ -1132,6 +1132,27 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('macroexpander-optimization', <<'__0b3a7e2838a14036d92449431a1c7a36');
+Optimization constraints for macroexpansion.
+This is a challenging problem. It looks like the total complexity of loading all modules is close to 7000, which isn't too bad by itself. However, there are more than 100 macros during some of
+these configurations, and that increases the amount of work by a factor of 100.
+
+It isn't possible to achieve sublinear macroexpansion time in the number of syntax nodes, but I think it is possible to achieve it in the number of macros. I'm not quite sure how this should
+work, but probably some kind of indexing strategy is in order.
+
+Masked indexing.
+This is probably the most obvious way to solve the problem. The idea is that macroexpand() first builds an index of nodes, then consults the index to determine which macros should be invoked.
+This should be roughly O(n) in the size of the tree. The implementation is made challenging by the fact that syntax node patterns aren't necessarily easy to index. The only way I can think of
+to go about this sensibly is to compile some kind of mixed mask from all of the macro patterns, and then hash each syntax node based on that mask.
+
+Another possibility is to arrange macro patterns by common factors. Maybe Caterwaul's macroexpander knows how to do things like identify structurally identical trees and dispatch on some hash
+of the data, or some such. This involves some fairly advanced decision-making on Caterwaul's part, but I'm fairly confident that a closed-form optimization strategy exists.
+
+Problem statement.
+Formally speaking, the problem is this. Minimize the number of pattern-node match operations. Scanning through all of the nodes up-front is a definite possibility, though each node visit is
+somewhat expensive. Match operations are worse, however, since they may have to dig down several layers before rejecting a match, and in the meantime they will have consed up and concatenated
+many arrays to build the partial match data.
+__0b3a7e2838a14036d92449431a1c7a36
 meta::note('modules', <<'__92e7978739a04aa66d1b7859a730e367');
 Modules.
 Modules are for extensions as much as they are for fundamentals. This sounds weird perhaps, but it's true. For example, the replication behavior of caterwaul is useful outside of just the
