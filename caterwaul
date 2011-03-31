@@ -854,15 +854,15 @@ meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
 # Runs the hackery generation hooks (which happen after a render)
 #hook('hackery');
 __049a9817dec529eff29f94917eb1ee83
-meta::hook('after-render::minify', <<'__b588e495baa47a69122912ba03ee16f9');
+meta::hook('after-render::minify', <<'__4dbb82308b841f12d2bcd62fce32d468');
 # Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
 file::write('caterwaul.js',       retrieve('pp::js::core/caterwaul'));
 file::write('caterwaul.all.js',   retrieve('pp::js::modules/caterwaul.all'));
 file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
 
-# Compile caterwaul.all.js and minified versions of everything.
-minify("$_.js") for @files, "caterwaul.all";
-__b588e495baa47a69122912ba03ee16f9
+# Minify all of the generated files, but not those which contain preprocessor directives.
+file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, <*.js>, <modules/*.js>;
+__4dbb82308b841f12d2bcd62fce32d468
 meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
@@ -2696,13 +2696,14 @@ The Caterwaul standard library gives you an equivalent but much more refined for
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
               has = function (o, p) {return p && ! (p.length > o._max_length) && p !== '_max_length' && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
 __77f95679846090077ea1369581ad366e
-meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
+meta::sdoc('js::minify', <<'__e78c26e425d25e97f16e017a4ae03cff');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
 
-var code = require('fs').readFileSync(process.argv[2], 'utf8');
-require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.min.js'), caterwaul.parse(code).serialize(), 'utf8');
-__c427ba38be3090426d6ef69c5cabf6b3
+var code   = require('fs').readFileSync(process.argv[2], 'utf8'),
+    header = '// Caterwaul JS | Spencer Tipping\nLicensed under the terms of the MIT source code license\n';
+require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.min.js'), header + caterwaul.parse(code).serialize(), 'utf8');
+__e78c26e425d25e97f16e017a4ae03cff
 meta::sdoc('js::modules/caterwaul.all', <<'__f75c41bcefb47aef8cc14e92694f0ea7');
 Caterwaul with all modules | Spencer Tipping
 Licensed under the terms of the MIT source code license
