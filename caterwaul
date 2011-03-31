@@ -219,6 +219,8 @@ meta::alias('ec', 'edit sdoc::js::core/caterwaul.compiler');
 meta::alias('ef', 'edit sdoc::js::core/caterwaul.configuration');
 meta::alias('ei', 'edit sdoc::js::core/caterwaul.introduction');
 meta::alias('em', 'edit sdoc::js::core/caterwaul.macroexpander');
+meta::alias('emh', 'edit sdoc::js::core/caterwaul.macroexpander.hashed');
+meta::alias('emn', 'edit sdoc::js::core/caterwaul.macroexpander.naive');
 meta::alias('ep', 'edit sdoc::js::core/caterwaul.parser');
 meta::alias('et', 'edit sdoc::js::core/caterwaul.tree');
 meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
@@ -1905,7 +1907,7 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})};
 __7dbd96a9fb2c544be21176126049a5c4
-meta::sdoc('js::core/caterwaul.macroexpander', <<'__530732f1f117887f5ea4aeb79f839f09');
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__23ce30f3b2b1466d33a7b2d09f559a20');
 Macroexpansion.
 Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
 (or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
@@ -1923,9 +1925,7 @@ Defining offline macros is done in the normal execution path. For example:
   });
 
 Wrapping the first function in caterwaul() wasn't necessary, though it was helpful to get the qs[] and fn[] shorthands. In this case, the macro is persistent to the caterwaul function that it
-was called on. (So any future caterwaul()ed functions would have access to it.)
-
-You can also define conditional macros, though they will probably be slower. For example:
+was called on. (So any future caterwaul()ed functions would have access to it.) You can also define conditional macros, though they will probably be slower. For example:
 
 | caterwaul(function () {
     caterwaul.rmacro(qs[let (_) in _], fn[bs, e][bs.data === '=' && ...]);
@@ -1945,12 +1945,11 @@ macros, one for each case:
 | caterwaul(function () {
     var patterns = [qs[foo], qs[bar], qs[bif]];
     patterns.map (function (p) {
-      caterwaul.rmacro (p, fn[x][...]);
+      caterwaul.rmacro(p, fn[x][...]);
     });
   }) ();
 
-This gives Caterwaul the opportunity to call your function only on relevant nodes. (Note that at present I haven't found an algorithm to make things any faster than using a depth-first scan.
-However, if I do find such an algorithm later on then macroexpansion will run quite a bit faster for programs with well-defined patterns.)
+Caterwaul implements several optimizations that make it much faster to macroexpand code when the macro patterns are easily identified.
 
   Pitfalls of macroexpansion.
   Macroexpansion as described here can encode a lambda-calculus. The whole point of having macros is to make them capable, so I can't complain about that. But there are limits to how far I'm
@@ -1975,9 +1974,61 @@ However, if I do find such an algorithm later on then macroexpansion will run qu
 
   Things that are not guaranteed:
 
-  | 1. Reassembly of different pieces (see above)
+  | 1. Reassembly of different pieces (see above).
     2. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
     3. Performance bounds.
+
+- pinclude pp::js::core/caterwaul.macroexpander.naive
+__23ce30f3b2b1466d33a7b2d09f559a20
+meta::sdoc('js::core/caterwaul.macroexpander.hashed', <<'__3a97711ff05588a663d2f6dec514966c');
+Hashed macroexpander.
+The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
+pattern trees this becomes too slow for regular use. This macroexpander uses adaptive hashing to optimize lookups against the macro table, eliminating most of the checks that would have
+failed.
+
+  Algorithm and use case analysis.
+  For n syntax nodes and k macro patterns, a naive approach performs O(nk) tree-match operations. Each match is O(n) in the complexity of the pattern tree. At first it seemed like this would
+  scale reasonably well, but version 0.6.7 of Caterwaul performed 750000 tree-match operations to load just the standard libraries. This ended up taking several seconds on some runtimes.
+
+  Hashing is an attractive solution because of the way macros are usually structured. It's unfortunate that the space of operator nodes is limited, but several different hashes in combination
+  can reduce the pattern space considerably. For example, here are some of the patterns used by the standard library:
+
+  | (* (l) ([] ([ (_)) (_)))
+    (* (let) ([] ([ (_)) (_)))
+    (, (_) (* (where) ([ (_))))
+    (, (_) ([] (unless) (_)))
+    (, (_) ([] (when) (_)))
+    (, (_) ([] (where) (_)))
+    (/ (/ (_) (mb)) (_))
+    (/ (_) ([] (. (cpb) (_)) (_)))
+    (/ (_) ([] (. (cps) (_)) (_)))
+    (/ (_) ([] (. (re) (_)) (_)))
+    (/ (_) ([] (. (se) (_)) (_)))
+
+  Just partitioning on the top node can save on average between 1/2 and 1/3 of the macro lookups. It's possible to do better though. An alternative strategy is to dive into the tree until we
+  hit a non-wildcard identifier and record its path. For example:
+
+  | (* (l) ([] ([ (_)) (_)))            -> l, [0]
+    (* (let) ([] ([ (_)) (_)))          -> let, [0]
+    (, (_) (* (where) ([ (_))))         -> where, [1][0]
+    (, (_) ([] (unless) (_)))           -> unless, [1][0]
+    (, (_) ([] (when) (_)))             -> when, [1][0]
+    (, (_) ([] (where) (_)))            -> where, [1][0]
+    (/ (/ (_) (mb)) (_))                -> mb, [0][1]
+    (/ (_) ([] (. (cpb) (_)) (_)))      -> cpb, [1][0][0]
+    (/ (_) ([] (. (cps) (_)) (_)))      -> cps, [1][0][0]
+    (/ (_) ([] (. (re) (_)) (_)))       -> re, [1][0][0]
+    (/ (_) ([] (. (se) (_)) (_)))       -> se, [1][0][0]
+
+  Note that we can't apply the same transformation to actual syntax nodes (since they may have identifiers all over the place), but that's ok. Each element in the table has a cost of
+  computation (more node traversal costs more), and it has a certain discrimination benefit (it reduces the number of comparisons we'll have to do later). Implicit in the discrimination
+  benefit is also the fact that deeper identifier embedding in the pattern indicates a pattern that is more difficult to reject quickly. This follows because there are many more identifiers
+  than operators, so statistically we expect to reject more patterns based on failed identifier matches than failed operator matches.
+__3a97711ff05588a663d2f6dec514966c
+meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
+Naive macroexpander implementation.
+This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
+forward use the optimizing hashed macroexpander defined in sdoc::js::core/caterwaul.macroexpander.hashed.
 
   Matching.
   macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
@@ -2011,7 +2062,7 @@ However, if I do find such an algorithm later on then macroexpansion will run qu
     macro_expand = function (t, macros, expanders, context) {
                      return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
                                                    if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})};
-__530732f1f117887f5ea4aeb79f839f09
+__9fb998fb99402d409f8ed12b73445fa6
 meta::sdoc('js::core/caterwaul.parser', <<'__eed9ff7c2d7670bb3e9723d934f61083');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
