@@ -1,0 +1,13 @@
+These are the rendered versions of the files that make up Caterwaul's core.
+You shouldn't use these directly since they may contain preprocessor directives.
+
+These files are also generated. If you want to edit the originals, use the
+caterwaul script in the main directory:
+
+$ ./caterwaul ls -a js::core/
+sdoc::js::core/caterwaul
+sdoc::js::core/caterwaul.introduction
+# ...
+$ ./caterwaul edit sdoc::js::core/caterwaul
+# hack away
+$ ./caterwaul render

@@ -205,8 +205,17 @@ meta::meta('type::state', <<'__c1f29670be26f1df6100ffe4334e1202');
 meta::configure 'state', inherit => 0, extension => '.pl';
 meta::define_form 'state', \&meta::bootstrap::implementation;
 __c1f29670be26f1df6100ffe4334e1202
+meta::meta('type::template', <<'__25f4d6eafb1d3eea6d5d3d9a71a5623e');
+meta::configure 'template', extension => '.pl', inherit => 1;
+meta::define_form 'template', sub {
+  my ($name, $value) = @_;
+  meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
+};
+__25f4d6eafb1d3eea6d5d3d9a71a5623e
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
-meta::alias('e', 'edit sdoc::js::caterwaul');
+meta::alias('e', 'edit sdoc::js::core/caterwaul');
+meta::alias('ei', 'edit sdoc::js::core/caterwaul.introduction');
+meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
@@ -530,7 +539,7 @@ meta::function('macroexpand', <<'__ba8d14b1caf169f49834baa8018001c0');
 # Macroexpands stuff.
 node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::macroexpander'], @_);
 __ba8d14b1caf169f49834baa8018001c0
-meta::function('minify', 'node([qw/js::caterwaul js::minify/], @_);');
+meta::function('minify', 'node([qw|pp::js::core/caterwaul js::minify|], @_);');
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
@@ -578,6 +587,60 @@ meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
+meta::function('preprocess', <<'__66e539d29e9afa903569efad0eb7c886');
+# Implements a simple preprocessing language.
+# Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
+# but not spanning multiple lines. The other is 'block form', which gives you access to both one-line
+# arguments and a block of lines. The line parameters are passed in verbatim, and the block is
+# indentation-adjusted and then passed in as a second parameter. (Indentation is adjusted to align
+# with the name of the command.)
+#
+# Here are the forms:
+#
+# - line arguments to function
+#
+# - block line arguments << eof
+#   block contents
+#   block contents
+#   ...
+# - eof
+
+my ($string, %options) = @_;
+my $expansions         = 0;
+my $old_string         = '';
+my $limit              = $options{expansion_limit} || 100;
+my @pieces             = ();
+
+sub adjust_spaces {
+  my ($spaces, $string) = @_;
+  $string =~ s/^$spaces  //mg;
+  chomp $string;
+  $string;
+}
+
+while ($old_string ne $string and $expansions++ < $limit) {
+  $old_string = $string;
+
+  while ((my @pieces = split  /(^(\h*)-\h \S+ \h* \V* <<\h*(\w+)$ \n .*?  ^\2-\h\3$)/xms, $string) > 1 and $expansions++ < $limit) {
+    $pieces[1 + ($_ << 2)] =~ /^ (\h*)-\h(\S+)\h*(\V*)<<\h*(\w+)$ \n(.*?) ^\1-\h\4 $/xms && $externalized_functions{"template::$2"} and
+      $pieces[1 + ($_ << 2)] = &{"template::$2"}($3, adjust_spaces($1, $5))
+      for 0 .. $#pieces / 4;
+
+    @pieces[2 + ($_ << 2), 3 + ($_ << 2)] = '' for 0 .. $#pieces / 4;
+    $string = join '', @pieces;
+  }
+
+  if ((my @pieces = split     /^(\h*-\h \S+ \h* .*)$/xom, $string) > 1) {
+    $pieces[1 + ($_ << 1)] =~ /^ \h*-\h(\S+)\h*(.*)$/xom && $externalized_functions{"template::$1"} and
+      $pieces[1 + ($_ << 1)] = &{"template::$1"}($2)
+      for 0 .. $#pieces >> 1;
+
+    $string = join '', @pieces;
+  }
+}
+
+$string;
+__66e539d29e9afa903569efad0eb7c886
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__d11b6e7522980db1022b1ccd575bdc30');
 hook('before-render');
@@ -791,14 +854,19 @@ meta::hook('after-render::hackery', <<'__062241e6c594421bc7bb77b89daca84b');
 # Runs the hackery generation hooks (which happen after a render)
 hook('hackery');
 __062241e6c594421bc7bb77b89daca84b
-meta::hook('after-render::minify', <<'__6dce5e00589b400e88c43e6ef2ab035c');
-# Compiles caterwaul.all.js and minified versions of everything. Also emits SDocP files.
+meta::hook('after-render::minify', <<'__760dabbac94b3626734eb7da0be787ec');
+# Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
+file::write('caterwaul.js',       retrieve('pp::js::core/caterwaul'));
+file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
+
+# Compile caterwaul.all.js and minified versions of everything.
 my @files = ('caterwaul', map "modules/caterwaul.$_", split /\n/, &{'module-order'}());
-
-file::write("caterwaul.all.js", cat(map "js::$_", @files));
+file::write('caterwaul.all.js', cat(map "js::$_", @files));
 minify("$_.js") for @files, "caterwaul.all";
-
-my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/.*)$/\1.js/, sort keys %data;
+__760dabbac94b3626734eb7da0be787ec
+meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
+# Builds test/index.html
+my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
 
 file::write('test/index.html', <<EOF);
 <!doctype html>
@@ -818,7 +886,7 @@ $scripts
 </body>
 </html>
 EOF
-__6dce5e00589b400e88c43e6ef2ab035c
+__45102e0cfa23cfa11c7f56f6dd4acbe9
 meta::hook('before-render::notify', 'terminal::info(\'rendering\');');
 meta::hook('hackery::coarse-profiling', <<'__5485ce8ba5cc41be8b23d0615e325d2c');
 # Render versions of caterwaul.all.js, but leave out the core caterwaul.
@@ -1530,14 +1598,30 @@ meta::type::state
 retriever::file
 retriever::id
 __ebddf828b1c914a7461db84c344b9ebd
+meta::parent('preprocessor', <<'__a29d7395a865c21764fce8ec08e1a668');
+function::preprocess
+meta::type::template
+parent::object
+retriever::pp
+template::comment
+template::eval
+template::failing_conditional
+template::include
+template::pinclude
+__a29d7395a865c21764fce8ec08e1a668
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
+meta::retriever('pp', <<'__f4a8c288d69963d6ebc5ce0bf7794777');
+return undef unless namespace($_[0]) eq 'pp';
+my $attr = retrieve(attribute($_[0]));
+defined $attr ? preprocess($attr) : undef;
+__f4a8c288d69963d6ebc5ce0bf7794777
 meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
 meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::caterwaul', <<'__f1dde233c8c8ddb3401127a7809c4548');
+meta::sdoc('js::core/caterwaul', <<'__d19435da3c7d2929306c1cd1cc6c15d7');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1586,359 +1670,348 @@ See the 'Macroexpansion' section some distance below for more information about 
   some lookups as the code is running. Another is that I use the (function (variable) {return expression})(value) form to emulate let-bindings. (Reading the code with this in mind will make it
   much more obvious what's going on.)
 
-  Utility methods.
-  Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
-  tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some
-  distance below):
-
-  | (function (a_gensym) {
-      var v1 = a_gensym.gensym_1;
-      var v2 = a_gensym.gensym_2;
-      ...
-      return <your macroexpanded function>;
-    }) ({gensym_1: v1, gensym_2: v2, ..., gensym_n: vn});
-
-  A note about gensym uniqueness. Gensyms are astronomically unlikely to collide, but there are some compromises made to make sure of this. First, gensyms are not predictable; the first one is
-  randomized. This means that if you do have a collision, it may be intermittent (and that is probably a non-feature). Second, and this is a good thing, you can load Caterwaul multiple times
-  without worrying about gensyms colliding between them. Each instance of Caterwaul uses its own system time and random number to seed the gensym generation, and the system time remains stable
-  while the random number gets incremented. It is very unlikely that any collisions would happen.
-
-  Bind() is the usual 'bind this function to some value' function. The only difference is that it supports rebinding; that is, if you have a function you've already bound to X, you can call
-  bind on that function and some new value Y and get the original function bound to Y. The bound function has two attributes, 'original' and 'binding', that let bind() achieve this rebinding.
-
-  Map() is an array map function, fairly standard really. I include it because IE doesn't provide Array.prototype.map. hash() takes a string, splits it on whitespace, and returns an object
-  that maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
-  function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
-
-  Se() stands for 'side-effect', and its purpose is to take a value and a function, pass the value into the function, and return either whatever the function returned or the value you gave it.
-  It's used to initialize things statefully; for example:
-
-  | return se(function () {return 5}, function (f) {
-      f.sourceCode = 'return 5';
-    });
-
-  The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
-
-    var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
-    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-    genint = (function (n) {return function () {return ++n}})(0),
-
-      bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
-       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
-      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
-     merge = function (o) {for (var i = 1, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) if (_) for (var k in _) has(_, k) && (o[k] = _[k]); return o},
-    extend = function (f) {merge.apply(null, [f.prototype].concat(Array.prototype.slice.call(arguments, 1))); return f},
-
-  Optimizations.
-  The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
-  syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
-  linear-time passes over the token stream. (An approximate figure; it actually does about 19 fractional passes, but not all nodes are reached.)
-
-  Also, I'm not confident that all Javascript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we
-  throw a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often. To prevent this
-  kind of thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to verify that
-  the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
-  regardless of the length of the candidate.
-
-  The bad part is that you can't refer to an object called '_max_length' -- this will never be considered to be in the hash. I don't really have a problem with that, but it's worth being aware
-  of. Also, on IE browsers various properties won't exist (among them toString, hasOwnProperty, etc.). These aren't special in Javascript so it isn't a problem, but it's still unfortunate.
-
-    annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
-              has = function (o, p) {return p && ! (p.length > o._max_length) && p !== '_max_length' && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
-
   Global management.
   Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
   caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
   available only on the global caterwaul() function. It wouldn't make much sense for clones to inherit it.
 
-    _caterwaul = typeof caterwaul === 'undefined' ? undefined : caterwaul,
-
-Syntax data structures.
-There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
-nodes. At the end of folding there is only one child per paren-group.
-
-  Doubly-linked paren-group lists.
-  When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
-
-  |                       +--------+
-                 +------  |  node  |  ------+
-                 |   +->  |        |  <--+  |
-          first  |   |    +--------+     |  |  last
-                 |   | parent     parent |  |
-                 V   |                   |  V
-              +--------+               +--------+
-              |  node  |   --- r -->   |  node  |  --- r ---/
-   /--- l --- |        |   <-- l ---   |        |
-              +--------+               +--------+
-
-  The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by one certain nodes fold their siblings underneath them,
-  breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:
-
-  |     (1) <-> (2) <-> (3) <-> (4) <-> (5)             (1) <--> (3) <--> (5)
-        / \     / \     / \     / \     / \     -->     / \     /   \     / \
-                                                               /     \
-                                                             (2)     (4)        <- No link between children
-                                                             / \     / \           (see 'Fold nodes', below)
-
-  Fold nodes.
-  Once a node has been folded (e.g. (3) in the diagram above), none of its children will change and it will gain no more children. The fact that none of its children will change can be shown
-  inductively: suppose you've decided to fold the '+' in 'x + y' (here x and y are arbitrary expressions). This means that x and y are comprised of higher-precedence operators. Since there is
-  no second pass back to high-precedence operators, x and y will not change nor will they interact with one another. The fact that a folded node never gains more children arrives from the fact
-  that it is folded only once; this is by virtue of folding by index instead of by tree structure. (Though a good tree traversal algorithm also wouldn't hit the same node twice -- it's just
-  less obvious when the tree is changing.)
-
-  Anyway, the important thing about fold nodes is that their children don't change. This means that an array is a completely reasonable data structure to use for the children; it certainly
-  makes the structure simpler. It also means that the only new links that must be added to nodes as they are folded are links to new children (via the array), and links to the new siblings.
-  Once we have the array-form of fold nodes, we can build a query interface similar to jQuery, but designed for syntactic traversal. This will make routine operations such as macro
-  transformation and quasiquoting far simpler later on.
+  var _caterwaul = typeof caterwaul === 'undefined' ? undefined : caterwaul;
+
+- pinclude pp::js::core/caterwaul.utilities
+- pinclude pp::js::core/caterwaul.tree
+- pinclude pp::js::core/caterwaul.parser
+- pinclude pp::js::core/caterwaul.macroexpander
+- pinclude pp::js::core/caterwaul.compiler
+- pinclude pp::js::core/caterwaul.configuration
+- pinclude pp::js::core/caterwaul.behaviors
+
+  var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
+  return caterwaul_global});
+__d19435da3c7d2929306c1cd1cc6c15d7
+meta::sdoc('js::core/caterwaul.behaviors', <<'__637c553abba3bbda8813564e4a540d02');
+Macroexpansion behavior.
+Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
+order for this to work, your syntax trees must:
+
+| 1. Look like arrays -- that is, have a .length property and be indexable by number (e.g. x[0], x[1], ..., x[x.length - 1])
+  2. Implement an rmap() method. This should perform a depth-first traversal of the syntax tree, invoking a callback function on each node. If the callback returns a value, that value should
+     be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
+     rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
+  3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
+
+  var macroexpansion = function (f) {return f.
+    shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
+     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
+                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
+
+Composition behavior.
+New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
+example: http://github.com/spencertipping/figment). Composition is achieved by invoking after(), which governs the behavior of the macroexpand() function. The list of functions to be invoked
+after a caterwaul function can be inspected by invoking after() with no arguments.
+
+| var f = caterwaul.clone(), g = caterwaul.clone();
+  f.after(g);           // Causes g to be run on f's output; that is, g is an after-effect of f.
+  f.after(h);           // Adds another after function, to be run after all of the others.
+  f.after();            // -> [g, h]
+
+The design for this feature is different in 0.6.5. The problem with the original design, in which after() returned a clone of the original function, was that you couldn't set up
+after-composition from within a configuration (since, reasonably enough, configuration is closed over the caterwaul instance).
+
+There is deliberately no before() method. The reason for this is that when you define a macro on a caterwaul function, it should take precedence over all other macros that get run. Obviously
+this doesn't happen for g if g comes after f, but generally that relationship is obvious from the setup code (which it might not be if a before() method could be invoked by configurations).
+
+  composition = function (f) {return f.
+    shallow('after_functions', []).method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
+                                                                else                  return this.after_functions})},
+
+Global Caterwaul setup.
+Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes. As of version 0.6.4, the init() property is
+polymorphic in semantics as well as structure. There are two cases:
+
+| 1. You invoke caterwaul on a syntax node. In this case only macroexpansion is performed.
+  2. You invoke caterwaul on anything else. In this case the object is decompiled, macroexpanded, and then compiled.
+
+This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
+context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
+
+New in version 0.6.5 is the ability to bind closure variables during a tconfiguration(). This makes it simpler to close over non-globals such as node.js's require() function.
+
+  caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
+    method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
+     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
+
+     field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
+     field('composition', composition).field('global', function () {return caterwaul_global}).
+
+    method('init', function (f, environment) {var result = f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment);
+                                              if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
+                                              return result}).
+
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
+
+  Utility library.
+  Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the
+  variables I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function
+  that is being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
+
+    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map, qw: qw}).
+
+  Magic.
+  Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are
+  considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
+
+     method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
+__637c553abba3bbda8813564e4a540d02
+meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
+Environment-dependent compilation.
+It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
+must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
+compiling. The variables correspond to gensyms placed in the code, so the code will have closure over those variables.
+
+An optional second parameter 'environment' can contain a hash of variable->value bindings. These will be defined as locals within the compiled function.
 
-  Both grouping and fold nodes are represented by the same data structure. In the case of grouping, the 'first' pointer is encoded as [0] -- that is, the first array element. It doesn't
-  contain pointers to siblings of [0]; these are still accessed by their 'l' and 'r' pointers. As the structure is folded, the number of children of each paren group should be reduced to just
-  one. At this point the remaining element's 'l' and 'r' pointers will both be null, which means that it is in hierarchical form instead of linked form.
-
-  After the tree has been fully generated and we have the root node, we have no further use for the parent pointers. This means that we can use subtree sharing to save memory. Once we're past
-  the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
-  (i.e. no parent pointer).
-
-       syntax_node_inspect = function (x) {return x ? x.inspect() : '(<>)'},  syntax_node_tostring = function (x) {return x ? x.serialize ? x.serialize() : x.toString() : ''},
-
-  Syntax node functions.
-  These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
-  turns out to be an issue.
-
-      node_methods = {
-
-    Mutability.
-    These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
-
-       _replace: function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
-      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this))},
-        _append: function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this))},
-       _sibling: function (n) {return n.p = this.p, (this.r = n).l = this},                                                            _fold_lr: function () {return this._fold_l()._fold_r()},
-          _wrap: function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},  _fold_rr: function () {return this._fold_r()._fold_r()},
-        _unlink: function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
-
-    These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
-
-            pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x, this},
-
-    Identification.
-    You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
-    and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy.
-
-      id: function () {return this.id || (this.id = genint())},
-
-    Traversal functions.
-    each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
-    reach and rmap, perform the process recursively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
-    function passed to rmap() returns the node verbatim then its children are traversed. If it returns a distinct node, however, then traversal doesn't descend into the children of the newly
-    returned tree but rather continues as if the original node had been a leaf. For example:
-
-    |           parent          Let's suppose that a function f() has these mappings:
-               /      \
-           node1      node2       f(parent) = parent   f(node1) = q
-           /   \        |                              f(node2) = node2
-         c1     c2      c3
-
-    In this example, f() would be called on parent, node1, node2, and c3 in that order. c1 and c2 are omitted because node1 was replaced by q -- and there is hardly any point in going through
-    the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.) If a mapping function
-    returns something falsy, it will have exactly the same effect as returning the node without modification.
+New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
-    Using the old s() to do gensym-safe replacement requires that you invoke it only once, and this means that for complex macroexpansion you'll have a long array of values. This isn't ideal,
-    so syntax trees provide a replace() function that handles replacement more gracefully:
-
-    | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
-
-    There is a map() variant called nmap() (and a corresponding rnmap()) that lets you insert falsy nodes into the syntax tree. This is used by replace(), which lets you replace named nodes
-    with falsy things if you want them to go away. (The exact behavior is that falsy nodes are not added to the syntax tree at all, rather than remaining in their original state.)
-
-      each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
-       map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length;    i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
-      nmap: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length, r; i < l; ++i) (r = f(this[i], i)) && n.push(r); return n},
-     reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
-      rmap: function (f) {var r = f(this); return ! r || r === this ? this. map(function (n) {return n && n. rmap(f)}) :      r.data === undefined ? new this.constructor(r) : r},
-     rnmap: function (f) {var r = f(this); return        r === this ? this.nmap(function (n) {return n && n.rnmap(f)}) : r && r.data === undefined ? new this.constructor(r) : r},
+  var compile = function (tree, environment) {      // Despite the coincidence of 'tree' and 'environment' on this line, I'm seriously not pushing a green agenda :)
+    var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
+    var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
+    try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}};
+__e67397b6d19f677b6c0402a7c46732ef
+meta::sdoc('js::core/caterwaul.configuration', <<'__7dbd96a9fb2c544be21176126049a5c4');
+Configurations.
+Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
+replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
 
-     clone: function () {return this.rmap(function () {return false})},
+| var copy = caterwaul.clone (function () {
+    // This function is for customizations. Totally optional; can also customize at the toplevel.
+    this.macro(qs[foo], fn_[qs[bar]]);
+  });
 
-   collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-   replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
+| copy(function () {
+    var bar = 6;
+    return foo;
+  }) ();                // returns 6
+
+Related to this is a configure() method that modifies and returns the original function:
+
+| caterwaul.configure (function () {
+    // Global configuration using 'this'
+  });
+
+  Core interface.
+  The core API for replicable functions is exposed as 'caterwaul.replica'. This is primarily of use to API developers and not to end users. Also of use is the configuration
+  'caterwaul.configurable', which when applied to a replicable function will install Caterwaul's configurability onto it. For example:
+
+  | var my_compiler = caterwaul.configurable(caterwaul.replica());
+    my_compiler.method('init', function () {/* custom compiler behavior */});
+    my_compiler.clone();        // A new instance
+
+  You can then customize this function, which will have the same replication interface that Caterwaul has but won't have Caterwaul's default behavior. (A less elegant way to achieve the same
+  thing is to clone caterwaul and give it a new 'init' method.)
+
+  Attributes and methods.
+  Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
+  so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
+  table that keeps track of what to do with each. Attributes show up in this table when you call one of the attribute-association methods:
 
-    Alteration.
-    These functions let you make "changes" to a node by returning a modified copy.
+  | .field('attribute', value)          Creates a reference-copying attribute. No copying is done at all; the attribute is cross-referenced between copies of the Caterwaul function.
+    .shallow('attribute', value)        Creates an attribute whose value is copied shallowly; for hashes or arrays.
+    .method('name', f)                  Creates a method bound to the Caterwaul function. f will be bound to any copies on those copies.
 
-      repopulated_with: function (xs)   {return new this.constructor(this.data, xs)},
-                change: function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
-        compose_single: function (i, f) {return this.change(i, f(this[i]))},
+  Naturally, attributes that don't appear in the table are left alone. You can add more of these attribute behaviors using the behavior() method:
+
+  | .behavior('name', definition)       Creates a new attribute behavior. definition() should take an original attribute value and return a new one, where 'this' is the new Caterwaul function.
 
-    General-purpose traversal.
-    This is a SAX-style traversal model, useful for analytical or scope-oriented tree traversal. You specify a callback function that is invoked in pre-post-order on the tree (you get events
-    for entering and exiting each node, including leaves). Each time a node is entered, the callback is invoked with an object of the form {entering: node}, where 'node' is the syntax node
-    being entered. Each time a node is left, the callback is invoked with an object of the form {exiting: node}. The return value of the function is not used. Any null nodes are not traversed,
-    since they would fail any standard truthiness tests for 'entering' or 'exiting'.
+  Underlying this mechanism is the associate() method:
+
+  | .associate('attribute', 'behavior', value)          Creates an attribute with the given behavior and assigns it a value.
 
-    I used to have a method to perform scope-annotated traversal, but I removed it for two reasons. First, I had no use for it (and no tests, so I had no reason to believe that it worked).
-    Second, Caterwaul is too low-level to need such a method. That would be more appropriate for an analysis extension.
+  A couple of notes. First, these functions are bound to the function they modify; that is, you can eta-reduce them freely. Second, this is not a general purpose function replicator. All of
+  the functions returned here call their own init() method rather than sharing a function body somewhere. (To be fair, the init() method gets referenced -- so it's almost as good I suppose.) A
+  general-purpose way to do this would be to have g call f instead of g.init in the copy_of() function below. I'm not doing this in order to save stack frames; I want the function call
+  performance to be constant-time in the number of copies.
+
+  Another thing to be aware of is that this isn't a general-purpose metaclassing framework. I made a compromise by discouraging side-effecting initialization in the behavior-association
+  methods -- these should just copy things, reference them, or transform them in some nondestructive way. This makes it easier to have extensional copies of objects, since there are fewer
+  unknowns about the internal state. (e.g. we know that if 'foo' appears in the attribute table, we'll have something called 'foo' on the object itself and we can call its behavior -- we don't
+  have to wonder about anything else.)
+
+  var associator_for = function (f) {return function (name, behavior, value) {return f[name] = (f.behaviors[f.attributes[name] = behavior] || id).call(f, value), f}},
+        shallow_copy = function (x) {return x && (x.constructor === Array ? x.slice() : x.clone ? x.clone() : merge({}, x))},
+             copy_of = function (f) {var g = merge(function () {return g.init.apply(g, arguments)}, {behaviors: shallow_copy(f.behaviors), attributes: {}});
+                                     return se(g, function (g) {(g.associate = associator_for(g))('behavior', 'method', function (name, definition) {this.behaviors[name] = definition;
+                                                                  return this.associate(name, 'method', function (attribute, value) {return this.associate(attribute, name, value)})}).
+                                                                behavior('method', g.behaviors.method);
+
+                                                                for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
 
-      traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
+  Bootstrapping method behavior.
+  Setting up the behavior(), method(), field(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the
+  field() and shallow() methods are not core and are defined here. I'm also defining a 'configuration' function to allow quick definition of new configurations. (These are loadable by their
+  names when calling clone() or configure() -- see 'Configuration and cloning' below.) A complement method, 'tconfiguration', is also available. This transforms the configuration function
+  before storing it in the table, enabling you to use things like 'qs[]' without manually transforming stuff. The downside is that you lose closure state and can't bind variables.
 
-    Structural transformation.
-    Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
-    each of which is binary. Javascript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
-    .each() much more effectively.) Any binary operator can be transformed this way, and that is exactly what the flatten() method does. (flatten() returns a new tree; it doesn't modify the
-    original.)
+  There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
 
-    The tree flattening operation looks like this for a left-associative binary operator:
+         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f}),
 
-    |        (+)
-            /   \              (+)
-         (+)     z     ->     / | \
-        /   \                x  y  z
-       x     y
+  Configuration and cloning.
+  Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
 
-    This flatten() method returns the nodes along the chain of associativity, always from left to right. It is shallow, since generally you only need a localized flat tree. That is, it doesn't
-    descend into the nodes beyond the one specified by the flatten() call. It takes an optional parameter indicating the operator to flatten over; if the operator in the tree differs, then the
-    original node is wrapped in a unary node of the specified operator. The transformation looks like this:
+  | caterwaul.configure('std.fn');
+    // Longhand access to the function:
+    caterwaul.configurations['std.fn']
 
-    |                                  (,)
-           (+)                          |
-          /   \   .flatten(',')  ->    (+)
-         x     y                      /   \
-                                     x     y
+  You can also pass these libraries into a clone() call:
 
-    Because ',' is a binary operator, a ',' tree with just one operand will be serialized exactly as its lone operand would be. This means that plurality over a binary operator such as comma
-    or semicolon degrades gracefully for the unary case (this sentence makes more sense in the context of macro definitions; see in particular 'let' and 'where' in std.bind).
+  | var copy = caterwaul.clone('std.fn', 'some_other_library', function () {
+      ...
+    });
 
-    The unflatten() method performs the inverse transformation. It doesn't delete a converted unary operator in the tree case, but if called on a node with more than two children it will nest
-    according to associativity.
+  Generally you will just configure with 'std', which includes all of the standard configurations (see caterwaul.std.js.sdoc in the modules/ directory).
 
-      flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
-                                                     se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
-                                                     se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
-                                                                                                    for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+  Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
+  idea. Named configurations, on the other hand, are not explicitly transformed; so when you define a custom configuration in a named way, you will want to manually transform it. (The reason
+  for this is that we don't want to force the configuration author to lose closure state, since it's arguably more important in a library setting than an end-user setting.) Alternatively you
+  can use tconfigure(), which takes a series of configurations to use to transform your configuration function. (This makes more sense in code than in English; see how the configurations below
+  are written...)
 
-      unflatten: function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
-                                 if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
-                                 else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))},
+  Named configurations are made idempotent; that is, they cannot be applied twice. This is done through the 'has' hash, which can be manually reset if you actually do need to apply a
+  configuration multiple times (though you're probably doing something wrong if you do need to do that).
 
-    Wrapping.
-    Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
-    when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
-    in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
+    configurable = function (f) {return f.
+      shallow('configurations', {}).shallow('has', {}).method('configuration', function (name, f) {this.configurations[name] = f; return this}).
+       method('namespace', function (s) {return this[s] || this.shallow(s, {})[s]}).
 
-      as: function (d) {return this.data === d ? this : new this.constructor(d).push(this)},
-
-    Type detection and retrieval.
-    These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
-    otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
-
-    Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
-    eta-reduced (if it were, then the 'this' binding would be lost).
-
-               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
-               is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
-              is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
-               is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
-
-       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
-    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
-
-             is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
-          left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
-                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
-         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
-           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0] && this[0].is_dereference()},
-
-            is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
-is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
-       is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
-
-                 accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
-
-    Value construction.
-    Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
-    need a mapping of symbols to these references, which is what the bindings() method returns. (It also collects references for all descendant nodes.) It takes an optional argument to
-    populate, in case you already had a hash set aside for bindings -- though it always returns the hash.
-
-    A bug in Caterwaul 0.5 and earlier failed to bind falsy values. This is no longer the case; nodes which bind values should indicate that they do so by setting a binds_a_value attribute
-    (ref nodes do this on the prototype), indicating that their value should be read from the 'value' property. (This allows other uses of a 'value' property while making it unambiguous
-    whether a particular node intends to bind something.)
-
-      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result},
-
-    Matching.
-    Syntax trees can use the Caterwaul match function to return a list of wildcards.
-
-         match: function (pattern) {return macro_try_match(pattern, this)},
-
-    Inspection and syntactic serialization.
-    Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
-    pointer. In the serialized representation, it is shown as a comment /* -> */ containing the serialization of whatever is to the right. This has the property that it will break tests but
-    won't necessarily break code (though if it happens in the field then it's certainly a bug).
-
-    Block detection is required for multi-level if/else statements. Consider this code:
-
-    | if (foo) for (...) {}
-      else bif;
-
-    A naive approach (the one I was using before version 0.6) would miss the fact that the 'for' was trailed by a block, and insert a spurious semicolon, which would break compilation:
-
-    | if (foo) for (...) {};    // <- note!
-      else bif;
-
-    What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
-    algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
-
- ends_with_block: function () {var block_index = parse_r_until_block[this.data], block = this[block_index];
-                               return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
-
-    There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
-    semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
-
-    Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
-    postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
-
-        toString: function ()   {return this.inspect()},
-         inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
-                                        (this.r ? ' -> ' + this.r.inspect() : '')},
-
-    Update for Caterwaul 0.7.0: Syntax nodes now use semi-stateful arrays for serialization. Hopefully this will make the process faster. (Testing in progress.)
-
-       serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
-                                    s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
-                                       has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
-                                          has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
-                                            has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                                               has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
-                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
-                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
-                                                                     op + space + map(syntax_node_tostring, this).join('') :
-                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
-                               return right ? s + right : s}},
-
-  References.
-  You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
-
-  | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)})()    // -> 4
-
-  What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
-  represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
-
-    ref = extend(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                   else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}, node_methods),
-
-  Syntax node constructor.
-  Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
-  numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
-  to be used.
-
-    syntax_node = extend(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                          else {this.data = data && data.toString(); this.length = 0;
-                                            for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                              for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods),
-
+       method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
+       method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                          if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
+                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
+                                                                          else                        throw new Error('error: configuration "' + _ + '" does not exist');
+                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})};
+__7dbd96a9fb2c544be21176126049a5c4
+meta::sdoc('js::core/caterwaul.global', '');
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__45c5e4f42329d0b7541af26c1a0e853b');
+Macroexpansion.
+Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
+(or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
+optimize macro-rewriting.
+
+Defining offline macros is done in the normal execution path. For example:
+
+| caterwaul(function () {
+    caterwaul.rmacro(qs[let (_ = _) in _], fn[n, v, e][qs[fn[args][body].call(this, values)].replace({args: n, body: e, values: v})]);
+  }) ();        // Must invoke the function
+
+| // Macro is usable in this function:
+  caterwaul(function () {
+    let (x = 5) in console.log(x);
+  });
+
+Wrapping the first function in caterwaul() wasn't necessary, though it was helpful to get the qs[] and fn[] shorthands. In this case, the macro is persistent to the caterwaul function that it
+was called on. (So any future caterwaul()ed functions would have access to it.)
+
+You can also define conditional macros, though they will probably be slower. For example:
+
+| caterwaul(function () {
+    caterwaul.rmacro(qs[let (_) in _], fn[bs, e][bs.data === '=' && ...]);
+  }) ();
+
+Here, returning a falsy value indicates that nothing should be changed about this syntax tree. It is replaced by itself and processing continues normally. You should try to express things in
+terms of patterns; there are theoretical optimizations that can cut the average-case runtime of pattern matching to a fraction of a full linear scan. The worst possible case is when you match
+on a universal pattern and restrict later:
+
+| caterwaul(function () {
+    caterwaul.rmacro(qs[_], fn[x][...]);
+  }) ();
+
+This will call your macroexpander once for every node in the syntax tree, which for large progams is costly. If you really do have such a variant structure, your best bet is to define separate
+macros, one for each case:
+
+| caterwaul(function () {
+    var patterns = [qs[foo], qs[bar], qs[bif]];
+    patterns.map (function (p) {
+      caterwaul.rmacro (p, fn[x][...]);
+    });
+  }) ();
+
+This gives Caterwaul the opportunity to call your function only on relevant nodes. (Note that at present I haven't found an algorithm to make things any faster than using a depth-first scan.
+However, if I do find such an algorithm later on then macroexpansion will run quite a bit faster for programs with well-defined patterns.)
+
+  Pitfalls of macroexpansion.
+  Macroexpansion as described here can encode a lambda-calculus. The whole point of having macros is to make them capable, so I can't complain about that. But there are limits to how far I'm
+  willing to go down the pattern-matching path. Let's suppose the existence of the let-macro, for instance:
+
+  | let (x = y) in z   ->   (function (x) {return z}) (y)
+
+  If you write these macros:
+
+  | foo[x, y]   ->   let (x = y)
+    bar[x, y]   ->   x in y
+
+  Caterwaul is not required to expand bar[foo[x, y], z] into (function (x) {return z}) (y). It might just leave it at let (x = y) in z instead. The reason is that while the individual
+  macroexpansion outputs are macroexpanded, a fixed point is not run on macroexpansion in general. (That would require multiple-indexing, which in my opinion isn't worth the cost.) To get the
+  extra macroexpansion you would have to wrap the whole expression in another macro, in this case called 'expand':
+
+  | caterwaul.configure(function () {
+      this.rmacro(expand[_], fn[expression][caterwaul.macroexpand(expression)]);
+    });
+
+  This is an eager macro; by outputting the already-expanded contents, it gets another free pass through the macroexpander.
+
+  Things that are not guaranteed:
+
+  | 1. Reassembly of different pieces (see above)
+    2. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
+    3. Performance bounds.
+
+  Macro vs. rmacro.
+  macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
+  want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
+
+  | caterwaul.configure(function () {
+      // Using macro() instead of rmacro(), so no further expansion:
+      this.macro(qs[literal[_]], fn[x][x]);
+    });
+
+  While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
+
+  Matching.
+  macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
+  illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern. It is optimized, though, to reject invalid nodes
+  quickly -- that is, if there is any mismatch in arity or data.
+
+  var macro_array_push = Array.prototype.push,
+      macro_try_match  = function (pattern, t) {if (pattern.data === '_')                                   return [t];
+                                                if (pattern.data !== t.data || pattern.length !== t.length) return null;
+                                                for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
+                                                  if (match = macro_try_match(pattern[i], t[i])) macro_array_push.apply(wildcards, match);
+                                                  else                                           return null;
+                                                return wildcards},
+
+  Expansion.
+  Uses the straightforward brute-force algorithm to go through the source tree and expand macros. At first I tried to use indexes, but found that I couldn't think of a particularly good way to
+  avoid double-expansion -- that is, problems like qs[qs[foo]] -- the outer must be expanded without the inner one. Most indexing strategies would not reliably (or if reliably, not profitably)
+  index the tree in such a way as to encode containment. Perhaps at some point I'll find a faster macroexpander, especially if this one proves to be slow. At this point macroexpansion is by
+  far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
+  practice it's generally not quite so bad.)
+  
+  Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
+
+  The fourth parameter, 'context', is used to hand a 'this' reference to the macroexpander. This is necessary to get defmacro[] to work properly, and in general lets macros be side-effectful.
+  (Not that you should be in the habit of defining side-effectful macros, but I certainly won't stop you.)
+
+  Note that as of version 0.5, macroexpansion proceeds backwards. This means that the /last/ matching macro is used, not the first. It's an important feature, as it lets you write new macros
+  to override previous definitions. This ultimately lets you define sub-caterwaul functions for DSLs, and each can define a default case by matching on qs[_] (thus preventing access to other
+  macro definitions that may exist).
+
+    macro_expand = function (t, macros, expanders, context) {
+                     return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
+                                                   if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})};
+__45c5e4f42329d0b7541af26c1a0e853b
+meta::sdoc('js::core/caterwaul.parser', <<'__eed9ff7c2d7670bb3e9723d934f61083');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
 expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
@@ -2002,7 +2075,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
     cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
     fail to parse. (See test/lex-neq-failure for examples.)
 
-         lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
+     var lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
                        'return throw case var const break continue void else u; ;'),
 
       lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
@@ -2272,329 +2345,356 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     Prevent a space leak by clearing out all of the 'p' pointers.
 
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
-        return head},
+        return head};
+__eed9ff7c2d7670bb3e9723d934f61083
+meta::sdoc('js::core/caterwaul.tree', <<'__20ed6e87cc561f32902fcb411de4d5da');
+Syntax data structures.
+There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
+nodes. At the end of folding there is only one child per paren-group.
 
-Macroexpansion.
-Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
-(or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
-optimize macro-rewriting.
+  Doubly-linked paren-group lists.
+  When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
 
-Defining offline macros is done in the normal execution path. For example:
+  |                       +--------+
+                 +------  |  node  |  ------+
+                 |   +->  |        |  <--+  |
+          first  |   |    +--------+     |  |  last
+                 |   | parent     parent |  |
+                 V   |                   |  V
+              +--------+               +--------+
+              |  node  |   --- r -->   |  node  |  --- r ---/
+   /--- l --- |        |   <-- l ---   |        |
+              +--------+               +--------+
 
-| caterwaul(function () {
-    caterwaul.rmacro(qs[let (_ = _) in _], fn[n, v, e][qs[fn[args][body].call(this, values)].replace({args: n, body: e, values: v})]);
-  }) ();        // Must invoke the function
+  The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by one certain nodes fold their siblings underneath them,
+  breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:
 
-| // Macro is usable in this function:
-  caterwaul(function () {
-    let (x = 5) in console.log(x);
+  |     (1) <-> (2) <-> (3) <-> (4) <-> (5)             (1) <--> (3) <--> (5)
+        / \     / \     / \     / \     / \     -->     / \     /   \     / \
+                                                               /     \
+                                                             (2)     (4)        <- No link between children
+                                                             / \     / \           (see 'Fold nodes', below)
+
+  Fold nodes.
+  Once a node has been folded (e.g. (3) in the diagram above), none of its children will change and it will gain no more children. The fact that none of its children will change can be shown
+  inductively: suppose you've decided to fold the '+' in 'x + y' (here x and y are arbitrary expressions). This means that x and y are comprised of higher-precedence operators. Since there is
+  no second pass back to high-precedence operators, x and y will not change nor will they interact with one another. The fact that a folded node never gains more children arrives from the fact
+  that it is folded only once; this is by virtue of folding by index instead of by tree structure. (Though a good tree traversal algorithm also wouldn't hit the same node twice -- it's just
+  less obvious when the tree is changing.)
+
+  Anyway, the important thing about fold nodes is that their children don't change. This means that an array is a completely reasonable data structure to use for the children; it certainly
+  makes the structure simpler. It also means that the only new links that must be added to nodes as they are folded are links to new children (via the array), and links to the new siblings.
+  Once we have the array-form of fold nodes, we can build a query interface similar to jQuery, but designed for syntactic traversal. This will make routine operations such as macro
+  transformation and quasiquoting far simpler later on.
+
+  Both grouping and fold nodes are represented by the same data structure. In the case of grouping, the 'first' pointer is encoded as [0] -- that is, the first array element. It doesn't
+  contain pointers to siblings of [0]; these are still accessed by their 'l' and 'r' pointers. As the structure is folded, the number of children of each paren group should be reduced to just
+  one. At this point the remaining element's 'l' and 'r' pointers will both be null, which means that it is in hierarchical form instead of linked form.
+
+  After the tree has been fully generated and we have the root node, we have no further use for the parent pointers. This means that we can use subtree sharing to save memory. Once we're past
+  the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
+  (i.e. no parent pointer).
+
+    var syntax_node_inspect = function (x) {return x ? x.inspect() : '(<>)'},  syntax_node_tostring = function (x) {return x ? x.serialize ? x.serialize() : x.toString() : ''},
+
+  Syntax node functions.
+  These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
+  turns out to be an issue.
+
+      node_methods = {
+
+    Mutability.
+    These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
+
+       _replace: function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
+      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this))},
+        _append: function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this))},
+       _sibling: function (n) {return n.p = this.p, (this.r = n).l = this},                                                            _fold_lr: function () {return this._fold_l()._fold_r()},
+          _wrap: function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},  _fold_rr: function () {return this._fold_r()._fold_r()},
+        _unlink: function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
+
+    These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
+
+            pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x, this},
+
+    Identification.
+    You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
+    and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy.
+
+      id: function () {return this.id || (this.id = genint())},
+
+    Traversal functions.
+    each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
+    reach and rmap, perform the process recursively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
+    function passed to rmap() returns the node verbatim then its children are traversed. If it returns a distinct node, however, then traversal doesn't descend into the children of the newly
+    returned tree but rather continues as if the original node had been a leaf. For example:
+
+    |           parent          Let's suppose that a function f() has these mappings:
+               /      \
+           node1      node2       f(parent) = parent   f(node1) = q
+           /   \        |                              f(node2) = node2
+         c1     c2      c3
+
+    In this example, f() would be called on parent, node1, node2, and c3 in that order. c1 and c2 are omitted because node1 was replaced by q -- and there is hardly any point in going through
+    the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.) If a mapping function
+    returns something falsy, it will have exactly the same effect as returning the node without modification.
+
+    Using the old s() to do gensym-safe replacement requires that you invoke it only once, and this means that for complex macroexpansion you'll have a long array of values. This isn't ideal,
+    so syntax trees provide a replace() function that handles replacement more gracefully:
+
+    | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
+
+    There is a map() variant called nmap() (and a corresponding rnmap()) that lets you insert falsy nodes into the syntax tree. This is used by replace(), which lets you replace named nodes
+    with falsy things if you want them to go away. (The exact behavior is that falsy nodes are not added to the syntax tree at all, rather than remaining in their original state.)
+
+      each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
+       map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length;    i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+      nmap: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length, r; i < l; ++i) (r = f(this[i], i)) && n.push(r); return n},
+     reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
+      rmap: function (f) {var r = f(this); return ! r || r === this ? this. map(function (n) {return n && n. rmap(f)}) :      r.data === undefined ? new this.constructor(r) : r},
+     rnmap: function (f) {var r = f(this); return        r === this ? this.nmap(function (n) {return n && n.rnmap(f)}) : r && r.data === undefined ? new this.constructor(r) : r},
+
+     clone: function () {return this.rmap(function () {return false})},
+
+   collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
+   replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
+
+    Alteration.
+    These functions let you make "changes" to a node by returning a modified copy.
+
+      repopulated_with: function (xs)   {return new this.constructor(this.data, xs)},
+                change: function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
+        compose_single: function (i, f) {return this.change(i, f(this[i]))},
+
+    General-purpose traversal.
+    This is a SAX-style traversal model, useful for analytical or scope-oriented tree traversal. You specify a callback function that is invoked in pre-post-order on the tree (you get events
+    for entering and exiting each node, including leaves). Each time a node is entered, the callback is invoked with an object of the form {entering: node}, where 'node' is the syntax node
+    being entered. Each time a node is left, the callback is invoked with an object of the form {exiting: node}. The return value of the function is not used. Any null nodes are not traversed,
+    since they would fail any standard truthiness tests for 'entering' or 'exiting'.
+
+    I used to have a method to perform scope-annotated traversal, but I removed it for two reasons. First, I had no use for it (and no tests, so I had no reason to believe that it worked).
+    Second, Caterwaul is too low-level to need such a method. That would be more appropriate for an analysis extension.
+
+      traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
+
+    Structural transformation.
+    Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
+    each of which is binary. Javascript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
+    .each() much more effectively.) Any binary operator can be transformed this way, and that is exactly what the flatten() method does. (flatten() returns a new tree; it doesn't modify the
+    original.)
+
+    The tree flattening operation looks like this for a left-associative binary operator:
+
+    |        (+)
+            /   \              (+)
+         (+)     z     ->     / | \
+        /   \                x  y  z
+       x     y
+
+    This flatten() method returns the nodes along the chain of associativity, always from left to right. It is shallow, since generally you only need a localized flat tree. That is, it doesn't
+    descend into the nodes beyond the one specified by the flatten() call. It takes an optional parameter indicating the operator to flatten over; if the operator in the tree differs, then the
+    original node is wrapped in a unary node of the specified operator. The transformation looks like this:
+
+    |                                  (,)
+           (+)                          |
+          /   \   .flatten(',')  ->    (+)
+         x     y                      /   \
+                                     x     y
+
+    Because ',' is a binary operator, a ',' tree with just one operand will be serialized exactly as its lone operand would be. This means that plurality over a binary operator such as comma
+    or semicolon degrades gracefully for the unary case (this sentence makes more sense in the context of macro definitions; see in particular 'let' and 'where' in std.bind).
+
+    The unflatten() method performs the inverse transformation. It doesn't delete a converted unary operator in the tree case, but if called on a node with more than two children it will nest
+    according to associativity.
+
+      flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                     se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                     se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                    for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+
+      unflatten: function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
+                                 if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
+                                 else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))},
+
+    Wrapping.
+    Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
+    when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
+    in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
+
+      as: function (d) {return this.data === d ? this : new this.constructor(d).push(this)},
+
+    Type detection and retrieval.
+    These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
+    otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
+
+    Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
+    eta-reduced (if it were, then the 'this' binding would be lost).
+
+               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+               is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
+              is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
+               is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+
+       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
+
+             is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
+          left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
+                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
+         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
+           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0] && this[0].is_dereference()},
+
+            is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
+       is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
+
+                 accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
+
+    Value construction.
+    Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
+    need a mapping of symbols to these references, which is what the bindings() method returns. (It also collects references for all descendant nodes.) It takes an optional argument to
+    populate, in case you already had a hash set aside for bindings -- though it always returns the hash.
+
+    A bug in Caterwaul 0.5 and earlier failed to bind falsy values. This is no longer the case; nodes which bind values should indicate that they do so by setting a binds_a_value attribute
+    (ref nodes do this on the prototype), indicating that their value should be read from the 'value' property. (This allows other uses of a 'value' property while making it unambiguous
+    whether a particular node intends to bind something.)
+
+      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result},
+
+    Matching.
+    Syntax trees can use the Caterwaul match function to return a list of wildcards.
+
+         match: function (pattern) {return macro_try_match(pattern, this)},
+
+    Inspection and syntactic serialization.
+    Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
+    pointer. In the serialized representation, it is shown as a comment /* -> */ containing the serialization of whatever is to the right. This has the property that it will break tests but
+    won't necessarily break code (though if it happens in the field then it's certainly a bug).
+
+    Block detection is required for multi-level if/else statements. Consider this code:
+
+    | if (foo) for (...) {}
+      else bif;
+
+    A naive approach (the one I was using before version 0.6) would miss the fact that the 'for' was trailed by a block, and insert a spurious semicolon, which would break compilation:
+
+    | if (foo) for (...) {};    // <- note!
+      else bif;
+
+    What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
+    algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
+
+ ends_with_block: function () {var block_index = parse_r_until_block[this.data], block = this[block_index];
+                               return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+
+    There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
+    semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
+
+    Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
+    postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
+
+        toString: function ()   {return this.inspect()},
+         inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
+                                        (this.r ? ' -> ' + this.r.inspect() : '')},
+
+    Update for Caterwaul 0.7.0: Syntax nodes now use semi-stateful arrays for serialization. Hopefully this will make the process faster. (Testing in progress.)
+
+       serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
+                                    s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+                                       has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
+                                          has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
+                                            has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
+                                               has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
+                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
+                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
+                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
+                                                                     op + space + map(syntax_node_tostring, this).join('') :
+                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
+                               return right ? s + right : s}},
+
+  References.
+  You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
+
+  | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)})()    // -> 4
+
+  What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
+  represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
+
+    ref = extend(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                   else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}, node_methods),
+
+  Syntax node constructor.
+  Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
+  numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
+  to be used.
+
+    syntax_node = extend(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                          else {this.data = data && data.toString(); this.length = 0;
+                                            for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                              for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
+__20ed6e87cc561f32902fcb411de4d5da
+meta::sdoc('js::core/caterwaul.utilities', <<'__77f95679846090077ea1369581ad366e');
+Utility methods.
+Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
+tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
+below):
+
+| (function (a_gensym) {
+    var v1 = a_gensym.gensym_1;
+    var v2 = a_gensym.gensym_2;
+    ...
+    return <your macroexpanded function>;
+  }) ({gensym_1: v1, gensym_2: v2, ..., gensym_n: vn});
+
+A note about gensym uniqueness. Gensyms are astronomically unlikely to collide, but there are some compromises made to make sure of this. First, gensyms are not predictable; the first one is
+randomized. This means that if you do have a collision, it may be intermittent (and that is probably a non-feature). Second, and this is a good thing, you can load Caterwaul multiple times
+without worrying about gensyms colliding between them. Each instance of Caterwaul uses its own system time and random number to seed the gensym generation, and the system time remains stable
+while the random number gets incremented. It is very unlikely that any collisions would happen.
+
+Bind() is the usual 'bind this function to some value' function. The only difference is that it supports rebinding; that is, if you have a function you've already bound to X, you can call bind
+on that function and some new value Y and get the original function bound to Y. The bound function has two attributes, 'original' and 'binding', that let bind() achieve this rebinding.
+
+Map() is an array map function, fairly standard really. I include it because IE doesn't provide Array.prototype.map. hash() takes a string, splits it on whitespace, and returns an object that
+maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
+function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
+
+Se() stands for 'side-effect', and its purpose is to take a value and a function, pass the value into the function, and return either whatever the function returned or the value you gave it.
+It's used to initialize things statefully; for example:
+
+| return se(function () {return 5}, function (f) {
+    f.sourceCode = 'return 5';
   });
 
-Wrapping the first function in caterwaul() wasn't necessary, though it was helpful to get the qs[] and fn[] shorthands. In this case, the macro is persistent to the caterwaul function that it
-was called on. (So any future caterwaul()ed functions would have access to it.)
-
-You can also define conditional macros, though they will probably be slower. For example:
-
-| caterwaul(function () {
-    caterwaul.rmacro(qs[let (_) in _], fn[bs, e][bs.data === '=' && ...]);
-  }) ();
-
-Here, returning a falsy value indicates that nothing should be changed about this syntax tree. It is replaced by itself and processing continues normally. You should try to express things in
-terms of patterns; there are theoretical optimizations that can cut the average-case runtime of pattern matching to a fraction of a full linear scan. The worst possible case is when you match
-on a universal pattern and restrict later:
-
-| caterwaul(function () {
-    caterwaul.rmacro(qs[_], fn[x][...]);
-  }) ();
-
-This will call your macroexpander once for every node in the syntax tree, which for large progams is costly. If you really do have such a variant structure, your best bet is to define separate
-macros, one for each case:
-
-| caterwaul(function () {
-    var patterns = [qs[foo], qs[bar], qs[bif]];
-    patterns.map (function (p) {
-      caterwaul.rmacro (p, fn[x][...]);
-    });
-  }) ();
-
-This gives Caterwaul the opportunity to call your function only on relevant nodes. (Note that at present I haven't found an algorithm to make things any faster than using a depth-first scan.
-However, if I do find such an algorithm later on then macroexpansion will run quite a bit faster for programs with well-defined patterns.)
-
-  Pitfalls of macroexpansion.
-  Macroexpansion as described here can encode a lambda-calculus. The whole point of having macros is to make them capable, so I can't complain about that. But there are limits to how far I'm
-  willing to go down the pattern-matching path. Let's suppose the existence of the let-macro, for instance:
-
-  | let (x = y) in z   ->   (function (x) {return z}) (y)
-
-  If you write these macros:
-
-  | foo[x, y]   ->   let (x = y)
-    bar[x, y]   ->   x in y
-
-  Caterwaul is not required to expand bar[foo[x, y], z] into (function (x) {return z}) (y). It might just leave it at let (x = y) in z instead. The reason is that while the individual
-  macroexpansion outputs are macroexpanded, a fixed point is not run on macroexpansion in general. (That would require multiple-indexing, which in my opinion isn't worth the cost.) To get the
-  extra macroexpansion you would have to wrap the whole expression in another macro, in this case called 'expand':
-
-  | caterwaul.configure(function () {
-      this.rmacro(expand[_], fn[expression][caterwaul.macroexpand(expression)]);
-    });
-
-  This is an eager macro; by outputting the already-expanded contents, it gets another free pass through the macroexpander.
-
-  Things that are not guaranteed:
-
-  | 1. Reassembly of different pieces (see above)
-    2. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
-    3. Performance bounds.
-
-  Macro vs. rmacro.
-  macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
-  want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
-
-  | caterwaul.configure(function () {
-      // Using macro() instead of rmacro(), so no further expansion:
-      this.macro(qs[literal[_]], fn[x][x]);
-    });
-
-  While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
-
-  Matching.
-  macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
-  illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern. It is optimized, though, to reject invalid nodes
-  quickly -- that is, if there is any mismatch in arity or data.
-
-      macro_array_push = Array.prototype.push,
-      macro_try_match  = function (pattern, t) {if (pattern.data === '_')                                   return [t];
-                                                if (pattern.data !== t.data || pattern.length !== t.length) return null;
-                                                for (var i = 0, l = pattern.length, wildcards = [], match = null; i < l; ++i)
-                                                  if (match = macro_try_match(pattern[i], t[i])) macro_array_push.apply(wildcards, match);
-                                                  else                                           return null;
-                                                return wildcards},
-
-  Expansion.
-  Uses the straightforward brute-force algorithm to go through the source tree and expand macros. At first I tried to use indexes, but found that I couldn't think of a particularly good way to
-  avoid double-expansion -- that is, problems like qs[qs[foo]] -- the outer must be expanded without the inner one. Most indexing strategies would not reliably (or if reliably, not profitably)
-  index the tree in such a way as to encode containment. Perhaps at some point I'll find a faster macroexpander, especially if this one proves to be slow. At this point macroexpansion is by
-  far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
-  practice it's generally not quite so bad.)
-  
-  Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
-
-  The fourth parameter, 'context', is used to hand a 'this' reference to the macroexpander. This is necessary to get defmacro[] to work properly, and in general lets macros be side-effectful.
-  (Not that you should be in the habit of defining side-effectful macros, but I certainly won't stop you.)
-
-  Note that as of version 0.5, macroexpansion proceeds backwards. This means that the /last/ matching macro is used, not the first. It's an important feature, as it lets you write new macros
-  to override previous definitions. This ultimately lets you define sub-caterwaul functions for DSLs, and each can define a default case by matching on qs[_] (thus preventing access to other
-  macro definitions that may exist).
-
-    macro_expand = function (t, macros, expanders, context) {
-                     return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
-                                                   if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})},
-
-Environment-dependent compilation.
-It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
-must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
-compiling. The variables correspond to gensyms placed in the code, so the code will have closure over those variables.
-
-An optional second parameter 'environment' can contain a hash of variable->value bindings. These will be defined as locals within the compiled function.
-
-New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
-
-  compile = function (tree, environment) {      // Despite the coincidence of 'tree' and 'environment' on this line, I'm seriously not pushing a green agenda :)
-    var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
-    var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
-    try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}},
-
-Configurations.
-Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
-replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
-
-| var copy = caterwaul.clone (function () {
-    // This function is for customizations. Totally optional; can also customize at the toplevel.
-    this.macro(qs[foo], fn_[qs[bar]]);
-  });
-
-| copy(function () {
-    var bar = 6;
-    return foo;
-  }) ();                // returns 6
-
-Related to this is a configure() method that modifies and returns the original function:
-
-| caterwaul.configure (function () {
-    // Global configuration using 'this'
-  });
-
-  Core interface.
-  The core API for replicable functions is exposed as 'caterwaul.replica'. This is primarily of use to API developers and not to end users. Also of use is the configuration
-  'caterwaul.configurable', which when applied to a replicable function will install Caterwaul's configurability onto it. For example:
-
-  | var my_compiler = caterwaul.configurable(caterwaul.replica());
-    my_compiler.method('init', function () {/* custom compiler behavior */});
-    my_compiler.clone();        // A new instance
-
-  You can then customize this function, which will have the same replication interface that Caterwaul has but won't have Caterwaul's default behavior. (A less elegant way to achieve the same
-  thing is to clone caterwaul and give it a new 'init' method.)
-
-  Attributes and methods.
-  Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
-  so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
-  table that keeps track of what to do with each. Attributes show up in this table when you call one of the attribute-association methods:
-
-  | .field('attribute', value)          Creates a reference-copying attribute. No copying is done at all; the attribute is cross-referenced between copies of the Caterwaul function.
-    .shallow('attribute', value)        Creates an attribute whose value is copied shallowly; for hashes or arrays.
-    .method('name', f)                  Creates a method bound to the Caterwaul function. f will be bound to any copies on those copies.
-
-  Naturally, attributes that don't appear in the table are left alone. You can add more of these attribute behaviors using the behavior() method:
-
-  | .behavior('name', definition)       Creates a new attribute behavior. definition() should take an original attribute value and return a new one, where 'this' is the new Caterwaul function.
-
-  Underlying this mechanism is the associate() method:
-
-  | .associate('attribute', 'behavior', value)          Creates an attribute with the given behavior and assigns it a value.
-
-  A couple of notes. First, these functions are bound to the function they modify; that is, you can eta-reduce them freely. Second, this is not a general purpose function replicator. All of
-  the functions returned here call their own init() method rather than sharing a function body somewhere. (To be fair, the init() method gets referenced -- so it's almost as good I suppose.) A
-  general-purpose way to do this would be to have g call f instead of g.init in the copy_of() function below. I'm not doing this in order to save stack frames; I want the function call
-  performance to be constant-time in the number of copies.
-
-  Another thing to be aware of is that this isn't a general-purpose metaclassing framework. I made a compromise by discouraging side-effecting initialization in the behavior-association
-  methods -- these should just copy things, reference them, or transform them in some nondestructive way. This makes it easier to have extensional copies of objects, since there are fewer
-  unknowns about the internal state. (e.g. we know that if 'foo' appears in the attribute table, we'll have something called 'foo' on the object itself and we can call its behavior -- we don't
-  have to wonder about anything else.)
-
-  associator_for = function (f) {return function (name, behavior, value) {return f[name] = (f.behaviors[f.attributes[name] = behavior] || id).call(f, value), f}},
-    shallow_copy = function (x) {return x && (x.constructor === Array ? x.slice() : x.clone ? x.clone() : merge({}, x))},
-         copy_of = function (f) {var g = merge(function () {return g.init.apply(g, arguments)}, {behaviors: shallow_copy(f.behaviors), attributes: {}});
-                                 return se(g, function (g) {(g.associate = associator_for(g))('behavior', 'method', function (name, definition) {this.behaviors[name] = definition;
-                                                              return this.associate(name, 'method', function (attribute, value) {return this.associate(attribute, name, value)})}).
-                                                            behavior('method', g.behaviors.method);
-
-                                                            for (var k in f.attributes) has(f.attributes, k) && g.associate(k, f.attributes[k], f[k])})},
-
-  Bootstrapping method behavior.
-  Setting up the behavior(), method(), field(), and shallow() methods. The behavior() and method() methods are codependent and are initialized in the copy_of function above, whereas the
-  field() and shallow() methods are not core and are defined here. I'm also defining a 'configuration' function to allow quick definition of new configurations. (These are loadable by their
-  names when calling clone() or configure() -- see 'Configuration and cloning' below.) A complement method, 'tconfiguration', is also available. This transforms the configuration function
-  before storing it in the table, enabling you to use things like 'qs[]' without manually transforming stuff. The downside is that you lose closure state and can't bind variables.
-
-  There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
-
-         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f}),
-
-  Configuration and cloning.
-  Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
-
-  | caterwaul.configure('std.fn');
-    // Longhand access to the function:
-    caterwaul.configurations['std.fn']
-
-  You can also pass these libraries into a clone() call:
-
-  | var copy = caterwaul.clone('std.fn', 'some_other_library', function () {
-      ...
-    });
-
-  Generally you will just configure with 'std', which includes all of the standard configurations (see caterwaul.std.js.sdoc in the modules/ directory).
-
-  Note that functions passed to clone() and configure() are transformed using the existing caterwaul instance. This means that closure state is lost, so configuration at the toplevel is a good
-  idea. Named configurations, on the other hand, are not explicitly transformed; so when you define a custom configuration in a named way, you will want to manually transform it. (The reason
-  for this is that we don't want to force the configuration author to lose closure state, since it's arguably more important in a library setting than an end-user setting.) Alternatively you
-  can use tconfigure(), which takes a series of configurations to use to transform your configuration function. (This makes more sense in code than in English; see how the configurations below
-  are written...)
-
-  Named configurations are made idempotent; that is, they cannot be applied twice. This is done through the 'has' hash, which can be manually reset if you actually do need to apply a
-  configuration multiple times (though you're probably doing something wrong if you do need to do that).
-
-    configurable = function (f) {return f.
-      shallow('configurations', {}).shallow('has', {}).method('configuration', function (name, f) {this.configurations[name] = f; return this}).
-       method('namespace', function (s) {return this[s] || this.shallow(s, {})[s]}).
-
-       method('clone',     function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
-       method('configure', function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                          if (_.constructor === String) for (var cs = qw(arguments[i]), j = 0, lj = cs.length; _ = cs[j], j < lj; ++j)
-                                                                          if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
-                                                                          else                        throw new Error('error: configuration "' + _ + '" does not exist');
-                                          else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})},
-
-Macroexpansion behavior.
-Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
-order for this to work, your syntax trees must:
-
-| 1. Look like arrays -- that is, have a .length property and be indexable by number (e.g. x[0], x[1], ..., x[x.length - 1])
-  2. Implement an rmap() method. This should perform a depth-first traversal of the syntax tree, invoking a callback function on each node. If the callback returns a value, that value should
-     be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
-     rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
-  3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
-
-  macroexpansion = function (f) {return f.
-    shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).
-     method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
-                                                    else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
-
-Composition behavior.
-New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
-example: http://github.com/spencertipping/figment). Composition is achieved by invoking after(), which governs the behavior of the macroexpand() function. The list of functions to be invoked
-after a caterwaul function can be inspected by invoking after() with no arguments.
-
-| var f = caterwaul.clone(), g = caterwaul.clone();
-  f.after(g);           // Causes g to be run on f's output; that is, g is an after-effect of f.
-  f.after(h);           // Adds another after function, to be run after all of the others.
-  f.after();            // -> [g, h]
-
-The design for this feature is different in 0.6.5. The problem with the original design, in which after() returned a clone of the original function, was that you couldn't set up
-after-composition from within a configuration (since, reasonably enough, configuration is closed over the caterwaul instance).
-
-There is deliberately no before() method. The reason for this is that when you define a macro on a caterwaul function, it should take precedence over all other macros that get run. Obviously
-this doesn't happen for g if g comes after f, but generally that relationship is obvious from the setup code (which it might not be if a before() method could be invoked by configurations).
-
-  composition = function (f) {return f.
-    shallow('after_functions', []).method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
-                                                                else                  return this.after_functions})},
-
-Global Caterwaul setup.
-Now that we've defined lexing, parsing, and macroexpansion, we can create a global Caterwaul function that has the appropriate attributes. As of version 0.6.4, the init() property is
-polymorphic in semantics as well as structure. There are two cases:
-
-| 1. You invoke caterwaul on a syntax node. In this case only macroexpansion is performed.
-  2. You invoke caterwaul on anything else. In this case the object is decompiled, macroexpanded, and then compiled.
-
-This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
-context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
-
-New in version 0.6.5 is the ability to bind closure variables during a tconfiguration(). This makes it simpler to close over non-globals such as node.js's require() function.
-
-  caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
-    method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
-     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
-
-     field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
-     field('composition', composition).field('global', function () {return caterwaul_global}).
-
-    method('init', function (f, environment) {var result = f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment);
-                                              if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
-                                              return result}).
-
-    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
-                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
-
-  Utility library.
-  Caterwaul uses and provides some design-pattern libraries to encourage extension consistency. This is not entirely selfless on my part; configuration functions have no access to the
-  variables I've defined above, since the third-party ones are defined outside of the Caterwaul main function. So anything that they need access to must be accessible on the Caterwaul function
-  that is being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
-
-    shallow('util', {extend: extend, merge: merge, se: se, macro_try_match: macro_try_match, id: id, bind: bind, map: map, qw: qw}).
-
-  Magic.
-  Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are
-  considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
-
-     method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))},
-
-  caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
-  return caterwaul_global});
-__f1dde233c8c8ddb3401127a7809c4548
+The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
+
+    var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
+    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    genint = (function (n) {return function () {return ++n}})(0),
+
+      bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
+       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
+      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
+     merge = function (o) {for (var i = 1, l = arguments.length, _ = null; _ = arguments[i], i < l; ++i) if (_) for (var k in _) has(_, k) && (o[k] = _[k]); return o},
+    extend = function (f) {merge.apply(null, [f.prototype].concat(Array.prototype.slice.call(arguments, 1))); return f},
+
+  Optimizations.
+  The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
+  syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
+  linear-time passes over the token stream. (An approximate figure; it actually does about 19 fractional passes, but not all nodes are reached.)
+
+  Also, I'm not confident that all Javascript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we
+  throw a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often. To prevent this
+  kind of thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to verify that
+  the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
+  regardless of the length of the candidate.
+
+  The bad part is that you can't refer to an object called '_max_length' -- this will never be considered to be in the hash. I don't really have a problem with that, but it's worth being aware
+  of. Also, on IE browsers various properties won't exist (among them toString, hasOwnProperty, etc.). These aren't special in Javascript so it isn't a problem, but it's still unfortunate.
+
+    annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
+              has = function (o, p) {return p && ! (p.length > o._max_length) && p !== '_max_length' && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
+__77f95679846090077ea1369581ad366e
 meta::sdoc('js::minify', <<'__c427ba38be3090426d6ef69c5cabf6b3');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
@@ -9898,6 +9998,32 @@ test('tostring-jquery', function () {
   });
 });
 __27d306f38b559870a5f3423cbca2f03e
+meta::template('comment', '\'\';     # A mechanism for line or block comments.');
+meta::template('eval', <<'__eb0b1058649eb2d833f348540516b358');
+my $result = eval $_[0];
+terminal::warning("Error during template evaluation: $@") if $@;
+$result;
+__eb0b1058649eb2d833f348540516b358
+meta::template('failing_conditional', <<'__5c593329b434a7044f68cec4b77e8ed9');
+my ($commands)    = @_;
+my $should_return = $commands =~ / if (.*)$/ && ! eval $1;
+terminal::warning("eval of template condition failed: $@") if $@;
+$should_return;
+__5c593329b434a7044f68cec4b77e8ed9
+meta::template('include', <<'__e0624844a65ae41e0217dd871fc0dbfb');
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+join "\n", map retrieve($_), split /\s+/, $commands;
+__e0624844a65ae41e0217dd871fc0dbfb
+meta::template('pinclude', <<'__5ba61c3034a4b183881936aec30d2be9');
+# Just like the regular include, but makes sure to insert paragraph boundaries
+# (this is required for SDoc to function properly).
+
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
+"\n\n$text\n\n";
+__5ba61c3034a4b183881936aec30d2be9
 internal::main();
 
 __END__
