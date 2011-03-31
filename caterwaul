@@ -310,15 +310,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __3c6177256de0fddb721f534c3ad8c0ee
 meta::data('main', 'server.js');
-meta::data('module-order', <<'__583ba7e7ab04a3ef8ecf18542c65cde3');
-std
-opt
-continuation
-seq
-heap
-memoize
-parser
-__583ba7e7ab04a3ef8ecf18542c65cde3
 meta::data('name', 'node-base');
 meta::data('quiet', '1');
 meta::data('watching', '1');
@@ -539,7 +530,10 @@ meta::function('macroexpand', <<'__ba8d14b1caf169f49834baa8018001c0');
 # Macroexpands stuff.
 node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::macroexpander'], @_);
 __ba8d14b1caf169f49834baa8018001c0
-meta::function('minify', 'node([qw|pp::js::core/caterwaul js::minify|], @_);');
+meta::function('minify', <<'__95a1af569b959a26f4629484ba63875a');
+terminal::info("minifying $_[0]");
+node([qw|pp::js::core/caterwaul js::minify|], @_);
+__95a1af569b959a26f4629484ba63875a
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
@@ -850,20 +844,19 @@ meta::hook('after-render::cleanup', <<'__53d7a659ec1b2c1702f61651a956d38c');
 # Nuke some things that get created by render().
 unlink qw/macroexpander.js parser.js minify.js minify.js.sdocp/;
 __53d7a659ec1b2c1702f61651a956d38c
-meta::hook('after-render::hackery', <<'__062241e6c594421bc7bb77b89daca84b');
+meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
 # Runs the hackery generation hooks (which happen after a render)
-hook('hackery');
-__062241e6c594421bc7bb77b89daca84b
-meta::hook('after-render::minify', <<'__760dabbac94b3626734eb7da0be787ec');
+#hook('hackery');
+__049a9817dec529eff29f94917eb1ee83
+meta::hook('after-render::minify', <<'__b588e495baa47a69122912ba03ee16f9');
 # Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
 file::write('caterwaul.js',       retrieve('pp::js::core/caterwaul'));
+file::write('caterwaul.all.js',   retrieve('pp::js::modules/caterwaul.all'));
 file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
 
 # Compile caterwaul.all.js and minified versions of everything.
-my @files = ('caterwaul', map "modules/caterwaul.$_", split /\n/, &{'module-order'}());
-file::write('caterwaul.all.js', cat(map "js::$_", @files));
 minify("$_.js") for @files, "caterwaul.all";
-__760dabbac94b3626734eb7da0be787ec
+__b588e495baa47a69122912ba03ee16f9
 meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
@@ -1892,7 +1885,6 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})};
 __7dbd96a9fb2c544be21176126049a5c4
-meta::sdoc('js::core/caterwaul.global', '');
 meta::sdoc('js::core/caterwaul.macroexpander', <<'__45c5e4f42329d0b7541af26c1a0e853b');
 Macroexpansion.
 Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
@@ -2702,6 +2694,21 @@ This won't do identifier packing (which is unsafe in Caterwaul), but it will pro
 var code = require('fs').readFileSync(process.argv[2], 'utf8');
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.min.js'), caterwaul.parse(code).serialize(), 'utf8');
 __c427ba38be3090426d6ef69c5cabf6b3
+meta::sdoc('js::modules/caterwaul.all', <<'__f75c41bcefb47aef8cc14e92694f0ea7');
+Caterwaul with all modules | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+- comment This is the template that produces caterwaul.all.js.
+
+- pinclude pp::js::core/caterwaul
+- pinclude pp::js::modules/caterwaul.std
+- pinclude pp::js::modules/caterwaul.opt
+- pinclude pp::js::modules/caterwaul.continuation
+- pinclude pp::js::modules/caterwaul.seq
+- pinclude pp::js::modules/caterwaul.heap
+- pinclude pp::js::modules/caterwaul.memoize
+- pinclude pp::js::modules/caterwaul.parser
+__f75c41bcefb47aef8cc14e92694f0ea7
 meta::sdoc('js::modules/caterwaul.continuation', <<'__d01f7225134d59279a11628ebc9fc7af');
 Continuation manipulation module | Spencer Tipping
 Licensed under the terms of the MIT source code license
