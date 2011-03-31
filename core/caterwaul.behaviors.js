@@ -8,6 +8,20 @@
 //      rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
 //   3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
 
+// As of version 0.7.0 this compatibility may change without notice. The reason is that the macroexpansion logic used by Caterwaul is becoming more sophisticated to increase performance, which
+// means that it may become arbitrarily optimized.
+
+//   Macro vs. rmacro.
+//   macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
+//   want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
+
+//   | caterwaul.configure(function () {
+//       // Using macro() instead of rmacro(), so no further expansion:
+//       this.macro(qs[literal[_]], fn[x][x]);
+//     });
+
+//   While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
+
   var macroexpansion = function (f) {return f.
     shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
     shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand(t, this.macro_patterns, this.macro_expanders, this)}).

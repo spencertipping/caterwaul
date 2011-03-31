@@ -214,7 +214,13 @@ meta::define_form 'template', sub {
 __25f4d6eafb1d3eea6d5d3d9a71a5623e
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::alias('e', 'edit sdoc::js::core/caterwaul');
+meta::alias('eb', 'edit sdoc::js::core/caterwaul.behaviors');
+meta::alias('ec', 'edit sdoc::js::core/caterwaul.compiler');
+meta::alias('ef', 'edit sdoc::js::core/caterwaul.configuration');
 meta::alias('ei', 'edit sdoc::js::core/caterwaul.introduction');
+meta::alias('em', 'edit sdoc::js::core/caterwaul.macroexpander');
+meta::alias('ep', 'edit sdoc::js::core/caterwaul.parser');
+meta::alias('et', 'edit sdoc::js::core/caterwaul.tree');
 meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
@@ -1681,7 +1687,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
 __d19435da3c7d2929306c1cd1cc6c15d7
-meta::sdoc('js::core/caterwaul.behaviors', <<'__637c553abba3bbda8813564e4a540d02');
+meta::sdoc('js::core/caterwaul.behaviors', <<'__53527fcbd882cbf0e16e4c329eb4c083');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -1691,6 +1697,20 @@ order for this to work, your syntax trees must:
      be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
      rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
   3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
+
+As of version 0.7.0 this compatibility may change without notice. The reason is that the macroexpansion logic used by Caterwaul is becoming more sophisticated to increase performance, which
+means that it may become arbitrarily optimized.
+
+  Macro vs. rmacro.
+  macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
+  want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
+
+  | caterwaul.configure(function () {
+      // Using macro() instead of rmacro(), so no further expansion:
+      this.macro(qs[literal[_]], fn[x][x]);
+    });
+
+  While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
 
   var macroexpansion = function (f) {return f.
     shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
@@ -1756,7 +1776,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__637c553abba3bbda8813564e4a540d02
+__53527fcbd882cbf0e16e4c329eb4c083
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -1885,7 +1905,7 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})};
 __7dbd96a9fb2c544be21176126049a5c4
-meta::sdoc('js::core/caterwaul.macroexpander', <<'__45c5e4f42329d0b7541af26c1a0e853b');
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__530732f1f117887f5ea4aeb79f839f09');
 Macroexpansion.
 Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
 (or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
@@ -1959,17 +1979,6 @@ However, if I do find such an algorithm later on then macroexpansion will run qu
     2. Anything at all, if you modify the syntax tree in the macro code. Returning a replacement is one thing, but modifying one will break things.
     3. Performance bounds.
 
-  Macro vs. rmacro.
-  macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
-  want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
-
-  | caterwaul.configure(function () {
-      // Using macro() instead of rmacro(), so no further expansion:
-      this.macro(qs[literal[_]], fn[x][x]);
-    });
-
-  While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
-
   Matching.
   macro_try_match returns null if two syntax trees don't match, or a possibly empty array of wildcards if the given tree matches the pattern. Wildcards are indicated by '_' nodes, as
   illustrated in the macro definition examples earlier in this section. Note that this function is O(n) in the number of nodes in the pattern. It is optimized, though, to reject invalid nodes
@@ -2002,7 +2011,7 @@ However, if I do find such an algorithm later on then macroexpansion will run qu
     macro_expand = function (t, macros, expanders, context) {
                      return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
                                                    if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})};
-__45c5e4f42329d0b7541af26c1a0e853b
+__530732f1f117887f5ea4aeb79f839f09
 meta::sdoc('js::core/caterwaul.parser', <<'__eed9ff7c2d7670bb3e9723d934f61083');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
