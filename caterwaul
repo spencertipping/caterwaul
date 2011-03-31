@@ -208,6 +208,7 @@ __c1f29670be26f1df6100ffe4334e1202
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::alias('e', 'edit sdoc::js::caterwaul');
 meta::alias('me', 'macroexpand');
+meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
@@ -1132,7 +1133,7 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
-meta::note('macroexpander-optimization', <<'__0b3a7e2838a14036d92449431a1c7a36');
+meta::note('macroexpander-optimization', <<'__fb624b0b53cba57663543d6a0147376d');
 Optimization constraints for macroexpansion.
 This is a challenging problem. It looks like the total complexity of loading all modules is close to 7000, which isn't too bad by itself. However, there are more than 100 macros during some of
 these configurations, and that increases the amount of work by a factor of 100.
@@ -1149,10 +1150,10 @@ Another possibility is to arrange macro patterns by common factors. Maybe Caterw
 of the data, or some such. This involves some fairly advanced decision-making on Caterwaul's part, but I'm fairly confident that a closed-form optimization strategy exists.
 
 Problem statement.
-Formally speaking, the problem is this. Minimize the number of pattern-node match operations. Scanning through all of the nodes up-front is a definite possibility, though each node visit is
+Formally speaking, the problem is to minimize the number of pattern-node match operations. Scanning through all of the nodes up-front is a definite possibility, though each node visit is
 somewhat expensive. Match operations are worse, however, since they may have to dig down several layers before rejecting a match, and in the meantime they will have consed up and concatenated
 many arrays to build the partial match data.
-__0b3a7e2838a14036d92449431a1c7a36
+__fb624b0b53cba57663543d6a0147376d
 meta::note('modules', <<'__92e7978739a04aa66d1b7859a730e367');
 Modules.
 Modules are for extensions as much as they are for fundamentals. This sounds weird perhaps, but it's true. For example, the replication behavior of caterwaul is useful outside of just the
