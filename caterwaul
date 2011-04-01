@@ -1981,7 +1981,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__99bb3daa5982afd8f181324c26e53cd3');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__00efdc12ac593606b1bab53b1b01f6ed');
 JIT macroexpander.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
 pattern trees this becomes too slow for regular use. This macroexpander uses just-in-time compilation to optimize lookups against the macro table, eliminating most of the checks that would
@@ -2110,19 +2110,48 @@ have failed.
     only relevant question is how much effort is required to do this. Luckily this is fairly straightforward to figure out. We just need to make some simplifying assumptions.
 
     | 1. Comparison on a node is about as expensive as visiting the node in the first place.
-      2. Each possibility in a comparison is equally likely. (This is blatantly false, but in the absence of better information it's the best I know how to do.)
+      2. Each possibility in a comparison is equally likely. (I'm actually not assuming this in the final model; see below.)
       3. Calling a macroexpand function is about 20x as expensive as a decision. We want to minimize the number of these that we do, so following branches that have fewer fallthrough cases
          should be preferred. (In practice this doesn't impact things, since we won't call the macroexpander until we're 100% sure we have the right macro pattern.)
+      4. Identifier nodes have much higher information density than operator nodes, and identifier nodes never have children. For concreteness' sake, let's assume that there are 100
+         identifiers and 20 operators.
 
     It's possible to conclude a few things from these rules:
 
     | 1. It always makes sense to perform a comparison. If each possibility is equally likely, then odds are 1/20 that each case will be taken; so either (1) we partition the space (which is
          useful), or (2) we abandon the search with likelihood 19/20 (which is really useful).
-      2. 
+      2. We should perform comparisons in whichever order minimizes the expected number of future comparisons, under the assumption that each possibility is equally likely.
+
+    An alternative to the uniformity assumption is to actually go through the syntax tree up-front and count the number of occurrences of each possibility. This way we have an order-1
+    probability model to work with to better judge the accuracy of each decisional. The cost of constructing this model is 2n in the tree size; one factor of n for visits, the other factor of
+    n for the hashtable lookups involved in counting. (I'm deliberately being vague about the exact cost of these things, since it varies a lot depending on the runtime.)
+
+    In order for this to be justifiable it would have to then save an expected two operations per node. Considering the highly nonuniform occurence of Javascript operators, I'd say this is
+    easily possible.
+
+    Probabilistic modeling.
+    For simplicity's sake I don't want to dive down the context-ful rabbit hole yet. This probability model uses only two contexts: The node has children, or the node does not have children.
+    (This actually is an important distinction, since in Javascript only operators can have children.) So we end up with two probability check functions:
+
+    | P(node.data === 'whatever' | node has children)
+      P(node.data === 'whatever' | node has no children)
+
+    There are some optimizations that are possible when building these tables. One is that only the symbols mentioned in any of the macro patterns need to be counted; other ones can be added
+    to the total but otherwise ignored. The other, which follows from the first, is that we can do a preliminary symbol length check to avoid unnecessary string comparisons. (The hash()/has()
+    mechanism actually does this for us.)
 
     Tree weighting.
-    
-__99bb3daa5982afd8f181324c26e53cd3
+    Once we have an estimated cost function for a single level, we'll need to apply it recursively (and hopefully memoize the process so it isn't exponential-time). The idea is to, at each
+    point, make a decision that will minimize the total expected number of decisions and macroexpand calls after that. So, for example:
+
+    | ([] (let) (_))
+      ([] (where) (_))
+
+    The weight (i.e. expected number of decisions) of this list of patterns is 1/20 right off the bat, since we assume that each operator is equally likely and there are about 20 operators. We
+    do the initial comparison, and given that the tree root is [] we now have two possibilities. If we compare the [0] child, then there are no more comparisons to perform regardless of the
+    outcome. The probability of choosing 'let' is 1/100, and the same is true of 'where'; so we weight the tree as 20/100 for let + 20/100 for where, meaning that we have a total weight of
+    1/20 * 40/100 = 1/50.
+__00efdc12ac593606b1bab53b1b01f6ed
 meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
@@ -2784,7 +2813,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
 __20ed6e87cc561f32902fcb411de4d5da
-meta::sdoc('js::core/caterwaul.utilities', <<'__77f95679846090077ea1369581ad366e');
+meta::sdoc('js::core/caterwaul.utilities', <<'__2905a996784fe94ede2c3f5d2cf7774a');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
@@ -2839,12 +2868,13 @@ The Caterwaul standard library gives you an equivalent but much more refined for
   the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
   regardless of the length of the candidate.
 
-  The bad part is that you can't refer to an object called '_max_length' -- this will never be considered to be in the hash. I don't really have a problem with that, but it's worth being aware
-  of. Also, on IE browsers various properties won't exist (among them toString, hasOwnProperty, etc.). These aren't special in Javascript so it isn't a problem, but it's still unfortunate.
+  As of Caterwaul 0.7.0 the _max_length property has been replaced by a gensym. This basically guarantees uniqueness, so the various hacks associated with working around the existence of the
+  special _max_length key are no longer necessary.
 
-    annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o._max_length = max; return o},
-              has = function (o, p) {return p && ! (p.length > o._max_length) && p !== '_max_length' && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
-__77f95679846090077ea1369581ad366e
+   max_length_key = gensym(),
+    annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
+              has = function (o, p) {return p && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
+__2905a996784fe94ede2c3f5d2cf7774a
 meta::sdoc('js::minify', <<'__e78c26e425d25e97f16e017a4ae03cff');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
