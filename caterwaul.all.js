@@ -377,7 +377,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
          inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                         (this.r ? ' -> ' + this.r.inspect() : '')},
 
-//     Update for Caterwaul 0.7.0: Syntax nodes now use semi-stateful arrays for serialization. Hopefully this will make the process faster. (Testing in progress.)
+//     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
+//     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
        serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
                                     s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :

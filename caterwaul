@@ -2629,7 +2629,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __eed9ff7c2d7670bb3e9723d934f61083
-meta::sdoc('js::core/caterwaul.tree', <<'__20ed6e87cc561f32902fcb411de4d5da');
+meta::sdoc('js::core/caterwaul.tree', <<'__a5f165d6d53852292358b17ab005ca83');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -2879,7 +2879,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
          inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                         (this.r ? ' -> ' + this.r.inspect() : '')},
 
-    Update for Caterwaul 0.7.0: Syntax nodes now use semi-stateful arrays for serialization. Hopefully this will make the process faster. (Testing in progress.)
+    An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
+    benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
        serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
                                     s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
@@ -2915,7 +2916,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
-__20ed6e87cc561f32902fcb411de4d5da
+__a5f165d6d53852292358b17ab005ca83
 meta::sdoc('js::core/caterwaul.utilities', <<'__2905a996784fe94ede2c3f5d2cf7774a');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
