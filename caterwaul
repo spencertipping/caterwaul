@@ -1980,7 +1980,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__05f4588e23521a8b1ef031ec4fd6f589');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__a44b2850a7ddfbb95e00fe2a5fdce019');
 JIT macroexpander.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
 pattern trees this becomes too slow for regular use. This macroexpander uses just-in-time compilation to optimize lookups against the macro table, eliminating most of the checks that would
@@ -2109,17 +2109,14 @@ have failed.
     only relevant question is how much effort is required to do this. Luckily this is fairly straightforward to figure out. We just need to make some simplifying assumptions.
 
     | 1. Comparison on a node is about as expensive as visiting the node in the first place.
-      2. Each possibility in a comparison is equally likely. (I'm actually not assuming this in the final model; see below.)
-      3. Calling a macroexpand function is about 20x as expensive as a decision. We want to minimize the number of these that we do, so following branches that have fewer fallthrough cases
-         should be preferred. (In practice this doesn't impact things, since we won't call the macroexpander until we're 100% sure we have the right macro pattern.)
-      4. Identifier nodes have much higher information density than operator nodes, and identifier nodes never have children. For concreteness' sake, let's assume that there are 100
-         identifiers and 20 operators.
+      2. Identifier nodes have much higher information density than operator nodes, and identifier nodes never have children. For concreteness' sake, let's assume that there are 100
+         identifiers and 20 operators. (See 'Probabilistic modeling' for details about how a more realistic model is constructed.)
 
     It's possible to conclude a few things from these rules:
 
     | 1. It always makes sense to perform a comparison. If each possibility is equally likely, then odds are 1/20 that each case will be taken; so either (1) we partition the space (which is
          useful), or (2) we abandon the search with likelihood 19/20 (which is really useful).
-      2. We should perform comparisons in whichever order minimizes the expected number of future comparisons, under the assumption that each possibility is equally likely.
+      2. We should perform comparisons in whichever order minimizes the expected number of future comparisons.
 
     An alternative to the uniformity assumption is to actually go through the syntax tree up-front and count the number of occurrences of each possibility. This way we have an order-1
     probability model to work with to better judge the accuracy of each decisional. The cost of constructing this model is 2n in the tree size; one factor of n for visits, the other factor of
@@ -2164,15 +2161,66 @@ have failed.
     | ([] (let) (_))
       ([] (where) (_))
 
-    The weight (i.e. expected number of decisions) of this list of patterns is 1/20 right off the bat, since we assume that each operator is equally likely and there are about 20 operators. We
-    do the initial comparison, and given that the tree root is [] we now have two possibilities. If we compare the [0] child, then there are no more comparisons to perform regardless of the
-    outcome. The probability of choosing 'let' is 1/100, and the same is true of 'where'; so we weight the tree as 20/100 for let + 20/100 for where, meaning that we have a total weight of
-    1/20 * 40/100 = 1/50. (Note that the probabilities will actually be different; I'm just using 1/20 as an approximation.)
+    The tree's weight is calculated like this. First, both start with a common prefix of [], which has probability p1. Given that the tree matches this, the [0] node will be 'let' with
+    probability p2 and 'where' with probability p3. Each check involves exactly one decision, so the total weight is d1 + p1 * d2. (Remember that we're counting the expected number of
+    decisions, so we add one for each comparison and ignore cases for which no further decisions need to be made.) A more interesting case arises here:
 
-    An interesting point comes up with respect to verification. Once we have narrowed the list down to just one pattern, we have to then make some additional checks to verify that the pattern
-    actually matches. (Mainly the arity checks I think.) This is also considered in the weighting. The reason is that it indicates something about the likelihood of a particular macro matching
-    a chunk of syntax. Macros with more complex patterns are statistically less likely to match. 
-__05f4588e23521a8b1ef031ec4fd6f589
+    | ([] (let) (= (_) (_)))
+      ([] (let) (== (_) (_)))
+      ([] (where) (_))
+
+    The weights of these trees are different. If p1 = p('[]'), p2 = p('let'), p3 = p('where'), p4 = p('='), and p5 = p('=='), then the total weight of deciding the set totals up to d1 + p1 *
+    (d2 + p2 * d3). Here, d1 is the decision cost of ascertaining that the tree data is [], d2 is the decision cost of identifying 'let' vs 'where', and d3 is the cost of identifying '=' vs
+    '=='.
+
+    Here's how the algorithm gets applied. Suppose we want have these macro patterns:
+
+    | ([] (let) (= (_) (_)))
+      ([] (let) (== (_) (_)))
+      ([] (where) (= (_) (_)))
+      ([] (where) (in (_) (_)))
+
+    And we want to find the optimal search strategy. We first accept a decision on the top node, producing a weight of d1. Then we consider the weight of the left and right subtrees
+    independently. Deciding the left subtree yields two sets:
+
+    | (= (_) (_)) and (== (_) (_))   with probability p('let')
+      (= (_) (_)) and (in (_) (_))   with probability p('where')
+
+    We then compute the weight of each of these sets and multiply by the probabilities:
+
+    | d2 * p('let')
+      d3 * p('where')
+
+    This sum then is the weight of taking the [0] subtree. We then do the same process for the [1] subtree:
+
+    | (let) and (where)              with probability p('=')
+      (let)                          with probability p('==')
+      (where)                        with probability p('in')
+
+    Assigning decisional costs:
+
+    | d2 * p('=')
+      d3 * p('==')
+      d4 * p('in')
+
+    And sum to get the total weight of taking the [1] subtree. Note that d3 and d4 are nonzero! This is because we have to verify them prior to knowing whether to accept the pattern or return
+    false. It is easily possible that taking the [1] subtree is therefore more expensive than taking the [0] subtree, since switch() can be assumed to be slightly sublinear in the number of
+    cases. Given these weights we take the [0] subtree. It has a cheaper initial decision and a cheaper progression from there.
+
+    Condition weighting.
+    Conditional structures need to be sorted to minimize the expected number of comparisons. For example, suppose P(foo) is 0.3 and P(bar) is 0.1. Then the switch() between them should list
+    the 'foo' case before the 'bar' case. (Note that length, which bounds the cost of a single string comparison, is irrelevant; the number of characters we compare if the strings don't match
+    can be assumed to be very small.) This provides a nice model for deciding how expensive a decision is too. For example:
+
+    | switch (x) {
+        case 'foo': // ...              <- this happens with probability p('foo')
+        case 'bar': // ...              <- this happens with probability (1 - p('foo')) * p('bar')
+        case 'bif': // ...              <- this happens with probability (1 - p('foo')) * (1 - p('bar')) * p('bif')
+      }
+
+    The cost of this decision isn't 3. It's 1 * p('foo') + 2 * (1-p('foo'))*p('bar') + 3 * (1-p('foo'))*(1-p('bar'))*p('bif'). This has some interesting consequences, particularly that it is
+    sometimes much cheaper to take a long decision than it is to take a short one. If the probabilities are exceptionally skewed then most decisional processes will be short.
+__a44b2850a7ddfbb95e00fe2a5fdce019
 meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
