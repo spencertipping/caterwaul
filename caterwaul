@@ -217,7 +217,6 @@ meta::alias('e', 'edit sdoc::js::core/caterwaul');
 meta::alias('eb', 'edit sdoc::js::core/caterwaul.behaviors');
 meta::alias('ec', 'edit sdoc::js::core/caterwaul.compiler');
 meta::alias('ef', 'edit sdoc::js::core/caterwaul.configuration');
-meta::alias('ei', 'edit sdoc::js::core/caterwaul.introduction');
 meta::alias('em', 'edit sdoc::js::core/caterwaul.macroexpander');
 meta::alias('emj', 'edit sdoc::js::core/caterwaul.macroexpander.jit');
 meta::alias('emn', 'edit sdoc::js::core/caterwaul.macroexpander.naive');
@@ -1981,7 +1980,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__00efdc12ac593606b1bab53b1b01f6ed');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__05f4588e23521a8b1ef031ec4fd6f589');
 JIT macroexpander.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
 pattern trees this becomes too slow for regular use. This macroexpander uses just-in-time compilation to optimize lookups against the macro table, eliminating most of the checks that would
@@ -2140,6 +2139,24 @@ have failed.
     to the total but otherwise ignored. The other, which follows from the first, is that we can do a preliminary symbol length check to avoid unnecessary string comparisons. (The hash()/has()
     mechanism actually does this for us.)
 
+      construct_symbol_table = function (macro_patterns) {
+        var symbols = {}, max_length = 0;
+        for (var i = 0, l = macro_patterns.length; i < l; ++i) node_patterns[i].reach(function (node) {var d = node.data; symbols[d] = true; d.length > max_length && (max_length = d.length)});
+        symbols[max_length_gensym] = max_length;
+        return symbols},
+
+      construct_probability_models = function (macro_patterns, tree) {
+        var symbols = construct_symbol_table(macro_patterns), l0 = {}, l0_total = 0, ln = {}, ln_total = 0;
+        tree.reach(function (node) {var d = node.data; if (has(symbols, d)) if (node.length) {++ln_total; ln[d] = (ln[d] || 0) + 1} else {++l0_total; l0[d] = (l0[d] || 0) + 1}});
+        for (var k in l0) l0[k] /= l0_total;
+        for (var k in ln) ln[k] /= ln_total;
+        return {p0: l0, pn: ln}},
+
+    Note that I'm not checking for hasOwnProperty in the division loops. The reason is that IE has a bug that makes hasOwnProperty return false for members of the prototype. This means that
+    for things like toString, hasOwnProperty, etc. we would fail to divide, yielding insane (> 1) probabilities for these attributes. The alternative case is to divide some functions by
+    numbers, which results in NaN being assigned. (This happens in the pathological case that someone has extended Object.prototype.) Even this isn't that bad, though, because (1) we will
+    never access those properties anyway, and (2) the objects with NaN properties don't escape for the user to access either.
+
     Tree weighting.
     Once we have an estimated cost function for a single level, we'll need to apply it recursively (and hopefully memoize the process so it isn't exponential-time). The idea is to, at each
     point, make a decision that will minimize the total expected number of decisions and macroexpand calls after that. So, for example:
@@ -2150,8 +2167,12 @@ have failed.
     The weight (i.e. expected number of decisions) of this list of patterns is 1/20 right off the bat, since we assume that each operator is equally likely and there are about 20 operators. We
     do the initial comparison, and given that the tree root is [] we now have two possibilities. If we compare the [0] child, then there are no more comparisons to perform regardless of the
     outcome. The probability of choosing 'let' is 1/100, and the same is true of 'where'; so we weight the tree as 20/100 for let + 20/100 for where, meaning that we have a total weight of
-    1/20 * 40/100 = 1/50.
-__00efdc12ac593606b1bab53b1b01f6ed
+    1/20 * 40/100 = 1/50. (Note that the probabilities will actually be different; I'm just using 1/20 as an approximation.)
+
+    An interesting point comes up with respect to verification. Once we have narrowed the list down to just one pattern, we have to then make some additional checks to verify that the pattern
+    actually matches. (Mainly the arity checks I think.) This is also considered in the weighting. The reason is that it indicates something about the likelihood of a particular macro matching
+    a chunk of syntax. Macros with more complex patterns are statistically less likely to match. 
+__05f4588e23521a8b1ef031ec4fd6f589
 meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
