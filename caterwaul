@@ -1980,7 +1980,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__a44b2850a7ddfbb95e00fe2a5fdce019');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__1b515f661c34bf6701896cd67b79b162');
 JIT macroexpander.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
 pattern trees this becomes too slow for regular use. This macroexpander uses just-in-time compilation to optimize lookups against the macro table, eliminating most of the checks that would
@@ -2207,7 +2207,29 @@ have failed.
     false. It is easily possible that taking the [1] subtree is therefore more expensive than taking the [0] subtree, since switch() can be assumed to be slightly sublinear in the number of
     cases. Given these weights we take the [0] subtree. It has a cheaper initial decision and a cheaper progression from there.
 
-    Condition weighting.
+      treeset_weight = function (trees, weight_of, p0, pn) {
+        },
+
+    Tree partitioning.
+    This is an awkward problem. In the case above, each tree had two sub-trees, which made the partitioning problem straightforward. However, sometimes trees have three sub-trees. This means
+    that after we've decided one of those three we still have two left over. Even though this is arguably a pathological case, it occurs every now and then in regular Javascript. For example:
+
+    | (? (a) (=  (a) (_)) (=  (b) (_)))
+      (? (a) (== (c) (_)) (== (b) (_)))
+      (? (b) (=  (a) (_)) (== (a) (_)))
+
+    Deciding subtree [0] produces two partitions:
+
+    | (null (= (a) (_)) (= (b) (_))) and (null (== (c) (_)) (== (b) (_)))       with probability p('a')
+      (null (= (a) (_)) (== (a) (_)))                                           with probability p('b')
+
+    At this point we have two different decisional processes, as usual. The second case just requires verification.
+
+      maximum_subtree_index = function (trees)          {for (var r = 0,  i = 0, l = trees.length, li;   i < l; ++i) li = trees[i].data.length, li > r && (r = li); return r},
+      subtree_partitions    = function (trees, subtree) {for (var r = {}, i = 0, l = trees.length, d, t; i < l; ++i) (d = (t = trees[i])[subtree]) ? (d = d.data) : (d = ''),
+                                                                                                                     (r[d] || (r[d] = [])).push(t); return r},
+
+    Decision weighting.
     Conditional structures need to be sorted to minimize the expected number of comparisons. For example, suppose P(foo) is 0.3 and P(bar) is 0.1. Then the switch() between them should list
     the 'foo' case before the 'bar' case. (Note that length, which bounds the cost of a single string comparison, is irrelevant; the number of characters we compare if the strings don't match
     can be assumed to be very small.) This provides a nice model for deciding how expensive a decision is too. For example:
@@ -2220,7 +2242,19 @@ have failed.
 
     The cost of this decision isn't 3. It's 1 * p('foo') + 2 * (1-p('foo'))*p('bar') + 3 * (1-p('foo'))*(1-p('bar'))*p('bif'). This has some interesting consequences, particularly that it is
     sometimes much cheaper to take a long decision than it is to take a short one. If the probabilities are exceptionally skewed then most decisional processes will be short.
-__a44b2850a7ddfbb95e00fe2a5fdce019
+
+    The decision_weight function takes an array of choice trees, a function to compute the weight (passed in first-class to permit memoization), the table of order-0 probabilities, and the
+    table of order-N probabilities. (The latter two are computed by construct_probability_models above.) There's an accompanying constant, decision_weight_constant, that exists to approximate
+    the overhead involved in making a decision in the first place. This includes generating/processing the switch() statement and doing the length check.
+
+      optimal_decision_ordering = function (partitions, weight_of, p0, pn) {
+
+      decision_weight_constant = 10,
+      decision_weight = function (partitions, weight_of, p0, pn) {
+        var p = function (x) {return x.length ? pn[p.data] : p0[p.data]}, sorted = Array.prototype.slice.call(choices).sort(function (x, y) {return p(y) - p(x)}), np = 1, e = 0;
+        for (var i = 0, l = sorted.length, si, pi; i < l; ++i) si = sorted[i], pi = p(si), e += np * pi * weight_of(si), np *= (1 - pi);
+        return decision_weight_constant + e}
+__1b515f661c34bf6701896cd67b79b162
 meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
