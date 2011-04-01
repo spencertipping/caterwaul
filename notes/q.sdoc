@@ -1,0 +1,51 @@
+Bug list.
+Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
+
+  Auto-parens for syntax nodes [won't fix].
+  It's possible to write this:
+
+  | qs[x + y].replace({x: qs[z, t], y: qs[f, g]})
+
+  And end up with an expression whose semantics aren't reflected by the syntax tree (due to operator precedence). This is unfortunate. However, it can also be useful. Anytime there's ambiguity
+  about this sort of thing you should wrap the expression in parens (which is sometimes required even when no particular ambiguity exists, e.g. at statement-level with function expressions in
+  Firefox).
+
+  Fix matching against flattened nodes [fixed in 0.5].
+  This is a reasonable bug. Nodes should be able to "un-flatten" back down into nested form, following their natural associativity. This should be done within macros to make sure that further
+  macro patterns don't spuriously reject them.
+
+  V8-based runtimes sometimes fail jQuery test [fixed in 0.5].
+  This is probably a V8 bug of some sort, though I'll have to isolate a suitable test case to submit it. Fortunately it only seems to have an effect when transforming jQuery (and it produces
+  the same output), so maybe there is some nondeterminism that I need to address.
+
+  Update: I think this was a product of using eval()-based functions. It's still a V8 bug, but at least there's a workaround.
+
+  Remove uses of eval() inside Caterwaul [fixed in 0.5].
+  This is actually important for a couple of reasons. First, it's slow to use eval. Better is to avoid it by writing functions out longhand (much as I don't particularly like doing so).
+  Second, it may be causing V8 some trouble. I'm not sure; will have to test this.
+
+  Stops matching after an expansion rejection [fixed in 0.5.1].
+  If you have two macros whose patterns are identical, only the second will ever be used. This wouldn't be such a problem, except that the first won't be used even if the second declares a
+  macroexpansion failure by returning false.
+
+  Fails in IE7 [fixed in 0.5.4].
+  Something about constructors and how the sequence library implements inheritance from arrays. I'm not married to the idea of implementing proper inheritance here; it comes with enough
+  problems.
+
+Important features.
+Caterwaul needs an offline precompiler. This is necessary mostly for performance reasons; it takes 7 seconds to load in GJS on a netbook, which is unacceptably slow. I should probably also
+profile the code to make sure the delays aren't caused by something else, for instance macroexpansion.
+
+Also, it would be cool to have a tracing compiler that can adaptively optimize. This could be really effective.
+
+Future modules.
+
+| 1. Recon module (but this has been in the works for ages).
+  2. Parser module. A good set of memoized parser combinators would benefit greatly from macro support. [done]
+
+Ideas.
+Unimportant things that might help at some point in the future.
+
+  Hashed syntax nodes.
+  This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
+  macroexpanding). The challenge is incorporating wildcards.

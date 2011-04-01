@@ -1,0 +1,88 @@
+Optimization constraints for macroexpansion.
+This is a challenging problem. It looks like the total complexity of loading all modules is close to 7000, which isn't too bad by itself. However, there are more than 100 macros during some of
+these configurations, and that increases the amount of work by a factor of 100.
+
+It isn't possible to achieve sublinear macroexpansion time in the number of syntax nodes, but I think it is possible to achieve it in the number of macros. I'm not quite sure how this should
+work, but probably some kind of indexing strategy is in order.
+
+  Masked indexing.
+  This is probably the most obvious way to solve the problem. The idea is that macroexpand() first builds an index of nodes, then consults the index to determine which macros should be
+  invoked. This should be roughly O(n) in the size of the tree. The implementation is made challenging by the fact that syntax node patterns aren't necessarily easy to index. The only way I
+  can think of to go about this sensibly is to compile some kind of mixed mask from all of the macro patterns, and then hash each syntax node based on that mask.
+
+  Another possibility is to arrange macro patterns by common factors. Maybe Caterwaul's macroexpander knows how to do things like identify structurally identical trees and dispatch on some
+  hash of the data, or some such. This involves some fairly advanced decision-making on Caterwaul's part, but I'm fairly confident that a closed-form optimization strategy exists.
+
+  Problem statement.
+  Formally speaking, the problem is to minimize the number of pattern-node match operations. Scanning through all of the nodes up-front is a definite possibility, though each node visit is
+  somewhat expensive. Match operations are worse, however, since they may have to dig down several layers before rejecting a match, and in the meantime they will have consed up and
+  concatenated many arrays to build the partial match data.
+
+Potential algorithms for indexing.
+There are a lot of commonalities among patterns used for macros, and deriving the structure may be prohibitive. However, I'd like to try anyway. So to state it more clearly, there are a few
+possibilities:
+
+| 1. We use an algorithm that is invariant on its input. This is optimal if no structure can be derived from syntax patterns, which obviously isn't the case.
+  2. We use an algorithm that has heuristics about macros. This may work, but it breaks down for non-Javascript use cases (and it would be cool if Caterwaul were general-purpose).
+  3. We use an adaptive optimizer to find the best indexing strategy. We can either predict it or test it empirically.
+
+I'm axing (1) right off the bat just because it's no fun. This leaves (2) and (3). Let's see where (3) takes us.
+
+  Adaptive optimization.
+  In this case we know two things ahead of time. First, we know the list of macros that we'll need to apply to the syntax tree, and second we have a fixed number of scans over the tree
+  (ideally just one) to compute whatever we want to about them. For the sake of comparison, the number to beat is 750000. This means that we can do up to 100 operations per syntax node and
+  still beat the naive solution. Ideally we do better, but that's a high limit. (Hopefully whatever adaptation needs to happen will happen on the macro end, not the syntax node end -- there
+  will be at most around 1000 macros, and that would be a pathological case.)
+
+  Pattern hashing.
+  It's fairly straightforward to identify high-information hash regions within the pattern space. All we have to do then is to build a table and do a very fast lookup on each node. However,
+  what happens when we have two different schemas? For example:
+
+  | ([] (let _ _))
+    ([] (foo _ _))
+    ([] (bar _ _))
+    ([] (bif _ _))
+
+  This is the first schema, where the path [1].data provides a perfect hash (reduces each tree to at most one match, and from there recursive descent is the only option). However, suppose we
+  also have these macros:
+
+  | ([] (let bif _))
+    ([] (let baz _))
+    ([] (let bok _))
+
+  Now the first scheme is perfect only for a subset of inputs. Because of the overlap (which there is in the real world too), we need a multi-stage algorithm to handle failover scenarios like
+  this one.
+
+  One important idea here is that we want to generalize to a /family/ of macros, not construct a perfect hash. It's acceptable to have to try a couple of different things; we just need to
+  bound the number. Ideally we do the math to find the optimum; i.e. generate more hashes until the overhead of hashing each node outweighs the overhead of each test in a subset of cases.
+  (There may not be such a moment, for example if two macros have the same pattern.)
+
+  Along these lines, it's worth coming up with some simplifications. Pattern matching is transitive; if A matches pattern B and B matches pattern C, then A matches pattern C. This means that
+  we can remove earlier macros that are matched by later macro-patterns. (Here the earlier macro is B, the later one is A, and C is the syntax tree we'll be matching.) This should simplify the
+  hashing by removing all duplicate cases, and is O(n^2) in the number of macros. (In fact we can treat macro patterns as some kind of fully-ordered space to get O(n log n).)
+
+  Syntactic heterogeneity.
+  How heterogeneous is the syntax? Half of the nodes must be operators or other punctuation, and this is chosen out of a set of 20. The other half must be identifiers of some sort. There's
+  probably a curve that dictates how likely each identifier is to be seen elsewhere, but I'm also guessing that the pattern is fractal; that is, each subtree has about the same amount of
+  information density. If this is the case then it's reasonable to use this as a limit for how much information can be derived.
+
+  Interrupting thought: Actually, it doesn't matter how much information is present in the syntax tree. The reason is that the macro patterns will end up dictating that; all we need to do is
+  distinguish among them, and we're given at least that much information.
+
+  Constraints.
+  Because of terrible string-concat performance from some Javascript runtimes, it's important not to allocate new strings during this hashing process. So any hashing that's done will either
+  (1) have to be on a single field, or (2) have to use numbers rather than strings. (2) is probably a more robust solution.
+
+  Interning strings -> integers.
+  This has some cost initially, and depending on the JS runtime it may or may not make sense. The idea is to unify symbols into hashable integers rather than leaving them as strings. It has
+  the advantage of using little extra space and allowing strings to be used in low-overhead arithmetic ways (by their bijection onto numbers). Because we don't want to keep the global index
+  table around forever, it's important to use only local indexes. This has important consequences, perhaps most significantly that we'll have to regenerate the index for each macroexpansion
+  cycle. I don't consider this too much of a problem. It's nice to have optimizations not pervade the overall system design too much.
+
+  Node ordering (irrelevant -- see below).
+  If we want to skip the post-indexing traversal step altogether (which sounds attractive to me), then we need to know the right order to expand stuff. It goes outside-in and left-to-right, so
+  a pre-order tree is required. The rule will be that as we're constructing the indexes we also maintain a counter that gets incremented for each node. (Conveniently, the depth-first traversal
+  built in to nodes does what we need here.) Then each list of nodes to be transformed will be sorted by this counter. While the asymptotic complexity is worse than a regular depth-first
+  search, it should be much faster in practice.
+
+  Interrupting thought: Why not just transform the nodes as soon as we hit them? No need to build these lists at all. Therefore node ordering is irrelevant to the optimization problem.

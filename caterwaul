@@ -866,6 +866,10 @@ file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
 # Minify all of the generated files, but not those which contain preprocessor directives.
 file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, <*.js>, <modules/*.js>;
 __4dbb82308b841f12d2bcd62fce32d468
+meta::hook('after-render::notes', <<'__38e03db824190f9ed213d59b5e86e87e');
+# Render each note into an SDoc file.
+file::write('notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
+__38e03db824190f9ed213d59b5e86e87e
 meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
@@ -1367,10 +1371,6 @@ Unimportant things that might help at some point in the future.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
 __48c65f082344a2efd22342ecbffcd69b
-meta::note('recon', <<'__c42c1079626dd15cf75d78c3b01ba77e');
-Recon module notes.
-The recon module is about more than just tracing the execution of code. It's also about providing an interface to interactively step through code.
-__c42c1079626dd15cf75d78c3b01ba77e
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
@@ -1981,7 +1981,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__b32e97750b14c04943d1f1b968c909dd');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__99bb3daa5982afd8f181324c26e53cd3');
 JIT macroexpander.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
 pattern trees this becomes too slow for regular use. This macroexpander uses just-in-time compilation to optimize lookups against the macro table, eliminating most of the checks that would
@@ -2086,11 +2086,18 @@ have failed.
     ([] (_) (_))
     ([] (where) (_))
 
-  They all start with the same thing, so we drop the initial data and build conditionals on [0]. Here's the condition tree after partitioning (arity checks and intermediate variables elided):
+  Note that unfortunately we can't remove the ([] (let) (_)) macro because the ([] (_) (_)) macro might reject the match for whatever reason. So despite the fact that technically the more
+  specific pattern is shadowed by a more general one we can't optimize that case.
 
-  | switch (t2.data) {case 'where': if (solution = macroexpander_for_where([t1[1]])) return solution}
-    if (solution = macroexpander_for_wildcard([t1[1]])) return solution;
-    switch (t2.data) {case 'let': if (solution = macroexpander_for_let([t1[1]])) return solution}
+  They all start with the same thing so we generate a quick-failure check and build conditionals on [0]. Here's the condition tree after partitioning (arity checks and intermediate variables
+  elided):
+
+  | switch (t1.data) {                  // Compare the initial data first; this gives us a quick failure case for non-matching nodes
+      case '[]':
+        switch (t2.data) {case 'where': if (solution = macroexpander_for_where([t1[1]])) return solution}
+        if (solution = macroexpander_for_wildcard([t1[1]])) return solution;
+        switch (t2.data) {case 'let': if (solution = macroexpander_for_let([t1[1]])) return solution}
+    }
 
   Pathological cases like this will sometimes happen, but most of the time macro patterns will be more sensible. In particular, most macros share forms in practice, which decreases the
   likelihood that anything bizarre like this will occur.
@@ -2101,7 +2108,21 @@ have failed.
     Computing estimated cost.
     Rather than introducing the variable of information-gained into the equation, I'm keeping it simple by assuming that we must reduce the search space down to a single item. Therefore the
     only relevant question is how much effort is required to do this. Luckily this is fairly straightforward to figure out. We just need to make some simplifying assumptions.
-__b32e97750b14c04943d1f1b968c909dd
+
+    | 1. Comparison on a node is about as expensive as visiting the node in the first place.
+      2. Each possibility in a comparison is equally likely. (This is blatantly false, but in the absence of better information it's the best I know how to do.)
+      3. Calling a macroexpand function is about 20x as expensive as a decision. We want to minimize the number of these that we do, so following branches that have fewer fallthrough cases
+         should be preferred. (In practice this doesn't impact things, since we won't call the macroexpander until we're 100% sure we have the right macro pattern.)
+
+    It's possible to conclude a few things from these rules:
+
+    | 1. It always makes sense to perform a comparison. If each possibility is equally likely, then odds are 1/20 that each case will be taken; so either (1) we partition the space (which is
+         useful), or (2) we abandon the search with likelihood 19/20 (which is really useful).
+      2. 
+
+    Tree weighting.
+    
+__99bb3daa5982afd8f181324c26e53cd3
 meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
