@@ -219,6 +219,7 @@ meta::alias('ec', 'edit sdoc::js::core/caterwaul.compiler');
 meta::alias('ef', 'edit sdoc::js::core/caterwaul.configuration');
 meta::alias('em', 'edit sdoc::js::core/caterwaul.macroexpander');
 meta::alias('emj', 'edit sdoc::js::core/caterwaul.macroexpander.jit');
+meta::alias('emjp', 'edit sdoc::js::core/caterwaul.macroexpander.jit-probabilistic');
 meta::alias('emn', 'edit sdoc::js::core/caterwaul.macroexpander.naive');
 meta::alias('ep', 'edit sdoc::js::core/caterwaul.parser');
 meta::alias('et', 'edit sdoc::js::core/caterwaul.tree');
@@ -1980,7 +1981,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__06129719b26928d6d96d65ae75e93ee9');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__396180afff6a686ec9dd397c6192354c');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -2027,12 +2028,8 @@ reason for this is interesting and possibly incorrect.
 
   It's important to realize that the problem isn't entirely solved by using naive greedy optimization, but I feel like it represents the assumptions better than a more advanced strategy would.
 
-  Note that in implementation we don't adjust the probabilities to be between 0 and 1. The reason for this is that we don't actually care about the values themselves, just their ordering. And
-  of course the ordering is the same whether or not we normalize the values, so we can save a step.
-
-  The likelihood of _ occurring in the source is infinity because _ matches anything. Therefore it contains no information. If the probabilities were normalized, this value would be 1.
-
-    var context_free_probability_model = function (tree) {var r = {}; tree.reach(function (node) {var d = node.data; r[d] = (r[d] || 0) + 1}); r._ = Infinity; return r},
+    var context_free_probability_model = function (tree) {var r = {}, count = 0; tree.reach(function (node) {var d = node.data; r[d] = (+r[d] || 0) + 1; ++count});
+                                                          for (var k in r) r[k] /= count; r._ = 1; return r},
 
   Heterogeneous tree forms.
   Most of the time heterogeneity doesn't matter. The reason for this is that there are few variadic nodes. However, they do sometimes come up. One case is 'return', which sometimes occurs
@@ -2084,7 +2081,7 @@ reason for this is interesting and possibly incorrect.
 
     resolve_tree_path = function (tree,  path) {for (var i = 0, l = path.length; i < l; ++i) if (! (tree = tree[path.charCodeAt(i)])) return tree; return tree},
     partition_treeset = function (trees, path) {for (var r = {}, i = 0, l = trees.length, t, ti; i < l; ++i)
-                                                  (t = resolve_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + (t = t.data)) : (t = ''), (r[t] || (r[t] = [])).push(ti);
+                                                    (t = resolve_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + (t = t.data)) : (t = ''), (r[t] || (r[t] = [])).push(ti);
                                                 return r},
 
   Pathfinder logic.
@@ -2093,25 +2090,53 @@ reason for this is interesting and possibly incorrect.
   minheap for good amortized performance, but I don't see this being much of a bottleneck so I'm being lazy and using a quadratic algorithm. (Won't be a problem unless you have huge macro
   patterns.)
 
+  The best_path_index logic is kind of interesting. Sometimes there isn't a best path because each path has probability one. This means that there isn't a question to be asked, so further
+  partitioning would be unproductive. When this happens we need to run through the pattern list, identify which macro (or set of macros) is fully specified, and split the macro-space around
+  these. This situation comes up when you have overlapping macro definitions; for example:
+
+  | (+ (a) (b)), (+ (_) (b)), and (+ (a) (b))
+
+  If they occurred in this order then we'd need to try the second (+ (a) (b)) first, then (+ (_) (b)), and finally the first (+ (a) (b)). Because the middle macro is less specific than the
+  others, partitioning on the [0] subtree tells us nothing. best_path_index will know to ignore this because the probability of _ is 1, which means that the other path should be taken. If all
+  paths have probability 1, then best_path_index returns -1. This tells us that no path is available until we remove one or more macros from the search space.
+
   For optimization's sake the hash of visited paths maps each path to the arity of the tree that it points to. This makes it very easy to generate adjacent paths without doing a whole bunch of
   path resolution. available_paths() returns an array of paths, each encoded as a string, and in no particular order. Note that this isn't well-defined for nodes that we haven't visited, since
   sometimes nodes that share a path will have different arities. This gets resolved by partitioning, at which point the treeset is split into uniform-arity subsets.
 
-    available_paths  = function (visited)             {var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
-                                                                          visited[p = k + String.fromCharCode(i)] || result.push(p); return result},
+  This splitting is done by visit_path, which first partitions the tree-space along the path, and then returns new visited[] hashes along with the partitions. The visited[] hash ends up being
+  split because different partitions will have different traversal orders. In practice this means that we copy visited[] into several new hashes. The other reason we need to split visited[] is
+  that the arity of the path may be different per partition. So the result of visit_path looks like this:
 
-    path_probability = function (path,  trees, model) {for (var total = 0, uniques = {}, i = 0, l = trees.length; i < l; ++i) uniques[resolve_tree_path(trees[i], path).data] = true;
-                                                       for (var k in uniques) total += model[k] || 0; return total},
+  | {'aritydata': {visited: {new_visited_hash}, trees: [...]},
+     'aritydata': ...}
 
-    best_path        = function (paths, trees, model) {for (var min = Infinity, mi = 0, i = 0, l = paths.length, p; i < l; ++i)
-                                                         if ((p = path_probability(paths[i], trees, model)) < min) min = p, mi = i; return mi}
+    available_paths  = function (visited)              {var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
+                                                                                       visited[p = k + String.fromCharCode(i)] || result.push(p); return result},
+
+    path_probability = function (path,  trees, model)  {for (var total = 0, uniques = {}, i = 0, l = trees.length; i < l; ++i) uniques[resolve_tree_path(trees[i], path).data] = true;
+                                                        for (var k in uniques) total += model[k] || 0; return total},
+
+    best_path_index  = function (paths, trees, model)  {for (var min = 1, mi = -1, i = 0, l = paths.length, p; i < l; ++i)
+                                                         if ((p = path_probability(paths[i], trees, model)) < min) min = p, mi = i; return mi},
+
+    visit_path       = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
+                                                        for (var k in partitions) if (partitions.hasOwnProperty(k))
+                                                            partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, partitions[k][0].length))};
+                                                        return partitions},
 
   Code generation.
-  This is the last step and it's where the algorithm finally comes together. Two big things are going on here. One is the traversal process, which combines available_paths, best_path, and
-  probability modeling into one coherent process that builds the piecewise traversal order. The other is the code generation process, which conses up a code tree according to the treeset
+  This is the last step and it's where the algorithm finally comes together. Two big things are going on here. One is the traversal process, which combines available_paths, best_path_index,
+  and probability modeling into one coherent process that builds the piecewise traversal order. The other is the code generation process, which conses up a code tree according to the treeset
   partitioning that guides the traversal. These two processes happen in parallel.
 
   The original JIT design goes over a lot of the code generation, but I'm duplicating it here for clarity.
+
+    Function body.
+    This is largely uninteresting, except that it provides the base context for path dereferencing (see 'Variable allocation' below).
+
+      pattern_match_function_template = parse('function (t) {_body}'),
+      empty_variable_mapping_table    = function () {return {'': 't'}},
 
     Partition encoding.
     Each time we partition the tree set, we generate a switch() statement. The switch operates both on arity and on the data, just like the partitions would suggest. (However these two things
@@ -2134,10 +2159,47 @@ reason for this is interesting and possibly incorrect.
 
     No 'break' statements are emitted because each branch is guaranteed to terminate with a 'return'. (If 'return false' is reached, it means that the macro didn't match.)
 
+      partition_template        = parse('switch (_value) {_cases}; return false'),
+      partition_branch_template = parse('case _value: _statement'),
+
+    Variable allocation.
+    Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
+    out of the pattern match. A table keeps track of path -> variable name mappings. The empty path always maps to 't', which is the input tree.
+
+      incremental_path_template = parse('var _temp = _base[_index]; if (! _temp) return false'),
+
+    Incremental path references can be generated anytime we have a variable that is one dereference away from the given path. generate_incremental_path_reference does two things. First, it
+    creates a unique temporary name and stashes it into the path -> variable mapping, and then it returns a syntax tree that uses that unique name and existing entries in the path -> variable
+    mapping. The path's index is hard-coded. Note that if the path isn't properly adjacent you'll end up with an array instead of a syntax tree, and things will go downhill quickly from there.
+
+      generate_incremental_path_reference = function (path_variable_mapping, path) {
+                                              return incremental_path_template.replace({_temp: path_variable_mapping[path] = 't' + genint(), _index: '' + path.charCodeAt(path.length - 1),
+                                                                                        _base: path_variable_mapping[path.substr(0, path.length - 1)]})},
+
     Macroexpander invocation encoding.
     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
-    made. (This is actually one of the trickier points of this implementation.)
-__06129719b26928d6d96d65ae75e93ee9
+    made. (This is actually one of the trickier points of this implementation.) Detecting this isn't too bad though. Here's how it works.
+
+    At some point during the partitioning process we'll hit a point where there are no more available paths. The signal for this is that best_path_index will return -1, meaning that any
+    question we ask about the macros at this point will tell us nothing (see above for a more complete discussion). When we hit a point like this we'll have to go through the macro list one by
+    one to identify which one(s) are fully specified. This is actually not a terribly time-consuming process, as it's a matter of counting up the number of non-wildcard nodes and comparing
+    that with the number of visited paths.
+
+      non_wildcard_node_count = function (tree)    {var r = 0; tree.reach(function (node) {r += node.data !== '_'});  return r},
+      visited_path_count      = function (visited) {var r = 0; for (var k in visited) r += visited.hasOwnProperty(k); return r},
+
+    Invocations of the macroexpander should be fast, so there's some kind of interesting logic to quickly match wildcards with a minimum of array consing. This optimization requires a
+    simplifying assumption that all _ nodes are leaf nodes, but this is generally true. (It's possible to build macro patterns that don't have this property, but they won't behave properly.)
+    The idea is that once we have a fully-specified macro pattern we can simply go through each visited path, grab the direct children of each node, and detect wildcards. We then encode these
+    wildcard paths as hard-coded offsets from the tree variables. So, for example:
+
+    | (+ (/ (_) (b)) (* (a) (_)))
+      visited: [0], [0][1], [1], [1][0]
+      children: (_), (b), (a), (_)
+      parameters: [paths[0][0], paths[1][1]]
+
+    This requires a lexicographic sort of the paths to make sure the tree is traversed from left to right.
+__396180afff6a686ec9dd397c6192354c
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
