@@ -47,7 +47,9 @@
 //   Note that in implementation we don't adjust the probabilities to be between 0 and 1. The reason for this is that we don't actually care about the values themselves, just their ordering. And
 //   of course the ordering is the same whether or not we normalize the values, so we can save a step.
 
-    var context_free_probability_model = function (tree) {var result = {}; tree.reach(function (node) {var d = node.data; result[d] = (result[d] || 0) + 1}); return result},
+//   The likelihood of _ occurring in the source is infinity because _ matches anything. Therefore it contains no information. If the probabilities were normalized, this value would be 1.
+
+    var context_free_probability_model = function (tree) {var r = {}; tree.reach(function (node) {var d = node.data; r[d] = (r[d] || 0) + 1}); r._ = Infinity; return r},
 
 //   Heterogeneous tree forms.
 //   Most of the time heterogeneity doesn't matter. The reason for this is that there are few variadic nodes. However, they do sometimes come up. One case is 'return', which sometimes occurs
@@ -60,7 +62,8 @@
 //   extra bailout condition. So comparing the 'return' will eliminate one possibility or the other, since the length check will fail for one of them. So we have a nice invariant: All trees under
 //   consideration will have the same shape.
 
-//   This check isn't reflected in the traversal path construction below, but it is generated in the final pattern-matching code.
+//   This check isn't reflected in the traversal path construction below, but it is generated in the final pattern-matching code. It's also generated in the intermediate treeset object
+//   representation.
 
 //   Traversal path.
 //   The pattern matcher uses both depth-first and breadth-first traversal of the pattern space. The idea is that each motion through the tree is fairly expensive, so we do a comparison at each
@@ -87,11 +90,68 @@
 //   and from the root point. This in turn requires a logical path representation that can be used to both partition trees, and to later generate code to do the same thing. (An interesting
 //   question is why we wouldn't use the JIT to do this for us. It would be a cool solution, but I think it would also be very slow to independently compile that many functions.)
 
-//   For simplicity's sake I'm using arrays of numbers to represent paths. The empty array indicates the root node.
+//   Paths are represented as strings, each of whose characters' charCodes is an index into a subtree. The empty string refers to the root. I'm encoding it this way so that paths can be used as
+//   hash keys, which makes it very fast to determine which paths have already been looked up.
 
-    resolve_path      = function (tree,  path) {for (var i = 0, l = path.length; i < l; ++i) if (! (tree = tree[path[i]])) return tree; return tree},
-    partition_treeset = function (trees, path) {for (var r = {}, i = 0, l = trees.length, t, ti; i < l; ++i) (t = resolve_path(ti = trees[i], path)) ? (t = t.data) : (t = ''),
-                                                                                                             (r[t] || (r[t] = [])).push(ti); return r},
+//   Treeset partitions are returned as objects that map the arity and data to an array of trees. The arity is encoded as a single character whose charCode is the actual arity. So, for example,
+//   partition_treeset() might return this object:
 
-//     
+//   | {'\002+': [(+ (x) (y)), (+ (x) (z))],
+//      '\002-': [(- (x) (y)), (- (x) (z))]}
+
+    resolve_tree_path = function (tree,  path) {for (var i = 0, l = path.length; i < l; ++i) if (! (tree = tree[path.charCodeAt(i)])) return tree; return tree},
+    partition_treeset = function (trees, path) {for (var r = {}, i = 0, l = trees.length, t, ti; i < l; ++i)
+                                                  (t = resolve_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + (t = t.data)) : (t = ''), (r[t] || (r[t] = [])).push(ti);
+                                                return r},
+
+//   Pathfinder logic.
+//   The idea here is to maintain a list of available paths given a treeset and a list of paths that we've already taken. (The rule is that we can append exactly one dereference to any path that
+//   exists, but we can't end up with something we've already seen.) So there are two hashes. One stores visited paths, the other stores available paths to visit. This logic /should/ use a
+//   minheap for good amortized performance, but I don't see this being much of a bottleneck so I'm being lazy and using a quadratic algorithm. (Won't be a problem unless you have huge macro
+//   patterns.)
+
+//   For optimization's sake the hash of visited paths maps each path to the arity of the tree that it points to. This makes it very easy to generate adjacent paths without doing a whole bunch of
+//   path resolution. available_paths() returns an array of paths, each encoded as a string, and in no particular order. Note that this isn't well-defined for nodes that we haven't visited, since
+//   sometimes nodes that share a path will have different arities. This gets resolved by partitioning, at which point the treeset is split into uniform-arity subsets.
+
+    available_paths  = function (visited)             {var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
+                                                                          visited[p = k + String.fromCharCode(i)] || result.push(p); return result},
+
+    path_probability = function (path,  trees, model) {for (var total = 0, uniques = {}, i = 0, l = trees.length; i < l; ++i) uniques[resolve_tree_path(trees[i], path).data] = true;
+                                                       for (var k in uniques) total += model[k] || 0; return total},
+
+    best_path        = function (paths, trees, model) {for (var min = Infinity, mi = 0, i = 0, l = paths.length, p; i < l; ++i)
+                                                         if ((p = path_probability(paths[i], trees, model)) < min) min = p, mi = i; return mi}
+
+//   Code generation.
+//   This is the last step and it's where the algorithm finally comes together. Two big things are going on here. One is the traversal process, which combines available_paths, best_path, and
+//   probability modeling into one coherent process that builds the piecewise traversal order. The other is the code generation process, which conses up a code tree according to the treeset
+//   partitioning that guides the traversal. These two processes happen in parallel.
+
+//   The original JIT design goes over a lot of the code generation, but I'm duplicating it here for clarity.
+
+//     Partition encoding.
+//     Each time we partition the tree set, we generate a switch() statement. The switch operates both on arity and on the data, just like the partitions would suggest. (However these two things
+//     are separate conditionals, unlike their representation in the partition map.) The layout looks like this:
+
+//     | switch (tree.length) {
+//         case 0:
+//           switch (tree.data) {
+//             case 'foo': ...
+//             case 'bar': ...
+//           }
+//           return false;
+//         case 1:
+//           switch (tree.data) {
+//             case 'bif': ...
+//             case 'baz': ...
+//           }
+//           return false;
+//       }
+
+//     No 'break' statements are emitted because each branch is guaranteed to terminate with a 'return'. (If 'return false' is reached, it means that the macro didn't match.)
+
+//     Macroexpander invocation encoding.
+//     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
+//     made. (This is actually one of the trickier points of this implementation.)
 // Generated by SDoc 
