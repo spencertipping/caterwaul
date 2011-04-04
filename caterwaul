@@ -1981,7 +1981,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__76f1002769ede9f4df9c6a3cfbafc71f');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__e62013cd6d968e31e34fa744dc5c0d59');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -2159,8 +2159,8 @@ reason for this is interesting and possibly incorrect.
 
     No 'break' statements are emitted because each branch is guaranteed to terminate with a 'return'. (If 'return false' is reached, it means that the macro didn't match.)
 
-      partition_template        = parse('switch (_value) {_cases}; return false'),
-      partition_branch_template = parse('case _value: _statement'),
+      partition_template        = parse('switch (_value) {_cases}'),
+      partition_branch_template = parse('case _value: _statement; return false'),
 
     Variable allocation.
     Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
@@ -2192,9 +2192,9 @@ reason for this is interesting and possibly incorrect.
       visited_path_count      = function (visited) {var r = 0; for (var k in visited) r += visited.hasOwnProperty(k); return r},
 
     Invocations of the macroexpander should be fast, so there's some kind of interesting logic to quickly match wildcards with a minimum of array consing. This optimization requires a
-    simplifying assumption that all _ nodes are leaf nodes, but this is generally true. (It's possible to build macro patterns that don't have this property, but they won't behave properly.)
-    The idea is that once we have a fully-specified macro pattern we can simply go through each visited path, grab the direct children of each node, and detect wildcards. We then encode these
-    wildcard paths as hard-coded offsets from the tree variables. So, for example:
+    simplifying assumption that all _ nodes are leaf nodes, but this is generally true. (It's possible to build macro patterns that don't have this property, but they won't, and never would
+    have, behaved properly.) The idea is that once we have a fully-specified macro pattern we can simply go through each visited path, grab the direct children of each node, and detect
+    wildcards. We then encode these wildcard paths as hard-coded offsets from the tree variables. So, for example:
 
     | (+ (/ (_) (b)) (* (a) (_)))
       visited: [0], [0][1], [1], [1][0]
@@ -2207,9 +2207,15 @@ reason for this is interesting and possibly incorrect.
     expensive; a new array cons isn't going to make much difference at that point.
 
       path_reference_array_template = parse('[_elements]'),
-      generate_path_reference_array = function (variables, paths) {for (var prs = [], i = 0, l = paths.length; i < l; ++i) prs.push(generate_path_reference(variables, paths[i]));
-                                                                   return path_reference_array_template.replace({_elements: new syntax_node(',', prs).unflatten()})},
-__76f1002769ede9f4df9c6a3cfbafc71f
+      generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
+                                                                   return path_reference_array_template.replace({_elements: new syntax_node(',', refs).unflatten()})},
+
+    Todo: encode actual invocations (blocking on multiple match handling, below)
+
+    Multiple match handling.
+    When one or more macros are fully specified, we need to go through them in a particular order. Failover is handled gracefully; we just separate the macro patterns by a semicolon, since a
+    success side-effects via return and a failure's side-effect is its continuation.
+__e62013cd6d968e31e34fa744dc5c0d59
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
