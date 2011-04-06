@@ -76,10 +76,17 @@ sub meta::functor::editable {
       return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
       return retrieve($attribute)}}}
 __e3d2ede6edf65ffe2123584b2bd5dab7
-meta::meta('type::alias', <<'__11f7dad00d90cc0277bb72b1364ec535');
+meta::meta('type::alias', <<'__28fe15dd61f4902ed5180d8604d15d97');
 meta::configure 'alias', inherit => 0;
-meta::define_form 'alias', \&meta::bootstrap::implementation;
-__11f7dad00d90cc0277bb72b1364ec535
+meta::define_form 'alias', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "alias::$name", sub {
+    # Can't pre-tokenize because shell::tokenize doesn't exist until the library::
+    # namespace has been evaluated (which will be after alias::).
+    shell::run(shell::tokenize($value), shell::tokenize(@_));
+  };
+};
+__28fe15dd61f4902ed5180d8604d15d97
 meta::meta('type::bootstrap', <<'__297d03fb32df03b46ea418469fc4e49e');
 # Bootstrap attributes don't get executed. The reason for this is that because
 # they are serialized directly into the header of the file (and later duplicated
@@ -150,16 +157,13 @@ meta::define_form 'internal_function', sub {
 };
 __34abb44c67c7e282569e28ef6f4d62ab
 meta::meta('type::js', 'meta::functor::editable \'js\', extension => \'.js\', inherit => 1;');
-meta::meta('type::library', <<'__a9c0193f297bbc96a78eb5e27727fd30');
+meta::meta('type::library', <<'__b6dd78120e6d787acdb5c1629f7f1896');
 meta::configure 'library', extension => '.pl', inherit => 1;
 meta::define_form 'library', sub {
   my ($name, $value) = @_;
   meta::eval_in($value, "library::$name");
-  meta::externalize $name, "library::$name", sub {
-    edit("library::$name");
-  };
 };
-__a9c0193f297bbc96a78eb5e27727fd30
+__b6dd78120e6d787acdb5c1629f7f1896
 meta::meta('type::message_color', <<'__794bf137c425293738f07636bcfb5c55');
 meta::configure 'message_color', extension => '', inherit => 1;
 meta::define_form 'message_color', sub {
@@ -321,10 +325,11 @@ meta::data('main', 'server.js');
 meta::data('name', 'node-base');
 meta::data('quiet', '1');
 meta::data('watching', '1');
-meta::function('alias', <<'__ea18a693d64c2a14659f0a3edd20a3fa');
+meta::function('alias', <<'__28744564997657da45ab16cd5b441104');
 my ($name, @stuff) = @_;
+return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
-__ea18a693d64c2a14659f0a3edd20a3fa
+__28744564997657da45ab16cd5b441104
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -740,36 +745,7 @@ my $delimiter = '__' . fast_hash($contents);
 return "$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
 __ef0f63556d22816ed102d3bbe2172b28
 meta::function('sh', 'system(@_);');
-meta::function('shell', <<'__6a61e32b2dbfe3565ed6ef41d1d77c39');
-use Term::ReadLine;
-
-my $term = new Term::ReadLine "$0 shell";
-$term->ornaments(0);
-my $attribs = $term->Attribs;
-my $name = name();
-$attribs->{completion_entry_function} = $attribs->{list_completion_function};
-
-my $prompt = sub {
-  my $state  = state();
-  my $other  = $state ne $transient{initial} ? 33 : 30;
-  my $locked = is_locked() ? "\033[1;31mlocked\033[0;0m" : '';
-  "\033[1;32m$name\033[1;${other}m" . substr($state, 0, 4) . "\033[0;0m$locked "};
-
-my $split = sub {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
-my $resolve_aliases = sub {
-  my ($command, @args) = @_;
-  exists $data{"alias::$command"} ? (&$split(retrieve("alias::$command")), @args) : @_};
-
-while ($attribs->{completion_word} = [sort keys %data, sort keys %externalized_functions], defined($_ = $term->readline(&$prompt()))) {
-  my @parsed = &$resolve_aliases(&$split($_));
-  my $function_name = shift(@parsed) or next;
-
-  terminal::warning("$function_name invalid (use 'ls' to see available commands)"), next unless $externalized_functions{$function_name};
-
-  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @parsed;
-  around_hook('shell-command', $function_name, @parsed, sub {
-    print dangerous('', sub {&$function_name(@parsed)}), "\n"})}
-__6a61e32b2dbfe3565ed6ef41d1d77c39
+meta::function('shell', 'shell::repl();');
 meta::function('size', 'length(serialize());');
 meta::function('snapshot', <<'__d3d84a364524eeb8ee90623f545187e8');
 my ($name) = @_;
@@ -962,14 +938,14 @@ my ($mode_function)      = @_;
 my (undef, undef, $mode) = stat $0;
 chmod &$mode_function($mode), $0;
 __b13487447c65f2dc790bd6b21dde89dd
-meta::internal_function('dangerous', <<'__167c759b4f9e54a667222dd3d405200d');
+meta::internal_function('dangerous', <<'__4b8343178d6d4d1b760d61b1cfda008c');
 # Wraps a computation that may produce an error.
 my ($message, $computation) = @_;
 terminal::info($message) if $message;
-my $result = eval {&$computation()};
+my @result = eval {&$computation()};
 terminal::warning(translate_backtrace($@)), return undef if $@;
-$result;
-__167c759b4f9e54a667222dd3d405200d
+wantarray ? @result : $result[0];
+__4b8343178d6d4d1b760d61b1cfda008c
 meta::internal_function('debug_trace', <<'__77644ab45a770a6e172680f659911507');
 terminal::debug(join ', ', @_);
 wantarray ? @_ : $_[0];
@@ -1056,7 +1032,7 @@ my $return_value  = eval {&$side_effect()};
 die $@ if $@;
 $return_value;
 __33ee2e1595d3877bd1d9accaa72305c8
-meta::internal_function('internal::main', <<'__903bc413b89dc2709a6b0eddb546eed7');
+meta::internal_function('internal::main', <<'__435a9e83ac803960745d9aa5aac6c75f');
 disable();
 
 $SIG{'INT'} = sub {snapshot(); exit 1};
@@ -1068,15 +1044,16 @@ my $function_name = shift(@ARGV) || $default_action || 'usage';
 terminal::warning("unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
 
 around_hook('main-function', $function_name, @ARGV, sub {
-  chomp(my $result = &$function_name(@ARGV));
-  print "$result\n" if $result});
+  dangerous('', sub {
+    chomp(my $result = &$function_name(@ARGV));
+    print "$result\n" if $result})});
 
 save() unless state() eq $transient{initial};
 
 END {
   enable();
 }
-__903bc413b89dc2709a6b0eddb546eed7
+__435a9e83ac803960745d9aa5aac6c75f
 meta::internal_function('invoke_editor_on', <<'__1448132d5294a4b8390b4a684d8a78f9');
 my ($data, %options) = @_;
 my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
@@ -1190,6 +1167,49 @@ meta::js('parser', <<'__ae8553a05bf29ed84554d0a426ca1406');
 // A quick parser REPL:
 console.log('%s', caterwaul.parse(process.argv.slice(2).join(' ')).toString());
 __ae8553a05bf29ed84554d0a426ca1406
+meta::library('shell', <<'__7df727b3be0d8579da3fee5144041f75');
+# Functions for shell parsing and execution.
+package shell;
+use Term::ReadLine;
+
+sub tokenize {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
+
+sub parse {
+  my ($fn, @args) = @_;
+  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @args;
+  {function => $fn, args => [@args]}}
+
+sub execute {
+  my %command = %{$_[0]};
+  die "undefined command: $command{function}" unless exists $externalized_functions{$command{function}};
+  &{"::$command{function}"}(@{$command{args}})}
+
+sub run {execute(parse(tokenize(@_)))}
+
+sub prompt {
+  my %options = @_;
+  my $name    = $options{name}  // ::name();
+  my $state   = $options{state} // ::state();
+  my $other   = $state ne $transient{initial} ? 33 : 30;
+  my $locked  = ::is_locked() ? "\033[1;31mlocked\033[0;0m" : '';
+
+  "\033[1;32m$name\033[1;${other}m" . substr($state, 0, 4) . "\033[0;0m$locked\033[1;34m$options{stuff}\033[0;0m "}
+
+sub repl {
+  my %options = @_;
+
+  my $term = new Term::ReadLine "$0 shell";
+  $term->ornaments(0);
+  my $attribs = $term->Attribs;
+  $attribs->{completion_entry_function} = $attribs->{list_completion_function};
+
+  my $autocomplete = $options{autocomplete} || sub {[sort keys %data, sort keys %externalized_functions]};
+  my $prompt       = $options{prompt}       || \&prompt;
+  my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
+  my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
+
+  &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
+__7df727b3be0d8579da3fee5144041f75
 meta::library('terminal', <<'__c52308d05ebb4ff61c5fc36e6d9c7a8a');
 # Functions for nice-looking terminal output.
 package terminal;
@@ -1387,7 +1407,7 @@ meta::type::js
 parent::/home/spencertipping/bin/repository
 parent::/home/spencertipping/conjectures/perl-objects/sdoc
 __cb3ede4ac84dd70a220e31df5e90c4d6
-meta::parent('/home/spencertipping/bin/object', <<'__ebddf828b1c914a7461db84c344b9ebd');
+meta::parent('/home/spencertipping/bin/object', <<'__febaa835f7b66f7fdcb99de9560857bd');
 bootstrap::initialization
 bootstrap::perldoc
 function::alias
@@ -1462,6 +1482,7 @@ internal_function::table_display
 internal_function::temporary_name
 internal_function::translate_backtrace
 internal_function::with_exported
+library::shell
 library::terminal
 message_color::state
 message_color::states
@@ -1483,7 +1504,7 @@ meta::type::retriever
 meta::type::state
 retriever::file
 retriever::id
-__ebddf828b1c914a7461db84c344b9ebd
+__febaa835f7b66f7fdcb99de9560857bd
 meta::parent('/home/spencertipping/bin/repository', <<'__f88c2b0e5725507b3fdb5719fd65e6d3');
 function::dupdate
 meta::type::cached_dependency
@@ -1503,7 +1524,7 @@ function::notes
 meta::type::note
 parent::object
 __885245820bcb60424dfcbd480e5b966e
-meta::parent('object', <<'__ebddf828b1c914a7461db84c344b9ebd');
+meta::parent('object', <<'__febaa835f7b66f7fdcb99de9560857bd');
 bootstrap::initialization
 bootstrap::perldoc
 function::alias
@@ -1578,6 +1599,7 @@ internal_function::table_display
 internal_function::temporary_name
 internal_function::translate_backtrace
 internal_function::with_exported
+library::shell
 library::terminal
 message_color::state
 message_color::states
@@ -1599,7 +1621,7 @@ meta::type::retriever
 meta::type::state
 retriever::file
 retriever::id
-__ebddf828b1c914a7461db84c344b9ebd
+__febaa835f7b66f7fdcb99de9560857bd
 meta::parent('preprocessor', <<'__a29d7395a865c21764fce8ec08e1a668');
 function::preprocess
 meta::type::template
