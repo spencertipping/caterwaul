@@ -4,13 +4,13 @@ node.js:178
         throw e; // process.nextTick error, or 'error' event on first tick
         ^
 ReferenceError: qs is not defined
-    at Function.<anonymous> (eval at <anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:865:18))
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:975:156)
-    at Function.configure (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:85:123)
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1367:52)
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:975:156)
-    at /home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:85:123
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:972:90)
-    at Function.clone (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:85:123)
-    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1028:102)
-    at Function.tconfiguration (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:85:123)
+    at Function.<anonymous> (eval at <anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:768:18))
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1001:156)
+    at Function.configure (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:95:123)
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1416:52)
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1001:156)
+    at /home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:95:123
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:998:90)
+    at Function.clone (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:95:123)
+    at Function.<anonymous> (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:1073:102)
+    at Function.tconfiguration (/home/spencertipping/conjectures/caterwaul/hackery/coarse-profiling/caterwaul.all-profiled.js:95:123)

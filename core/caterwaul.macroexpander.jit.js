@@ -10,7 +10,7 @@
 
 //   | (, (_) (* (where) ([] ([ (=  (_) (_))))))               <- the macro patterns
 //     (, (_) (* (where) ([] ([ (== (_) (_))))))
-//   
+
 //   Suppose we run into a syntax tree that starts with ','. The likelihood of a comma occurring anyway is P(','), so we now have 1 / P(',') information. It doesn't matter that this fails to
 //   discriminate between the two macro patterns. We needed to know it anyway if we were going to perform a match, and it let us jump out early if it wasn't there. The left-hand side of each
 //   expansion tells us nothing, so we don't bother inspecting that yet. We instead go to the right-hand side, which we'll reject with probability (1 - P('*')). We then follow the right-hand side
@@ -220,7 +220,7 @@
 //     This requires a lexicographic sort of the paths to make sure the tree is traversed from left to right.
 
 //     Note that a new array is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
-//     expensive; a new array cons isn't going to make much difference at that point.
+//     expensive and uncommon; a new array cons isn't going to make much difference at that point.
 
       path_reference_array_template = parse('[_elements]'),
       generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));

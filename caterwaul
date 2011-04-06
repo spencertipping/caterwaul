@@ -1981,7 +1981,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__e62013cd6d968e31e34fa744dc5c0d59');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__0f29918a91dc5860089be4b0b424bcea');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -1994,7 +1994,7 @@ reason for this is interesting and possibly incorrect.
 
   | (, (_) (* (where) ([] ([ (=  (_) (_))))))               <- the macro patterns
     (, (_) (* (where) ([] ([ (== (_) (_))))))
-  
+
   Suppose we run into a syntax tree that starts with ','. The likelihood of a comma occurring anyway is P(','), so we now have 1 / P(',') information. It doesn't matter that this fails to
   discriminate between the two macro patterns. We needed to know it anyway if we were going to perform a match, and it let us jump out early if it wasn't there. The left-hand side of each
   expansion tells us nothing, so we don't bother inspecting that yet. We instead go to the right-hand side, which we'll reject with probability (1 - P('*')). We then follow the right-hand side
@@ -2204,7 +2204,7 @@ reason for this is interesting and possibly incorrect.
     This requires a lexicographic sort of the paths to make sure the tree is traversed from left to right.
 
     Note that a new array is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
-    expensive; a new array cons isn't going to make much difference at that point.
+    expensive and uncommon; a new array cons isn't going to make much difference at that point.
 
       path_reference_array_template = parse('[_elements]'),
       generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
@@ -2215,7 +2215,7 @@ reason for this is interesting and possibly incorrect.
     Multiple match handling.
     When one or more macros are fully specified, we need to go through them in a particular order. Failover is handled gracefully; we just separate the macro patterns by a semicolon, since a
     success side-effects via return and a failure's side-effect is its continuation.
-__e62013cd6d968e31e34fa744dc5c0d59
+__0f29918a91dc5860089be4b0b424bcea
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
