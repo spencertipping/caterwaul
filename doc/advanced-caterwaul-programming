@@ -157,10 +157,17 @@ meta::meta('template::sections', <<'__0bf14cbc6a0e77d9b82dd185d8d8a9a0');
 tex::labeled_template(s1 => 'section', s2 => 'subsection', s3 => 'subsubsection', s4 => 'paragraph', s5 => 'subparagraph');
 tex::labeled_template(sc => 'chapter', sp => 'part');
 __0bf14cbc6a0e77d9b82dd185d8d8a9a0
-meta::meta('type::alias', <<'__11f7dad00d90cc0277bb72b1364ec535');
+meta::meta('type::alias', <<'__28fe15dd61f4902ed5180d8604d15d97');
 meta::configure 'alias', inherit => 0;
-meta::define_form 'alias', \&meta::bootstrap::implementation;
-__11f7dad00d90cc0277bb72b1364ec535
+meta::define_form 'alias', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "alias::$name", sub {
+    # Can't pre-tokenize because shell::tokenize doesn't exist until the library::
+    # namespace has been evaluated (which will be after alias::).
+    shell::run(shell::tokenize($value), shell::tokenize(@_));
+  };
+};
+__28fe15dd61f4902ed5180d8604d15d97
 meta::meta('type::bootstrap', <<'__297d03fb32df03b46ea418469fc4e49e');
 # Bootstrap attributes don't get executed. The reason for this is that because
 # they are serialized directly into the header of the file (and later duplicated
@@ -230,16 +237,13 @@ meta::define_form 'internal_function', sub {
   *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
 };
 __34abb44c67c7e282569e28ef6f4d62ab
-meta::meta('type::library', <<'__a9c0193f297bbc96a78eb5e27727fd30');
+meta::meta('type::library', <<'__b6dd78120e6d787acdb5c1629f7f1896');
 meta::configure 'library', extension => '.pl', inherit => 1;
 meta::define_form 'library', sub {
   my ($name, $value) = @_;
   meta::eval_in($value, "library::$name");
-  meta::externalize $name, "library::$name", sub {
-    edit("library::$name");
-  };
 };
-__a9c0193f297bbc96a78eb5e27727fd30
+__b6dd78120e6d787acdb5c1629f7f1896
 meta::meta('type::message_color', <<'__794bf137c425293738f07636bcfb5c55');
 meta::configure 'message_color', extension => '', inherit => 1;
 meta::define_form 'message_color', sub {
@@ -375,17 +379,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __3c6177256de0fddb721f534c3ad8c0ee
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/advanced-caterwaul-programming.3CKp/document.pdf');
+meta::data('pdf-output-file', '/tmp/advanced-caterwaul-programming.6rT9/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
 meta::data('table-of-contents', '1');
 meta::data('tex-command', 'latex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('watching', '0');
-meta::function('alias', <<'__ea18a693d64c2a14659f0a3edd20a3fa');
+meta::function('alias', <<'__28744564997657da45ab16cd5b441104');
 my ($name, @stuff) = @_;
+return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
-__ea18a693d64c2a14659f0a3edd20a3fa
+__28744564997657da45ab16cd5b441104
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -468,7 +473,7 @@ for (keys %dependencies) {
   terminal::info("Retrieving $dependencies{$_} as $_");
   associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
 __1c0273217c5b9f2756bb14a4a00aa7e2
-meta::function('edit', <<'__6da7b44df34219cf87876b642d6fe500');
+meta::function('edit', <<'__fd926994eabc382472a1d11b61a1dc2e');
 my ($name, %options) = @_;
 my $extension = extension_for($name);
 
@@ -478,9 +483,9 @@ die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-
 around_hook('edit', @_, sub {
   associate($name, invoke_editor_on($data{$name} || "# Attribute $name", %options, attribute => $name, extension => $extension),
             execute => $name !~ /^bootstrap::/)});
-save();
+save() unless $data{'data::edit::no-save'};
 '';
-__6da7b44df34219cf87876b642d6fe500
+__fd926994eabc382472a1d11b61a1dc2e
 meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
 meta::function('export', <<'__388e0cc60507443cb1c0cc3e2658cfef');
 # Exports data into a text file.
@@ -749,36 +754,7 @@ my $delimiter = '__' . fast_hash($contents);
 return "$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
 __ef0f63556d22816ed102d3bbe2172b28
 meta::function('sh', 'system(@_);');
-meta::function('shell', <<'__6a61e32b2dbfe3565ed6ef41d1d77c39');
-use Term::ReadLine;
-
-my $term = new Term::ReadLine "$0 shell";
-$term->ornaments(0);
-my $attribs = $term->Attribs;
-my $name = name();
-$attribs->{completion_entry_function} = $attribs->{list_completion_function};
-
-my $prompt = sub {
-  my $state  = state();
-  my $other  = $state ne $transient{initial} ? 33 : 30;
-  my $locked = is_locked() ? "\033[1;31mlocked\033[0;0m" : '';
-  "\033[1;32m$name\033[1;${other}m" . substr($state, 0, 4) . "\033[0;0m$locked "};
-
-my $split = sub {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
-my $resolve_aliases = sub {
-  my ($command, @args) = @_;
-  exists $data{"alias::$command"} ? (&$split(retrieve("alias::$command")), @args) : @_};
-
-while ($attribs->{completion_word} = [sort keys %data, sort keys %externalized_functions], defined($_ = $term->readline(&$prompt()))) {
-  my @parsed = &$resolve_aliases(&$split($_));
-  my $function_name = shift(@parsed) or next;
-
-  terminal::warning("$function_name invalid (use 'ls' to see available commands)"), next unless $externalized_functions{$function_name};
-
-  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @parsed;
-  around_hook('shell-command', $function_name, @parsed, sub {
-    print dangerous('', sub {&$function_name(@parsed)}), "\n"})}
-__6a61e32b2dbfe3565ed6ef41d1d77c39
+meta::function('shell', 'shell::repl();');
 meta::function('size', 'length(serialize());');
 meta::function('snapshot', <<'__d3d84a364524eeb8ee90623f545187e8');
 my ($name) = @_;
@@ -894,14 +870,14 @@ my ($mode_function)      = @_;
 my (undef, undef, $mode) = stat $0;
 chmod &$mode_function($mode), $0;
 __b13487447c65f2dc790bd6b21dde89dd
-meta::internal_function('dangerous', <<'__167c759b4f9e54a667222dd3d405200d');
+meta::internal_function('dangerous', <<'__4b8343178d6d4d1b760d61b1cfda008c');
 # Wraps a computation that may produce an error.
 my ($message, $computation) = @_;
 terminal::info($message) if $message;
-my $result = eval {&$computation()};
+my @result = eval {&$computation()};
 terminal::warning(translate_backtrace($@)), return undef if $@;
-$result;
-__167c759b4f9e54a667222dd3d405200d
+wantarray ? @result : $result[0];
+__4b8343178d6d4d1b760d61b1cfda008c
 meta::internal_function('debug_trace', <<'__77644ab45a770a6e172680f659911507');
 terminal::debug(join ', ', @_);
 wantarray ? @_ : $_[0];
@@ -983,7 +959,7 @@ my $return_value  = eval {&$side_effect()};
 die $@ if $@;
 $return_value;
 __33ee2e1595d3877bd1d9accaa72305c8
-meta::internal_function('internal::main', <<'__903bc413b89dc2709a6b0eddb546eed7');
+meta::internal_function('internal::main', <<'__435a9e83ac803960745d9aa5aac6c75f');
 disable();
 
 $SIG{'INT'} = sub {snapshot(); exit 1};
@@ -995,15 +971,16 @@ my $function_name = shift(@ARGV) || $default_action || 'usage';
 terminal::warning("unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
 
 around_hook('main-function', $function_name, @ARGV, sub {
-  chomp(my $result = &$function_name(@ARGV));
-  print "$result\n" if $result});
+  dangerous('', sub {
+    chomp(my $result = &$function_name(@ARGV));
+    print "$result\n" if $result})});
 
 save() unless state() eq $transient{initial};
 
 END {
   enable();
 }
-__903bc413b89dc2709a6b0eddb546eed7
+__435a9e83ac803960745d9aa5aac6c75f
 meta::internal_function('invoke_editor_on', <<'__1448132d5294a4b8390b4a684d8a78f9');
 my ($data, %options) = @_;
 my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
@@ -1126,6 +1103,49 @@ terminal::warning("$@ when running with_exported()") if $@;
 unlink $name;
 $result;
 __fc4f32c46d95c6deed0414364d1c7410
+meta::library('shell', <<'__7df727b3be0d8579da3fee5144041f75');
+# Functions for shell parsing and execution.
+package shell;
+use Term::ReadLine;
+
+sub tokenize {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
+
+sub parse {
+  my ($fn, @args) = @_;
+  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @args;
+  {function => $fn, args => [@args]}}
+
+sub execute {
+  my %command = %{$_[0]};
+  die "undefined command: $command{function}" unless exists $externalized_functions{$command{function}};
+  &{"::$command{function}"}(@{$command{args}})}
+
+sub run {execute(parse(tokenize(@_)))}
+
+sub prompt {
+  my %options = @_;
+  my $name    = $options{name}  // ::name();
+  my $state   = $options{state} // ::state();
+  my $other   = $state ne $transient{initial} ? 33 : 30;
+  my $locked  = ::is_locked() ? "\033[1;31mlocked\033[0;0m" : '';
+
+  "\033[1;32m$name\033[1;${other}m" . substr($state, 0, 4) . "\033[0;0m$locked\033[1;34m$options{stuff}\033[0;0m "}
+
+sub repl {
+  my %options = @_;
+
+  my $term = new Term::ReadLine "$0 shell";
+  $term->ornaments(0);
+  my $attribs = $term->Attribs;
+  $attribs->{completion_entry_function} = $attribs->{list_completion_function};
+
+  my $autocomplete = $options{autocomplete} || sub {[sort keys %data, sort keys %externalized_functions]};
+  my $prompt       = $options{prompt}       || \&prompt;
+  my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
+  my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
+
+  &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
+__7df727b3be0d8579da3fee5144041f75
 meta::library('terminal', <<'__c52308d05ebb4ff61c5fc36e6d9c7a8a');
 # Functions for nice-looking terminal output.
 package terminal;
@@ -1142,15 +1162,14 @@ color $_, $preloaded{$_} for keys %preloaded;
 __c52308d05ebb4ff61c5fc36e6d9c7a8a
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
-meta::parent('./sdoc', <<'__2d47795f5a2f946e1655dcc68b32aadd');
-function::lss
+meta::parent('./sdoc', <<'__6b80e7e220f0ce19851eaf5bb9cf2fc7');
 function::sdoc
 function::sdocp
 meta::type::sdoc
 parent::/home/spencertipping/bin/object
 retriever::sdoc
 retriever::sdocp
-__2d47795f5a2f946e1655dcc68b32aadd
+__6b80e7e220f0ce19851eaf5bb9cf2fc7
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
@@ -1185,7 +1204,7 @@ resource::header-resource
 template::item[]
 vim_highlighter::cltex
 __4ced89c3efef0795b9c0d58083d94797
-meta::parent('/home/spencertipping/bin/object', <<'__ebddf828b1c914a7461db84c344b9ebd');
+meta::parent('/home/spencertipping/bin/object', <<'__febaa835f7b66f7fdcb99de9560857bd');
 bootstrap::initialization
 bootstrap::perldoc
 function::alias
@@ -1260,6 +1279,7 @@ internal_function::table_display
 internal_function::temporary_name
 internal_function::translate_backtrace
 internal_function::with_exported
+library::shell
 library::terminal
 message_color::state
 message_color::states
@@ -1281,7 +1301,7 @@ meta::type::retriever
 meta::type::state
 retriever::file
 retriever::id
-__ebddf828b1c914a7461db84c344b9ebd
+__febaa835f7b66f7fdcb99de9560857bd
 meta::parent('configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
@@ -1300,7 +1320,7 @@ function::notes
 meta::type::note
 parent::object
 __885245820bcb60424dfcbd480e5b966e
-meta::parent('object', <<'__ebddf828b1c914a7461db84c344b9ebd');
+meta::parent('object', <<'__febaa835f7b66f7fdcb99de9560857bd');
 bootstrap::initialization
 bootstrap::perldoc
 function::alias
@@ -1375,6 +1395,7 @@ internal_function::table_display
 internal_function::temporary_name
 internal_function::translate_backtrace
 internal_function::with_exported
+library::shell
 library::terminal
 message_color::state
 message_color::states
@@ -1396,8 +1417,8 @@ meta::type::retriever
 meta::type::state
 retriever::file
 retriever::id
-__ebddf828b1c914a7461db84c344b9ebd
-meta::parent('preprocessor', <<'__096673520f3131b7654ae23941e9012f');
+__febaa835f7b66f7fdcb99de9560857bd
+meta::parent('preprocessor', <<'__a29d7395a865c21764fce8ec08e1a668');
 function::preprocess
 meta::type::template
 parent::object
@@ -1406,7 +1427,8 @@ template::comment
 template::eval
 template::failing_conditional
 template::include
-__096673520f3131b7654ae23941e9012f
+template::pinclude
+__a29d7395a865c21764fce8ec08e1a668
 meta::parent('repository', <<'__f88c2b0e5725507b3fdb5719fd65e6d3');
 function::dupdate
 meta::type::cached_dependency
@@ -1666,6 +1688,15 @@ return '' if template::failing_conditional($commands);
 join "\n", map retrieve($_), split /\s+/, $commands;
 __e0624844a65ae41e0217dd871fc0dbfb
 meta::template('item[]', '"\\\\item[$_[0]]";');
+meta::template('pinclude', <<'__5ba61c3034a4b183881936aec30d2be9');
+# Just like the regular include, but makes sure to insert paragraph boundaries
+# (this is required for SDoc to function properly).
+
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
+"\n\n$text\n\n";
+__5ba61c3034a4b183881936aec30d2be9
 meta::vim_highlighter('cltex', <<'__428c1e08cdadbb52c32d5e49b411b0f8');
 " Cleaner TeX
 " Maintainer: Spencer Tipping <spencer@spencertipping.com>
