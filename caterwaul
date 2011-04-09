@@ -842,10 +842,10 @@ file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
 # Minify all of the generated files, but not those which contain preprocessor directives.
 file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, <*.js>, <modules/*.js>;
 __4dbb82308b841f12d2bcd62fce32d468
-meta::hook('after-render::notes', <<'__38e03db824190f9ed213d59b5e86e87e');
+meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
-file::write('notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
-__38e03db824190f9ed213d59b5e86e87e
+file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
+__6a97d3ed9a596b2e5e0429553fdb83e8
 meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
@@ -2003,7 +2003,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__0f29918a91dc5860089be4b0b424bcea');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__7ed169177d56571ade9f4194ee8aa941');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -2152,12 +2152,13 @@ reason for this is interesting and possibly incorrect.
   and probability modeling into one coherent process that builds the piecewise traversal order. The other is the code generation process, which conses up a code tree according to the treeset
   partitioning that guides the traversal. These two processes happen in parallel.
 
-  The original JIT design goes over a lot of the code generation, but I'm duplicating it here for clarity.
+  The original JIT design goes over a lot of the code generation, but I'm duplicating it here for clarity. (There are also some changes in this design, though the ideas are the same.)
 
     Function body.
-    This is largely uninteresting, except that it provides the base context for path dereferencing (see 'Variable allocation' below).
+    This is largely uninteresting, except that it provides the base context for path dereferencing (see 'Variable allocation' below). It also provides a temporary 'result' variable, which is
+    used by the macroexpander invocation code.
 
-      pattern_match_function_template = parse('function (t) {_body}'),
+      pattern_match_function_template = parse('function (t) {var result; _body}'),
       empty_variable_mapping_table    = function () {return {'': 't'}},
 
     Partition encoding.
@@ -2170,19 +2171,20 @@ reason for this is interesting and possibly incorrect.
             case 'foo': ...
             case 'bar': ...
           }
-          return false;
+          break;
         case 1:
           switch (tree.data) {
             case 'bif': ...
             case 'baz': ...
           }
-          return false;
+          break;
       }
 
-    No 'break' statements are emitted because each branch is guaranteed to terminate with a 'return'. (If 'return false' is reached, it means that the macro didn't match.)
+    Note that we can't return false immediately after hitting a failing case. The reason has to do with overlapping macro definitions. If we have two macro definitions that would both
+    potentially match the input, we have to proceed to the second if the first one rejects the match.
 
       partition_template        = parse('switch (_value) {_cases}'),
-      partition_branch_template = parse('case _value: _statement; return false'),
+      partition_branch_template = parse('case _value: _statement; break'),
 
     Variable allocation.
     Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
@@ -2232,12 +2234,25 @@ reason for this is interesting and possibly incorrect.
       generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
                                                                    return path_reference_array_template.replace({_elements: new syntax_node(',', refs).unflatten()})},
 
-    Todo: encode actual invocations (blocking on multiple match handling, below)
+      macroexpander_invocation_template = parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
+      generate_macroexpander_invocation = function (pattern_data, pattern, variables, paths) {
+                                            return macroexpander_invocation_template.replace({_expander:             new ref(pattern_data[pattern.id()].expander),
+                                                                                              _path_reference_array: generate_path_reference_array(variables, paths)})},
+
+    Pattern data.
+    We end up with lots of subarrays of the original pattern list. However, we need to be able to get back to the original expander for a given pattern, so we keep a hash of pattern data
+    indexed by the ID of the pattern tree.
 
     Multiple match handling.
     When one or more macros are fully specified, we need to go through them in a particular order. Failover is handled gracefully; we just separate the macro patterns by a semicolon, since a
-    success side-effects via return and a failure's side-effect is its continuation.
-__0f29918a91dc5860089be4b0b424bcea
+    success side-effects via return and a failure's side-effect is its sequential continuation. (This is why we needed 'break' instead of 'return false' when generating case statements above.)
+
+    Here the pattern_data variable refers to a hash that maps each pattern's identity to some data about it, including which macroexpander belongs to the pattern in the first place. Note that
+    because I'm using identities this way, you can't add the same pattern (referentially speaking) to map to two different macroexpanders. It would be a weird thing to do, so I don't
+    anticipate that it would happen by accident. But it will cause erroneous macroexpansion results if you do.
+
+      generate_pattern_sequence = function (pattern_data, patterns) {
+__7ed169177d56571ade9f4194ee8aa941
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -2849,7 +2864,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __eed9ff7c2d7670bb3e9723d934f61083
-meta::sdoc('js::core/caterwaul.tree', <<'__a5f165d6d53852292358b17ab005ca83');
+meta::sdoc('js::core/caterwaul.tree', <<'__1ee6cff0cd458cc6f88e338af55d552d');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -2921,9 +2936,11 @@ nodes. At the end of folding there is only one child per paren-group.
 
     Identification.
     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
-    and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy.
+    and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy. The mechanism also works differently (i.e. isn't borked) in
+    that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
+    already been computed.
 
-      id: function () {return this.id || (this.id = genint())},
+      id: function () {var id = genint(); return (this.id = function () {return id})()},
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -3136,7 +3153,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
-__a5f165d6d53852292358b17ab005ca83
+__1ee6cff0cd458cc6f88e338af55d552d
 meta::sdoc('js::core/caterwaul.utilities', <<'__2905a996784fe94ede2c3f5d2cf7774a');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
