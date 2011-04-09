@@ -2003,7 +2003,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__7ed169177d56571ade9f4194ee8aa941');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__f4e6fa18ce006d061fc3682cb930f73e');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -2050,8 +2050,10 @@ reason for this is interesting and possibly incorrect.
 
   It's important to realize that the problem isn't entirely solved by using naive greedy optimization, but I feel like it represents the assumptions better than a more advanced strategy would.
 
+  The count is returned as the '' key in the result. This can be useful when deciding whether to take the trouble to use JIT to create a custom macroexpand function.
+
     var context_free_probability_model = function (tree) {var r = {}, count = 0; tree.reach(function (node) {var d = node.data; r[d] = (+r[d] || 0) + 1; ++count});
-                                                          for (var k in r) r[k] /= count; r._ = 1; return r},
+                                                          for (var k in r) r[k] /= count; r._ = 1; r[''] = count; return r},
 
   Heterogeneous tree forms.
   Most of the time heterogeneity doesn't matter. The reason for this is that there are few variadic nodes. However, they do sometimes come up. One case is 'return', which sometimes occurs
@@ -2140,12 +2142,47 @@ reason for this is interesting and possibly incorrect.
                                                         for (var k in uniques) total += model[k] || 0; return total},
 
     best_path_index  = function (paths, trees, model)  {for (var min = 1, mi = -1, i = 0, l = paths.length, p; i < l; ++i)
-                                                         if ((p = path_probability(paths[i], trees, model)) < min) min = p, mi = i; return mi},
+                                                         if ((p = path_probability(paths[i], trees, model)) <= min) min = p, mi = i; return mi},
 
     visit_path       = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
                                                         for (var k in partitions) if (partitions.hasOwnProperty(k))
                                                             partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, partitions[k][0].length))};
                                                         return partitions},
+
+  Full specification detection.
+  When best_path_index returns -1 it means that no path resolves the treeset. At that point one or more trees are fully specified, so we need to find and remove those trees from the list. This
+  will produce an array of results [treeset, treeset, treeset, ...]. The property is that each treeset will contain trees that either (1) are all fully specified with respect to the set of
+  visited paths, or (2) are all not fully specified with respect to the paths. Order is also preserved from the original treeset.
+
+  Note that the first treeset always represents trees which are not fully specified, then each subsequent treeset alternates in its specification. This way you can use a shorthand such as i&1
+  to determine whether a given treeset is final. (Because of all of this, the first treeset may be empty. All other ones, if they exist, will be populated.)
+
+  This is actually a much more straightforward task than it sounds like, because the number of non-wildcard nodes for each tree is already stored in pattern_data. This means that we just need
+  to find trees for which the number of non-wildcard nodes equals the number of visited paths.
+
+    split_treeset_on_specification = function (trees, pattern_data, visited) {
+                                       var visited_count = 0; for (var k in visited) visited_count += visited.hasOwnProperty(k);
+                                       for (var r = [], p = [], s = true, i = 0, l = trees.length, t; i < l; ++i)
+                                         if ((pattern_data[(t = trees[i]).id()].non_wildcards !== visited_count) !== s) r.push(p), p = [t], s = !s;
+                                         else                                                                           p.push(t);
+                                       p.length && r.push(p);
+                                       return r},
+
+  Pattern data.
+  We end up with lots of subarrays of the original pattern list. However, we need to be able to get back to the original expander for a given pattern, so we keep a hash of pattern data indexed
+  by the ID of the pattern tree. The pattern data consists of more than just the expander; we also store the number of non-wildcard nodes per pattern tree. This is used to determine which
+  trees are fully resolved. We also need a list of wildcard paths for each tree; this is used to efficiently construct the arrays that are passed into the expander functions.
+
+  By convention I call the result of this function pattern_data, which shadows this function definition. (Seems somehow appropriate to do it this way.)
+
+    wildcard_paths = function (t) {for (var r = [], i = 0, l = t.length; i < l; ++i)
+                                    if (t[i].data === '_') r.push(String.fromCharCode(i));
+                                    else                   for (var ps = wildcard_paths(t[i]), j = 0, lj = ps.length; j < lj; ++j) r.push(String.fromCharCode(i) + ps[j]);
+                                   return r},
+
+    pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
+                                        r[(p = ps[i]).id()] = {expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                      return r},
 
   Code generation.
   This is the last step and it's where the algorithm finally comes together. Two big things are going on here. One is the traversal process, which combines available_paths, best_path_index,
@@ -2184,7 +2221,7 @@ reason for this is interesting and possibly incorrect.
     potentially match the input, we have to proceed to the second if the first one rejects the match.
 
       partition_template        = parse('switch (_value) {_cases}'),
-      partition_branch_template = parse('case _value: _statement; break'),
+      partition_branch_template = parse('case _value: _body; break'),
 
     Variable allocation.
     Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
@@ -2212,8 +2249,7 @@ reason for this is interesting and possibly incorrect.
     one to identify which one(s) are fully specified. This is actually not a terribly time-consuming process, as it's a matter of counting up the number of non-wildcard nodes and comparing
     that with the number of visited paths.
 
-      non_wildcard_node_count = function (tree)    {var r = 0; tree.reach(function (node) {r += node.data !== '_'});  return r},
-      visited_path_count      = function (visited) {var r = 0; for (var k in visited) r += visited.hasOwnProperty(k); return r},
+      non_wildcard_node_count = function (tree) {var r = 0; tree.reach(function (node) {r += node.data !== '_'}); return r},
 
     Invocations of the macroexpander should be fast, so there's some kind of interesting logic to quickly match wildcards with a minimum of array consing. This optimization requires a
     simplifying assumption that all _ nodes are leaf nodes, but this is generally true. (It's possible to build macro patterns that don't have this property, but they won't, and never would
@@ -2235,13 +2271,9 @@ reason for this is interesting and possibly incorrect.
                                                                    return path_reference_array_template.replace({_elements: new syntax_node(',', refs).unflatten()})},
 
       macroexpander_invocation_template = parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
-      generate_macroexpander_invocation = function (pattern_data, pattern, variables, paths) {
-                                            return macroexpander_invocation_template.replace({_expander:             new ref(pattern_data[pattern.id()].expander),
-                                                                                              _path_reference_array: generate_path_reference_array(variables, paths)})},
-
-    Pattern data.
-    We end up with lots of subarrays of the original pattern list. However, we need to be able to get back to the original expander for a given pattern, so we keep a hash of pattern data
-    indexed by the ID of the pattern tree.
+      generate_macroexpander_invocation = function (pattern_data, pattern, variables) {return macroexpander_invocation_template.replace(
+                                                   {_expander:             new ref(pattern_data[pattern.id()].expander),
+                                                    _path_reference_array: generate_path_reference_array(variables, pattern_data[pattern.id()].wildcard_paths)})},
 
     Multiple match handling.
     When one or more macros are fully specified, we need to go through them in a particular order. Failover is handled gracefully; we just separate the macro patterns by a semicolon, since a
@@ -2249,10 +2281,21 @@ reason for this is interesting and possibly incorrect.
 
     Here the pattern_data variable refers to a hash that maps each pattern's identity to some data about it, including which macroexpander belongs to the pattern in the first place. Note that
     because I'm using identities this way, you can't add the same pattern (referentially speaking) to map to two different macroexpanders. It would be a weird thing to do, so I don't
-    anticipate that it would happen by accident. But it will cause erroneous macroexpansion results if you do.
+    anticipate that it would happen by accident. But it will cause bogus macroexpansion results if you do.
 
-      generate_pattern_sequence = function (pattern_data, patterns) {
-__7ed169177d56571ade9f4194ee8aa941
+    The driver function is generate_decision_tree, which does two things. First, it uses split_treeset_on_specification to find fully-specified trees, which are then put into their own
+    buckets. Then it takes each bucket of unspecified trees and calls generate_partitioned_switch on it (which then proceeds to specify it further), and calls generate_unpartitioned_sequence
+    on the others. Note that generate_unpartitioned_sequence is a terminal call; it doesn't call anything else.
+
+      generate_partitioned_switch = function (partitions, visited, variables, pattern_data, model) {},
+
+      generate_unpartitioned_sequence = function (trees, visited, variables, pattern_data) {},
+
+      generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {},
+
+    Macroexpansion generator.
+    
+__f4e6fa18ce006d061fc3682cb930f73e
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
