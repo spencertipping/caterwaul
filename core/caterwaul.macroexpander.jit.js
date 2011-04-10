@@ -123,12 +123,12 @@
 
     available_paths  = function (visited)              {if (visited == null) return [''];
                                                         var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
-                                                                                       visited[p = k + String.fromCharCode(i)] || result.push(p); return result},
+                                                                             (p = k + String.fromCharCode(i)) in visited || result.push(p); return result},
 
     path_probability = function (path,  trees, model)  {for (var total = 0, uniques = {}, i = 0, l = trees.length; i < l; ++i) uniques[resolve_tree_path(trees[i], path).data] = true;
                                                         for (var k in uniques) total += model[k] || 0; return total},
 
-    best_path        = function (paths, trees, model)  {for (var min = 1, mi = -1, i = 0, l = paths.length, p; i < l; ++i)
+    best_path        = function (paths, trees, model)  {for (var min = 1, mi = 0, i = 0, l = paths.length, p; i < l; ++i)
                                                          if ((p = path_probability(paths[i], trees, model)) <= min) min = p, mi = i; return paths[mi]},
 
     visit_path       = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
@@ -162,9 +162,8 @@
 
 //   By convention I call the result of this function pattern_data, which shadows this function definition. (Seems somehow appropriate to do it this way.)
 
-    wildcard_paths = function (t) {for (var r = [], i = 0, l = t.length; i < l; ++i)
-                                    if (t[i].data === '_') r.push(String.fromCharCode(i));
-                                    else                   for (var ps = wildcard_paths(t[i]), j = 0, lj = ps.length; j < lj; ++j) r.push(String.fromCharCode(i) + ps[j]);
+    wildcard_paths = function (t) {for (var r = t.data === '_' ? [''] : [], i = 0, l = t.length; i < l; ++i)
+                                     for (var ps = t[i] && wildcard_paths(t[i]), j = 0, lj = ps.length; j < lj; ++j) r.push(String.fromCharCode(i) + ps[j]);
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
@@ -210,6 +209,11 @@
       partition_template        = parse('switch (_value) {_cases}'),
       partition_branch_template = parse('case _value: _body; break'),
 
+//     Attempting a macro match is kind of interesting. We need a way to use 'break' to escape from a match, so we construct a null while loop that lets us do this. Any 'break' will then send the
+//     code into the sequential continuation, not escape from the function.
+
+      single_macro_attempt_template = parse('do {_body} while (false)'),
+
 //     Variable allocation.
 //     Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
 //     out of the pattern match. A table keeps track of path -> variable name mappings. The empty path always maps to 't', which is the input tree.
@@ -224,8 +228,10 @@
                                            return variables[path] ? absolute_path_reference_template.replace({_base: variables[path]}) :
                                                                     indexed_path_reference_template .replace({_base: generate_path_reference(variables, path.substr(0, path.length - 1)),
                                                                                                               _index: '' + path.charCodeAt(path.length - 1)})},
-      path_variable_template = parse('var _temp = _value; if (! _temp) return false'),
-      generate_path_variable = function (variables, path) {var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+      path_variable_template = parse('var _temp = _value; if (! _temp) break'),
+      path_exists_template   = parse('null'),
+      generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
+                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
 //     Macroexpander invocation encoding.
@@ -251,7 +257,7 @@
 
       path_reference_array_template = parse('[_elements]'),
       generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
-                                                                   return path_reference_array_template.replace({_elements: new syntax_node(',', refs).unflatten()})},
+                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new syntax_node(',', refs) : refs[0]})},
 
       macroexpander_invocation_template = parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
       generate_macroexpander_invocation = function (pattern_data, pattern, variables) {return macroexpander_invocation_template.replace(
@@ -289,9 +295,10 @@
 
                                           if (data_cases.length)
                                             length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
-                                                                                                 _body:  partition_template.replace({_value: data_reference, _cases: data_cases.unflatten()})}))}
-                                        return new syntax_node(';', path_reference_variable,
-                                                                    length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases.unflatten()}) : [])},
+                                                                                                 _body:  partition_template.replace({_value: data_reference, _cases: data_cases})}))}
+                                        return single_macro_attempt_template.replace({_body:
+                                                 new syntax_node(';', path_reference_variable,
+                                                                      length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases}) : [])})},
 
 //       Second case: specified trees (base case).
 //       This is fairly simple. We just generate a sequence of invocations, since each tree has all of the constants assumed.
@@ -305,8 +312,8 @@
 
         generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {
                                    for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
-                                     r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
-                                                    generate_partitioned_switch(sts[i], visited, variables, pattern_data, model));
+                                     sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
+                                                                     generate_partitioned_switch(sts[i], visited, variables, pattern_data, model));
                                    return r},
 
 //   Macroexpansion generator.
