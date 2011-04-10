@@ -1214,7 +1214,6 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                            var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
-                             for (var i = 0, l = patterns.length, xs = []; i < l; ++i) xs.push(patterns[i]); console.log(xs.join(','));
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(

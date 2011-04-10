@@ -330,17 +330,17 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
-meta::function('bench', <<'__ff6dfa7d6b38c604f56528b5213dae48');
+meta::function('bench-load', <<'__75b11f62ff55f56d881e410c18a6e150');
 # Just loads the standard library.
 use Time::HiRes qw/time/;
 
 render();
 my $start = time();
-node(['js::core/debug/profile', 'caterwaul.all.js']);
+node(['js::core/debug/profile', 'caterwaul.all.min.js']);
 my $elapsed = time() - $start;
 
 terminal::info("loaded in $elapsed seconds");
-__ff6dfa7d6b38c604f56528b5213dae48
+__75b11f62ff55f56d881e410c18a6e150
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -568,10 +568,10 @@ meta::function('macroexpand', <<'__ba8d14b1caf169f49834baa8018001c0');
 # Macroexpands stuff.
 node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::macroexpander'], @_);
 __ba8d14b1caf169f49834baa8018001c0
-meta::function('minify', <<'__95a1af569b959a26f4629484ba63875a');
+meta::function('minify', <<'__483938b52dbc38c3aed97bf1b524b436');
 terminal::info("minifying $_[0]");
-node([qw|pp::js::core/caterwaul js::minify|], @_);
-__95a1af569b959a26f4629484ba63875a
+node([qw|js::core/debug/profile pp::js::core/caterwaul js::minify|], @_);
+__483938b52dbc38c3aed97bf1b524b436
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
@@ -2028,7 +2028,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__19d5b711b556767f36cc38f5caad8224');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__3fd2ce35d7aa89f1ecee8ec94e27c556');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2354,7 +2354,6 @@ For history's sake I've left some of the theoretical notes involving probability
                            var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
-                             for (var i = 0, l = patterns.length, xs = []; i < l; ++i) xs.push(patterns[i]); console.log(xs.join(','));
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
@@ -2364,7 +2363,7 @@ For history's sake I've left some of the theoretical notes involving probability
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();
-__19d5b711b556767f36cc38f5caad8224
+__3fd2ce35d7aa89f1ecee8ec94e27c556
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -3364,14 +3363,14 @@ setTimeout(function () {
   console.log(fs);
 }, 0);
 __bde9e142b991d8b7d7f802a2f0b1f0df
-meta::sdoc('js::minify', <<'__e78c26e425d25e97f16e017a4ae03cff');
+meta::sdoc('js::minify', <<'__050b10a052015886ecad866ded895049');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
 
 var code   = require('fs').readFileSync(process.argv[2], 'utf8'),
-    header = '// Caterwaul JS | Spencer Tipping\nLicensed under the terms of the MIT source code license\n';
+    header = '// Caterwaul JS | Spencer Tipping\n// Licensed under the terms of the MIT source code license\n';
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.min.js'), header + caterwaul.parse(code).serialize(), 'utf8');
-__e78c26e425d25e97f16e017a4ae03cff
+__050b10a052015886ecad866ded895049
 meta::sdoc('js::modules/caterwaul.all', <<'__89090c3bf49c11fe682f000912014455');
 Caterwaul with all modules | Spencer Tipping
 Licensed under the terms of the MIT source code license
