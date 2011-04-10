@@ -2015,11 +2015,18 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__f2096cffc7a81a889c9725b8b43ee593');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__c0e10229fdc921fcfe2bb6f58eeaafdf');
 JIT macroexpander.
-I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
-if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
-reason for this is interesting and possibly incorrect.
+This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
+fairly tine-consuming operation the process is memoized in the macro list.
+
+At first I was using a context-free probabilistic model to optimize the order of decisions, but this requires knowing something about the syntax tree -- which means that each macroexpand()
+call involves generating a new function. This proved to be very expensive (worse than naive macroexpansion!), so I'm going with a model that can be used without knowing anything about the
+syntax trees being transformed.
+
+For history's sake I've left some of the theoretical notes involving probability, but in practice we don't know what the probability will be when we're building the decision tree.
+
+  var macro_expand_jit = (function () {
 
   Irrelevance of discrimination.
   Suppose you have two macro trees, each with the same form (i.e. same arity of each node and same wildcard positions). I propose that the traversal order doesn't require any extensive
@@ -2036,36 +2043,6 @@ reason for this is interesting and possibly incorrect.
 
   Once all non-wildcard nodes are matched, we will have eliminated one macro pattern or the other. (This won't be true if we have overlapping macro definitions, but it is in this case.) At
   that point we will have both verified the macro pattern and reduced the macro-space as much as possible.
-
-  Minimal-probability ordering.
-  Most syntax nodes don't match macro patterns. This is important; it means that we'll end up bailing out of a macro search most of the time. Therefore it's worthwhile to detect bailout cases
-  quickly. Fortunately there's an easy way to do this. When we're confronted with a tree, we order the comparisons so that we first look at the subtree that has the lowest likelihood of
-  occurring randomly in the code. For example:
-
-  | (+ (* (a) (_)) (% (a) (_)))                 <- the macro patterns
-    (+ (* (a) (_)) (/ (a) (_)))
-
-  Let's suppose that P('*') < P('%') + P('/'). That is, the code has more % and / operators combined than *. Then the first thing to check is the * node, then. This is more likely to give us a
-  bailout case than checking the other subtree. If this subtree matches, then we consider all of the next options. We take the lowest-probability comparison next, etc, until we have matched
-  against all of the positive-information components in the macro pattern. (Positive-information things are non-wildcards.)
-
-  Context-free probabilistic model.
-  When we're building the probabilistic model during the initial pass, we're not tracking anything about the context of each node. This ends up being kind of important for making assumptions
-  later on. For instance, it's tempting to try to strategically optimize the decision process to end up with faster rejection criteria. For example, if we had these macros:
-
-  | (+ (% (a) (_)) (* (_) (_)))
-    (+ (/ (a) (_)) (* (_) (_)))
-
-  It's arguably more useful to decide the [0] subtree first, even though it has a lower bailout probability. The reason is that it gets us to the (a) subtree, which has a very high probability
-  of bailout. However, we don't know what kind of context might be in the original syntax trees. It's entirely possible that every time you have a % node, its left-hand side is an (a) -- and
-  without tracking this in the probabilistic analysis we'd be incorrectly assuming that the two events were independent.
-
-  It's important to realize that the problem isn't entirely solved by using naive greedy optimization, but I feel like it represents the assumptions better than a more advanced strategy would.
-
-  The count is returned as the '' key in the result. This can be useful when deciding whether to take the trouble to use JIT to create a custom macroexpand function.
-
-    var context_free_probability_model = function (tree) {var r = {}, count = 0; tree.reach(function (node) {var d = node.data; r[d] = (+r[d] || 0) + 1; ++count});
-                                                          for (var k in r) r[k] /= count; r._ = 1; r[''] = count; return r},
 
   Heterogeneous tree forms.
   Most of the time heterogeneity doesn't matter. The reason for this is that there are few variadic nodes. However, they do sometimes come up. One case is 'return', which sometimes occurs
@@ -2100,14 +2077,15 @@ reason for this is interesting and possibly incorrect.
   | (+ (* (/ (a) (b)) (c)) (+ (a) (b)))
     (+ (* (* (a) (b)) (c)) (- (a) (b)))
 
-  Suppose here that P('*') < P('+') + P('-'), so it makes sense to search subtree [0] first. Further, suppose that P('/') + P('*') < P('+') + P('-'), so we end up progressing into subtree
-  [0][0]. At this point we'll create a branch, so we have partitioned the original tree space into two fragments. As such, we need to know to ask for just the probability of '+' or '-' on its
-  own, not the sum, since we'll be able to bail out immediately if the wrong one is present. This kind of coupling means that we need to be able to query the original trees in their entirety
-  and from the root point. This in turn requires a logical path representation that can be used to both partition trees, and to later generate code to do the same thing. (An interesting
-  question is why we wouldn't use the JIT to do this for us. It would be a cool solution, but I think it would also be very slow to independently compile that many functions.)
+  Suppose here that we search subtree [0] first. Further, suppose that we end up progressing into subtree [0][0]. At this point we'll create a branch, so we have partitioned the original tree
+  space into two fragments. As such, we need to know to ask for just the probability of '+' or '-' on its own, not the sum, since we'll be able to bail out immediately if the wrong one is
+  present. This kind of coupling means that we need to be able to query the original trees in their entirety and from the root point. This in turn requires a logical path representation that
+  can be used to both partition trees, and to later generate code to do the same thing. (An interesting question is why we wouldn't use the JIT to do this for us. It would be a cool solution,
+  but I think it would also be very slow to independently compile that many functions.)
 
   Paths are represented as strings, each of whose characters' charCodes is an index into a subtree. The empty string refers to the root. I'm encoding it this way so that paths can be used as
-  hash keys, which makes it very fast to determine which paths have already been looked up.
+  hash keys, which makes it very fast to determine which paths have already been looked up. Also, most macro paths will be fewer than five characters, so even on eager-consing runtimes the
+  quadratic nature of it isn't that bad.
 
   Treeset partitions are returned as objects that map the arity and data to an array of trees. The arity is encoded as a single character whose charCode is the actual arity. So, for example,
   partition_treeset() might return this object:
@@ -2115,44 +2093,36 @@ reason for this is interesting and possibly incorrect.
   | {'\002+': [(+ (x) (y)), (+ (x) (z))],
      '\002-': [(- (x) (y)), (- (x) (z))]}
 
-    resolve_tree_path = function (tree,  path) {for (var i = 0, l = path.length; i < l; ++i) if (! (tree = tree[path.charCodeAt(i)])) return tree; return tree},
-    partition_treeset = function (trees, path) {for (var r = {}, i = 0, l = trees.length, t, ti; i < l; ++i)
-                                                  (t = resolve_tree_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + t.data) : (t = ''), (r[t] || (r[t] = [])).push(ti);
-                                                return r},
+    var resolve_tree_path = function (tree,  path) {for (var i = 0, l = path.length; i < l; ++i) if (! (tree = tree[path.charCodeAt(i)])) return tree; return tree},
+        partition_treeset = function (trees, path) {for (var r = {}, i = 0, l = trees.length, t, ti; i < l; ++i)
+                                                        (t = resolve_tree_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + t.data) : (t = ''), (r[t] || (r[t] = [])).push(ti);
+                                                    return r},
 
   Pathfinder logic.
-  The idea here is to maintain a list of available paths given a treeset and a list of paths that we've already taken. (The rule is that we can append exactly one dereference to any path that
-  exists, but we can't end up with something we've already seen.) So there are two hashes. One stores visited paths, the other stores available paths to visit. This logic /should/ use a
-  minheap for good amortized performance, but I don't see this being much of a bottleneck so I'm being lazy and using a quadratic algorithm. (Won't be a problem unless you have huge macro
-  patterns.)
-
   For optimization's sake the hash of visited paths maps each path to the arity of the tree that it points to. This makes it very easy to generate adjacent paths without doing a whole bunch of
-  path resolution. available_paths() returns an array of paths, each encoded as a string, and in no particular order. Note that this isn't well-defined for nodes that we haven't visited, since
-  sometimes nodes that share a path will have different arities. This gets resolved by partitioning, at which point the treeset is split into uniform-arity subsets.
+  path resolution.
 
-  This splitting is done by visit_path, which first partitions the tree-space along the path, and then returns new visited[] hashes along with the partitions. The visited[] hash ends up being
+  Partitioning is done by visit_path, which first partitions the tree-space along the path, and then returns new visited[] hashes along with the partitions. The visited[] hash ends up being
   split because different partitions will have different traversal orders. In practice this means that we copy visited[] into several new hashes. The other reason we need to split visited[] is
   that the arity of the path may be different per partition. So the result of visit_path looks like this:
 
   | {'aritydata': {visited: {new_visited_hash}, trees: [...]},
      'aritydata': ...}
 
-  The base case is when there is no visited history; then we return [''] to get the process started with the root path.
+  The base case is when there is no visited history; then we return '' to get the process started with the root path.
 
-    available_paths  = function (visited)              {if (visited == null) return [''];
-                                                        var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
-                                                                             (p = k + String.fromCharCode(i)) in visited || result.push(p); return result},
+  As explained in 'Full specification detection', next_path needs to skip over any paths that refer to wildcards.
 
-    path_probability = function (path,  trees, model)  {for (var total = 0, uniques = {}, i = 0, l = trees.length; i < l; ++i) uniques[resolve_tree_path(trees[i], path).data] = true;
-                                                        for (var k in uniques) total += model[k] || 0; return total},
+    next_path = function (visited, trees) {if (! visited) return '';
+                                           for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
+                                             if (! ((p = k + String.fromCharCode(i)) in visited)) {
+                                               for (var j = 0, lj = trees.length, skip; j < lj; ++j) if (skip = resolve_tree_path(trees[j], p).data === '_') break;
+                                               if (! skip) return p}},
 
-    best_path        = function (paths, trees, model)  {for (var min = 1, mi = 0, i = 0, l = paths.length, p; i < l; ++i)
-                                                         if ((p = path_probability(paths[i], trees, model)) <= min) min = p, mi = i; return paths[mi]},
-
-    visit_path       = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
-                                                        for (var k in partitions) if (partitions.hasOwnProperty(k))
-                                                            partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, k.charCodeAt(0)))};
-                                                        return partitions},
+    visit_path = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
+                                                  for (var k in partitions) if (partitions.hasOwnProperty(k))
+                                                      partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, k.charCodeAt(0)))};
+                                                  return partitions},
 
   Full specification detection.
   Sometimes no path resolves the treeset. At that point one or more trees are fully specified, so we need to find and remove those trees from the list. This will produce an array of results
@@ -2165,11 +2135,36 @@ reason for this is interesting and possibly incorrect.
   This is actually a much more straightforward task than it sounds like, because the number of non-wildcard nodes for each tree is already stored in pattern_data. This means that we just need
   to find trees for which the number of non-wildcard nodes equals the number of visited paths.
 
+  There's a kind of pathological case that also needs to be considered. Suppose you've got a couple of macro patterns like this:
+
+  | (a (b) (_))
+    (a (_) (b))
+
+  In this case we may very well have to try both even though technically neither tree will be specified yet (and hence we don't think there's any ambiguity). The way to address this is to make
+  sure that any trees we put into an 'unspecified' partition are all unspecified in the same place. So the two trees above would go into separate partitions, even though they're both
+  unspecified. Then next_path() will be able to provide a single path that increases specificity, not one that hits a wildcard.
+
+  This case can be recognized because non-wildcards will occur in different positions. A greedy algorithm will suffice; the idea is that we build a list of indexes that refer to non-wildcards
+  and intersect it with each tree we consider. If the next tree results in a zero list then we defer it to the next partition. The way I'm doing this is finishing off the current partition,
+  inserting an empty fully-specified partition, and then kicking off a new partition of unspecified trees. This probably isn't the most efficient way to go about it, but the code generator
+  knows how to deal with empty partitions gracefully.
+
     split_treeset_on_specification = function (trees, pattern_data, visited) {
-                                       var visited_count = 0; if (visited != null) for (var k in visited) visited_count += visited.hasOwnProperty(k);
-                                       for (var r = [], p = [], s = false, i = 0, l = trees.length, t; i < l; ++i)
-                                         if ((pattern_data[(t = trees[i]).id()].non_wildcards === visited_count) !== s) r.push(p), p = [t], s = !s;
-                                         else                                                                           p.push(t);
+                                       var r = [], visited_count = 0, available_paths = {}, available_count = 0;
+                                       if (visited != null) for (var k in visited) visited_count += visited.hasOwnProperty(k);
+
+                                       for (var k in visited) if (visited.hasOwnProperty(k))
+                                         for (var i = 0, l = visited[k]; i < l; ++i) available_paths[k + String.fromCharCode(i)] = ++available_count;
+
+                                       for (var p = [], s = false, remaining_paths = null, remaining_count = 0, i = 0, l = trees.length, t, td; i < l; ++i)
+                                         if (((td = pattern_data[(t = trees[i]).id()]).non_wildcards === visited_count) !== s) r.push(p), p = [t], s = !s, remaining_paths = null;
+                                         else if (s) p.push(t);
+                                         else {
+                                           if (remaining_paths === null) remaining_paths = merge({}, available_paths), remaining_count = available_count;
+                                           for (var k in td.wildcard_paths) remaining_count -= remaining_paths.hasOwnProperty(k), delete remaining_paths[k];
+                                           if (remaining_count) p.push(t);
+                                           else                 r.push(p), r.push([]), p = [t], remaining_paths = null}
+
                                        p.length && r.push(p);
                                        return r},
 
@@ -2189,11 +2184,12 @@ reason for this is interesting and possibly incorrect.
                                       return r},
 
   Code generation.
-  This is the last step and it's where the algorithm finally comes together. Two big things are going on here. One is the traversal process, which combines available_paths, best_path, and
-  probability modeling into one coherent process that builds the piecewise traversal order. The other is the code generation process, which conses up a code tree according to the treeset
-  partitioning that guides the traversal. These two processes happen in parallel.
+  This is the last step and it's where the algorithm finally comes together. Two big things are going on here. One is the traversal process, which uses next_path to build the piecewise
+  traversal order. The other is the code generation process, which conses up a code tree according to the treeset partitioning that guides the traversal. These two processes happen in
+  parallel.
 
-  The original JIT design goes over a lot of the code generation, but I'm duplicating it here for clarity. (There are also some changes in this design, though the ideas are the same.)
+  The original JIT design goes over a lot of the code generation, but I'm duplicating it here for clarity. (There are also some changes in this design, though the ideas are the same since
+  they're both fundamentally just decision trees.)
 
     Function body.
     This is largely uninteresting, except that it provides the base context for path dereferencing (see 'Variable allocation' below). It also provides a temporary 'result' variable, which is
@@ -2297,23 +2293,22 @@ reason for this is interesting and possibly incorrect.
         length_reference_template = parse('_value.length'),
         data_reference_template   = parse('_value.data'),
 
-        generate_partitioned_switch = function (trees, visited, variables, pattern_data, model) {
-                                        var path = best_path(available_paths(visited), trees, model), partitions = visit_path(path, visited, trees), lengths = {}, length_pairs = [];
+        generate_partitioned_switch = function (trees, visited, variables, pattern_data) {
+                                        var path = next_path(visited, trees), partitions = visit_path(path, visited, trees), lengths = {}, length_pairs = [];
                                         for (var k in partitions) if (partitions.hasOwnProperty(k)) (lengths[k.charCodeAt(0)] || (lengths[k.charCodeAt(0)] = [])).push(k.substr(1));
                                         for (var k in lengths)    if (lengths.hasOwnProperty(k))    length_pairs.push([k, lengths[k]]);
 
                                         var new_variables = merge({}, variables), path_reference_variable = generate_path_variable(new_variables, path), variable = new_variables[path],
                                             length_reference = length_reference_template.replace({_value: variable}), data_reference = data_reference_template.replace({_value: variable});
 
-                                        for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length; i < l; ++i) {
-                                          for (var data_cases = new syntax_node(';'), length = length_pairs[i][0], values = length_pairs[i][1], j = 0, lj = values.length, p, v; j < lj; ++j)
+                                        for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length, pair; i < l; ++i) {
+                                          for (var data_cases = new syntax_node(';'), length = (pair = length_pairs[i])[0], values = pair[1], j = 0, lj = values.length, p, v; j < lj; ++j)
                                             p = partitions[String.fromCharCode(length) + (v = values[j])],
                                             data_cases.push(partition_branch_template.replace({_value: '"' + v.replace(/([\\"])/g, '\\$1') + '"',
-                                                                                               _body:  generate_decision_tree(p.trees, path, p.visited, new_variables, pattern_data, model)}));
-
-                                          if (data_cases.length)
-                                            length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
-                                                                                                 _body:  partition_template.replace({_value: data_reference, _cases: data_cases})}))}
+                                                                                               _body:  generate_decision_tree(p.trees, path, p.visited, new_variables, pattern_data)}));
+                                          lj &&
+                                          length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
+                                                                                               _body:  partition_template.replace({_value: data_reference, _cases: data_cases})}))}
                                         return single_macro_attempt_template.replace({_body:
                                                  new syntax_node(';', path_reference_variable,
                                                                       length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases}) : [])})},
@@ -2323,27 +2318,27 @@ reason for this is interesting and possibly incorrect.
 
         generate_unpartitioned_sequence = function (trees, variables, pattern_data) {for (var r = new syntax_node(';'), i = 0, l = trees.length; i < l; ++i)
                                                                                        r.push(generate_macroexpander_invocation(pattern_data, trees[i], variables));
-                                                                                     return r.unflatten()},
+                                                                                     return r},
 
       Inductive step.
       This is where we delegate either to the partitioned switch logic or the sequential sequence logic.
 
-        generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {
+        generate_decision_tree = function (trees, path, visited, variables, pattern_data) {
                                    for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
                                      sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
-                                                                     generate_partitioned_switch(sts[i], visited, variables, pattern_data, model));
-                                   return r},
+                                                                     generate_partitioned_switch(sts[i], visited, variables, pattern_data));
+                                   return r};
 
   Macroexpansion generator.
   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
-    macro_expand_jit = function (t, patterns, expanders, context) {
-                         var rpatterns = [], rexpanders = [], model = context_free_probability_model(t);
-                         for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
-                         var f = compile(pattern_match_function_template.replace(
-                           {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders), model)}));
-                         return t.rmap(function (n) {return f.call(context, n)})};
-__f2096cffc7a81a889c9725b8b43ee593
+    return function (t, patterns, expanders, context) {
+             var rpatterns = [], rexpanders = [];
+             for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
+             var f = compile(pattern_match_function_template.replace(
+               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
+             return t.rmap(function (n) {return f.call(context, n)})}})();
+__c0e10229fdc921fcfe2bb6f58eeaafdf
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
