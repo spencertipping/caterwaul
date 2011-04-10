@@ -1,7 +1,7 @@
 // Caterwaul defmacro standard library tests
 
-test('caterwaul.std.defmacro', function () {
-  var c = caterwaul.clone('std.qs std.qg std.fn std.lvalue std.defmacro std.with_gensyms');
+test('caterwaul.macro.defmacro', function () {
+  var c = caterwaul.clone('std.qs std.qg std.fn std.lvalue macro.defmacro macro.with_gensyms');
 
   c(function (eq) {
     eq(defmacro[foo][fn_[qs[bar]]], null);

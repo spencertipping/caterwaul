@@ -1,7 +1,7 @@
 // Compile-time eval tests.
 
-test('caterwaul.std.compile-eval', function () {
-  var c = caterwaul.clone('std');
+test('caterwaul.macro.compile-eval', function () {
+  var c = caterwaul.clone('std macro');
 
   c(function (eq) {
     var five          = compile_eval[2 + 3];

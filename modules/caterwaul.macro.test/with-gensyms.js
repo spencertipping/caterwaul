@@ -1,7 +1,7 @@
 // Caterwaul with_gensyms tests
 
-test('caterwaul.std.with-gensyms', function () {
-  var c = caterwaul.clone('std.qs', 'std.qg', 'std.fn', 'std.defmacro', 'std.with_gensyms', 'std.string');
+test('caterwaul.macro.with-gensyms', function () {
+  var c = caterwaul.clone('std.qs', 'std.qg', 'std.fn', 'macro.defmacro', 'macro.with_gensyms', 'std.string');
 
   c(function (eq) {
     defmacro[foo][fn_[qs[qs[_]].replace({_: with_gensyms[bar][bar]})]];

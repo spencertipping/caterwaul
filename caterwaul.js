@@ -1054,7 +1054,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
-                                        r[(p = ps[i]).id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                        r[(p = ps[i]).id()] = {expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
                                       return r},
 
 //   Code generation.
@@ -1208,15 +1208,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     compiled_function_cache = {},
     macro_expand_jit = function (t, patterns, expanders, context) {
+                         var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
+                           if (patterns.length === last_length) return last_function;
                            var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
-                           if (compiled_function_cache[k]) return compiled_function_cache[k];
+                           if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
+                             for (var i = 0, l = patterns.length, xs = []; i < l; ++i) xs.push(patterns[i]); console.log(xs.join(','));
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
                                {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
-                             return compiled_function_cache[k] = f}};
+                             return last_length = patterns.length, last_function = compiled_function_cache[k] = f}};
                          return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};

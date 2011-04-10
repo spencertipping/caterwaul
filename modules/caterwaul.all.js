@@ -5,6 +5,7 @@
 
 - pinclude pp::js::core/caterwaul
 - pinclude pp::js::modules/caterwaul.std
+- pinclude pp::js::modules/caterwaul.macro
 - pinclude pp::js::modules/caterwaul.opt
 - pinclude pp::js::modules/caterwaul.continuation
 - pinclude pp::js::modules/caterwaul.seq

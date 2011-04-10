@@ -14,9 +14,10 @@
 
 // Finally, there's also a literal[] macro to preserve code forms. Code inside literal[] will not be macroexpanded in any way.
 
-  configuration('std.qs', function () {this.macro(this.parse('qs[_]'),      function (tree) {return new this.ref(tree)}).
-                                            macro(this.parse('qse[_]'),     function (tree) {return new this.ref(this.macroexpand(tree))}).
-                                            macro(this.parse('literal[_]'), function (tree) {return tree})}).
+  configuration('std.qs', (function (qs_template, qse_template, literal_template) {return function () {
+                            this.macro(qs_template,      function (tree) {return new this.ref(tree)}).
+                                 macro(qse_template,     function (tree) {return new this.ref(this.macroexpand(tree))}).
+                                 macro(literal_template, function (tree) {return tree})}}) (caterwaul.parse('qs[_]'), caterwaul.parse('qse[_]'), caterwaul.parse('literal[_]'))).
 
 // Qg library.
 // The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting Javascript runtimes such as SpiderMonkey. Firefox
@@ -101,8 +102,10 @@
         l_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
                             qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression, values: vars.map(fn[n][n[1]]).unflatten()})];
 
-    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (this.parse('let [_] in _')), lf (this.parse('let [_][_]')).rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
-    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(this.parse('let*[_] in _')), lsf(this.parse('let*[_][_]')).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])}).
+    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (let_in),  lf (let_brackets). rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
+    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(lets_in), lsf(lets_brackets).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])},
+
+    {let_in: caterwaul.parse('let [_] in _'), let_brackets: caterwaul.parse('let [_][_]'), lets_in: caterwaul.parse('let*[_] in _'), lets_brackets: caterwaul.parse('let*[_][_]')}).
 
 // Assignment abbreviations (the 'lvalue' library).
 // Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
@@ -114,57 +117,15 @@
 // Conditional abbreviations (the 'cond' library).
 // Includes forms for making decisions in perhaps a more readable way than using short-circuit logic. In particular, it lets you do things postfix; i.e. 'do X if Y' instead of 'if Y do X'.
 
-  tconfiguration('std.qs std.fn', 'std.cond', function () {this.configure('std.qg').rmacro(qs[_,   when[_]], fn[expression, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expression})]).
-                                                                                    rmacro(qs[_, unless[_]], fn[expression, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expression})])}).
-
-// Macro authoring tools (the 'defmacro' library).
-// Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
-// refers to the caterwaul function that is running. It is trivial to expand into 'null' and side-effectfully define a new macro on that caterwaul object.
-
-// Another handy macro is 'with_gensyms', which lets you write hygienic macros. For example:
-
-// | defmacro[forEach[_][_]][fn[xs, f][with_gensyms[i, l, xs][(function() {for (var i = 0, xs = _xs, l = xs.length, it; it = xs[i], it < l; ++it) {_body}})()].replace({_xs: xs, _body: f})]];
-
-// This will prevent 'xs', 'l', and 'i' from being visible; here is a sample (truncated) macroexpansion:
-
-// | forEach[[1, 2, 3]][console.log(it)]   ->  (function() {for (var _gensym_gesr8o7u_10fo11_ = 0, _gensym_gesr8o7u_10fo12_ = [1, 2, 3],
-//                                                                   _gensym_gesr8o7u_10fo13_ = _gensym_gesr8o7u_10fo12_.length, it;
-//                                                               it = _gensym_gesr8o7u_10fo12_[_gensym_...], _gensym_... < ...; ...) {console.log(it)}})()
-
-// Since nobody in their right mind would name a variable _gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to have gensym
-// collisions. The probability of it is one-in-several-billion at least.)
-
-// Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros. Related to 'defmacro' is 'defsubst',
-// which lets you express simple syntactic rewrites more conveniently. Here's an example of a defmacro and an equivalent defsubst:
-
-// | defmacro[_ <equals> _][fn[left, right][qs[left === right].replace({left: left, right: right})]];
-//   defsubst[_left <equals> _right][_left === _right];
-
-// Syntax variables are prefixed with underscores; other identifiers are literals.
-
-  tconfiguration('std.qs std.fn std.bind std.lvalue', 'std.defmacro', function () {
-    l[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
-    this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
-         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), l[wildcards = pattern.collect(wildcard)] in fn_[l[hash = {}, as = arguments]
-                                                            [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
-
-  tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
-    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][l[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
-                                                                             qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
-
-// Compile-time eval (the 'compile_eval' library).
-// This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
-// expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
-
-  tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
-    this.macro(qs[compile_eval[_]], fn[e][new this.ref(this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this))])}).
+  tconfiguration('std.qs std.qg std.fn', 'std.cond', function () {this.configure('std.qg').rmacro(qs[_,   when[_]], fn[expr, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expr})]).
+                                                                                           rmacro(qs[_, unless[_]], fn[expr, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expr})])}).
 
 // Self-reference (the 'ref' library).
 // Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
 // possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing 'caterwaul'. The expression is replaced by a closure variable that will refer to
 // whichever Caterwaul function was used to transform the code.
 
-  tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
+  tconfiguration('std.qs std.qg std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
 
 // String interpolation.
 // Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
@@ -191,5 +152,5 @@
 // Standard configuration.
 // This loads all of the production-use extensions.
 
-  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.compile_eval std.string')});
+  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string')});
 // Generated by SDoc 
