@@ -1,7 +1,7 @@
 // Tests for composition via the after() method.
 
 test('after', function () {
-  caterwaul.clone('std')(function (eq) {
+  caterwaul.clone('std macro')(function (eq) {
     var c1 = caterwaul.clone('std'), c2 = caterwaul.clone('std');
 
     eq(c1.after.constructor, Function); literal[c1(function () {defsubst[_x + _y][_x * _y]})];

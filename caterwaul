@@ -330,17 +330,16 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
-meta::function('bench-load', <<'__75b11f62ff55f56d881e410c18a6e150');
+meta::function('bench-load', <<'__24ab28964c188475ab4325d9075a936e');
 # Just loads the standard library.
-use Time::HiRes qw/time/;
-
 render();
-my $start = time();
-node(['js::core/debug/profile', 'caterwaul.all.min.js']);
-my $elapsed = time() - $start;
 
-terminal::info("loaded in $elapsed seconds");
-__75b11f62ff55f56d881e410c18a6e150
+terminal::info('loading with node');
+bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.min.js js::core/debug/profile.stop|])});
+
+terminal::info('loading with gjs');
+bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.min.js js::core/debug/profile.stop|])});
+__24ab28964c188475ab4325d9075a936e
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -414,6 +413,17 @@ my $name = pop @_;
 file::write($name, join "\n", retrieve(@_));
 __388e0cc60507443cb1c0cc3e2658cfef
 meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
+meta::function('gjs', <<'__8c86893807ad07373b300cd5c6ff8878');
+# Runs GJS on a collection of source files and arguments. The format is:
+# gjs([@source_strings], @process_args);
+my ($sources, @args) = @_;
+
+with_exported(@$sources, sub {
+  hook('before-gjs', $_[0], @args);
+  sh('gjs', $_[0], @args);
+  hook('after-gjs', $_[0], @args);
+});
+__8c86893807ad07373b300cd5c6ff8878
 meta::function('grep', <<'__f2f28b81f4bcf4cf9fbe9e27bc9447b0');
 # Looks through attributes for a pattern. Usage is grep pattern [options], where
 # [options] is the format as provided to select_keys.
@@ -787,16 +797,18 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__bdd96e96cb6ffbc5d42dc0dc67d10a7a');
+meta::function('test', <<'__4338344e86c1627fc556a7d8289a6c4c');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
 
-my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$_[0]\\.?test/$_[1]");
+my ($options, @args) = separate_options(@_);
+my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$args[0]\\.?test/$args[1]");
 render();
 terminal::info('running ' . join(' ', @tests));
-node([qw(caterwaul.all.js test/lib/unit.js), @tests]);
-__bdd96e96cb6ffbc5d42dc0dc67d10a7a
+node([qw(caterwaul.all.js test/lib/unit.js), @tests]) unless $$options{'-N'};
+gjs([qw(caterwaul.all.js test/lib/unit.js), @tests]) if $$options{'-a'};
+__4338344e86c1627fc556a7d8289a6c4c
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -1669,11 +1681,11 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::core/caterwaul', <<'__b91c303a3c7d2929306c1cd1cc6c15d7');
+meta::sdoc('js::core/caterwaul', <<'__c74240c106c69f3779f121a6880b6abb');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-(function (f) {return f(f)}) (function (self, undefined) {
+(function (f) {return f(f, (function () {})(), (function (x) {return function () {return ++x}})(1))}) (function (self, undefined, unique) {
 
 Introduction.
 Caterwaul implements a very small Lisp in Javascript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding
@@ -1735,8 +1747,8 @@ See the 'Macroexpansion' section some distance below for more information about 
 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__b91c303a3c7d2929306c1cd1cc6c15d7
-meta::sdoc('js::core/caterwaul.behaviors', <<'__113f5dbdc35c319833fc5b099050f001');
+__c74240c106c69f3779f121a6880b6abb
+meta::sdoc('js::core/caterwaul.behaviors', <<'__37362fe060375613e35e511d90d0cf34');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -1801,7 +1813,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
 
   caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
     method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
-     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
+     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).field('unique', unique).
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
@@ -1810,7 +1822,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
                                               if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
                                               return result}).
 
-    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c, undefined, this.unique).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
   Utility library.
@@ -1825,7 +1837,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__113f5dbdc35c319833fc5b099050f001
+__37362fe060375613e35e511d90d0cf34
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -2028,7 +2040,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__3fd2ce35d7aa89f1ecee8ec94e27c556');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__f2802d3df0fa17f77fe434d9bd0d3131');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2259,7 +2271,7 @@ For history's sake I've left some of the theoretical notes involving probability
       path_variable_template = parse('var _temp = _value; if (! _temp) break'),
       path_exists_template   = parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
-                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           var name = gensym(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
     Macroexpander invocation encoding.
@@ -2351,7 +2363,8 @@ For history's sake I've left some of the theoretical notes involving probability
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
+                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].id());
+                           var k = ss.join('|');
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
@@ -2363,7 +2376,7 @@ For history's sake I've left some of the theoretical notes involving probability
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();
-__3fd2ce35d7aa89f1ecee8ec94e27c556
+__f2802d3df0fa17f77fe434d9bd0d3131
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -2975,7 +2988,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.tree', <<'__103ce7ad476311060931101e7b1b64c2');
+meta::sdoc('js::core/caterwaul.tree', <<'__878c23bbef0ff09961c96086a692d0cf');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -3047,13 +3060,10 @@ nodes. At the end of folding there is only one child per paren-group.
 
     Identification.
     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
-    and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy. The mechanism also works differently (i.e. isn't borked) in
-    that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
-    already been computed.
+    and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
+    first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-    Note that IDs can't necessarily be used for small arrays, because IDs are not at all guaranteed to be small.
-
-      id: function () {var id = genint(); return (this.id = function () {return id})()},
+      id: function () {var id = gensym(); return (this.id = function () {return id})()},
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -3265,8 +3275,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
-__103ce7ad476311060931101e7b1b64c2
-meta::sdoc('js::core/caterwaul.utilities', <<'__3de56645df5410165b41f7b19d3cc16a');
+__878c23bbef0ff09961c96086a692d0cf
+meta::sdoc('js::core/caterwaul.utilities', <<'__3dbd0091d2a395a0479a1a8866d19eb1');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
@@ -3301,8 +3311,7 @@ It's used to initialize things statefully; for example:
 The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
-    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-    genint = (function (n, m) {return function () {return ++m ^ n}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    gensym = (function (n, m, u) {return function () {return 'gensym_' + u + '_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -3327,10 +3336,12 @@ The Caterwaul standard library gives you an equivalent but much more refined for
    max_length_key = gensym(),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
-__3de56645df5410165b41f7b19d3cc16a
-meta::sdoc('js::core/debug/profile', <<'__bde9e142b991d8b7d7f802a2f0b1f0df');
+__3dbd0091d2a395a0479a1a8866d19eb1
+meta::sdoc('js::core/debug/profile.start', <<'__c57fde09ae1ed7924ae86e180a4077f7');
 Profiling extensions for performance tuning | Spencer Tipping
 Licensed under the terms of the MIT source code license
+
+This is the code used to start profiling. You'll also need to include js::core/debug/profile.stop to print the results.
 
 var all_profiled_functions = {};
 var recursion              = {};
@@ -3352,17 +3363,18 @@ Function.prototype.profiled = function (name, no_recursion) {
     return result;
   };
 };
+__c57fde09ae1ed7924ae86e180a4077f7
+meta::sdoc('js::core/debug/profile.stop', <<'__990b468eb0612075050f2a50509c1c40');
+Profile end code
 
-setTimeout(function () {
-  var fs = [];
-  for (var k in all_profiled_functions) all_profiled_functions[k].average = (all_profiled_functions[k].total / all_profiled_functions[k].invocations).toFixed(3),
-                                        all_profiled_functions[k].name = k,
-                                        fs.push(all_profiled_functions[k]);
+var fs = [];
+for (var k in all_profiled_functions) all_profiled_functions[k].average = (all_profiled_functions[k].total / all_profiled_functions[k].invocations).toFixed(3),
+                                      all_profiled_functions[k].name = k,
+                                      fs.push(all_profiled_functions[k]);
 
-  fs.sort(function (x, y) {return x.total - y.total});
-  console.log(fs);
-}, 0);
-__bde9e142b991d8b7d7f802a2f0b1f0df
+fs.sort(function (x, y) {return x.total - y.total});
+typeof console === 'undefined' ? print(fs) : console.log(fs);
+__990b468eb0612075050f2a50509c1c40
 meta::sdoc('js::minify', <<'__050b10a052015886ecad866ded895049');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
@@ -4379,7 +4391,7 @@ test('caterwaul.parser.dsl', function () {
   })(eq);
 });
 __595f0a43936f994088d95cf2c2504923
-meta::sdoc('js::modules/caterwaul.parser.test/high-complexity', <<'__a8806aa4f1d2dd1f847c9ce6891d05a6');
+meta::sdoc('js::modules/caterwaul.parser.test/high-complexity', <<'__7205bca9c419ada3007d1ff029796c6b');
 Observed failure case of exponential-time complexity to parse simple expressions.
 The Figment parser parses strings using the c(/ /, 1) construct. However, its complexity seems to be exponential.
 
@@ -4387,7 +4399,7 @@ Update: The problem was the following regular expression, which does in fact hav
 | /(?:\n?[^\n]+)*/
 
 test('caterwaul.parser.high-complexity', function () {
-  caterwaul.clone('std seq continuation parser')(function (eq) {
+  caterwaul.clone('std macro seq continuation parser')(function (eq) {
     defsubst[time[_x]][l*[start = +new Date(), result = qg[_x], end = +new Date()] in end - start];
     var parser = peg[c(/'([^\\']|\\.?)*/, 1) % c("'")];
     var times = [time[parser("''")], time[parser("'f'")], time[parser("'fo'")], time[parser("'foobar'")], time[parser("'foobarbifbaz'")]];
@@ -4405,7 +4417,7 @@ test('caterwaul.parser.high-complexity', function () {
     var times2 = [time[figment_lex('foo bar bif\n')], time[figment_lex('foo bar bif baz bok\n')], time[figment_lex('foo bar bif baz bok boo quux hork bork bogus\n')]];
   })(eq);
 });
-__a8806aa4f1d2dd1f847c9ce6891d05a6
+__7205bca9c419ada3007d1ff029796c6b
 meta::sdoc('js::modules/caterwaul.parser.test/infinite-loop-failure', <<'__3828d90faa5416f15379fb065f994324');
 An observed failure involving infinite looping.
 The original case is in the Figment parser:
@@ -5339,7 +5351,7 @@ This loads all of the production-use extensions.
 
   configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string')});
 __5c27d8bd5506a3500b74d902abaae9bb
-meta::sdoc('js::modules/caterwaul.std.test/falsy-refs', <<'__dd9ad6c8a645ab21eca0b7bcf6f17bce');
+meta::sdoc('js::modules/caterwaul.std.test/falsy-refs', <<'__ee6542bd537959e722d2ad5d08cdf6f4');
 Falsy ref tests.
 It's possible that Caterwaul 0.5 and earlier reject falsy references; e.g.
 
@@ -5347,14 +5359,14 @@ It's possible that Caterwaul 0.5 and earlier reject falsy references; e.g.
   foo   // may result in undefined variable
 
 test('caterwaul.std.falsy-refs', function () {
-  var c = caterwaul.clone('std');
+  var c = caterwaul.clone('std macro');
 
   c(function (eq) {
     defmacro[falsy][fn_[new this.ref(false)]];
     eq(falsy, false);
   })(eq);
 });
-__dd9ad6c8a645ab21eca0b7bcf6f17bce
+__ee6542bd537959e722d2ad5d08cdf6f4
 meta::sdoc('js::modules/caterwaul.std.test/fn', <<'__7bec921f8fd44a6fbdddf512f28a6226');
 Caterwaul fn, bind, and cond standard library tests
 
@@ -5429,7 +5441,7 @@ test('caterwaul.std.macro-definition', function () {
   eq(c(function () {return l(x = 5) in x + 1})(), 6);
 });
 __091833e70addeb9353e6c0e38f1c8b45
-meta::sdoc('js::modules/caterwaul.std.test/overlapping-macros', <<'__4edbd39d917dd2d511e6522856bcce37');
+meta::sdoc('js::modules/caterwaul.std.test/overlapping-macros', <<'__715f3f544b78c2bd3b54fe18c48dd161');
 Test for an uncommon but important macro case:
 
 | defmacro[_ + _][fn[x, y][..., when[x.data === 5]]];   // or some such
@@ -5438,7 +5450,7 @@ Test for an uncommon but important macro case:
 Macroexpansion works backwards, but the macroexpander should failover to the first defmacro if the second expander rejects the match.
 
 test('caterwaul.std.overlapping-macros', function () {
-  var c = caterwaul.clone('std');
+  var c = caterwaul.clone('std macro');
 
   c(function (eq) {
     compile_eval[this.count1 = 0, this.count2 = 0];
@@ -5466,12 +5478,12 @@ test('caterwaul.std.overlapping-macros', function () {
     eq(c.count2, 1);
   }) (eq);
 });
-__4edbd39d917dd2d511e6522856bcce37
-meta::sdoc('js::modules/caterwaul.std.test/ref', <<'__e0d5574489eb0a436574369b4ddaa9cc');
+__715f3f544b78c2bd3b54fe18c48dd161
+meta::sdoc('js::modules/caterwaul.std.test/ref', <<'__a72d86ce8554b542f8a08a06a08987f5');
 Caterwaul ref library tests
 
 test('caterwaul.std.ref', function () {
-  var fn = caterwaul.clone('std');
+  var fn = caterwaul.clone('std macro');
   fn.foo = 'bar';
 
   var returned_this = fn(function (eq) {
@@ -5501,7 +5513,7 @@ test('caterwaul.std.ref', function () {
   eq(fn.foo, 'bif');
   eq(returned_this, fn);
 });
-__e0d5574489eb0a436574369b4ddaa9cc
+__a72d86ce8554b542f8a08a06a08987f5
 meta::sdoc('js::modules/caterwaul.std.test/string', <<'__fb17bd0301f5a5ba0b0461a9944d5e6e');
 String interpolation tests.
 
@@ -5617,11 +5629,11 @@ And here are the expression-mode transformations:
 
     this.after(
 __3a1c33101bf68061d3dd41ba5f3da257
-meta::sdoc('js::test/after', <<'__c08f0c044844994c593cf28cb4f4d958');
+meta::sdoc('js::test/after', <<'__1e8f9f114d6d65a684e48b521b22be33');
 Tests for composition via the after() method.
 
 test('after', function () {
-  caterwaul.clone('std')(function (eq) {
+  caterwaul.clone('std macro')(function (eq) {
     var c1 = caterwaul.clone('std'), c2 = caterwaul.clone('std');
 
     eq(c1.after.constructor, Function); literal[c1(function () {defsubst[_x + _y][_x * _y]})];
@@ -5642,7 +5654,7 @@ test('after', function () {
     eq(c21(qs[x * y]).data, '*');
   })(eq);
 });
-__c08f0c044844994c593cf28cb4f4d958
+__1e8f9f114d6d65a684e48b521b22be33
 meta::sdoc('js::test/environment', <<'__3b875a9598a9d647dc99d31e953b6c82');
 Environment compilation test.
 Makes sure that Caterwaul compiles a function within the right environment.
@@ -5813,18 +5825,18 @@ test('lex-semicolon-failure', function () {
   t('/foo/g;/bar/g', '(; (/foo/g) (/bar/g))');
 });
 __49490aff075a90b745e45ad9bad59b7a
-meta::sdoc('js::test/lib/unit', <<'__458b2d5ecb12b34e383495edda6c830d');
+meta::sdoc('js::test/lib/unit', <<'__67c1c04065c6451957f49497c6830d84');
 Unit testing library functions
 
 var original_caterwaul = caterwaul.deglobalize();
 
-var log = function (message) {
+var log_message = function (message) {
   if (typeof console === 'undefined') print(message);
   else                                console.log(message);
 };
 
 var on_error = function (name, e) {
-  log('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
+  log_message('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
   throw new Error(e);
 };
 
@@ -5837,7 +5849,7 @@ var eq = function (x, y, message) {
 
 var current_test = null;
 var test = function (name, f) {
-  log('[unit] starting test ' + (current_test = name));
+  log_message('[unit] starting test ' + (current_test = name));
 
   try {
     eq_count  = 0;
@@ -5851,7 +5863,7 @@ var test = function (name, f) {
     on_error(name, e);
   }
 };
-__458b2d5ecb12b34e383495edda6c830d
+__67c1c04065c6451957f49497c6830d84
 meta::sdoc('js::test/lib/unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
 Client-side unit testing hooks.
 

@@ -5,7 +5,7 @@
 // | /(?:\n?[^\n]+)*/
 
 test('caterwaul.parser.high-complexity', function () {
-  caterwaul.clone('std seq continuation parser')(function (eq) {
+  caterwaul.clone('std macro seq continuation parser')(function (eq) {
     defsubst[time[_x]][l*[start = +new Date(), result = qg[_x], end = +new Date()] in end - start];
     var parser = peg[c(/'([^\\']|\\.?)*/, 1) % c("'")];
     var times = [time[parser("''")], time[parser("'f'")], time[parser("'fo'")], time[parser("'foobar'")], time[parser("'foobarbifbaz'")]];

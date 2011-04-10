@@ -62,7 +62,7 @@
 
   caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
     method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
-     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
+     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).field('unique', unique).
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
@@ -71,7 +71,7 @@
                                               if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
                                               return result}).
 
-    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c, undefined, this.unique).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
 //   Utility library.

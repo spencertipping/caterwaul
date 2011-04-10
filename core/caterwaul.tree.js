@@ -69,13 +69,10 @@
 
 //     Identification.
 //     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
-//     and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy. The mechanism also works differently (i.e. isn't borked) in
-//     that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
-//     already been computed.
+//     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
+//     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-//     Note that IDs can't necessarily be used for small arrays, because IDs are not at all guaranteed to be small.
-
-      id: function () {var id = genint(); return (this.id = function () {return id})()},
+      id: function () {var id = gensym(); return (this.id = function () {return id})()},
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,

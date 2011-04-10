@@ -1,7 +1,7 @@
 // Caterwaul ref library tests
 
 test('caterwaul.std.ref', function () {
-  var fn = caterwaul.clone('std');
+  var fn = caterwaul.clone('std macro');
   fn.foo = 'bar';
 
   var returned_this = fn(function (eq) {

@@ -1,7 +1,7 @@
 // Caterwaul JS | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
-(function (f) {return f(f)}) (function (self, undefined) {
+(function (f) {return f(f, (function () {})(), (function (x) {return function () {return ++x}})(1))}) (function (self, undefined, unique) {
 
 // Introduction.
 // Caterwaul implements a very small Lisp in Javascript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding

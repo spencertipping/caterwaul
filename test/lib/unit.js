@@ -2,13 +2,13 @@
 
 var original_caterwaul = caterwaul.deglobalize();
 
-var log = function (message) {
+var log_message = function (message) {
   if (typeof console === 'undefined') print(message);
   else                                console.log(message);
 };
 
 var on_error = function (name, e) {
-  log('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
+  log_message('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
   throw new Error(e);
 };
 
@@ -21,7 +21,7 @@ var eq = function (x, y, message) {
 
 var current_test = null;
 var test = function (name, f) {
-  log('[unit] starting test ' + (current_test = name));
+  log_message('[unit] starting test ' + (current_test = name));
 
   try {
     eq_count  = 0;

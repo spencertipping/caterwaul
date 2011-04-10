@@ -1,7 +1,7 @@
 // Caterwaul JS | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
-(function (f) {return f(f)}) (function (self, undefined) {
+(function (f) {return f(f, (function () {})(), (function (x) {return function () {return ++x}})(1))}) (function (self, undefined, unique) {
 
 // Introduction.
 // Caterwaul implements a very small Lisp in Javascript syntax. The syntax ends up looking much more like McCarthy's M-expressions than traditional S-expressions, due to the ease of embedding
@@ -89,8 +89,7 @@
 // The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
-    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-    genint = (function (n, m) {return function () {return ++m ^ n}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    gensym = (function (n, m, u) {return function () {return 'gensym_' + u + '_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -192,13 +191,10 @@
 
 //     Identification.
 //     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
-//     and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy. The mechanism also works differently (i.e. isn't borked) in
-//     that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
-//     already been computed.
+//     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
+//     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-//     Note that IDs can't necessarily be used for small arrays, because IDs are not at all guaranteed to be small.
-
-      id: function () {var id = genint(); return (this.id = function () {return id})()},
+      id: function () {var id = gensym(); return (this.id = function () {return id})()},
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -1119,7 +1115,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       path_variable_template = parse('var _temp = _value; if (! _temp) break'),
       path_exists_template   = parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
-                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           var name = gensym(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
 //     Macroexpander invocation encoding.
@@ -1211,7 +1207,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
+                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].id());
+                           var k = ss.join('|');
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
@@ -1414,7 +1411,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
   caterwaul_core = function (f) {return configurable(f).configure(macroexpansion, composition).
     method('tconfiguration', function (configs, name, f, bindings) {this.configurations[name] = this.clone(configs)(f, bindings); return this}).
-     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).
+     field('syntax', syntax_node).field('ref', ref).field('parse', parse).field('compile', compile).field('gensym', gensym).field('map', map).field('self', self).field('unique', unique).
 
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
@@ -1423,7 +1420,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                               if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
                                               return result}).
 
-    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c).deglobalize();
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c, undefined, this.unique).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
 //   Utility library.

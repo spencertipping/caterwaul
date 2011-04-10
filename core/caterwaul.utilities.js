@@ -32,8 +32,7 @@
 // The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
-    gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-    genint = (function (n, m) {return function () {return ++m ^ n}})(+new Date(), Math.random() * (1 << 30) >>> 0),
+    gensym = (function (n, m, u) {return function () {return 'gensym_' + u + '_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},

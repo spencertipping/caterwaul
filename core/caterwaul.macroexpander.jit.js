@@ -228,7 +228,7 @@
       path_variable_template = parse('var _temp = _value; if (! _temp) break'),
       path_exists_template   = parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
-                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           var name = gensym(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
 //     Macroexpander invocation encoding.
@@ -320,7 +320,8 @@
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
+                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].id());
+                           var k = ss.join('|');
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
