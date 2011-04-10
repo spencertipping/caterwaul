@@ -90,7 +90,7 @@
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
     gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-    genint = (function (n) {return function () {return ++n}})(0),
+    genint = (function (n, m) {return function () {return ++m ^ n}})(+new Date(), Math.random() * (1 << 30) >>> 0),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -195,6 +195,8 @@
 //     and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy. The mechanism also works differently (i.e. isn't borked) in
 //     that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
 //     already been computed.
+
+//     Note that IDs can't necessarily be used for small arrays, because IDs are not at all guaranteed to be small.
 
       id: function () {var id = genint(); return (this.id = function () {return id})()},
 
@@ -1032,7 +1034,6 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                          else if (s) p.push(t);
                                          else {
                                            if (remaining_paths === null) remaining_paths = merge({}, available_paths), remaining_count = available_count;
-                                           td.tree === t || (console.log('mismatch: ', td, pattern_data), null['escape']);
                                            for (var ps = td.wildcard_paths, j = 0, lj = ps.length, pj; j < lj; ++j)
                                              remaining_count -= remaining_paths.hasOwnProperty(pj = ps[j]), delete remaining_paths[pj];
                                            if (remaining_count) p.push(t);
@@ -1053,8 +1054,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
-                                        r[(p = ps[i]).id()] && (console.log('duplicate', p.id(), p, r), null['escape']),
-                                        r[p.id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                        r[(p = ps[i]).id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
                                       return r},
 
 //   Code generation.
@@ -1209,14 +1209,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     compiled_function_cache = {},
     macro_expand_jit = function (t, patterns, expanders, context) {
                          var macroexpand_function = function () {
-                           var k = (patterns[0].id() << 16) + patterns[patterns.length - 1].id();
+                           var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
                            if (compiled_function_cache[k]) return compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
                                {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
-                             process.stderr.write(f.toString() + '\n\n');
                              return compiled_function_cache[k] = f}};
                          return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
 

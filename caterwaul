@@ -403,7 +403,7 @@ my $name = pop @_;
 file::write($name, join "\n", retrieve(@_));
 __388e0cc60507443cb1c0cc3e2658cfef
 meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
-meta::function('grep', <<'__6583fd995903767c88b6603b21e89430');
+meta::function('grep', <<'__f2f28b81f4bcf4cf9fbe9e27bc9447b0');
 # Looks through attributes for a pattern. Usage is grep pattern [options], where
 # [options] is the format as provided to select_keys.
 
@@ -411,13 +411,15 @@ my ($pattern, @args)     = @_;
 my ($options, @criteria) = separate_options(@args);
 my @attributes           = select_keys(%$options, '--criteria' => join('|', @criteria));
 
+$pattern = qr/$pattern/;
+
 my @m_attributes, @m_line_numbers, @m_lines;
 
 for my $k (@attributes) {
   next unless length $k;
   my @lines = split /\n/, retrieve($k);
   for (0 .. $#lines) {
-    next unless $lines[$_] =~ /$pattern/;
+    next unless $lines[$_] =~ $pattern;
     push @m_attributes,   $k;
     push @m_line_numbers, $_ + 1;
     push @m_lines,        $lines[$_] // ''}} 
@@ -428,7 +430,7 @@ if ($$options{'-c'}) {
   s/^/\033[1;32m/o && s/$/\033[0;0m/o for @m_line_numbers}
 
 table_display([@m_attributes], [@m_line_numbers], [@m_lines]);
-__6583fd995903767c88b6603b21e89430
+__f2f28b81f4bcf4cf9fbe9e27bc9447b0
 meta::function('hash', 'fast_hash(@_);');
 meta::function('hook', <<'__d74d8e2b611342af6a0897e0bd62e6e6');
 my ($hook, @args) = @_;
@@ -2015,7 +2017,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__def5b74451f9395285906593ef0b9df1');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__07a44a0ac2a12d0935b418183f9594ba');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2161,7 +2163,6 @@ For history's sake I've left some of the theoretical notes involving probability
                                          else if (s) p.push(t);
                                          else {
                                            if (remaining_paths === null) remaining_paths = merge({}, available_paths), remaining_count = available_count;
-                                           td.tree === t || (console.log('mismatch: ', td, pattern_data), null['escape']);
                                            for (var ps = td.wildcard_paths, j = 0, lj = ps.length, pj; j < lj; ++j)
                                              remaining_count -= remaining_paths.hasOwnProperty(pj = ps[j]), delete remaining_paths[pj];
                                            if (remaining_count) p.push(t);
@@ -2182,8 +2183,7 @@ For history's sake I've left some of the theoretical notes involving probability
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
-                                        r[(p = ps[i]).id()] && (console.log('duplicate', p.id(), p, r), null['escape']),
-                                        r[p.id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                        r[(p = ps[i]).id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
                                       return r},
 
   Code generation.
@@ -2338,20 +2338,19 @@ For history's sake I've left some of the theoretical notes involving probability
     compiled_function_cache = {},
     macro_expand_jit = function (t, patterns, expanders, context) {
                          var macroexpand_function = function () {
-                           var k = (patterns[0].id() << 16) + patterns[patterns.length - 1].id();
+                           var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
                            if (compiled_function_cache[k]) return compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
                                {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
-                             process.stderr.write(f.toString() + '\n\n');
                              return compiled_function_cache[k] = f}};
                          return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();
-__def5b74451f9395285906593ef0b9df1
+__07a44a0ac2a12d0935b418183f9594ba
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -2963,7 +2962,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.tree', <<'__939840d8c3289a90088c06b4f3ebc4c9');
+meta::sdoc('js::core/caterwaul.tree', <<'__103ce7ad476311060931101e7b1b64c2');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -3038,6 +3037,8 @@ nodes. At the end of folding there is only one child per paren-group.
     and after that it is stable. As of Caterwaul 0.7.0 the identity is a number rather than a gensym, though all IDs are truthy. The mechanism also works differently (i.e. isn't borked) in
     that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
     already been computed.
+
+    Note that IDs can't necessarily be used for small arrays, because IDs are not at all guaranteed to be small.
 
       id: function () {var id = genint(); return (this.id = function () {return id})()},
 
@@ -3251,8 +3252,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
-__939840d8c3289a90088c06b4f3ebc4c9
-meta::sdoc('js::core/caterwaul.utilities', <<'__c865800b7aa549a61e8577b46ae4f675');
+__103ce7ad476311060931101e7b1b64c2
+meta::sdoc('js::core/caterwaul.utilities', <<'__3de56645df5410165b41f7b19d3cc16a');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
@@ -3288,7 +3289,7 @@ The Caterwaul standard library gives you an equivalent but much more refined for
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
     gensym = (function (n, m) {return function () {return 'gensym_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0),
-    genint = (function (n) {return function () {return ++n}})(0),
+    genint = (function (n, m) {return function () {return ++m ^ n}})(+new Date(), Math.random() * (1 << 30) >>> 0),
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -3313,7 +3314,7 @@ The Caterwaul standard library gives you an equivalent but much more refined for
    max_length_key = gensym(),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
-__c865800b7aa549a61e8577b46ae4f675
+__3de56645df5410165b41f7b19d3cc16a
 meta::sdoc('js::minify', <<'__e78c26e425d25e97f16e017a4ae03cff');
 Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
 This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.

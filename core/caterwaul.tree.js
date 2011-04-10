@@ -73,6 +73,8 @@
 //     that it replaces the prototype definition with an instance-specific closure the first time it gets called. This may reduce the number of decisions in the case that the node's ID has
 //     already been computed.
 
+//     Note that IDs can't necessarily be used for small arrays, because IDs are not at all guaranteed to be small.
+
       id: function () {var id = genint(); return (this.id = function () {return id})()},
 
 //     Traversal functions.

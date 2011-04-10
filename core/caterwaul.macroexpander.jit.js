@@ -143,7 +143,6 @@
                                          else if (s) p.push(t);
                                          else {
                                            if (remaining_paths === null) remaining_paths = merge({}, available_paths), remaining_count = available_count;
-                                           td.tree === t || (console.log('mismatch: ', td, pattern_data), null['escape']);
                                            for (var ps = td.wildcard_paths, j = 0, lj = ps.length, pj; j < lj; ++j)
                                              remaining_count -= remaining_paths.hasOwnProperty(pj = ps[j]), delete remaining_paths[pj];
                                            if (remaining_count) p.push(t);
@@ -164,8 +163,7 @@
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
-                                        r[(p = ps[i]).id()] && (console.log('duplicate', p.id(), p, r), null['escape']),
-                                        r[p.id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                        r[(p = ps[i]).id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
                                       return r},
 
 //   Code generation.
@@ -320,14 +318,13 @@
     compiled_function_cache = {},
     macro_expand_jit = function (t, patterns, expanders, context) {
                          var macroexpand_function = function () {
-                           var k = (patterns[0].id() << 16) + patterns[patterns.length - 1].id();
+                           var k = patterns[0].id() * 5 + patterns[patterns.length - 1].id() * 3 + patterns.length * 2;
                            if (compiled_function_cache[k]) return compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
                                {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
-                             process.stderr.write(f.toString() + '\n\n');
                              return compiled_function_cache[k] = f}};
                          return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
 
