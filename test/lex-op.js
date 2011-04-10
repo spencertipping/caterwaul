@@ -20,7 +20,7 @@ test('lex-op', function () {
 
   s('return /foo/g', '(return (/foo/g))');
   s('throw /foo/g', '(throw (/foo/g))');
-  s('case /foo/g:', '(i; (case) (: (/foo/g) (<>)))');
+  s('case /foo/g:', '(: (case (/foo/g)) (<>))');
 
   s('bar /foo/g', '(/ (/ (bar) (foo)) (g))');
   s('3.5 /foo/g', '(/ (/ (3.5) (foo)) (g))');

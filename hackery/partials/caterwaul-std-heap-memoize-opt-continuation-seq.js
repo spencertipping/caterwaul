@@ -1,3 +1,216 @@
+
+// Caterwaul standard library | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+  caterwaul.
+
+// Qs library.
+// You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'. A variant, qse[], macroexpands the
+// quoted code first and returns the macroexpansion. This improves performance while still enabling terse macro forms -- for example, if you write this:
+
+// | this.rmacro(qs[foo[_]], function (tree) {return qse[fn_[x + 1]].replace({x: tree})})
+
+// The fn_[] will be expanded exactly once when the qse[] is processed, rather than each time as part of the macroexpansion. I don't imagine it improves performance that noticeably, but it's
+// been bugging me for a while so I decided to add it.
+
+// Finally, there's also a literal[] macro to preserve code forms. Code inside literal[] will not be macroexpanded in any way.
+
+  configuration('std.qs', function () {this.macro(this.parse('qs[_]'),      function (tree) {return new this.ref(tree)}).
+                                            macro(this.parse('qse[_]'),     function (tree) {return new this.ref(this.macroexpand(tree))}).
+                                            macro(this.parse('literal[_]'), function (tree) {return tree})}).
+
+// Qg library.
+// The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting Javascript runtimes such as SpiderMonkey. Firefox
+// failed the unit tests when ordinary parentheses were used because it requires disambiguation for expression-mode functions only at the statement level; thus syntax trees are not fully mobile
+// like they are ordinarily. Already-parenthesized expressions aren't wrapped.
+
+  tconfiguration('std.qs', 'std.qg', function () {this.rmacro(qs[qg[_]], function (expression) {return expression.as('(')})}).
+
+// Function abbreviations (the 'fn' library).
+// There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. fb[][] and fb_[]
+// are identical to fn[][] and fn_[], but they preserve 'this' across the function call.
+
+// The fc[][] and fc_[] variants build constructor functions. These are just like regular functions, but they always return undefined.
+
+  tconfiguration('std.qs std.qg', 'std.fn', function () {
+    this.configure('std.qg').
+         rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (vars) {return expression}]].replace({vars: vars, expression: expression})}).
+         rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
+         rmacro(qs[fb[_][_]], function (vars, expression) {return qse[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
+         rmacro(qs[fb_[_]],   function       (expression) {return qse[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
+         rmacro(qs[fc[_][_]], function       (vars, body) {return qse[qg[fn[vars][body, undefined]]].replace({vars: vars, body: body})}).
+         rmacro(qs[fc_[_]],   function             (body) {return qse[qg[fn[vars][body, undefined]]].replace({            body: body})})}).
+
+// Object abbreviations (the 'obj' library).
+// Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly
+// eta-expand when calling a method in point-free form:
+
+// | xs.map(object/mb/method);           // === xs.map(fn[x][object.method(x)])
+//   xs.map(object/mb[method]);          // === xs.map(fn[x][object[method](x)])
+
+// Note that undefined methods are returned as such rather than having a fail-later proxy. (i.e. if foo.bar === undefined, then foo/mb/bar === undefined too) Neither the object nor the property
+// (for the indirected version) are evaluated more than once.
+
+// Also useful is side-effecting, which you can do this way:
+
+// | {} /se[_.foo = 'bar']               // === l[_ = {}][_.foo = 'bar', _]
+
+// Conveniently, side-effects can be chained since / is left-associative. An alternative form of side-effecting is the 'right-handed' side-effect (which is still left-associative, despite the
+// name), written x /re[y]. This returns the result of evaluating y, where _ is bound to x. Variants of /se and /re allow you to specify a variable name:
+
+// | {} /se.o[o.foo = 'bar']
+
+  tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
+    this.configure('std.qg std.fn').
+      rmacro(qs[_/mb/_],    fn[object, method][qse[qg[fn[_o]    [_o.m   && fn_[_o.m.apply  (_o, arguments)]]](o)]   .replace({_o: this.gensym(),                    o: object, m: method})]).
+      rmacro(qs[_/mb[_]],   fn[object, method][qse[qg[fn[_o, _m][_o[_m] && fn_[_o[_m].apply(_o, arguments)]]](o, m)].replace({_o: this.gensym(), _m: this.gensym(), o: object, m: method})]).
+      rmacro(qs[_/se._[_]], fn[v, n, b][qse[qg[fn[n][b, n]].call(this, v)].replace({b: b, n: n, v: v})]).rmacro(qs[_/se[_]], fn[v, b][qse[v /se._[b]].replace({b: b, v: v})]).
+      rmacro(qs[_/re._[_]], fn[v, n, b][qse[qg[fn[n]   [b]].call(this, v)].replace({b: b, n: n, v: v})]).rmacro(qs[_/re[_]], fn[v, b][qse[v /re._[b]].replace({b: b, v: v})])}).
+
+// Binding abbreviations (the 'bind' library).
+// Includes forms for defining local variables. One is 'l[bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
+// This means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.) Each of these
+// expands into a function call; e.g.
+
+// | l[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
+
+// You also get l* and where*, which define their variables in the enclosed scope:
+
+// | l*[x = 6, y = x] in x + y
+//   // compiles into:
+//   (function () {
+//     var x = 6, y = x;
+//     return x + y;
+//   }).call(this);
+
+// This form has a couple of advantages over the original. First, you can use the values of previous variables; and second, you can define recursive functions:
+
+// | l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
+
+// You can also use the less English-like but more expressive l[...][...] syntax:
+
+// | l[x = 5][x + 1]
+//   l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
+
+// This has the advantage that you no longer need to parenthesize any short-circuit, decisional, or relational logic in the expression.
+
+// The legacy let and let* forms are also supported, but they will cause syntax errors in some Javascript interpreters (hence the change).
+
+  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {this.configure('std.qg');
+    var lf = fb[form][this.rmacro(form, l_expander)], lsf = fb[form][this.rmacro(form, l_star_expander)],
+        l_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
+        l_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
+                            qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression, values: vars.map(fn[n][n[1]]).unflatten()})];
+
+    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (this.parse('let [_] in _')), lf (this.parse('let [_][_]')).rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
+    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(this.parse('let*[_] in _')), lsf(this.parse('let*[_][_]')).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])}).
+
+// Assignment abbreviations (the 'lvalue' library).
+// Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
+// to work with on this point. (It's only due to an interesting IE feature (bug) that assigning to a function call is possible in the first place.)
+
+  tconfiguration('std.qs std.qg std.fn', 'std.lvalue', function () {this.rmacro(qs[_(_) = _], fn[base, params, value][qs[base = qg[function (params) {return value}]].
+                                                                                                                        replace({base: base, params: params, value: value})])}).
+
+// Conditional abbreviations (the 'cond' library).
+// Includes forms for making decisions in perhaps a more readable way than using short-circuit logic. In particular, it lets you do things postfix; i.e. 'do X if Y' instead of 'if Y do X'.
+
+  tconfiguration('std.qs std.fn', 'std.cond', function () {this.configure('std.qg').rmacro(qs[_,   when[_]], fn[expression, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expression})]).
+                                                                                    rmacro(qs[_, unless[_]], fn[expression, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expression})])}).
+
+// Macro authoring tools (the 'defmacro' library).
+// Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
+// refers to the caterwaul function that is running. It is trivial to expand into 'null' and side-effectfully define a new macro on that caterwaul object.
+
+// Another handy macro is 'with_gensyms', which lets you write hygienic macros. For example:
+
+// | defmacro[forEach[_][_]][fn[xs, f][with_gensyms[i, l, xs][(function() {for (var i = 0, xs = _xs, l = xs.length, it; it = xs[i], it < l; ++it) {_body}})()].replace({_xs: xs, _body: f})]];
+
+// This will prevent 'xs', 'l', and 'i' from being visible; here is a sample (truncated) macroexpansion:
+
+// | forEach[[1, 2, 3]][console.log(it)]   ->  (function() {for (var _gensym_gesr8o7u_10fo11_ = 0, _gensym_gesr8o7u_10fo12_ = [1, 2, 3],
+//                                                                   _gensym_gesr8o7u_10fo13_ = _gensym_gesr8o7u_10fo12_.length, it;
+//                                                               it = _gensym_gesr8o7u_10fo12_[_gensym_...], _gensym_... < ...; ...) {console.log(it)}})()
+
+// Since nobody in their right mind would name a variable _gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to have gensym
+// collisions. The probability of it is one-in-several-billion at least.)
+
+// Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros. Related to 'defmacro' is 'defsubst',
+// which lets you express simple syntactic rewrites more conveniently. Here's an example of a defmacro and an equivalent defsubst:
+
+// | defmacro[_ <equals> _][fn[left, right][qs[left === right].replace({left: left, right: right})]];
+//   defsubst[_left <equals> _right][_left === _right];
+
+// Syntax variables are prefixed with underscores; other identifiers are literals.
+
+  tconfiguration('std.qs std.fn std.bind std.lvalue', 'std.defmacro', function () {
+    l[wildcard(n) = n.data.constructor === String && n.data.charAt(0) === '_' && '_'] in
+    this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
+         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), l[wildcards = pattern.collect(wildcard)] in fn_[l[hash = {}, as = arguments]
+                                                            [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
+
+  tconfiguration('std.qs std.fn std.bind', 'std.with_gensyms', function () {
+    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][l[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
+                                                                             qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
+
+// Compile-time eval (the 'compile_eval' library).
+// This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
+// expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
+
+  tconfiguration('std.qs std.fn', 'std.compile_eval', function () {
+    this.macro(qs[compile_eval[_]], fn[e][new this.ref(this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this))])}).
+
+// Self-reference (the 'ref' library).
+// Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
+// possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing 'caterwaul'. The expression is replaced by a closure variable that will refer to
+// whichever Caterwaul function was used to transform the code.
+
+  tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
+
+// Local macroexpansion (the 'locally' library).
+// Sometimes you want to write a configuration that isn't applied globally, but rather just to a delimited section of code. This macro does just that: You can specify one or more configurations
+// and a block of code, and the block of code will be transformed under a Caterwaul clone with those configurations and returned. So, for example:
+
+// | caterwaul.clone('std.locally')(function () {
+//     return locally['std'][fn[x][x + 1]];        // General case (especially if you want multiple configurations separated by spaces)
+//     return locally[std][fn[x][x + 1]];          // Same thing
+//     return locally.std[fn[x][x + 1]];           // Also the same thing
+//   });
+
+// Note that the implementation of this isn't terribly efficient. It creates a custom Caterwaul clone for the block in question and then throws that clone away. This probably pales in comparison
+// to the macroexpansion process in general, but if your Caterwaul has a ton of configurations applied it could be a performance bottleneck during macroexpansion.
+
+  tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
+    l*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
+
+// String interpolation.
+// Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
+// tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
+
+// There is some weird stuff going on with splitting and bounds here. Most of it is IE6-related workarounds; IE6 has a buggy implementation of split() that fails to return elements inside match
+// groups. It also fails to return leading and trailing zero-length strings (so, for example, splitting ':foo:bar:bif:' on /:/ would give ['foo', 'bar', 'bif'] in IE, vs. ['', 'foo', 'bar',
+// 'bif', ''] in sensible browsers). So there is a certain amount of hackery that happens to make sure that where there are too few strings empty ones get inserted, etc.
+
+// Another thing that has to happen is that we need to take care of any backslash-quote sequences in the expanded source. The reason is that while generally it's safe to assume that the user
+// didn't put any in, Firefox rewrites strings to be double-quoted, escaping any double-quotes in the process. So in this case we need to find \" and replace them with ".
+
+// In case the 'result.push' at the end looks weird, it's OK because result is a syntax node and syntax nodes return themselves when you call push(). If 'result' were an array the code would be
+// seriously borked.
+
+  tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
+    this.rmacro(qs[_], fn[string]
+      [string.is_string() && /#\{[^\}]+\}/.test(string.data) &&
+       l*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
+         [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
+          this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
+          new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
+
+// Standard configuration.
+// This loads all of the production-use extensions.
+
+  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.locally std.compile_eval std.string')});
+// Generated by SDoc 
+
 // Heap implementation | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
@@ -604,178 +817,4 @@
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
                                                             'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal ' +
                                                             'seq.numeric seq.dsl')});
-// Generated by SDoc 
-
-// Caterwaul parser module | Spencer Tipping
-// Licensed under the terms of the MIT source code license
-
-// Introduction.
-// The caterwaul parser uses a combinatory approach, much like Haskell's parser combinator library. The parser consumes elements from a finite input stream and emits the parse tree at each step.
-// Note that parsers generated here are not at all insightful or necessarily performant. In particular, left-recursion isn't resolved, meaning that the parser will loop forever in this case.
-
-//   Basis and acknowledgements.
-//   This parser library is based heavily on Chris Double's JSParse (available at github.com/doublec/jsparse), which implements a memoized combinatory PEG parser. If you are looking for a simple
-//   and well-designed parsing library, I highly recommend JSParse; it will be easier to use and more predictable than caterwaul.parser. Like JSParse, these parsers are memoized and use parsing
-//   expression grammars. However, this parser is probably quite a lot slower.
-
-// Internals.
-// Memoization is restricted to a session rather than being global. This prevents the space leak that would otherwise occur if the parser outlived the result. Behind the scenes the parser
-// promotes the input into a parse-state (very much like the ps() function in JSParse). Like other caterwaul libraries, this one uses non-macro constructs behind the scenes. You can easily get at
-// this by accessing stuff inside the caterwaul.parser namespace.
-
-  caterwaul.tconfiguration('std seq continuation memoize', 'parser.core', function () {
-    this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
-                                 _.parse_state /se.s[s.from_input(input) = new _.parse_state(input, 0, null, {}),
-                                                     s.prototype /se[_.accept(i, r) = new this.constructor(this.input, i, r, this.memo),
-                                                                     _.has_input()  = this.i < this.input.length,
-                                                                     _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.result}]']],
-
-                                 _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
-                                                                                               where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
-                                 _.promote_non_states(f) = fn[state][state instanceof _.parse_state ? f.call(this, state) : f.call(this, _.parse_state.from_input(state)) /re[_ && _.result]],
-                                 _.identify(f)           = f /se[_.memo_id = caterwaul.gensym()],
-                                 _.parser(f)             = _.promote_non_states(_.memoize(_.identify(f))),
-                                 _.defparser(name, f)    = _.parsers[name]() = _.parser(f.apply(this, arguments)),
-                                 _.parsers               = {}]}).
-
-// Notation.
-// Parsers are written as collections of named nonterminals. Each nonterminal contains a mandatory expansion and an optional binding:
-
-// | peg[c('a') % c('b')]                                 // A grammar that recognizes the character 'a' followed by the character 'b'
-//   peg[c('a') % c('b') >> fn[ab][ab[0] + ab[1]]]        // The same grammar, but the AST transformation step appends the two characters
-
-// The >> notation is borrowed from Haskell (would have been >>=, but this requires a genuine lvalue on the left); the idea is that the optional binding is a monadic transform on the parse-state
-// monad. (The only difference is that you don't have to re-wrap the result in a new parse state using 'return' as you would in Haskell -- the return here is implied.) The right-hand side of >>
-// can be any expression that returns a function. It will be evaluated directly within its lexical context, so the peg[] macro is scope-transparent modulo gensyms and the namespace importing of
-// caterwaul.parser.parsers.
-
-// Parsers are transparent over parentheses. Only the operators described below are converted specially.
-
-//   Constants.
-//   Strings are parsable by using the c(x) function, which is named this because it matches a constant.
-
-//   | peg[c('x')]                 // Parses the string 'x'
-//     peg[c('foo bar')]           // Parses the string 'foo bar'
-//     peg[c(['foo', 'bar'])]      // Parses either the string 'foo' or the string 'bar', in mostly-constant time in the size of the array (see below)
-//     peg[c({foo: 1, bar: 2})]    // Parses either the string 'foo' or the string 'bar'; returns 1 if 'foo' matched, 2 if 'bar' matched (also in mostly-constant time)
-//     peg[c(/\d+/, 1)]            // Parses strings of digits with a minimum length of 1. The parse is greedy, and the regexp's exec() method output is returned.
-//     peg[c(fn[s][3])]            // Always takes three characters, regardless of what they are.
-
-//   The c() function can take other arguments as well. One is an array of strings; in this case, it matches against any string in the array. (Matching time is O(l), where l is the number of
-//   distinct lengths of strings.) Another is an object; if any directly-contained (!) attribute of the key is parsed and consumed, then the value associated with that key is returned. The time
-//   for this algorithm is O(l), where l is the number of distinct lengths of the keys in the object.
-
-//   Another option is specifying a regular expression with a minimum length. The rule is that the parser fails immediately if the regexp doesn't match the minimum length of characters. If it
-//   does match, then the maximum matching length is found. This ends up performing O(log n) regexp-matches against the input, for a total runtime of O(n log n). (The algorithm here is an
-//   interesting one: Repeatedly double the match length until matching fails, then binary split between the last success and the first failure.) Because of the relatively low performance of this
-//   regexp approach, it may be faster to use a regular finite-automaton for routine parsing and lexing. Then again, O(log n) linear-time native code calls may be faster than O(n) constant-time
-//   calls in practice.
-
-//   In order for a regular expression to work sensibly in this context, it needs to have a couple of properties. One is that it partitions two contiguous ranges of substrings into matching and
-//   non-matching groups, and that the matching group, if it exists, contains shorter substrings than the non-matching group. Put differently, there exists some k such that substrings from length
-//   minimum (the minimum that you specify as the second argument to c()) to k all match, and substrings longer than k characters all fail to match. The other property is that the initial match
-//   length must be enough to accept or reject the regular expression. So, for example, c(/[a-zA-Z0-9]+/, 1) is a poor way to match against identifiers since it will also quite happily take an
-//   integer.
-
-//   Note that if you specify a regular expression, the parser library will recompile it into a new one that is anchored at both ends. This is necessary for sane behavior; nobody would ever want
-//   anything else. This means that matching on /foo/ will internally generate /^foo$/. This recompilation process preserves the flags on the original however. (Though you seriously shouldn't use
-//   /g -- I have no idea what this would do.)
-
-//   Finally, you can also specify a function. If you do this, the function will be invoked on the input and the current offset, and should return the number of characters it intends to consume.
-//   It returns a falsy value to indicate failure.
-
-    tconfiguration('std seq continuation', 'parser.c', function () {
-      this.configure('parser.core').parser.defparser('c', fn[x, l][
-        x.constructor === String   ? fn[st][st.accept(st.i + x.length, x), when[x === st.input.substr(st.i, x.length)]] :
-        x instanceof Array         ? l[index = index_entries(x)] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, _)]] :
-        x.constructor === RegExp   ? l[x = add_absolute_anchors_to(x)] in
-                                     fn[st][fail_length(x, st.input, st.i, l) /re[_ > l && split_lengths(x, st.input, st.i, l, _) /re[st.accept(st.i + _, x.exec(st.input.substr(st.i, _)))]]] :
-        x.constructor === Function ? fn[st][x.call(st, st.input, st.i) /re[_ && st.accept(st.i + _, st.input.substr(st.i, _))]] :
-                                     l[index = index_entries(seq[sk[x]])] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, x[_])]],
-
-        where*[check_index(i, s, p) = seq[i |[_['@#{s}'] && s, where[s = s.substr(p, _.length)]]],
-               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[seq[!(xsp *[[_.length, true]])]] *[Number(_)]]] in
-                                      seq[~ls.slice().sort(fn[x, y][y - x]) *~l[!(xsp %[_.length === l] *[['@#{_}', true]] + [['length', l]])]],
-
-               add_absolute_anchors_to(x)    = l[parts = /^\/(.*)\/(\w*)$/.exec(x.toString())] in new RegExp('^#{parts[1]}$', parts[2]),
-               fail_length(re, s, p, l)      = re.test(s.substr(p, l)) ? p + (l << 1) <= s.length ? fail_length(re, s, p, l << 1) : l << 1 : l,
-               split_lengths(re, s, p, l, u) = l*[b(l, u) = l + 1 < u ? (l + (u - l >> 1)) /re.m[re.test(s.substr(p, m)) ? b(m, u) : b(l, m)] : l] in b(l, u)]])}).
-
-//   Sequences.
-//   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
-
-//   | peg[c('a') % c('b') % c('c')]('abc')                     // -> ['a', 'b', 'c']
-//     peg[c('a') % c('b') >> fn[xs][xs.join('/')]]('ab')       // -> 'a/b'
-
-    tconfiguration('std opt seq continuation', 'parser.seq', function () {
-      this.configure('parser.core').parser.defparser('seq', fn_[l[as = arguments] in fn[state][
-        call/cc[fn[cc][opt.unroll[i, as.length][(state = as[i](state)) ? result.push(state.result) : cc(false)], state.accept(state.i, result)]], where[result = []]]])}).
-
-//   Alternatives.
-//   Denoted using the '/' operator. Alternation is transparent; that is, the chosen entry is returned identically. Entries are tried from left to right without backtracking. For example:
-
-//   | peg[c('a') / c('b')]('a')        // -> 'a'
-
-    tconfiguration('std seq', 'parser.alt', function () {
-      this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[_(state)]]]])}).
-
-//   Repetition.
-//   Denoted using subscripted ranges, similar to the notation used in regular expressions. For example:
-
-//   | peg[c('a')[0]]                   // Zero or more 'a's
-//     peg[c('b')[1,4]                  // Between 1 and 4 'b's
-
-    tconfiguration('std opt seq continuation', 'parser.times', function () {
-      this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
-        call/cc[fn[cc][opt.unroll[i, lower][++count, (state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
-        call/cc[l*[loop(cc) = (! upper || count++ < upper) && state.has_input() && p(state) /se[state = _, when[_]] ?
-                              result.push(state.result) && call/tail[loop(cc)] : cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
-
-//   Optional things.
-//   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
-
-//   | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
-
-    tconfiguration('std seq continuation', 'parser.opt', function () {
-      this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s ? s.i : state.i, r = s && s.result]]])}).
-
-//   Positive and negative matches.
-//   Denoted using unary + and -, respectively. These consume no input but make assertions:
-
-//   | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
-//     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
-
-    tconfiguration('std seq continuation', 'parser.match', function () {
-      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
-                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
-
-//   Binding.
-//   This is fairly straightforward; a parser is 'bound' to a function by mapping through the function if it is successful. The function then returns a new result based on the old one. Binding is
-//   denoted by the >> operator.
-
-    tconfiguration('std seq continuation', 'parser.bind', function () {
-      this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
-
-// DSL macro.
-// Most of the time you'll want to use the peg[] macro rather than hand-coding the grammar. The macro both translates the tree and introduces all of the parsers as local variables (like a with()
-// block, but much faster and doesn't earn the wrath of Douglas Crockford).
-
-  tconfiguration('std seq continuation', 'parser.dsl', function () {
-    this.configure('parser.core').rmacro(qs[peg[_]],
-      fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
-                                                      _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),
-
-    this.parser.dsl = caterwaul.global().clone() /se.dsl[dsl.macro /se[
-      _(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: e(x), _y: y})]),
-      _(qs[_ / _], fb('/', 'alt')), _(qs[_ % _], fb('%', 'seq')), _(qs[_ >> _], b('bind')), _(qs[[_]], u('opt')), _(qs[_].as('('), fn[x][e(x).as('(')]),
-      _(qs[_[_]], fn[x, l][qs[times(_x, _l)].replace({_x: e(x), _l: l})]), _(qs[_[_, _]], fn[x, l, u][qs[times(_x, _l, _u)].replace({_x: e(x), _l: l, _u: u})]),
-      where*[e = dsl.macroexpand, fb(op, name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: x.flatten(op).map(e) /se[_.data = ','], _y: e(y)}),
-                                       b(name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: e(x), _y: y}),
-                                          u(name)(x) = qs[_name(_x)]    .replace({_name: name, _x: e(x)})]]]}).
-
-// Final configuration.
-// Loads both the classes and the peg[] macro.
-
-  configuration('parser', function () {
-    this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
 // Generated by SDoc 

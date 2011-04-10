@@ -840,10 +840,10 @@ meta::hook('after-render::cleanup', <<'__53d7a659ec1b2c1702f61651a956d38c');
 # Nuke some things that get created by render().
 unlink qw/macroexpander.js parser.js minify.js minify.js.sdocp/;
 __53d7a659ec1b2c1702f61651a956d38c
-meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
+meta::hook('after-render::hackery', <<'__062241e6c594421bc7bb77b89daca84b');
 # Runs the hackery generation hooks (which happen after a render)
-#hook('hackery');
-__049a9817dec529eff29f94917eb1ee83
+hook('hackery');
+__062241e6c594421bc7bb77b89daca84b
 meta::hook('after-render::minify', <<'__4dbb82308b841f12d2bcd62fce32d468');
 # Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
 file::write('caterwaul.js',       retrieve('pp::js::core/caterwaul'));
@@ -881,13 +881,13 @@ $scripts
 EOF
 __45102e0cfa23cfa11c7f56f6dd4acbe9
 meta::hook('before-render::notify', 'terminal::info(\'rendering\');');
-meta::hook('hackery::coarse-profiling', <<'__5485ce8ba5cc41be8b23d0615e325d2c');
+meta::hook('hackery::coarse-profiling', <<'__4056c8cc24a2c3e884837cc95efa0bba');
 # Render versions of caterwaul.all.js, but leave out the core caterwaul.
 my $filename = 'hackery/coarse-profiling/caterwaul.configurations.js';
-file::write($filename, cat(map "js::modules/caterwaul.$_", grep $_ ne 'std', split /\n/, &{'module-order'}()));
+file::write($filename, cat(map "js::modules/caterwaul.$_", qw/heap memoize opt continuation seq parser/));
 minify($filename);
-__5485ce8ba5cc41be8b23d0615e325d2c
-meta::hook('hackery::partials', <<'__a95834118615197b87ea8792bee8ac43');
+__4056c8cc24a2c3e884837cc95efa0bba
+meta::hook('hackery::partials', <<'__f84a0f54cf39f3fa5f294e44a925a8fb');
 # Builds partial versions of Caterwaul to test the loading time of each.
 my @accepted_modules;
 
@@ -899,12 +899,12 @@ sub build_caterwaul {
   minify($filename);
 }
 
-my @all_modules = split /\n/, &{'module-order'}();
+my @all_modules = qw/std heap memoize opt continuation seq parser/;
 for (@all_modules) {
   push @accepted_modules, $_;
   build_caterwaul(@accepted_modules);
 }
-__a95834118615197b87ea8792bee8ac43
+__f84a0f54cf39f3fa5f294e44a925a8fb
 meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -1723,7 +1723,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
 __b91c303a3c7d2929306c1cd1cc6c15d7
-meta::sdoc('js::core/caterwaul.behaviors', <<'__113f5dbdc35c319833fc5b099050f001');
+meta::sdoc('js::core/caterwaul.behaviors', <<'__d21a33c78852a27a2581cdee93e25e11');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -1750,7 +1750,7 @@ means that it may become arbitrarily optimized.
 
   var macroexpansion = function (f) {return f.
     shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_jit(t, this.macro_patterns, this.macro_expanders, this)}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
@@ -1812,7 +1812,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__113f5dbdc35c319833fc5b099050f001
+__d21a33c78852a27a2581cdee93e25e11
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -2015,7 +2015,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__dda8cceaf3bf342c68c21532a0419083');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__ce9173e73d43d18676ac79d0be55b898');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -2151,7 +2151,7 @@ reason for this is interesting and possibly incorrect.
 
     visit_path       = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
                                                         for (var k in partitions) if (partitions.hasOwnProperty(k))
-                                                            partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, partitions[k][0].length))};
+                                                            partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, k.charCodeAt(0)))};
                                                         return partitions},
 
   Full specification detection.
@@ -2243,7 +2243,8 @@ reason for this is interesting and possibly incorrect.
                                                                     indexed_path_reference_template .replace({_base: generate_path_reference(variables, path.substr(0, path.length - 1)),
                                                                                                               _index: '' + path.charCodeAt(path.length - 1)})},
       path_variable_template = parse('var _temp = _value; if (! _temp) return false'),
-      generate_path_variable = function (variables, path) {return path_variable_template.replace({_value: generate_path_reference(variables, path), _temp: variables[path] = 't' + genint()})},
+      generate_path_variable = function (variables, path) {var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           return variables[path] = name, path_variable_template.replace(replacements)},
 
     Macroexpander invocation encoding.
     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
@@ -2295,19 +2296,18 @@ reason for this is interesting and possibly incorrect.
                                         for (var k in partitions) if (partitions.hasOwnProperty(k)) (lengths[k.charCodeAt(0)] || (lengths[k.charCodeAt(0)] = [])).push(k.substr(1));
                                         for (var k in lengths)    if (lengths.hasOwnProperty(k))    length_pairs.push([k, lengths[k]]);
 
-                                        var path_reference_variable = generate_path_variable(variables, path), variable = variables[path],
+                                        var new_variables = merge({}, variables), path_reference_variable = generate_path_variable(new_variables, path), variable = new_variables[path],
                                             length_reference = length_reference_template.replace({_value: variable}), data_reference = data_reference_template.replace({_value: variable});
 
                                         for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length; i < l; ++i) {
                                           for (var data_cases = new syntax_node(';'), length = length_pairs[i][0], values = length_pairs[i][1], j = 0, lj = values.length, p, v; j < lj; ++j)
                                             p = partitions[String.fromCharCode(length) + (v = values[j])],
                                             data_cases.push(partition_branch_template.replace({_value: '"' + v.replace(/([\\"])/g, '\\$1') + '"',
-                                                                                               _body:  generate_decision_tree(p.trees, path, p.visited, variables, pattern_data, model)}));
+                                                                                               _body:  generate_decision_tree(p.trees, path, p.visited, new_variables, pattern_data, model)}));
 
                                           if (data_cases.length)
-                                            length_cases.push(partition_branch_template.replace({_value: length_pairs[i][0].toString(),
+                                            length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
                                                                                                  _body:  partition_template.replace({_value: data_reference, _cases: data_cases.unflatten()})}))}
-
                                         return new syntax_node(';', path_reference_variable,
                                                                     length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases.unflatten()}) : [])},
 
@@ -2336,7 +2336,7 @@ reason for this is interesting and possibly incorrect.
                          var f = compile(pattern_match_function_template.replace(
                            {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders), model)}));
                          return t.rmap(function (n) {return f.call(context, n)})};
-__dda8cceaf3bf342c68c21532a0419083
+__ce9173e73d43d18676ac79d0be55b898
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -5720,7 +5720,7 @@ test('lex-neq-failure', function () {
   eq(caterwaul.parse('foo[1] != 5').inspect(), '(!= ([] (foo) (1)) (5))');
 });
 __db5bc6e3197597074912c505be253979
-meta::sdoc('js::test/lex-op', <<'__b26a7a11464b6e8ebf03dace36fa75d0');
+meta::sdoc('js::test/lex-op', <<'__523e2a2a2eff5911d23a76e399e03805');
 Operation lexing tests.
 
 test('lex-op', function () {
@@ -5743,13 +5743,13 @@ test('lex-op', function () {
 
   s('return /foo/g', '(return (/foo/g))');
   s('throw /foo/g', '(throw (/foo/g))');
-  s('case /foo/g:', '(i; (case) (: (/foo/g) (<>)))');
+  s('case /foo/g:', '(: (case (/foo/g)) (<>))');
 
   s('bar /foo/g', '(/ (/ (bar) (foo)) (g))');
   s('3.5 /foo/g', '(/ (/ (3.5) (foo)) (g))');
   s('false /foo/g', '(/ (/ (false) (foo)) (g))');
 });
-__b26a7a11464b6e8ebf03dace36fa75d0
+__523e2a2a2eff5911d23a76e399e03805
 meta::sdoc('js::test/lex-regexp-in-for-failure', <<'__16a2dd041600b860c86d964cd53375d1');
 Observed failure case:
 for (var k in hash) /foo/.test(k) || ...

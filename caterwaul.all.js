@@ -1029,7 +1029,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     visit_path       = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
                                                         for (var k in partitions) if (partitions.hasOwnProperty(k))
-                                                            partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, partitions[k][0].length))};
+                                                            partitions[k] = {trees: partitions[k], visited: merge({}, visited, kv(path, k.charCodeAt(0)))};
                                                         return partitions},
 
 //   Full specification detection.
@@ -1121,7 +1121,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                                     indexed_path_reference_template .replace({_base: generate_path_reference(variables, path.substr(0, path.length - 1)),
                                                                                                               _index: '' + path.charCodeAt(path.length - 1)})},
       path_variable_template = parse('var _temp = _value; if (! _temp) return false'),
-      generate_path_variable = function (variables, path) {return path_variable_template.replace({_value: generate_path_reference(variables, path), _temp: variables[path] = 't' + genint()})},
+      generate_path_variable = function (variables, path) {var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           return variables[path] = name, path_variable_template.replace(replacements)},
 
 //     Macroexpander invocation encoding.
 //     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
@@ -1173,19 +1174,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                         for (var k in partitions) if (partitions.hasOwnProperty(k)) (lengths[k.charCodeAt(0)] || (lengths[k.charCodeAt(0)] = [])).push(k.substr(1));
                                         for (var k in lengths)    if (lengths.hasOwnProperty(k))    length_pairs.push([k, lengths[k]]);
 
-                                        var path_reference_variable = generate_path_variable(variables, path), variable = variables[path],
+                                        var new_variables = merge({}, variables), path_reference_variable = generate_path_variable(new_variables, path), variable = new_variables[path],
                                             length_reference = length_reference_template.replace({_value: variable}), data_reference = data_reference_template.replace({_value: variable});
 
                                         for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length; i < l; ++i) {
                                           for (var data_cases = new syntax_node(';'), length = length_pairs[i][0], values = length_pairs[i][1], j = 0, lj = values.length, p, v; j < lj; ++j)
                                             p = partitions[String.fromCharCode(length) + (v = values[j])],
                                             data_cases.push(partition_branch_template.replace({_value: '"' + v.replace(/([\\"])/g, '\\$1') + '"',
-                                                                                               _body:  generate_decision_tree(p.trees, path, p.visited, variables, pattern_data, model)}));
+                                                                                               _body:  generate_decision_tree(p.trees, path, p.visited, new_variables, pattern_data, model)}));
 
                                           if (data_cases.length)
-                                            length_cases.push(partition_branch_template.replace({_value: length_pairs[i][0].toString(),
+                                            length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
                                                                                                  _body:  partition_template.replace({_value: data_reference, _cases: data_cases.unflatten()})}))}
-
                                         return new syntax_node(';', path_reference_variable,
                                                                     length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases.unflatten()}) : [])},
 
@@ -1367,7 +1367,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
   var macroexpansion = function (f) {return f.
     shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_jit(t, this.macro_patterns, this.macro_expanders, this)}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
