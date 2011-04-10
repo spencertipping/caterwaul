@@ -876,7 +876,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   index the tree in such a way as to encode containment. Perhaps at some point I'll find a faster macroexpander, especially if this one proves to be slow. At this point macroexpansion is by
 //   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
 //   practice it's generally not quite so bad.)
-//   
+
 //   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
 
 //   The fourth parameter, 'context', is used to hand a 'this' reference to the macroexpander. This is necessary to get defmacro[] to work properly, and in general lets macros be side-effectful.

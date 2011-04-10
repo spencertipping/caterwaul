@@ -2003,7 +2003,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 __23ce30f3b2b1466d33a7b2d09f559a20
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__a2febafa3eaeabba70a9bc9084822b89');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__25a7577b2c2ee57b5b8e74713beffeb5');
 JIT macroexpander.
 I started designing a JIT macroexpander with probability weighting, but the design was probably more complex than necessary. (It's in sdoc::js::core/caterwaul.macroexpander.jit-probabilistic
 if you're curious.) Probabilistic weighting definitely has merit for influencing the order of decisional cases, but it doesn't necessarily matter for deciding the order of comparisons. The
@@ -2298,11 +2298,21 @@ reason for this is interesting and possibly incorrect.
                                           for (var r = new syntax_tree(';'), i = 0, l = trees.length; i < l; ++i) r.push(generate_macroexpander_invocation(pattern_data, trees[i], variables));
                                           return r.unflatten()},
 
-      generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {},
+      generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {
+                                 for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
+                                   r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
+                                                  generate_partitioned_switch(sts[i], visited, variables, pattern_data, model));
+                                 return r},
 
-    Macroexpansion generator.
-    
-__a2febafa3eaeabba70a9bc9084822b89
+  Macroexpansion generator.
+  This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
+
+    macro_expand = function (t, patterns, expanders, context) {
+                     var rpatterns = [], rexpanders = [], model = context_free_probability_model(t);
+                     for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
+                     return compile(pattern_match_function_template.replace(
+                       {_body: generate_decision_tree(rpatterns, '', {}, empty_variable_mapping_table, pattern_data(patterns, expanders), model)})).apply(context, [t])};
+__25a7577b2c2ee57b5b8e74713beffeb5
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -2540,7 +2550,7 @@ have failed.
         for (var i = 0, l = sorted.length, si, pi; i < l; ++i) si = sorted[i], pi = p(si), e += np * pi * weight_of(si), np *= (1 - pi);
         return decision_weight_constant + e}
 __f8e79b07d50f734a587e82b560e02729
-meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__9fb998fb99402d409f8ed12b73445fa6');
+meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__66001d712048d4e52875ee2e43c6e31d');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
 forward use the optimizing hashed macroexpander defined in sdoc::js::core/caterwaul.macroexpander.hashed.
@@ -2564,7 +2574,7 @@ forward use the optimizing hashed macroexpander defined in sdoc::js::core/caterw
   index the tree in such a way as to encode containment. Perhaps at some point I'll find a faster macroexpander, especially if this one proves to be slow. At this point macroexpansion is by
   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
   practice it's generally not quite so bad.)
-  
+
   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
 
   The fourth parameter, 'context', is used to hand a 'this' reference to the macroexpander. This is necessary to get defmacro[] to work properly, and in general lets macros be side-effectful.
@@ -2577,7 +2587,7 @@ forward use the optimizing hashed macroexpander defined in sdoc::js::core/caterw
     macro_expand = function (t, macros, expanders, context) {
                      return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
                                                    if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(context, match))) return replacement})};
-__9fb998fb99402d409f8ed12b73445fa6
+__66001d712048d4e52875ee2e43c6e31d
 meta::sdoc('js::core/caterwaul.parser', <<'__eed9ff7c2d7670bb3e9723d934f61083');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
