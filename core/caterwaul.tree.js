@@ -236,7 +236,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
 //     algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
 
- ends_with_block: function () {var block_index = parse_r_until_block[this.data], block = this[block_index];
+ ends_with_block: function () {var block = this[parse_r_until_block[this.data]];
                                return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
 
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
@@ -252,8 +252,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
-       serialize: function (xs) {var op = this.data, right = this.r ? '/* -> ' + this.r.serialize() + ' */' : '', space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '',
-                                    s = has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+       serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
+                                 return has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                        has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
                                           has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                             has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
@@ -262,8 +262,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                     has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
                                                                      op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
                                                                      op + space + map(syntax_node_tostring, this).join('') :
-                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op;
-                               return right ? s + right : s}},
+                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}},
 
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:

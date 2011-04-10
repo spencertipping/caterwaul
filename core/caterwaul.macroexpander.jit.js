@@ -99,7 +99,7 @@
 
     resolve_tree_path = function (tree,  path) {for (var i = 0, l = path.length; i < l; ++i) if (! (tree = tree[path.charCodeAt(i)])) return tree; return tree},
     partition_treeset = function (trees, path) {for (var r = {}, i = 0, l = trees.length, t, ti; i < l; ++i)
-                                                    (t = resolve_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + (t = t.data)) : (t = ''), (r[t] || (r[t] = [])).push(ti);
+                                                  (t = resolve_tree_path(ti = trees[i], path)) ? (t = String.fromCharCode(t.length) + t.data) : (t = ''), (r[t] || (r[t] = [])).push(ti);
                                                 return r},
 
 //   Pathfinder logic.
@@ -119,7 +119,10 @@
 //   | {'aritydata': {visited: {new_visited_hash}, trees: [...]},
 //      'aritydata': ...}
 
-    available_paths  = function (visited)              {var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
+//   The base case is when there is no visited history; then we return [''] to get the process started with the root path.
+
+    available_paths  = function (visited)              {if (visited == null) return [''];
+                                                        var result = []; for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
                                                                                        visited[p = k + String.fromCharCode(i)] || result.push(p); return result},
 
     path_probability = function (path,  trees, model)  {for (var total = 0, uniques = {}, i = 0, l = trees.length; i < l; ++i) uniques[resolve_tree_path(trees[i], path).data] = true;
@@ -145,7 +148,7 @@
 //   to find trees for which the number of non-wildcard nodes equals the number of visited paths.
 
     split_treeset_on_specification = function (trees, pattern_data, visited) {
-                                       var visited_count = 0; for (var k in visited) visited_count += visited.hasOwnProperty(k);
+                                       var visited_count = 0; if (visited != null) for (var k in visited) visited_count += visited.hasOwnProperty(k);
                                        for (var r = [], p = [], s = false, i = 0, l = trees.length, t; i < l; ++i)
                                          if ((pattern_data[(t = trees[i]).id()].non_wildcards === visited_count) !== s) r.push(p), p = [t], s = !s;
                                          else                                                                           p.push(t);
@@ -222,7 +225,7 @@
                                                                     indexed_path_reference_template .replace({_base: generate_path_reference(variables, path.substr(0, path.length - 1)),
                                                                                                               _index: '' + path.charCodeAt(path.length - 1)})},
       path_variable_template = parse('var _temp = _value; if (! _temp) return false'),
-      generate_path_variable = function (variables, path) {return path_variable_template.replace({_temp: variables[path] = 't' + genint(), _value: generate_path_reference(variables, path)})},
+      generate_path_variable = function (variables, path) {return path_variable_template.replace({_value: generate_path_reference(variables, path), _temp: variables[path] = 't' + genint()})},
 
 //     Macroexpander invocation encoding.
 //     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
@@ -277,33 +280,42 @@
                                         var path_reference_variable = generate_path_variable(variables, path), variable = variables[path],
                                             length_reference = length_reference_template.replace({_value: variable}), data_reference = data_reference_template.replace({_value: variable});
 
-                                        for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length, pk, p; i < l; ++i) {
-                                          p = partitions[pk = length_pairs[i].join('')];
-                                          for (var data_cases = new syntax_node(';'), j = 0, lj = pair.length, pkey, p; j < lj; ++j)
-                                            data_cases.push(partition_branch_template.replace({_value: '"' + pair[1].replace(/([\\"])/g, '\\$1') + '"',
+                                        for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length; i < l; ++i) {
+                                          for (var data_cases = new syntax_node(';'), length = length_pairs[i][0], values = length_pairs[i][1], j = 0, lj = values.length, p, v; j < lj; ++j)
+                                            p = partitions[String.fromCharCode(length) + (v = values[j])],
+                                            data_cases.push(partition_branch_template.replace({_value: '"' + v.replace(/([\\"])/g, '\\$1') + '"',
                                                                                                _body:  generate_decision_tree(p.trees, path, p.visited, variables, pattern_data, model)}));
 
-                                          length_cases.push(partition_branch_template.replace({_value: length_pairs[i][0].toString(),
-                                                                                               _body:  partition_template.replace({_value: data_reference, _cases: data_cases.unflatten()})}))}
+                                          if (data_cases.length)
+                                            length_cases.push(partition_branch_template.replace({_value: length_pairs[i][0].toString(),
+                                                                                                 _body:  partition_template.replace({_value: data_reference, _cases: data_cases.unflatten()})}))}
 
-                                        return partition_template.replace({_value: length_reference, _cases: length_cases.unflatten()})},
+                                        return new syntax_node(';', path_reference_variable,
+                                                                    length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases.unflatten()}) : [])},
 
-      generate_unpartitioned_sequence = function (trees, variables, pattern_data) {
-                                          for (var r = new syntax_tree(';'), i = 0, l = trees.length; i < l; ++i) r.push(generate_macroexpander_invocation(pattern_data, trees[i], variables));
-                                          return r.unflatten()},
+//       Second case: specified trees (base case).
+//       This is fairly simple. We just generate a sequence of invocations, since each tree has all of the constants assumed.
 
-      generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {
-                                 for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
-                                   r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
-                                                  generate_partitioned_switch(sts[i], visited, variables, pattern_data, model));
-                                 return r},
+        generate_unpartitioned_sequence = function (trees, variables, pattern_data) {for (var r = new syntax_node(';'), i = 0, l = trees.length; i < l; ++i)
+                                                                                       r.push(generate_macroexpander_invocation(pattern_data, trees[i], variables));
+                                                                                     return r.unflatten()},
+
+//       Inductive step.
+//       This is where we delegate either to the partitioned switch logic or the sequential sequence logic.
+
+        generate_decision_tree = function (trees, path, visited, variables, pattern_data, model) {
+                                   for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
+                                     r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
+                                                    generate_partitioned_switch(sts[i], visited, variables, pattern_data, model));
+                                   return r},
 
 //   Macroexpansion generator.
 //   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
-    macro_expand = function (t, patterns, expanders, context) {
-                     var rpatterns = [], rexpanders = [], model = context_free_probability_model(t);
-                     for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
-                     return compile(pattern_match_function_template.replace(
-                       {_body: generate_decision_tree(rpatterns, '', {}, empty_variable_mapping_table, pattern_data(patterns, expanders), model)})).apply(context, [t])};
+    macro_expand_jit = function (t, patterns, expanders, context) {
+                         var rpatterns = [], rexpanders = [], model = context_free_probability_model(t);
+                         for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
+                         var f = compile(pattern_match_function_template.replace(
+                           {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders), model)}));
+                         return t.rmap(function (n) {return f.call(context, n)})};
 // Generated by SDoc 
