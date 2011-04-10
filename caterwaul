@@ -2015,7 +2015,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__c0e10229fdc921fcfe2bb6f58eeaafdf');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__def5b74451f9395285906593ef0b9df1');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2151,17 +2151,19 @@ For history's sake I've left some of the theoretical notes involving probability
 
     split_treeset_on_specification = function (trees, pattern_data, visited) {
                                        var r = [], visited_count = 0, available_paths = {}, available_count = 0;
-                                       if (visited != null) for (var k in visited) visited_count += visited.hasOwnProperty(k);
-
-                                       for (var k in visited) if (visited.hasOwnProperty(k))
-                                         for (var i = 0, l = visited[k]; i < l; ++i) available_paths[k + String.fromCharCode(i)] = ++available_count;
+                                       if (visited != null) {for (var k in visited) if (visited.hasOwnProperty(k)) {
+                                                              ++visited_count;
+                                                              for (var i = 0, l = visited[k]; i < l; ++i) available_paths[k + String.fromCharCode(i)] = ++available_count}}
+                                       else available_paths = {'': available_count = 1};
 
                                        for (var p = [], s = false, remaining_paths = null, remaining_count = 0, i = 0, l = trees.length, t, td; i < l; ++i)
                                          if (((td = pattern_data[(t = trees[i]).id()]).non_wildcards === visited_count) !== s) r.push(p), p = [t], s = !s, remaining_paths = null;
                                          else if (s) p.push(t);
                                          else {
                                            if (remaining_paths === null) remaining_paths = merge({}, available_paths), remaining_count = available_count;
-                                           for (var k in td.wildcard_paths) remaining_count -= remaining_paths.hasOwnProperty(k), delete remaining_paths[k];
+                                           td.tree === t || (console.log('mismatch: ', td, pattern_data), null['escape']);
+                                           for (var ps = td.wildcard_paths, j = 0, lj = ps.length, pj; j < lj; ++j)
+                                             remaining_count -= remaining_paths.hasOwnProperty(pj = ps[j]), delete remaining_paths[pj];
                                            if (remaining_count) p.push(t);
                                            else                 r.push(p), r.push([]), p = [t], remaining_paths = null}
 
@@ -2180,7 +2182,8 @@ For history's sake I've left some of the theoretical notes involving probability
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
-                                        r[(p = ps[i]).id()] = {expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                        r[(p = ps[i]).id()] && (console.log('duplicate', p.id(), p, r), null['escape']),
+                                        r[p.id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
                                       return r},
 
   Code generation.
@@ -2327,18 +2330,28 @@ For history's sake I've left some of the theoretical notes involving probability
                                    for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
                                      sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
                                                                      generate_partitioned_switch(sts[i], visited, variables, pattern_data));
-                                   return r};
+                                   return r},
 
   Macroexpansion generator.
   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
-    return function (t, patterns, expanders, context) {
-             var rpatterns = [], rexpanders = [];
-             for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
-             var f = compile(pattern_match_function_template.replace(
-               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
-             return t.rmap(function (n) {return f.call(context, n)})}})();
-__c0e10229fdc921fcfe2bb6f58eeaafdf
+    compiled_function_cache = {},
+    macro_expand_jit = function (t, patterns, expanders, context) {
+                         var macroexpand_function = function () {
+                           var k = (patterns[0].id() << 16) + patterns[patterns.length - 1].id();
+                           if (compiled_function_cache[k]) return compiled_function_cache[k];
+                           else {
+                             var rpatterns = [], rexpanders = [];
+                             for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
+                             var f = compile(pattern_match_function_template.replace(
+                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
+                             process.stderr.write(f.toString() + '\n\n');
+                             return compiled_function_cache[k] = f}};
+                         return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
+
+    macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
+    return macro_expand_jit})();
+__def5b74451f9395285906593ef0b9df1
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -4991,7 +5004,7 @@ test('caterwaul.seq.numeric', function () {
   })(eq);
 });
 __b0a2d54c0f5713cd919ec25076478def
-meta::sdoc('js::modules/caterwaul.std', <<'__d4d7f32b713e344f72b86f274c2f05dc');
+meta::sdoc('js::modules/caterwaul.std', <<'__8369687ffaff7238734bba6f6b8315e2');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -5160,22 +5173,6 @@ whichever Caterwaul function was used to transform the code.
 
   tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
 
-Local macroexpansion (the 'locally' library).
-Sometimes you want to write a configuration that isn't applied globally, but rather just to a delimited section of code. This macro does just that: You can specify one or more configurations
-and a block of code, and the block of code will be transformed under a Caterwaul clone with those configurations and returned. So, for example:
-
-| caterwaul.clone('std.locally')(function () {
-    return locally['std'][fn[x][x + 1]];        // General case (especially if you want multiple configurations separated by spaces)
-    return locally[std][fn[x][x + 1]];          // Same thing
-    return locally.std[fn[x][x + 1]];           // Also the same thing
-  });
-
-Note that the implementation of this isn't terribly efficient. It creates a custom Caterwaul clone for the block in question and then throws that clone away. This probably pales in comparison
-to the macroexpansion process in general, but if your Caterwaul has a ton of configurations applied it could be a performance bottleneck during macroexpansion.
-
-  tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
-    l*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
-
 String interpolation.
 Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
 tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
@@ -5201,8 +5198,8 @@ seriously borked.
 Standard configuration.
 This loads all of the production-use extensions.
 
-  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.locally std.compile_eval std.string')});
-__d4d7f32b713e344f72b86f274c2f05dc
+  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.compile_eval std.string')});
+__8369687ffaff7238734bba6f6b8315e2
 meta::sdoc('js::modules/caterwaul.std.test/compile-eval', <<'__5f7ece4df09e07164e8afbc2a9d9f3ab');
 Compile-time eval tests.
 
@@ -5305,39 +5302,6 @@ test('caterwaul.std.fn', function () {
   }) (eq);
 });
 __7bec921f8fd44a6fbdddf512f28a6226
-meta::sdoc('js::modules/caterwaul.std.test/local', <<'__1d6da2ea25e78d43ca122535bab41e02');
-Caterwaul local standard library tests
-
-test('caterwaul.std.local', function () {
-  var fn = caterwaul.clone('std.locally');
-
-  fn(function (eq) {
-    eq(locally['std.fn'][fn[x][x + 1]](6), 7);
-    eq(locally['std.fn'][fn[x, y][x + y](6, 7)], 13);
-    eq(locally['std.fn'][fn_[10]](), 10);
-
-    eq(locally['std.bind'][l[y = 5] in y + 1], 6);
-    eq(locally['std.bind'][l[y = 5, a = 6] in y + a], 11);
-
-    eq(locally['std.bind'][l*[x = 4, y = x] in x + y], 8);
-    eq(locally['std.bind std.fn'][l*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]] in fact(5)], 120);
-
-    eq(locally['std.bind'][z + 1, where[z = 5]], 6);
-    eq(locally['std.bind'][q + w, where[q = 10, w = 100]], 110);
-
-    eq(locally['std.bind'][x + y, where*[x = 4, y = x]], 8);
-    eq(locally['std.bind std.fn'][fact(5), where*[fact = fn[n][n > 1 ? n * fact(n - 1) : 1]]], 120);
-
-    eq(locally['std.cond'][5, when[true]], 5);
-    eq(locally['std.cond'][5, when[false]], false);
-
-    eq(locally['std.cond'][5, unless[true]], false);
-    eq(locally['std.cond'][5, unless[false]], 5);
-
-    eq(locally.std[fn[x][x + 1](6)], 7);
-  }) (eq);
-});
-__1d6da2ea25e78d43ca122535bab41e02
 meta::sdoc('js::modules/caterwaul.std.test/lvalue', <<'__5c3dc5fb4b8f2015070f760692845285');
 Caterwaul lvalue macro tests
 

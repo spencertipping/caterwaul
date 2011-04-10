@@ -1029,17 +1029,19 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     split_treeset_on_specification = function (trees, pattern_data, visited) {
                                        var r = [], visited_count = 0, available_paths = {}, available_count = 0;
-                                       if (visited != null) for (var k in visited) visited_count += visited.hasOwnProperty(k);
-
-                                       for (var k in visited) if (visited.hasOwnProperty(k))
-                                         for (var i = 0, l = visited[k]; i < l; ++i) available_paths[k + String.fromCharCode(i)] = ++available_count;
+                                       if (visited != null) {for (var k in visited) if (visited.hasOwnProperty(k)) {
+                                                              ++visited_count;
+                                                              for (var i = 0, l = visited[k]; i < l; ++i) available_paths[k + String.fromCharCode(i)] = ++available_count}}
+                                       else available_paths = {'': available_count = 1};
 
                                        for (var p = [], s = false, remaining_paths = null, remaining_count = 0, i = 0, l = trees.length, t, td; i < l; ++i)
                                          if (((td = pattern_data[(t = trees[i]).id()]).non_wildcards === visited_count) !== s) r.push(p), p = [t], s = !s, remaining_paths = null;
                                          else if (s) p.push(t);
                                          else {
                                            if (remaining_paths === null) remaining_paths = merge({}, available_paths), remaining_count = available_count;
-                                           for (var k in td.wildcard_paths) remaining_count -= remaining_paths.hasOwnProperty(k), delete remaining_paths[k];
+                                           td.tree === t || (console.log('mismatch: ', td, pattern_data), null['escape']);
+                                           for (var ps = td.wildcard_paths, j = 0, lj = ps.length, pj; j < lj; ++j)
+                                             remaining_count -= remaining_paths.hasOwnProperty(pj = ps[j]), delete remaining_paths[pj];
                                            if (remaining_count) p.push(t);
                                            else                 r.push(p), r.push([]), p = [t], remaining_paths = null}
 
@@ -1058,7 +1060,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                    return r},
 
     pattern_data = function (ps, es) {for (var r = {}, i = 0, l = ps.length, p; i < l; ++i)
-                                        r[(p = ps[i]).id()] = {expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
+                                        r[(p = ps[i]).id()] && (console.log('duplicate', p.id(), p, r), null['escape']),
+                                        r[p.id()] = {tree: p, expander: es[i], non_wildcards: non_wildcard_node_count(p), wildcard_paths: wildcard_paths(p)};
                                       return r},
 
 //   Code generation.
@@ -1205,17 +1208,27 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                    for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
                                      sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
                                                                      generate_partitioned_switch(sts[i], visited, variables, pattern_data));
-                                   return r};
+                                   return r},
 
 //   Macroexpansion generator.
 //   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
-    return function (t, patterns, expanders, context) {
-             var rpatterns = [], rexpanders = [];
-             for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
-             var f = compile(pattern_match_function_template.replace(
-               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
-             return t.rmap(function (n) {return f.call(context, n)})}})();
+    compiled_function_cache = {},
+    macro_expand_jit = function (t, patterns, expanders, context) {
+                         var macroexpand_function = function () {
+                           var k = (patterns[0].id() << 16) + patterns[patterns.length - 1].id();
+                           if (compiled_function_cache[k]) return compiled_function_cache[k];
+                           else {
+                             var rpatterns = [], rexpanders = [];
+                             for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
+                             var f = compile(pattern_match_function_template.replace(
+                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
+                             process.stderr.write(f.toString() + '\n\n');
+                             return compiled_function_cache[k] = f}};
+                         return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
+
+    macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
+    return macro_expand_jit})();
 // Generated by SDoc 
 
 
@@ -1612,22 +1625,6 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
   tconfiguration('std.qs std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
 
-// Local macroexpansion (the 'locally' library).
-// Sometimes you want to write a configuration that isn't applied globally, but rather just to a delimited section of code. This macro does just that: You can specify one or more configurations
-// and a block of code, and the block of code will be transformed under a Caterwaul clone with those configurations and returned. So, for example:
-
-// | caterwaul.clone('std.locally')(function () {
-//     return locally['std'][fn[x][x + 1]];        // General case (especially if you want multiple configurations separated by spaces)
-//     return locally[std][fn[x][x + 1]];          // Same thing
-//     return locally.std[fn[x][x + 1]];           // Also the same thing
-//   });
-
-// Note that the implementation of this isn't terribly efficient. It creates a custom Caterwaul clone for the block in question and then throws that clone away. This probably pales in comparison
-// to the macroexpansion process in general, but if your Caterwaul has a ton of configurations applied it could be a performance bottleneck during macroexpansion.
-
-  tconfiguration('std.qs std.bind std.lvalue', 'std.locally', function () {
-    l*[t = this, handler(c, e) = t.clone(c.is_string() ? c.as_escaped_string() : c.data).macroexpand(e)] in this.macro(qs[locally[_][_]], handler).macro(qs[locally._[_]], handler)}).
-
 // String interpolation.
 // Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
 // tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
@@ -1653,7 +1650,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Standard configuration.
 // This loads all of the production-use extensions.
 
-  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.locally std.compile_eval std.string')});
+  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.defmacro std.with_gensyms std.ref std.compile_eval std.string')});
 // Generated by SDoc 
 
 
