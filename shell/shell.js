@@ -25,7 +25,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                     is_primitive(v) && i.find('.clickable').unbind('click').removeClass('clickable'),
 
                                     where*[is_primitive(v)          = v == null || typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean',
-                                    
+
                                            array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'), object_inspector(v))],
                                            regexp_inspector(v)      = html[div.regexp_inspector(div.interact, object_inspector(v))]
                                                                       /se.i[i.find('.interact').append(html[input /keyup(test) /change(test) /blur(test)]),

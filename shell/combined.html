@@ -33,7 +33,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                     is_primitive(v) && i.find('.clickable').unbind('click').removeClass('clickable'),
 
                                     where*[is_primitive(v)          = v == null || typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean',
-                                    
+
                                            array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'), object_inspector(v))],
                                            regexp_inspector(v)      = html[div.regexp_inspector(div.interact, object_inspector(v))]
                                                                       /se.i[i.find('.interact').append(html[input /keyup(test) /change(test) /blur(test)]),
@@ -144,7 +144,7 @@ input:focus {border: none}
 .log .interact {float: right; border-left: solid 1px #ccc; background: #f8f8f8}
 .log .interact input {min-width: 300px; background: #f8f8f8}
 
-.log .value {border-bottom: solid 1px #ccc; margin-bottom: 2px}
+.log .value {background: #f8f8f8; margin-bottom: 2px}
 
 .log table.properties        {display: inline-block}
 .log table.properties:before {content: '{'; color: #888; font-size: 14pt}

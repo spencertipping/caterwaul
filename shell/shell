@@ -1248,7 +1248,7 @@ $(caterwaul.clone('std seq continuation')(function () {
   where*[adjust_sizing() = $('body').css({height: $(window).height()})];
 }));
 __566456a1ca5a7d13d6e117c1abd0aa0a
-meta::sdoc('js::shell', <<'__03d15fdfd24edabaf1028716d1053300');
+meta::sdoc('js::shell', <<'__07b63bb0faf2a7fe6d7bd87679651a7e');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1276,7 +1276,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                     is_primitive(v) && i.find('.clickable').unbind('click').removeClass('clickable'),
 
                                     where*[is_primitive(v)          = v == null || typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean',
-                                    
+
                                            array_inspector(v)       = html[div.array_inspector(span.bracket('['), seq[~v *+value_inspector], span.bracket(']'), object_inspector(v))],
                                            regexp_inspector(v)      = html[div.regexp_inspector(div.interact, object_inspector(v))]
                                                                       /se.i[i.find('.interact').append(html[input /keyup(test) /change(test) /blur(test)]),
@@ -1345,7 +1345,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                logging_functions()         = {log: log_value, error: log_error},
                                timing_functions()          = {profile: fn[f][l[start = +new Date()] in f() /se[log_value('#{+new Date() - start}ms')]]},
                                environment                 = caterwaul.util.merge(options.environment || {}, {console: console_object()})]]]});
-__03d15fdfd24edabaf1028716d1053300
+__07b63bb0faf2a7fe6d7bd87679651a7e
 internal::main();
 
 __END__
