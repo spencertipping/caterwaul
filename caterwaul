@@ -231,6 +231,21 @@ meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
+meta::bootstrap('html', <<'__aa347c4339e71e7acc9ea4fc3d593347');
+<html>
+  <head>
+  <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
+  <link rel='stylesheet' href='http://spencertipping.com/perl-objects/web/style.css'/>
+
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js'></script>
+  <script src='http://spencertipping.com/caterwaul/caterwaul.all.min.js'></script>
+  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='http://spencertipping.com/perl-objects/web/interface.js'></script>
+  </head>
+  <body></body>
+</html>
+
+__aa347c4339e71e7acc9ea4fc3d593347
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -1443,7 +1458,8 @@ meta::type::js
 parent::/home/spencertipping/bin/repository
 parent::/home/spencertipping/conjectures/perl-objects/sdoc
 __cb3ede4ac84dd70a220e31df5e90c4d6
-meta::parent('/home/spencertipping/bin/object', <<'__febaa835f7b66f7fdcb99de9560857bd');
+meta::parent('/home/spencertipping/bin/object', <<'__40cc4bb813030b3d1a49faba89a17775');
+bootstrap::html
 bootstrap::initialization
 bootstrap::perldoc
 function::alias
@@ -1540,7 +1556,7 @@ meta::type::retriever
 meta::type::state
 retriever::file
 retriever::id
-__febaa835f7b66f7fdcb99de9560857bd
+__40cc4bb813030b3d1a49faba89a17775
 meta::parent('/home/spencertipping/bin/repository', <<'__f88c2b0e5725507b3fdb5719fd65e6d3');
 function::dupdate
 meta::type::cached_dependency
@@ -1560,7 +1576,8 @@ function::notes
 meta::type::note
 parent::object
 __885245820bcb60424dfcbd480e5b966e
-meta::parent('object', <<'__febaa835f7b66f7fdcb99de9560857bd');
+meta::parent('object', <<'__40cc4bb813030b3d1a49faba89a17775');
+bootstrap::html
 bootstrap::initialization
 bootstrap::perldoc
 function::alias
@@ -1657,7 +1674,7 @@ meta::type::retriever
 meta::type::state
 retriever::file
 retriever::id
-__febaa835f7b66f7fdcb99de9560857bd
+__40cc4bb813030b3d1a49faba89a17775
 meta::parent('preprocessor', <<'__a29d7395a865c21764fce8ec08e1a668');
 function::preprocess
 meta::type::template
