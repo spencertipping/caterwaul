@@ -492,11 +492,11 @@ eval join '', <STDIN>;
 die $@ if $@;
 __4c7139ed5c9f65f38a33cf8f8a6cae27
 meta::function('initial-state', '$transient{initial};');
-meta::function('is', <<'__5d4fddb72b0715694b83aa0c925a8d04');
+meta::function('is', <<'__1d3401965e4720ed972470b54b447db0');
 my ($attribute, @criteria) = @_;
 my ($options, @stuff) = separate_options(@criteria);
-grep $_ eq $attribute, select_keys(%$options);
-__5d4fddb72b0715694b83aa0c925a8d04
+attribute_is($attribute, %$options);
+__1d3401965e4720ed972470b54b447db0
 meta::function('line', <<'__9fbecf2ffad502e3c9502d14a81ec216');
 # Prints a line, with some context, from caterwaul.all.js. This is useful when a test fails.
 my @lines  = split /\n/, retrieve('pp::js::modules/caterwaul.all');
@@ -1067,6 +1067,15 @@ my ($name) = @_;
 $name =~ s/^[^:]*:://;
 $name;
 __62efb9f22157835940af1d5feae98d98
+meta::internal_function('attribute_is', <<'__128205fc93d6ada83347b312aff1fb63');
+my ($attribute, %options) = @_;
+my %inherited             = parent_attributes(grep /^parent::/o, sort keys %data) if $options{'-u'} or $options{'-U'};
+my $criteria              = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
+
+$attribute =~ /$criteria/ and ! $options{'-u'} || ! $inherited{$attribute} and ! $options{'-U'} || $inherited{$attribute}
+                          and ! $options{'-I'} || ! $transient{inherit}{namespace($attribute)} and ! $options{'-i'} || $transient{inherit}{namespace($attribute)}
+                          and ! $options{'-S'} || ! $attribute =~ /^state::/o and ! $options{'-M'} || ! /^meta::/o and ! $options{'-m'} || $attribute =~ /^meta::/o;
+__128205fc93d6ada83347b312aff1fb63
 meta::internal_function('bench', <<'__d77400a4154b5004d42b6086bbd9b02c');
 use Time::HiRes qw/gettimeofday tv_interval/;
 
@@ -1222,7 +1231,7 @@ meta::internal_function('parent_attributes', <<'__480776f176ab728c6b7450287be578
 my $attributes = sub {my ($name, $value) = split /\s+/o, $_; $name => ($value || 1)};
 map &$attributes(), split /\n/o, join("\n", retrieve(@_));
 __480776f176ab728c6b7450287be5782a
-meta::internal_function('parent_ordering', <<'__2d1f4295b235d06b8ed49d051969ebc8');
+meta::internal_function('parent_ordering', <<'__61a829bfd725b367836b5342d26efce1');
 # Topsorts the parents by dependency chain. The simplest way to do this is to
 # transitively compute the number of parents referred to by each parent.
 # You can pass in a list of parents if you want; otherwise it uses all of them.
@@ -1240,13 +1249,13 @@ $parent_count = sub {
   my ($key) = @_;
   return $parent_count{$key} if exists $parent_count{$key};
   my $count = 0;
-  $count += $parent_count->($_) + 1 for @{$parents_of{$key}};
+  $count += $parent_count->($_) + exists $data{$_} for @{$parents_of{$key}};
   $parent_count{$key} = $count};
 
 my %inverses;
 push @{$inverses{$parent_count->($_)} ||= []}, $_ for @parents;
 map @{$inverses{$_}}, sort keys %inverses;
-__2d1f4295b235d06b8ed49d051969ebc8
+__61a829bfd725b367836b5342d26efce1
 meta::internal_function('retrieve', <<'__0b6f4342009684fdfa259f45ac75ae37');
 my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
 wantarray ? @results : $results[0];
@@ -1259,15 +1268,10 @@ my $result      = undef;
 defined($result = &$_($attribute)) and return $result for map $transient{retrievers}{$_}, sort keys %{$transient{retrievers}};
 return undef;
 __5186a0343624789d08d1cc2084550f3d
-meta::internal_function('select_keys', <<'__496503933c0acca58f48114125d5a70e');
-my %options   = @_;
-my %inherited = parent_attributes(grep /^parent::/o, sort keys %data) if $options{'-u'} or $options{'-U'};
-my $criteria  = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
-
-grep /$criteria/ && (! $options{'-u'} || ! $inherited{$_}) && (! $options{'-U'} || $inherited{$_}) &&
-                    (! $options{'-I'} || ! $transient{inherit}{namespace($_)}) && (! $options{'-i'} || $transient{inherit}{namespace($_)}) &&
-                    (! $options{'-S'} || ! /^state::/o) && (! $options{'-M'} || ! /^meta::/o) && (! $options{'-m'} || /^meta::/o), sort keys %data;
-__496503933c0acca58f48114125d5a70e
+meta::internal_function('select_keys', <<'__1cd075b241905d9ab3199e680e86dced');
+my %options = @_;
+grep attribute_is($_, %options), sort keys %data;
+__1cd075b241905d9ab3199e680e86dced
 meta::internal_function('separate_options', <<'__d47e8ee23fe55e27bb523c9fcb2f5ca1');
 # Things with one dash are short-form options, two dashes are long-form.
 # Characters after short-form are combined; so -auv4 becomes -a -u -v -4.
@@ -1565,11 +1569,11 @@ Unimportant things that might help at some point in the future.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
 __48c65f082344a2efd22342ecbffcd69b
-meta::parent('/home/spencertipping/bin/configuration', <<'__f5858818a7a68cdb05ea17036f63d911');
+meta::parent('/home/spencertipping/bin/configuration', <<'__f3facfc6fb3a0574907dbba991e6e614');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  8c80f917e1e544660f1420d0c5ce606a
-__f5858818a7a68cdb05ea17036f63d911
-meta::parent('/home/spencertipping/bin/node-base', <<'__e2c4c40813291a9381fc69da898be476');
+parent::/home/spencertipping/bin/object  b245ab3db16dceeb078d9adaee8416e4
+__f3facfc6fb3a0574907dbba991e6e614
+meta::parent('/home/spencertipping/bin/node-base', <<'__bc4771339e11ddabfefae29cf66c4c34');
 function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
 function::node                                              3522fde8f76947a5f70bca33f1ee0016
 function::node-custom                                       c2f4063798c997ec7f78a3543b1240b3
@@ -1578,10 +1582,10 @@ function::run-forever                                       76175932a2d2692fc802
 internal_function::dep                                      bad9b934374b176318ed2295b63130bc
 message_color::test                                         14e993fdf2c62df353613c243dc9053b
 meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
-parent::/home/spencertipping/bin/repository                 0ce3fbb3b6ef22bf616851c30ba3b62a
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  bbb9597d6b77e8091fe926069be2d149
-__e2c4c40813291a9381fc69da898be476
-meta::parent('/home/spencertipping/bin/object', <<'__8c80f917e1e544660f1420d0c5ce606a');
+parent::/home/spencertipping/bin/repository                 c925530f93092e20be8bc9779e477fa6
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  30adcc7d3a7b1b515221a8ecb6a44bca
+__bc4771339e11ddabfefae29cf66c4c34
+meta::parent('/home/spencertipping/bin/object', <<'__b245ab3db16dceeb078d9adaee8416e4');
 bootstrap::html                         aa347c4339e71e7acc9ea4fc3d593347
 bootstrap::initialization               8774229a1a0ce7fd056d81ba0b077f79
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
@@ -1606,7 +1610,7 @@ function::hooks                         230122bdc8929884e45b2f78a7743e2e
 function::identity                      37106ce13a0200af001d361ce7e81e57
 function::import                        ac86cbe9c9fb12fc8cef2cc88e80c01e
 function::initial-state                 e21ba3519838b221a7b2d4e8a7544e7f
-function::is                            5d4fddb72b0715694b83aa0c925a8d04
+function::is                            1d3401965e4720ed972470b54b447db0
 function::load-state                    ea18db867bd62a294e067f60e6975dcf
 function::lock                          9bf21fee2f0f809131d43553bde82fa5
 function::ls                            7585c2f886d5a8f0258b8749374da6bc
@@ -1634,6 +1638,7 @@ function::verify                        d31b85fffd464ddf516d2afeb63dcbde
 internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
 internal_function::associate            fc4f785bcf3ffe3225a73a1fdd314703
 internal_function::attribute            62efb9f22157835940af1d5feae98d98
+internal_function::attribute_is         128205fc93d6ada83347b312aff1fb63
 internal_function::chmod_self           b13487447c65f2dc790bd6b21dde89dd
 internal_function::dangerous            4b8343178d6d4d1b760d61b1cfda008c
 internal_function::debug_trace          77644ab45a770a6e172680f659911507
@@ -1650,10 +1655,10 @@ internal_function::invoke_editor_on     1448132d5294a4b8390b4a684d8a78f9
 internal_function::is_locked            42c3c89625863a31105d1df49a2a762f
 internal_function::namespace            93213d60cafb9627e0736b48cd1f0760
 internal_function::parent_attributes    480776f176ab728c6b7450287be5782a
-internal_function::parent_ordering      2d1f4295b235d06b8ed49d051969ebc8
+internal_function::parent_ordering      61a829bfd725b367836b5342d26efce1
 internal_function::retrieve             0b6f4342009684fdfa259f45ac75ae37
 internal_function::retrieve_with_hooks  5186a0343624789d08d1cc2084550f3d
-internal_function::select_keys          496503933c0acca58f48114125d5a70e
+internal_function::select_keys          1cd075b241905d9ab3199e680e86dced
 internal_function::separate_options     d47e8ee23fe55e27bb523c9fcb2f5ca1
 internal_function::strip                4af6a470effeed94c0dd9800d01f7d66
 internal_function::table_display        8a6897e093f36bf05477a3889b84a61d
@@ -1683,29 +1688,29 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__8c80f917e1e544660f1420d0c5ce606a
-meta::parent('/home/spencertipping/bin/repository', <<'__0ce3fbb3b6ef22bf616851c30ba3b62a');
+__b245ab3db16dceeb078d9adaee8416e4
+meta::parent('/home/spencertipping/bin/repository', <<'__c925530f93092e20be8bc9779e477fa6');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  f5858818a7a68cdb05ea17036f63d911
-__0ce3fbb3b6ef22bf616851c30ba3b62a
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__bbb9597d6b77e8091fe926069be2d149');
+parent::/home/spencertipping/bin/configuration  f3facfc6fb3a0574907dbba991e6e614
+__c925530f93092e20be8bc9779e477fa6
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__30adcc7d3a7b1b515221a8ecb6a44bca');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  8c80f917e1e544660f1420d0c5ce606a
+parent::/home/spencertipping/bin/object  b245ab3db16dceeb078d9adaee8416e4
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
-__bbb9597d6b77e8091fe926069be2d149
-meta::parent('notes', <<'__25357019e15673dc6589e3150ea1cfe3');
+__30adcc7d3a7b1b515221a8ecb6a44bca
+meta::parent('notes', <<'__4bc62ae7c2e9718492734787d6c51417');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    8c80f917e1e544660f1420d0c5ce606a
-__25357019e15673dc6589e3150ea1cfe3
-meta::parent('object', <<'__8c80f917e1e544660f1420d0c5ce606a');
+parent::object    b245ab3db16dceeb078d9adaee8416e4
+__4bc62ae7c2e9718492734787d6c51417
+meta::parent('object', <<'__b245ab3db16dceeb078d9adaee8416e4');
 bootstrap::html                         aa347c4339e71e7acc9ea4fc3d593347
 bootstrap::initialization               8774229a1a0ce7fd056d81ba0b077f79
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
@@ -1730,7 +1735,7 @@ function::hooks                         230122bdc8929884e45b2f78a7743e2e
 function::identity                      37106ce13a0200af001d361ce7e81e57
 function::import                        ac86cbe9c9fb12fc8cef2cc88e80c01e
 function::initial-state                 e21ba3519838b221a7b2d4e8a7544e7f
-function::is                            5d4fddb72b0715694b83aa0c925a8d04
+function::is                            1d3401965e4720ed972470b54b447db0
 function::load-state                    ea18db867bd62a294e067f60e6975dcf
 function::lock                          9bf21fee2f0f809131d43553bde82fa5
 function::ls                            7585c2f886d5a8f0258b8749374da6bc
@@ -1758,6 +1763,7 @@ function::verify                        d31b85fffd464ddf516d2afeb63dcbde
 internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
 internal_function::associate            fc4f785bcf3ffe3225a73a1fdd314703
 internal_function::attribute            62efb9f22157835940af1d5feae98d98
+internal_function::attribute_is         128205fc93d6ada83347b312aff1fb63
 internal_function::chmod_self           b13487447c65f2dc790bd6b21dde89dd
 internal_function::dangerous            4b8343178d6d4d1b760d61b1cfda008c
 internal_function::debug_trace          77644ab45a770a6e172680f659911507
@@ -1774,10 +1780,10 @@ internal_function::invoke_editor_on     1448132d5294a4b8390b4a684d8a78f9
 internal_function::is_locked            42c3c89625863a31105d1df49a2a762f
 internal_function::namespace            93213d60cafb9627e0736b48cd1f0760
 internal_function::parent_attributes    480776f176ab728c6b7450287be5782a
-internal_function::parent_ordering      2d1f4295b235d06b8ed49d051969ebc8
+internal_function::parent_ordering      61a829bfd725b367836b5342d26efce1
 internal_function::retrieve             0b6f4342009684fdfa259f45ac75ae37
 internal_function::retrieve_with_hooks  5186a0343624789d08d1cc2084550f3d
-internal_function::select_keys          496503933c0acca58f48114125d5a70e
+internal_function::select_keys          1cd075b241905d9ab3199e680e86dced
 internal_function::separate_options     d47e8ee23fe55e27bb523c9fcb2f5ca1
 internal_function::strip                4af6a470effeed94c0dd9800d01f7d66
 internal_function::table_display        8a6897e093f36bf05477a3889b84a61d
@@ -1807,18 +1813,18 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__8c80f917e1e544660f1420d0c5ce606a
-meta::parent('preprocessor', <<'__375cd11137782281f683ab8d37d742e0');
+__b245ab3db16dceeb078d9adaee8416e4
+meta::parent('preprocessor', <<'__7c189b1b2ce8fabd053b8171024b8a05');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 8c80f917e1e544660f1420d0c5ce606a
+parent::object                 b245ab3db16dceeb078d9adaee8416e4
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
 template::failing_conditional  5c593329b434a7044f68cec4b77e8ed9
 template::include              e0624844a65ae41e0217dd871fc0dbfb
 template::pinclude             5ba61c3034a4b183881936aec30d2be9
-__375cd11137782281f683ab8d37d742e0
+__7c189b1b2ce8fabd053b8171024b8a05
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('html-sdoc', <<'__54d22ab83d9f3f2e27ef51033b4817a7');
 my ($attribute) = @_;
