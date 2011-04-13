@@ -228,7 +228,7 @@
       path_variable_template = parse('var _temp = _value; if (! _temp) break'),
       path_exists_template   = parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
-                                                           var name = gensym(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
 //     Macroexpander invocation encoding.
@@ -320,16 +320,17 @@
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].id());
+                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].inspect());
                            var k = ss.join('|');
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
-                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
+                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(rpatterns, rexpanders))}));
                              return last_length = patterns.length, last_function = compiled_function_cache[k] = f}};
-                         return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
+                         return patterns.length > 30 ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) :
+                                patterns.length      ? macro_expand_naive(t, patterns, expanders, context)                   : t};
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();

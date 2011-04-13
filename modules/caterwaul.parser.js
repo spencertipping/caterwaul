@@ -108,7 +108,7 @@
 
 //   | peg[c('a') / c('b')]('a')        // -> 'a'
 
-    tconfiguration('std seq', 'parser.alt', function () {
+    tconfiguration('std opt seq continuation', 'parser.alt', function () {
       this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[_(state)]]]])}).
 
 //   Repetition.
@@ -128,7 +128,7 @@
 
 //   | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
 
-    tconfiguration('std seq continuation', 'parser.opt', function () {
+    tconfiguration('std opt seq continuation', 'parser.opt', function () {
       this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s ? s.i : state.i, r = s && s.result]]])}).
 
 //   Positive and negative matches.
@@ -137,7 +137,7 @@
 //   | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
 //     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 
-    tconfiguration('std seq continuation', 'parser.match', function () {
+    tconfiguration('std opt seq continuation', 'parser.match', function () {
       this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
                                                _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
 
@@ -145,14 +145,14 @@
 //   This is fairly straightforward; a parser is 'bound' to a function by mapping through the function if it is successful. The function then returns a new result based on the old one. Binding is
 //   denoted by the >> operator.
 
-    tconfiguration('std seq continuation', 'parser.bind', function () {
+    tconfiguration('std opt seq continuation', 'parser.bind', function () {
       this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
 
 // DSL macro.
 // Most of the time you'll want to use the peg[] macro rather than hand-coding the grammar. The macro both translates the tree and introduces all of the parsers as local variables (like a with()
 // block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
-  tconfiguration('std seq continuation', 'parser.dsl', function () {
+  tconfiguration('std opt seq continuation', 'parser.dsl', function () {
     this.configure('parser.core').rmacro(qs[peg[_]],
       fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
                                                       _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),

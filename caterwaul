@@ -307,6 +307,7 @@ meta::configuration('dependencies', <<'__e6452f707a2f0de738e51033b8e9d792');
 #caterwaul.all.js:     http://spencertipping.com/caterwaul/caterwaul.all.min.js
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
 __e6452f707a2f0de738e51033b8e9d792
+meta::data('author', 'Spencer Tipping');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
 meta::data('libraries', <<'__cca38bdfe6664615b581ec6dff43cf46');
@@ -338,6 +339,7 @@ THE SOFTWARE.
 __3c6177256de0fddb721f534c3ad8c0ee
 meta::data('main', 'server.js');
 meta::data('name', 'node-base');
+meta::data('permanent-identity', '97d938428ee6c4d2a505f6f35bad0906');
 meta::data('quiet', '1');
 meta::data('watching', '1');
 meta::function('alias', <<'__28744564997657da45ab16cd5b441104');
@@ -345,16 +347,20 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
-meta::function('bench-load', <<'__24ab28964c188475ab4325d9075a936e');
+meta::function('bench-load', <<'__aba933cafd3b2b290fc4a2d36972911e');
 # Just loads the standard library.
 render();
 
-terminal::info('loading with node');
-bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.min.js js::core/debug/profile.stop|])});
+my $all = grep /^-a$/, @_;
 
-terminal::info('loading with gjs');
-bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.min.js js::core/debug/profile.stop|])});
-__24ab28964c188475ab4325d9075a936e
+terminal::info('loading with node');
+bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.js js::core/debug/profile.stop|])});
+
+if ($all) {
+  terminal::info('loading with gjs');
+  bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.js js::core/debug/profile.stop|])});
+}
+__aba933cafd3b2b290fc4a2d36972911e
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -2057,7 +2063,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__f2802d3df0fa17f77fe434d9bd0d3131');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__c66c532ba3f8ec25951f9bd64d295a09');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2288,7 +2294,7 @@ For history's sake I've left some of the theoretical notes involving probability
       path_variable_template = parse('var _temp = _value; if (! _temp) break'),
       path_exists_template   = parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
-                                                           var name = gensym(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
     Macroexpander invocation encoding.
@@ -2380,20 +2386,21 @@ For history's sake I've left some of the theoretical notes involving probability
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].id());
+                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].inspect());
                            var k = ss.join('|');
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
-                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
+                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(rpatterns, rexpanders))}));
                              return last_length = patterns.length, last_function = compiled_function_cache[k] = f}};
-                         return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
+                         return patterns.length > 30 ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) :
+                                patterns.length      ? macro_expand_naive(t, patterns, expanders, context)                   : t};
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();
-__f2802d3df0fa17f77fe434d9bd0d3131
+__c66c532ba3f8ec25951f9bd64d295a09
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -3005,7 +3012,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.tree', <<'__878c23bbef0ff09961c96086a692d0cf');
+meta::sdoc('js::core/caterwaul.tree', <<'__d634230c35476a1ff24b9335d55c4367');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -3080,7 +3087,7 @@ nodes. At the end of folding there is only one child per paren-group.
     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-      id: function () {var id = gensym(); return (this.id = function () {return id})()},
+      id: function () {var id = genint(); return (this.id = function () {return id})()},
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -3292,8 +3299,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
-__878c23bbef0ff09961c96086a692d0cf
-meta::sdoc('js::core/caterwaul.utilities', <<'__3dbd0091d2a395a0479a1a8866d19eb1');
+__d634230c35476a1ff24b9335d55c4367
+meta::sdoc('js::core/caterwaul.utilities', <<'__8abb317799551d34715ca2175b6acca9');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
@@ -3328,7 +3335,10 @@ It's used to initialize things statefully; for example:
 The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
-    gensym = (function (n, m, u) {return function () {return 'gensym_' + u + '_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
+    genval = (function (n, m, u) {return function () {return [u, n, ++m]}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
+
+    genint = function () {var v = genval(); return (v[0] << 2) + v[0] + (v[1] << 1) + v[1] + v[2]},
+    gensym = function () {var v = genval(); return ['gensym', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -3353,7 +3363,7 @@ The Caterwaul standard library gives you an equivalent but much more refined for
    max_length_key = gensym(),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
-__3dbd0091d2a395a0479a1a8866d19eb1
+__8abb317799551d34715ca2175b6acca9
 meta::sdoc('js::core/debug/profile.start', <<'__c57fde09ae1ed7924ae86e180a4077f7');
 Profiling extensions for performance tuning | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -4030,7 +4040,7 @@ test('caterwaul.opt.unroll', function () {
   eq(iterations, 50);
 });
 __389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__21bce6fde78e4fefbc68d24404795d46');
+meta::sdoc('js::modules/caterwaul.parser', <<'__9434f8f34406b5dbef76ea416c6098a3');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4141,7 +4151,7 @@ Parsers are transparent over parentheses. Only the operators described below are
 
   | peg[c('a') / c('b')]('a')        // -> 'a'
 
-    tconfiguration('std seq', 'parser.alt', function () {
+    tconfiguration('std opt seq continuation', 'parser.alt', function () {
       this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[_(state)]]]])}).
 
   Repetition.
@@ -4161,7 +4171,7 @@ Parsers are transparent over parentheses. Only the operators described below are
 
   | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
 
-    tconfiguration('std seq continuation', 'parser.opt', function () {
+    tconfiguration('std opt seq continuation', 'parser.opt', function () {
       this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s ? s.i : state.i, r = s && s.result]]])}).
 
   Positive and negative matches.
@@ -4170,7 +4180,7 @@ Parsers are transparent over parentheses. Only the operators described below are
   | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 
-    tconfiguration('std seq continuation', 'parser.match', function () {
+    tconfiguration('std opt seq continuation', 'parser.match', function () {
       this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
                                                _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
 
@@ -4178,14 +4188,14 @@ Parsers are transparent over parentheses. Only the operators described below are
   This is fairly straightforward; a parser is 'bound' to a function by mapping through the function if it is successful. The function then returns a new result based on the old one. Binding is
   denoted by the >> operator.
 
-    tconfiguration('std seq continuation', 'parser.bind', function () {
+    tconfiguration('std opt seq continuation', 'parser.bind', function () {
       this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
 
 DSL macro.
 Most of the time you'll want to use the peg[] macro rather than hand-coding the grammar. The macro both translates the tree and introduces all of the parsers as local variables (like a with()
 block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
-  tconfiguration('std seq continuation', 'parser.dsl', function () {
+  tconfiguration('std opt seq continuation', 'parser.dsl', function () {
     this.configure('parser.core').rmacro(qs[peg[_]],
       fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
                                                       _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),
@@ -4203,7 +4213,7 @@ Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
-__21bce6fde78e4fefbc68d24404795d46
+__9434f8f34406b5dbef76ea416c6098a3
 meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__97627ef6b160d10fdc2de836f65c32d5');
 Basic parser combinator tests.
 
@@ -4491,7 +4501,7 @@ test('caterwaul.parser.lookahead', function () {
   })(eq);
 });
 __612b755f1543d5784d525d14a8ac6d20
-meta::sdoc('js::modules/caterwaul.seq', <<'__acc8857765c8820d3076fd2b3da12691');
+meta::sdoc('js::modules/caterwaul.seq', <<'__5b173fc727700adbc93f88b45ef2f2d0');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4514,11 +4524,11 @@ filter(), foldl(), foldr(), zip(), etc.
 Note that because of an IE7 bug, all lengths are stored twice. Once in 'l' and once in 'length' -- the 'length' property is only updated for array compatibility on compliant platforms, but it
 will always be 0 on IE7.
 
-  tconfiguration('std opt', 'seq.finite.core', function () {
+  tconfiguration('std opt continuation', 'seq.finite.core', function () {
     this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
       _.size() = this.l || this.length, _.slice() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
 
-  tconfiguration('std', 'seq.finite.serialization', function () {
+  tconfiguration('std opt continuation', 'seq.finite.serialization', function () {
     this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.slice().join(", ")}]', _.join(x) = this.slice().join(x)]}).
 
   Mutability.
@@ -4526,7 +4536,7 @@ will always be 0 on IE7.
   Javascript array methods. In particular, push() returns the sequence rather than its new length. Also, there is no shift()/unshift() API. These would each be linear-time given that we're
   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
 
-    tconfiguration('std opt', 'seq.finite.mutability', function () {
+    tconfiguration('std opt continuation', 'seq.finite.mutability', function () {
       l[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /re[this.length = this.l, this],
                                                                  _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
@@ -4545,7 +4555,7 @@ will always be 0 on IE7.
   | object([o = {}]): Zips a sequence of pairs into an object containing those mappings. Later pairs take precedence over earlier ones if there is a collision. You can specify an optional
                       object o to zip into; if you do this, then the pairs are added to o and o is returned instead of creating a new object and adding pairs to that.
 
-    tconfiguration('std', 'seq.finite.object', function () {
+    tconfiguration('std opt continuation', 'seq.finite.object', function () {
       l[own = Object.prototype.hasOwnProperty] in
       this.configure('seq.finite.core').seq.finite /se[_.keys  (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(k)})()],
                                                        _.values(o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(o[k])})()],
@@ -4558,7 +4568,7 @@ will always be 0 on IE7.
 
   If you fold on a sequence with too few elements (and you don't supply extras by giving it more arguments), it will return something falsy.
 
-    tconfiguration('std opt', 'seq.finite.traversal', function () {
+    tconfiguration('std opt continuation', 'seq.finite.traversal', function () {
       this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.l][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.l][_.push(this[i]), when[f.call(this, this[i], i)]]],
@@ -4581,7 +4591,7 @@ will always be 0 on IE7.
   on every n-tuple of items, and if 'outer' is truthy then you will have the outer-product of all of your sequences (i.e. the longest sequence length is used, and undefined is specified when
   you run past the end of any other one).
 
-    tconfiguration('std opt', 'seq.finite.zip', function () {
+    tconfiguration('std opt continuation', 'seq.finite.zip', function () {
       this.configure('seq.finite.traversal').seq.finite
         /se[_.prototype.zip() = l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
                                  [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
@@ -4602,7 +4612,7 @@ Stream API.
 All streams are assumed to be infinite in length; that is, given some element there is always another one. Streams provide this interface with h() and t() methods; the former returns the first
 element of the stream, and the latter returns a stream containing the rest of the elements.
 
-  tconfiguration('std', 'seq.infinite.core', function () {
+  tconfiguration('std opt continuation', 'seq.infinite.core', function () {
     this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
       /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
 
@@ -4612,14 +4622,14 @@ element of the stream, and the latter returns a stream containing the rest of th
   Anamorphisms via fixed-point.
   Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns x, f(x), f(f(x)), f(f(f(x))), ....
 
-    tconfiguration('std', 'seq.infinite.y', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.y', function () {
       this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
 
   Lazy map and filter.
   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
   because they provide streams as output. filter() is eager on its first element; that is, it remains one element ahead of what is requested.
 
-    tconfiguration('std continuation', 'seq.infinite.transform', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
         /se[_.prototype.map(f) = new _.map(f, this),
             _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
@@ -4633,7 +4643,7 @@ element of the stream, and the latter returns a stream containing the rest of th
   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
-    tconfiguration('std continuation', 'seq.infinite.traversal', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.traversal', function () {
       l[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
         /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
@@ -4654,7 +4664,7 @@ Also useful is the infinite stream of natural numbers and its companion function
 | caterwaul.seq.naturals                -> [0, 1, 2, 3, ...]
   caterwaul.seq.naturals_from(2)        -> [2, 3, 4, 5, ...]
 
-  tconfiguration('std opt', 'seq.numeric', function () {
+  tconfiguration('std opt continuation', 'seq.numeric', function () {
     this.configure('seq.infinite.core seq.infinite.y seq.finite.core').seq /se[
       _.naturals_from(x) = new _.infinite.y(fn[n][n + 1], x),
       _.naturals         = _.naturals_from(0),
@@ -4807,7 +4817,7 @@ Rather than including individual configurations above, you'll probably just want
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
                                                             'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal ' +
                                                             'seq.numeric seq.dsl')});
-__acc8857765c8820d3076fd2b3da12691
+__5b173fc727700adbc93f88b45ef2f2d0
 meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__3502609e09551b17c6963c7c4872f50c');
 Sequence DSL tests.
 

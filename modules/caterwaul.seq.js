@@ -20,11 +20,11 @@
 // Note that because of an IE7 bug, all lengths are stored twice. Once in 'l' and once in 'length' -- the 'length' property is only updated for array compatibility on compliant platforms, but it
 // will always be 0 on IE7.
 
-  tconfiguration('std opt', 'seq.finite.core', function () {
+  tconfiguration('std opt continuation', 'seq.finite.core', function () {
     this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
       _.size() = this.l || this.length, _.slice() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
 
-  tconfiguration('std', 'seq.finite.serialization', function () {
+  tconfiguration('std opt continuation', 'seq.finite.serialization', function () {
     this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.slice().join(", ")}]', _.join(x) = this.slice().join(x)]}).
 
 //   Mutability.
@@ -32,7 +32,7 @@
 //   Javascript array methods. In particular, push() returns the sequence rather than its new length. Also, there is no shift()/unshift() API. These would each be linear-time given that we're
 //   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
 
-    tconfiguration('std opt', 'seq.finite.mutability', function () {
+    tconfiguration('std opt continuation', 'seq.finite.mutability', function () {
       l[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /re[this.length = this.l, this],
                                                                  _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
@@ -51,7 +51,7 @@
 //   | object([o = {}]): Zips a sequence of pairs into an object containing those mappings. Later pairs take precedence over earlier ones if there is a collision. You can specify an optional
 //                       object o to zip into; if you do this, then the pairs are added to o and o is returned instead of creating a new object and adding pairs to that.
 
-    tconfiguration('std', 'seq.finite.object', function () {
+    tconfiguration('std opt continuation', 'seq.finite.object', function () {
       l[own = Object.prototype.hasOwnProperty] in
       this.configure('seq.finite.core').seq.finite /se[_.keys  (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(k)})()],
                                                        _.values(o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(o[k])})()],
@@ -64,7 +64,7 @@
 
 //   If you fold on a sequence with too few elements (and you don't supply extras by giving it more arguments), it will return something falsy.
 
-    tconfiguration('std opt', 'seq.finite.traversal', function () {
+    tconfiguration('std opt continuation', 'seq.finite.traversal', function () {
       this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.l][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.l][_.push(this[i]), when[f.call(this, this[i], i)]]],
@@ -87,7 +87,7 @@
 //   on every n-tuple of items, and if 'outer' is truthy then you will have the outer-product of all of your sequences (i.e. the longest sequence length is used, and undefined is specified when
 //   you run past the end of any other one).
 
-    tconfiguration('std opt', 'seq.finite.zip', function () {
+    tconfiguration('std opt continuation', 'seq.finite.zip', function () {
       this.configure('seq.finite.traversal').seq.finite
         /se[_.prototype.zip() = l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
                                  [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
@@ -108,7 +108,7 @@
 // All streams are assumed to be infinite in length; that is, given some element there is always another one. Streams provide this interface with h() and t() methods; the former returns the first
 // element of the stream, and the latter returns a stream containing the rest of the elements.
 
-  tconfiguration('std', 'seq.infinite.core', function () {
+  tconfiguration('std opt continuation', 'seq.infinite.core', function () {
     this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
       /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
 
@@ -118,14 +118,14 @@
 //   Anamorphisms via fixed-point.
 //   Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns x, f(x), f(f(x)), f(f(f(x))), ....
 
-    tconfiguration('std', 'seq.infinite.y', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.y', function () {
       this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
 
 //   Lazy map and filter.
 //   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
 //   because they provide streams as output. filter() is eager on its first element; that is, it remains one element ahead of what is requested.
 
-    tconfiguration('std continuation', 'seq.infinite.transform', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
         /se[_.prototype.map(f) = new _.map(f, this),
             _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
@@ -139,7 +139,7 @@
 //   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
 //   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
-    tconfiguration('std continuation', 'seq.infinite.traversal', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.traversal', function () {
       l[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
         /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
@@ -160,7 +160,7 @@
 // | caterwaul.seq.naturals                -> [0, 1, 2, 3, ...]
 //   caterwaul.seq.naturals_from(2)        -> [2, 3, 4, 5, ...]
 
-  tconfiguration('std opt', 'seq.numeric', function () {
+  tconfiguration('std opt continuation', 'seq.numeric', function () {
     this.configure('seq.infinite.core seq.infinite.y seq.finite.core').seq /se[
       _.naturals_from(x) = new _.infinite.y(fn[n][n + 1], x),
       _.naturals         = _.naturals_from(0),

@@ -96,7 +96,10 @@
 // The Caterwaul standard library gives you an equivalent but much more refined form of se() called /se[].
 
     var qw = function (x) {return x.split(/\s+/)},  id = function (x) {return x},  se = function (x, f) {return f && f.call(x, x) || x},
-    gensym = (function (n, m, u) {return function () {return 'gensym_' + u + '_' + n.toString(36) + '_' + (++m).toString(36)}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
+    genval = (function (n, m, u) {return function () {return [u, n, ++m]}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
+
+    genint = function () {var v = genval(); return (v[0] << 2) + v[0] + (v[1] << 1) + v[1] + v[2]},
+    gensym = function () {var v = genval(); return ['gensym', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
 
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
@@ -201,7 +204,7 @@
 //     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
 //     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-      id: function () {var id = gensym(); return (this.id = function () {return id})()},
+      id: function () {var id = genint(); return (this.id = function () {return id})()},
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -1122,7 +1125,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       path_variable_template = parse('var _temp = _value; if (! _temp) break'),
       path_exists_template   = parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
-                                                           var name = gensym(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
+                                                           var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
 
 //     Macroexpander invocation encoding.
@@ -1214,16 +1217,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].id());
+                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].inspect());
                            var k = ss.join('|');
                            if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
                              var f = compile(pattern_match_function_template.replace(
-                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(patterns, expanders))}));
+                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(rpatterns, rexpanders))}));
                              return last_length = patterns.length, last_function = compiled_function_cache[k] = f}};
-                         return patterns.length ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) : t};
+                         return patterns.length > 30 ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) :
+                                patterns.length      ? macro_expand_naive(t, patterns, expanders, context)                   : t};
 
     macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();
@@ -1916,11 +1920,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // Note that because of an IE7 bug, all lengths are stored twice. Once in 'l' and once in 'length' -- the 'length' property is only updated for array compatibility on compliant platforms, but it
 // will always be 0 on IE7.
 
-  tconfiguration('std opt', 'seq.finite.core', function () {
+  tconfiguration('std opt continuation', 'seq.finite.core', function () {
     this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
       _.size() = this.l || this.length, _.slice() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
 
-  tconfiguration('std', 'seq.finite.serialization', function () {
+  tconfiguration('std opt continuation', 'seq.finite.serialization', function () {
     this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.slice().join(", ")}]', _.join(x) = this.slice().join(x)]}).
 
 //   Mutability.
@@ -1928,7 +1932,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Javascript array methods. In particular, push() returns the sequence rather than its new length. Also, there is no shift()/unshift() API. These would each be linear-time given that we're
 //   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
 
-    tconfiguration('std opt', 'seq.finite.mutability', function () {
+    tconfiguration('std opt continuation', 'seq.finite.mutability', function () {
       l[push = Array.prototype.push, slice = Array.prototype.slice] in
       this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /re[this.length = this.l, this],
                                                                  _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
@@ -1947,7 +1951,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   | object([o = {}]): Zips a sequence of pairs into an object containing those mappings. Later pairs take precedence over earlier ones if there is a collision. You can specify an optional
 //                       object o to zip into; if you do this, then the pairs are added to o and o is returned instead of creating a new object and adding pairs to that.
 
-    tconfiguration('std', 'seq.finite.object', function () {
+    tconfiguration('std opt continuation', 'seq.finite.object', function () {
       l[own = Object.prototype.hasOwnProperty] in
       this.configure('seq.finite.core').seq.finite /se[_.keys  (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(k)})()],
                                                        _.values(o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(o[k])})()],
@@ -1960,7 +1964,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   If you fold on a sequence with too few elements (and you don't supply extras by giving it more arguments), it will return something falsy.
 
-    tconfiguration('std opt', 'seq.finite.traversal', function () {
+    tconfiguration('std opt continuation', 'seq.finite.traversal', function () {
       this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype
         /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.l][_.push(f.call(this, this[i], i))]],
             _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.l][_.push(this[i]), when[f.call(this, this[i], i)]]],
@@ -1983,7 +1987,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   on every n-tuple of items, and if 'outer' is truthy then you will have the outer-product of all of your sequences (i.e. the longest sequence length is used, and undefined is specified when
 //   you run past the end of any other one).
 
-    tconfiguration('std opt', 'seq.finite.zip', function () {
+    tconfiguration('std opt continuation', 'seq.finite.zip', function () {
       this.configure('seq.finite.traversal').seq.finite
         /se[_.prototype.zip() = l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
                                  [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
@@ -2004,7 +2008,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // All streams are assumed to be infinite in length; that is, given some element there is always another one. Streams provide this interface with h() and t() methods; the former returns the first
 // element of the stream, and the latter returns a stream containing the rest of the elements.
 
-  tconfiguration('std', 'seq.infinite.core', function () {
+  tconfiguration('std opt continuation', 'seq.infinite.core', function () {
     this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
       /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
 
@@ -2014,14 +2018,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Anamorphisms via fixed-point.
 //   Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns x, f(x), f(f(x)), f(f(f(x))), ....
 
-    tconfiguration('std', 'seq.infinite.y', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.y', function () {
       this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
 
 //   Lazy map and filter.
 //   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
 //   because they provide streams as output. filter() is eager on its first element; that is, it remains one element ahead of what is requested.
 
-    tconfiguration('std continuation', 'seq.infinite.transform', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.transform', function () {
       this.configure('seq.infinite.core').seq.infinite
         /se[_.prototype.map(f) = new _.map(f, this),
             _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
@@ -2035,7 +2039,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
 //   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
 
-    tconfiguration('std continuation', 'seq.infinite.traversal', function () {
+    tconfiguration('std opt continuation', 'seq.infinite.traversal', function () {
       l[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
       this.configure('seq.infinite.core').seq.infinite.prototype
         /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
@@ -2056,7 +2060,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // | caterwaul.seq.naturals                -> [0, 1, 2, 3, ...]
 //   caterwaul.seq.naturals_from(2)        -> [2, 3, 4, 5, ...]
 
-  tconfiguration('std opt', 'seq.numeric', function () {
+  tconfiguration('std opt continuation', 'seq.numeric', function () {
     this.configure('seq.infinite.core seq.infinite.y seq.finite.core').seq /se[
       _.naturals_from(x) = new _.infinite.y(fn[n][n + 1], x),
       _.naturals         = _.naturals_from(0),
@@ -2414,7 +2418,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   | peg[c('a') / c('b')]('a')        // -> 'a'
 
-    tconfiguration('std seq', 'parser.alt', function () {
+    tconfiguration('std opt seq continuation', 'parser.alt', function () {
       this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[_(state)]]]])}).
 
 //   Repetition.
@@ -2434,7 +2438,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
 
-    tconfiguration('std seq continuation', 'parser.opt', function () {
+    tconfiguration('std opt seq continuation', 'parser.opt', function () {
       this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s ? s.i : state.i, r = s && s.result]]])}).
 
 //   Positive and negative matches.
@@ -2443,7 +2447,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
 //     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
 
-    tconfiguration('std seq continuation', 'parser.match', function () {
+    tconfiguration('std opt seq continuation', 'parser.match', function () {
       this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
                                                _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
 
@@ -2451,14 +2455,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   This is fairly straightforward; a parser is 'bound' to a function by mapping through the function if it is successful. The function then returns a new result based on the old one. Binding is
 //   denoted by the >> operator.
 
-    tconfiguration('std seq continuation', 'parser.bind', function () {
+    tconfiguration('std opt seq continuation', 'parser.bind', function () {
       this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
 
 // DSL macro.
 // Most of the time you'll want to use the peg[] macro rather than hand-coding the grammar. The macro both translates the tree and introduces all of the parsers as local variables (like a with()
 // block, but much faster and doesn't earn the wrath of Douglas Crockford).
 
-  tconfiguration('std seq continuation', 'parser.dsl', function () {
+  tconfiguration('std opt seq continuation', 'parser.dsl', function () {
     this.configure('parser.core').rmacro(qs[peg[_]],
       fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
                                                       _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),
