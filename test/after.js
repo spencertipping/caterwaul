@@ -1,11 +1,11 @@
 // Tests for composition via the after() method.
 
 test('after', function () {
-  caterwaul.clone('std macro')(function (eq) {
-    var c1 = caterwaul.clone('std'), c2 = caterwaul.clone('std');
+  caterwaul.clone('std')(function (eq) {
+    var c1 = caterwaul.clone('std macro'), c2 = caterwaul.clone('std macro');
 
-    eq(c1.after.constructor, Function); literal[c1(function () {defsubst[_x + _y][_x * _y]})];
-    eq(c2.after.constructor, Function); literal[c2(function () {defsubst[_x * _y][_x + _y]})];
+    eq(c1.after.constructor, Function); c1.rmacro(qs[_ + _], fn[x, y][qs[_x * _y].replace({_x: x, _y: y})]);
+    eq(c2.after.constructor, Function); c2.rmacro(qs[_ * _], fn[x, y][qs[_x + _y].replace({_x: x, _y: y})]);
 
     var c12 = c1.clone();
     eq(c12.after(c2), c12);

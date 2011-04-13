@@ -1771,7 +1771,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
 __c74240c106c69f3779f121a6880b6abb
-meta::sdoc('js::core/caterwaul.behaviors', <<'__37362fe060375613e35e511d90d0cf34');
+meta::sdoc('js::core/caterwaul.behaviors', <<'__cd0828b4d1d0bc9b44e5ae5254522efb');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -1797,8 +1797,9 @@ means that it may become arbitrarily optimized.
   While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
 
   var macroexpansion = function (f) {return f.
+      field('macroexpand_jit_compiled_functions', {}).
     shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_jit(t, this.macro_patterns, this.macro_expanders, this)}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_jit(t, this.macro_patterns, this.macro_expanders, this, this.macroexpand_jit_compiled_functions)}).
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
@@ -1860,7 +1861,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__37362fe060375613e35e511d90d0cf34
+__cd0828b4d1d0bc9b44e5ae5254522efb
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -2063,7 +2064,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__c66c532ba3f8ec25951f9bd64d295a09');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__a97112de9610e14dd9a17823cf695da2');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2381,14 +2382,14 @@ For history's sake I've left some of the theoretical notes involving probability
   Macroexpansion generator.
   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
-    compiled_function_cache = {},
-    macro_expand_jit = function (t, patterns, expanders, context) {
+    identification_key = gensym(),
+    identify = function (object) {return object[identification_key] || (object[identification_key] = gensym())},
+    macro_expand_jit = function (t, patterns, expanders, context, compiled_function_cache) {
                          var last_length = -1, last_function = null;
                          var macroexpand_function = function () {
                            if (patterns.length === last_length) return last_function;
-                           for (var ss = [], i = 0, l = patterns.length; i < l; ++i) ss.push(patterns[i].inspect());
-                           var k = ss.join('|');
-                           if (compiled_function_cache[k]) return last_length = patterns.length, last_function = compiled_function_cache[k];
+                           for (var k = null, ss = [], i = patterns.length - 1; i >= 0; --i) ss.push(patterns[i].inspect() + identify(expanders[i]));
+                           if (compiled_function_cache[k = ss.join('#')]) return last_length = patterns.length, last_function = compiled_function_cache[k];
                            else {
                              var rpatterns = [], rexpanders = [];
                              for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
@@ -2398,9 +2399,8 @@ For history's sake I've left some of the theoretical notes involving probability
                          return patterns.length > 30 ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) :
                                 patterns.length      ? macro_expand_naive(t, patterns, expanders, context)                   : t};
 
-    macro_expand_jit.clear_cache = function () {compiled_function_cache = {}};
     return macro_expand_jit})();
-__c66c532ba3f8ec25951f9bd64d295a09
+__a97112de9610e14dd9a17823cf695da2
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
@@ -5656,15 +5656,15 @@ And here are the expression-mode transformations:
 
     this.after(
 __3a1c33101bf68061d3dd41ba5f3da257
-meta::sdoc('js::test/after', <<'__1e8f9f114d6d65a684e48b521b22be33');
+meta::sdoc('js::test/after', <<'__fc15f6964f51604d56badbc1d46c94ea');
 Tests for composition via the after() method.
 
 test('after', function () {
-  caterwaul.clone('std macro')(function (eq) {
-    var c1 = caterwaul.clone('std'), c2 = caterwaul.clone('std');
+  caterwaul.clone('std')(function (eq) {
+    var c1 = caterwaul.clone('std macro'), c2 = caterwaul.clone('std macro');
 
-    eq(c1.after.constructor, Function); literal[c1(function () {defsubst[_x + _y][_x * _y]})];
-    eq(c2.after.constructor, Function); literal[c2(function () {defsubst[_x * _y][_x + _y]})];
+    eq(c1.after.constructor, Function); c1.rmacro(qs[_ + _], fn[x, y][qs[_x * _y].replace({_x: x, _y: y})]);
+    eq(c2.after.constructor, Function); c2.rmacro(qs[_ * _], fn[x, y][qs[_x + _y].replace({_x: x, _y: y})]);
 
     var c12 = c1.clone();
     eq(c12.after(c2), c12);
@@ -5681,7 +5681,7 @@ test('after', function () {
     eq(c21(qs[x * y]).data, '*');
   })(eq);
 });
-__1e8f9f114d6d65a684e48b521b22be33
+__fc15f6964f51604d56badbc1d46c94ea
 meta::sdoc('js::test/environment', <<'__3b875a9598a9d647dc99d31e953b6c82');
 Environment compilation test.
 Makes sure that Caterwaul compiles a function within the right environment.
