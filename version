@@ -6,15 +6,15 @@ if [[ -d stable/$1 ]]; then
   return 1
 fi
 
-./caterwaul render || return 1
-./caterwaul test | tee test-log
+./caterwaul.html render || return 1
+./caterwaul.html test | tee test-log
 
 grep 'Error' test-log && return 1
 rm test-log
 
 mkdir stable/$1
 cp *.js modules/*.js stable/$1/
-cp caterwaul stable/$1/
+cp caterwaul.html stable/$1/
 git add stable/$1
 git commit -am "Automatic commit for version $1"
 git tag version-$1
