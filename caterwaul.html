@@ -996,15 +996,16 @@ meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
 # Runs the hackery generation hooks (which happen after a render)
 #hook('hackery');
 __049a9817dec529eff29f94917eb1ee83
-meta::hook('after-render::minify', <<'__4dbb82308b841f12d2bcd62fce32d468');
+meta::hook('after-render::minify', <<'__11068c68a72b7bec1f9b6733ad647dbf');
 # Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
 file::write('caterwaul.js',       retrieve('pp::js::core/caterwaul'));
 file::write('caterwaul.all.js',   retrieve('pp::js::modules/caterwaul.all'));
+file::write('caterwaul.node.js',  retrieve('pp::js::modules/caterwaul.node'));
 file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
 
 # Minify all of the generated files, but not those which contain preprocessor directives.
-file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, <*.js>, <modules/*.js>;
-__4dbb82308b841f12d2bcd62fce32d468
+file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, qw(caterwaul.js caterwaul.all.js), <modules/*.js>;
+__11068c68a72b7bec1f9b6733ad647dbf
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
@@ -4106,6 +4107,16 @@ test('caterwaul.memoize.fib', function () {
   })(eq);
 });
 __1cf835634927d2aca7f5252efd1a2276
+meta::sdoc('js::modules/caterwaul.node', <<'__d4e5ce298895c0d59f093b80831556e4');
+Node/CommonJS Caterwaul module | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+- pinclude pp::js::modules/caterwaul.all
+
+Expose the Caterwaul global function as an export.
+
+exports.caterwaul = caterwaul;
+__d4e5ce298895c0d59f093b80831556e4
 meta::sdoc('js::modules/caterwaul.opt', <<'__eeda6a22d8304e62c118565efae2ee1a');
 Caterwaul optimization library | Spencer Tipping
 Licensed under the terms of the MIT source code license
