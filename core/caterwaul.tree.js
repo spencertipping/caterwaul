@@ -252,14 +252,15 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
        serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
-                                 return has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+                                 return               op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
+                                        has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                                        has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
                                           has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
                                             has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
                                                has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
                    has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
                                     has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';', this[2]]).join('') :
+                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
                                                                      op + space + map(syntax_node_tostring, this).join('') :
                                                 has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}},
 

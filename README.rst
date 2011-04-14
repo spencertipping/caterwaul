@@ -11,7 +11,7 @@ know if anything fails. My goal is to make this project completely cross-browser
 As of version 0.5.4, all of the standard library works in IE6, IE7, IE8, Google Chrome, Firefox 3.5, Opera, and Safari. The sequence library didn't work on IE7 before this version.
 
 Documentation is in the doc/ directory (in the form of applied guides; these should be a great place to start), and the annotated source is up at
-http://spencertipping.com/caterwaul/caterwaul.html. Another way to learn Caterwaul is to experiment with the `live compiler <http://spencertipping.com/caterwaul/compiler>`_ and
+http://spencertipping.com/caterwaul/sdoc.html. Another way to learn Caterwaul is to experiment with the `live compiler <http://spencertipping.com/caterwaul/compiler>`_ and
 `Caterwaul REPL <http://spencertipping.com/caterwaul/shell>`_.
 
 Using Caterwaul
@@ -64,29 +64,29 @@ Documentation
 
 This README isn't intended to document Caterwaul; to learn how to use it, I recommend starting off with `Client-Side Caterwaul
 <http://spencertipping.com/caterwaul/doc/client-side-caterwaul.pdf>`_. If you're feeling adventurous, you might also want to check out the `annotated source code
-<http://spencertipping.com/caterwaul/caterwaul.html>`_.
+<http://spencertipping.com/caterwaul/sdoc.html>`_.
 
 Hacking Caterwaul
 -----------------
 
-All of the SDoc-wrapped Javascript is now bundled into the ``caterwaul`` file, which is a `self-modifying Perl script <http://github.com/spencertipping/perl-objects>`_ that knows how to run
-unit tests and compile the regular Javascript files. It's not hard to hack on Caterwaul though::
+All of the SDoc-wrapped Javascript is now bundled into the ``caterwaul.html`` file, which is a `self-modifying Perl script <http://github.com/spencertipping/perl-objects>`_ that knows how to
+run unit tests and compile the regular Javascript files. It's not hard to hack on Caterwaul though::
 
-    $ ./caterwaul
-    caterwaul4012 ls-a sdoc::js
+    $ ./caterwaul.html
+    caterwaul.html4012 ls-a sdoc::js
     <a bunch of attributes>
-    caterwaul4012 edit sdoc::js::caterwaul      # To edit the caterwaul core
-    caterwaul4012 e                             # An alias (run ls-a alias:: to see all of them)
-    caterwaul4012 test                          # Run all of the unit tests
-    caterwaul4012 render                        # Render all of the files, including minified ones
-    caterwaul4012 ^D                            # Exit, saving changes
+    caterwaul.html4012 edit sdoc::js::core/caterwaul.compiler   # To edit one of the core modules
+    caterwaul.html4012 e                                        # An alias (run ls-a alias:: to see all of them)
+    caterwaul.html4012 test                                     # Run all of the unit tests
+    caterwaul.html4012 render                                   # Render all of the files, including minified ones
+    caterwaul.html4012 ^D                                       # Exit, saving changes
     $
 
 Also potentially useful are ``parse`` and ``macroexpand``::
 
-    $ ./caterwaul parse 'foo.bar.bif'
+    $ ./caterwaul.html parse 'foo.bar.bif'
     (. (. foo bar) bif)
-    $ ./caterwaul macroexpand 'seq[xs *[_ + 1]]'
+    $ ./caterwaul.html macroexpand 'seq[xs *[_ + 1]]'
     xs.map((function (_, _i) {
       return _ + 1
     }))

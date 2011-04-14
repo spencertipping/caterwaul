@@ -77,7 +77,7 @@
                                               if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
                                               return result}).
 
-    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c, undefined, this.unique).deglobalize();
+    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.self), result = c(c, this.unique).deglobalize();
                                                                        erase_configurations || (result.configurations = this.configurations); return result}).
 
 //   Utility library.

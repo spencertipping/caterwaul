@@ -9,12 +9,12 @@
 // Like most REPLs, this interface provides a prompt and a history area. Unlike most REPLs, though, the interface macroexpands the user's code in realtime. It also maintains a list of variables
 // defined by the user and lets the user interactively inspect objects, arrays, and other values.
 
-shell = caterwaul.clone('std format seq continuation montenegro')(function (options) {
+shell = caterwaul.clone('std format seq continuation montenegro').bake()(function (options) {
   options = options || {};
 
   return html[div.shell(div.log(prompt))],
 
-  where*[caterwaul_global = caterwaul.clone('std seq continuation opt montenegro parser'),
+  where*[caterwaul_global = caterwaul.global().clone('std macro seq continuation opt heap memoize montenegro parser'),
 
          input_syntax_check_delay = options.syntax_check_delay   || 30,
          up_arrow_keycode         = options.history_up_keycode   || 38,

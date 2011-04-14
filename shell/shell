@@ -1223,22 +1223,22 @@ These are color-coded by role.
 .log .input pre {color: #777}
 .log .error pre {color: #a53}
 __6fd15e49b8e157cc3365a86cef4d28a5
-meta::sdoc('html::index', <<'__2d67831279ef6cbafa02f8f8b25248f1');
+meta::sdoc('html::index', <<'__ce37c33115a228b45072d318da5dee2f');
 <!doctype html>
 <html>
   <head>
   <title>Caterwaul Shell</title>
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.js'></script>
-  <script src='http://spencertipping.com/caterwaul/caterwaul.all.js'></script>
-  <script src='http://spencertipping.com/caterwaul/modules/caterwaul.format.js'></script>
-  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='../caterwaul.all.js'></script>
+  <script src='../modules/caterwaul.format.js'></script>
+  <script src='../../montenegro/montenegro.client.js'></script>
   <script src='shell.js'></script>
   <script src='index.js'></script>
   <link rel='stylesheet' href='index.css'/>
   </head>
   <body></body>
 </html>
-__2d67831279ef6cbafa02f8f8b25248f1
+__ce37c33115a228b45072d318da5dee2f
 meta::sdoc('js::index', <<'__566456a1ca5a7d13d6e117c1abd0aa0a');
 $(caterwaul.clone('std seq continuation')(function () {
   $('body').append(shell());
@@ -1248,7 +1248,7 @@ $(caterwaul.clone('std seq continuation')(function () {
   where*[adjust_sizing() = $('body').css({height: $(window).height()})];
 }));
 __566456a1ca5a7d13d6e117c1abd0aa0a
-meta::sdoc('js::shell', <<'__07b63bb0faf2a7fe6d7bd87679651a7e');
+meta::sdoc('js::shell', <<'__b27ccf309e1a439d29ad83ff518ae72f');
 Caterwaul interactive shell | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1260,12 +1260,12 @@ UI structure.
 Like most REPLs, this interface provides a prompt and a history area. Unlike most REPLs, though, the interface macroexpands the user's code in realtime. It also maintains a list of variables
 defined by the user and lets the user interactively inspect objects, arrays, and other values.
 
-shell = caterwaul.clone('std format seq continuation montenegro')(function (options) {
+shell = caterwaul.clone('std format seq continuation montenegro').bake()(function (options) {
   options = options || {};
 
   return html[div.shell(div.log(prompt))],
 
-  where*[caterwaul_global = caterwaul.clone('std seq continuation opt montenegro parser'),
+  where*[caterwaul_global = caterwaul.global().clone('std macro seq continuation opt heap memoize montenegro parser'),
 
          input_syntax_check_delay = options.syntax_check_delay   || 30,
          up_arrow_keycode         = options.history_up_keycode   || 38,
@@ -1345,7 +1345,7 @@ shell = caterwaul.clone('std format seq continuation montenegro')(function (opti
                                logging_functions()         = {log: log_value, error: log_error},
                                timing_functions()          = {profile: fn[f][l[start = +new Date()] in f() /se[log_value('#{+new Date() - start}ms')]]},
                                environment                 = caterwaul.util.merge(options.environment || {}, {console: console_object()})]]]});
-__07b63bb0faf2a7fe6d7bd87679651a7e
+__b27ccf309e1a439d29ad83ff518ae72f
 internal::main();
 
 __END__
