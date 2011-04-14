@@ -235,7 +235,7 @@ meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
-meta::bootstrap('html', <<'__aa347c4339e71e7acc9ea4fc3d593347');
+meta::bootstrap('html', <<'__9b839f4c0c8d6bb18bf6d9d0e670e497');
 <html>
   <head>
   <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
@@ -244,12 +244,13 @@ meta::bootstrap('html', <<'__aa347c4339e71e7acc9ea4fc3d593347');
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js'></script>
   <script src='http://spencertipping.com/caterwaul/caterwaul.all.min.js'></script>
   <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='http://spencertipping.com/perl-objects/web/attribute-parser.js'></script>
   <script src='http://spencertipping.com/perl-objects/web/interface.js'></script>
   </head>
   <body></body>
 </html>
 
-__aa347c4339e71e7acc9ea4fc3d593347
+__9b839f4c0c8d6bb18bf6d9d0e670e497
 meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -1596,10 +1597,10 @@ Unimportant things that might help at some point in the future.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
 __48c65f082344a2efd22342ecbffcd69b
-meta::parent('/home/spencertipping/bin/configuration', <<'__9d2be9598330a82e97a313be6be67670');
+meta::parent('/home/spencertipping/bin/configuration', <<'__6a9b27ada805f6b566787caf03c9b318');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  6b93679549b63f96ad5863923e0c4f1f
-__9d2be9598330a82e97a313be6be67670
+parent::/home/spencertipping/bin/object  281e882a68d555bbd5c0e098c22d1bf3
+__6a9b27ada805f6b566787caf03c9b318
 meta::parent('/home/spencertipping/bin/node-base', <<'__ae5fd8bbce0d68ffe89f765751c60515');
 function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
 function::node                                              3522fde8f76947a5f70bca33f1ee0016
@@ -1612,8 +1613,8 @@ meta::type::js                                              f7a0080116fecebf7abb
 parent::/home/spencertipping/bin/repository                 07e9a020871aea8085d81c6363c1aced
 parent::/home/spencertipping/conjectures/perl-objects/sdoc  17ae8eb5d9f395141bb54697e055d30b
 __ae5fd8bbce0d68ffe89f765751c60515
-meta::parent('/home/spencertipping/bin/object', <<'__6b93679549b63f96ad5863923e0c4f1f');
-bootstrap::html                         aa347c4339e71e7acc9ea4fc3d593347
+meta::parent('/home/spencertipping/bin/object', <<'__281e882a68d555bbd5c0e098c22d1bf3');
+bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
 bootstrap::initialization               8774229a1a0ce7fd056d81ba0b077f79
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
 function::alias                         28744564997657da45ab16cd5b441104
@@ -1717,30 +1718,30 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__6b93679549b63f96ad5863923e0c4f1f
-meta::parent('/home/spencertipping/bin/repository', <<'__07e9a020871aea8085d81c6363c1aced');
+__281e882a68d555bbd5c0e098c22d1bf3
+meta::parent('/home/spencertipping/bin/repository', <<'__c32dfb76e68c205326e21e99618641e5');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  9d2be9598330a82e97a313be6be67670
-__07e9a020871aea8085d81c6363c1aced
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__17ae8eb5d9f395141bb54697e055d30b');
+parent::/home/spencertipping/bin/configuration  6a9b27ada805f6b566787caf03c9b318
+__c32dfb76e68c205326e21e99618641e5
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__a03eb8ad830bf083a0bdc01dc27ab526');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  6b93679549b63f96ad5863923e0c4f1f
+parent::/home/spencertipping/bin/object  281e882a68d555bbd5c0e098c22d1bf3
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
-__17ae8eb5d9f395141bb54697e055d30b
-meta::parent('notes', <<'__9bd87fe8c3b24d930048afd7f1626853');
+__a03eb8ad830bf083a0bdc01dc27ab526
+meta::parent('notes', <<'__9c368586e3352c56a5ff8f4a7fdd1d8e');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    6b93679549b63f96ad5863923e0c4f1f
-__9bd87fe8c3b24d930048afd7f1626853
-meta::parent('object', <<'__6b93679549b63f96ad5863923e0c4f1f');
-bootstrap::html                         aa347c4339e71e7acc9ea4fc3d593347
+parent::object    281e882a68d555bbd5c0e098c22d1bf3
+__9c368586e3352c56a5ff8f4a7fdd1d8e
+meta::parent('object', <<'__281e882a68d555bbd5c0e098c22d1bf3');
+bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
 bootstrap::initialization               8774229a1a0ce7fd056d81ba0b077f79
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
 function::alias                         28744564997657da45ab16cd5b441104
@@ -1844,18 +1845,18 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__6b93679549b63f96ad5863923e0c4f1f
-meta::parent('preprocessor', <<'__622cc4460c88a883baef674642c2e921');
+__281e882a68d555bbd5c0e098c22d1bf3
+meta::parent('preprocessor', <<'__169a13e1d2d89936390b6f2b6b2c789f');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 6b93679549b63f96ad5863923e0c4f1f
+parent::object                 281e882a68d555bbd5c0e098c22d1bf3
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
 template::failing_conditional  5c593329b434a7044f68cec4b77e8ed9
 template::include              e0624844a65ae41e0217dd871fc0dbfb
 template::pinclude             5ba61c3034a4b183881936aec30d2be9
-__622cc4460c88a883baef674642c2e921
+__169a13e1d2d89936390b6f2b6b2c789f
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('html-sdoc', <<'__54d22ab83d9f3f2e27ef51033b4817a7');
 my ($attribute) = @_;
