@@ -12,9 +12,14 @@ fi
 grep 'Error' test-log && return 1
 rm test-log
 
-mkdir stable/$1
-cp *.js modules/*.js stable/$1/
+mkdir -p stable/$1/modules
+mkdir -p stable/$1/core
+
+cp modules/*.js stable/$1/modules/
+cp core/*.js    stable/$1/core/
+cp *.js         stable/$1/
 cp caterwaul.html stable/$1/
+
 git add stable/$1
 git commit -am "Automatic commit for version $1"
 git tag version-$1
