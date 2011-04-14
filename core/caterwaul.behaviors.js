@@ -23,9 +23,14 @@
 //   While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
 
   var macroexpansion = function (f) {return f.
-      field('macroexpand_jit_compiled_functions', {}).
-    shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_jit(t, this.macro_patterns, this.macro_expanders, this, this.macroexpand_jit_compiled_functions)}).
+    shallow('macro_patterns',  []).method('macro', function (pattern, expander) {if (! expander.apply) throw new Error('macro: Cannot define macro with non-function expander');
+                                                                                 else return this.macro_patterns.push(pattern), this.macro_expanders.push(expander), this}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return this.baked_macroexpander ? macro_expand_baked(t, this.baked_macroexpander, this) :
+                                                                                                         macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
+
+     method('bake_macroexpander', function () {return this.method('macro',               function () {throw new Error('Cannot define new macros after baking the macroexpander')}).
+                                                            field('baked_macroexpander', jit_macroexpander(this.macro_patterns, this.macro_expanders))}).
+
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
@@ -81,6 +86,12 @@
 //   that is being configured; thus a 'util' object that contains some useful stuff. For starters it contains some general-purpose methods:
 
     shallow('util', {extend: extend, merge: merge, se: se, id: id, bind: bind, map: map, qw: qw}).
+
+//   Baking things.
+//   Caterwaul can sometimes gain a performance advantage by precompiling pieces of itself to reflect its configuration. New in 0.7.0 is the ability to compile a decision-tree macroexpander
+//   function. To get it to do this, you use the bake() method, which freezes the caterwaul compiler's configuration and precompiles specialized functions to handle its configuration optimally.
+
+    method('bake', function () {return this.bake_macroexpander()}).
 
 //   Magic.
 //   Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are

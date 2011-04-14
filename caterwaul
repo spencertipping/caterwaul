@@ -1939,7 +1939,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
 __c74240c106c69f3779f121a6880b6abb
-meta::sdoc('js::core/caterwaul.behaviors', <<'__cd0828b4d1d0bc9b44e5ae5254522efb');
+meta::sdoc('js::core/caterwaul.behaviors', <<'__112215abe6e82e521cc04c75c1c5eb1b');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -1965,9 +1965,14 @@ means that it may become arbitrarily optimized.
   While macro() is marginally faster than rmacro(), the difference isn't significant in most cases.
 
   var macroexpansion = function (f) {return f.
-      field('macroexpand_jit_compiled_functions', {}).
-    shallow('macro_patterns',  []).method('macro', function (pattern, expansion) {return this.macro_patterns.push(pattern), this.macro_expanders.push(expansion), this}).
-    shallow('macro_expanders', []).method('macroexpand', function (t) {return macro_expand_jit(t, this.macro_patterns, this.macro_expanders, this, this.macroexpand_jit_compiled_functions)}).
+    shallow('macro_patterns',  []).method('macro', function (pattern, expander) {if (! expander.apply) throw new Error('macro: Cannot define macro with non-function expander');
+                                                                                 else return this.macro_patterns.push(pattern), this.macro_expanders.push(expander), this}).
+    shallow('macro_expanders', []).method('macroexpand', function (t) {return this.baked_macroexpander ? macro_expand_baked(t, this.baked_macroexpander, this) :
+                                                                                                         macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
+
+     method('bake_macroexpander', function () {return this.method('macro',               function () {throw new Error('Cannot define new macros after baking the macroexpander')}).
+                                                            field('baked_macroexpander', jit_macroexpander(this.macro_patterns, this.macro_expanders))}).
+
      method('rmacro', function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: Cannot define macro with non-function expander');
                                                     else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})},
 
@@ -2024,12 +2029,18 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
 
     shallow('util', {extend: extend, merge: merge, se: se, id: id, bind: bind, map: map, qw: qw}).
 
+  Baking things.
+  Caterwaul can sometimes gain a performance advantage by precompiling pieces of itself to reflect its configuration. New in 0.7.0 is the ability to compile a decision-tree macroexpander
+  function. To get it to do this, you use the bake() method, which freezes the caterwaul compiler's configuration and precompiles specialized functions to handle its configuration optimally.
+
+    method('bake', function () {return this.bake_macroexpander()}).
+
   Magic.
   Sometimes you need to grab a unique value that is unlikely to exist elsewhere. Caterwaul gives you such a value given a string. These values are shared across all Caterwaul instances and are
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__cd0828b4d1d0bc9b44e5ae5254522efb
+__112215abe6e82e521cc04c75c1c5eb1b
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -2232,7 +2243,7 @@ Caterwaul implements several optimizations that make it much faster to macroexpa
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 __9c3c260710a804e1a35aa04613f81af6
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__a97112de9610e14dd9a17823cf695da2');
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__51f3398e8f9d1f38894d15181dec211f');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2243,7 +2254,7 @@ syntax trees being transformed.
 
 For history's sake I've left some of the theoretical notes involving probability, but in practice we don't know what the probability will be when we're building the decision tree.
 
-  var macro_expand_jit = (function () {
+  var jit_macroexpander = (function () {
 
   Irrelevance of discrimination.
   Suppose you have two macro trees, each with the same form (i.e. same arity of each node and same wildcard positions). I propose that the traversal order doesn't require any extensive
@@ -2545,30 +2556,17 @@ For history's sake I've left some of the theoretical notes involving probability
                                    for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
                                      sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
                                                                      generate_partitioned_switch(sts[i], visited, variables, pattern_data));
-                                   return r},
+                                   return r};
 
   Macroexpansion generator.
   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
-    identification_key = gensym(),
-    identify = function (object) {return object[identification_key] || (object[identification_key] = gensym())},
-    macro_expand_jit = function (t, patterns, expanders, context, compiled_function_cache) {
-                         var last_length = -1, last_function = null;
-                         var macroexpand_function = function () {
-                           if (patterns.length === last_length) return last_function;
-                           for (var k = null, ss = [], i = patterns.length - 1; i >= 0; --i) ss.push(patterns[i].inspect() + identify(expanders[i]));
-                           if (compiled_function_cache[k = ss.join('#')]) return last_length = patterns.length, last_function = compiled_function_cache[k];
-                           else {
-                             var rpatterns = [], rexpanders = [];
-                             for (var i = patterns.length - 1; i >= 0; --i) rpatterns.push(patterns[i]), rexpanders.push(expanders[i]);
-                             var f = compile(pattern_match_function_template.replace(
-                               {_body: generate_decision_tree(rpatterns, null, null, empty_variable_mapping_table(), pattern_data(rpatterns, rexpanders))}));
-                             return last_length = patterns.length, last_function = compiled_function_cache[k] = f}};
-                         return patterns.length > 30 ? t.rmap(function (n) {return macroexpand_function().call(context, n)}) :
-                                patterns.length      ? macro_expand_naive(t, patterns, expanders, context)                   : t};
+    return function (patterns, expanders) {for (var i = patterns.length - 1, rps = [], res = []; i >= 0; --i) rps.push(patterns[i]), res.push(expanders[i]);
+                                           return compile(pattern_match_function_template.replace(
+                                             {_body: generate_decision_tree(rps, null, null, empty_variable_mapping_table(), pattern_data(rps, res))}))}})(),
 
-    return macro_expand_jit})();
-__a97112de9610e14dd9a17823cf695da2
+  macro_expander_baked = function (t, f, context) {return t.rmap(function (n) {return f.call(context, n)})};
+__51f3398e8f9d1f38894d15181dec211f
 meta::sdoc('js::core/caterwaul.macroexpander.jit-probabilistic', <<'__f8e79b07d50f734a587e82b560e02729');
 JIT macroexpander with probabilistic modeling.
 The naive macroexpander, implemented in sdoc::js::core/caterwaul.macroexpander.naive, takes linear time both in the number of syntax nodes and the number of macros. For potentially deep
