@@ -1333,11 +1333,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         trivial_function_gensym_template    = parse('function (_gensym) {_body}'),
 
         mark_nontrivial_function_macro = function (references) {return function (args, body) {
-                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: body});
+                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: annotate_functions_in(body, references)});
                                            return references[s] = {tree: result}, result}},
 
         mark_trivial_function_macro    = function (references) {return function (body) {
-                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: body});
+                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(body, references)});
                                            return references[s] = {tree: result}, result}},
 
 //   Macroexpansion for function origins.
@@ -1369,16 +1369,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     trivial_gensym_detection_pattern    = parse('function (_) {_}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var            matches = nontrivial_gensym_detection_pattern.match(tree), k = matches && matches[1].data;
-                        if (! matches) matches =    trivial_gensym_detection_pattern.match(tree), k = matches && matches[0].data;
-
-                        console.log(tree.serialize());
-
-                        if (matches && references[k])
-                          console.log('traced compilation of ' + tree.serialize() + ' for ' + references[k].tree);
+                        var            matches = tree.match(nontrivial_gensym_detection_pattern), k = matches && matches[1].data;
+                        if (! matches) matches = tree.match(   trivial_gensym_detection_pattern), k = matches && matches[0].data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
-                                                      else                        references[k].compiled = tree;
+                                                      else                        references[k].compiled = tree, references[k].environment = environment;
                         return original.call(this, tree, environment)}},
 
 //   Generating compiled functions.
@@ -1411,16 +1406,18 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
 //     right value for this property, since the value is a unique gensym.
 
-      serialize_ref             = function (ref) {if (ref.value instanceof syntax_node)        return syntax_ref_template.replace({_string: syntax_ref_string(ref)});
+      serialize_ref             = function (ref) {if (ref.value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(ref.value)});
                                              else if (ref.value.is_caterwaul === is_caterwaul) return caterwaul_ref_template.replace({_string: caterwaul_ref_string(ref.value.has)});
                                              else                                              throw new Error('syntax ref value is not serializable: ' + ref.value)},
 
 //     Variable table generation.
 //     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
-      variables_for             = function (tree) {var names = [], values = []; tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(n.value)});
-                                                   for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
-                                                   return names.length ? new syntax_node(';', vars) : closure_null_template},
+      variables_for             = function (tree, environment) {
+                                    var names = [], values = []; for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k]));
+                                                                 tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n))});
+                                    for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
+                                    return names.length ? new syntax_node(';', vars) : closure_null_template},
 
 //     Closure state generation.
 //     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
@@ -1649,7 +1646,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-     field('precompiled_internal_table', {}).
+     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).
     method('precompile', precompile).method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
 
     method('init', function (f, environment) {if (f.constructor === String && this.precompiled_internal_table[f]) return this.precompiled_internal_table[f];

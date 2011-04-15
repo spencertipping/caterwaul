@@ -1,0 +1,1 @@
+sdocp('sdoc::js::modules/caterwaul.node.pre', 'Node/CommonJS Caterwaul module (preprocessed) | Spencer Tipping\nLicensed under the terms of the MIT source code license\n\n- pinclude pp::js::modules/caterwaul.all.pre\n\nExpose the Caterwaul global function as an export.\n\nexports.caterwaul = caterwaul;');

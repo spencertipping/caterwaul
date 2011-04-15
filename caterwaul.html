@@ -731,6 +731,7 @@ file::write(attribute($_) .            '.js',       retrieve($_), mkpath => 1) f
 file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/sdocp::js::/, keys %data;
 hook('after-render');
 __d11b6e7522980db1022b1ccd575bdc30
+meta::function('repl', 'node([\'pp::js::modules/caterwaul.all\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -904,7 +905,7 @@ meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
 __f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__4338344e86c1627fc556a7d8289a6c4c');
+meta::function('test', <<'__48664f2725423f9977bd81d5256a502c');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
@@ -912,10 +913,24 @@ meta::function('test', <<'__4338344e86c1627fc556a7d8289a6c4c');
 my ($options, @args) = separate_options(@_);
 my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$args[0]\\.?test/$args[1]");
 render();
-terminal::info('running ' . join(' ', @tests));
-node([qw(caterwaul.all.js test/lib/unit.js), @tests]) unless $$options{'-N'};
-gjs([qw(caterwaul.all.js test/lib/unit.js), @tests]) if $$options{'-a'};
-__4338344e86c1627fc556a7d8289a6c4c
+
+unless ($$options{'-p'}) {
+  terminal::info('running ' . join(' ', @tests));
+  node([qw(caterwaul.all.js test/lib/unit.js), @tests]) unless $$options{'-N'};
+  gjs([qw(caterwaul.all.js test/lib/unit.js), @tests]) if $$options{'-a'};
+}
+
+terminal::info('with precompiled caterwaul');
+node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
+gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
+__48664f2725423f9977bd81d5256a502c
+meta::function('testq-pre', <<'__32ec47105d76da408dbf0bb72fbe5ac5');
+my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*\\.?test");
+
+terminal::warning('running tests without rendering');
+node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
+gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
+__32ec47105d76da408dbf0bb72fbe5ac5
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -1002,24 +1017,15 @@ meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
 # Runs the hackery generation hooks (which happen after a render)
 #hook('hackery');
 __049a9817dec529eff29f94917eb1ee83
-meta::hook('after-render::minify', <<'__603426d2fc376067e21b2372aca12fb5');
-# Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
-file::write('caterwaul.js',       retrieve('pp::js::core/caterwaul'));
-file::write('caterwaul.all.js',   retrieve('pp::js::modules/caterwaul.all'));
-file::write('caterwaul.node.js',  retrieve('pp::js::modules/caterwaul.node'));
-file::write('caterwaul.js.sdocp', retrieve('sdocp::pp::js::core/caterwaul'));
-
-# Minify all of the generated files, but not those which contain preprocessor directives.
-file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.(min|pre)\.js$/, qw(caterwaul.js caterwaul.all.js), <modules/*.js>;
-__603426d2fc376067e21b2372aca12fb5
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
 __6a97d3ed9a596b2e5e0429553fdb83e8
-meta::hook('after-render::precompile', <<'__9fb6be6944497e95bad512c41f743f11');
-# Precompile all modules that don't contain preprocessor directives.
-file::read($_) =~ /^-\s*pinclude\s/m or precompile($_) for grep !/\.pre\.js$/, <modules/*.js>;
-__9fb6be6944497e95bad512c41f743f11
+meta::hook('after-render::postprocess', <<'__1b4667cf22b86d8fb53bc4a321cc8a9b');
+hook('postprocess-precompile-modules');
+hook('postprocess-minify-modules');
+hook('postprocess-compile-all');
+__1b4667cf22b86d8fb53bc4a321cc8a9b
 meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
@@ -1068,6 +1074,25 @@ for (@all_modules) {
   build_caterwaul(@accepted_modules);
 }
 __f84a0f54cf39f3fa5f294e44a925a8fb
+meta::hook('postprocess-compile-all::main', <<'__49feac91e8c9f4928e30fbeddd13519e');
+# Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
+file::write('caterwaul.js',          retrieve('pp::js::core/caterwaul'));
+file::write('caterwaul.all.js',      retrieve('pp::js::modules/caterwaul.all'));
+file::write('caterwaul.all.pre.js',  retrieve('pp::js::modules/caterwaul.all.pre'));
+file::write('caterwaul.node.js',     retrieve('pp::js::modules/caterwaul.node'));
+file::write('caterwaul.node.pre.js', retrieve('pp::js::modules/caterwaul.node.pre'));
+file::write('caterwaul.js.sdocp',    retrieve('sdocp::pp::js::core/caterwaul'));
+
+minify($_) for qw(caterwaul.js caterwaul.all.js caterwaul.all.pre.js);
+__49feac91e8c9f4928e30fbeddd13519e
+meta::hook('postprocess-minify-modules::main', <<'__0e437ba9691bb125c614c06cad2f53c6');
+# Minify all of the generated files, but not those which contain preprocessor directives.
+file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, <modules/*.js>;
+__0e437ba9691bb125c614c06cad2f53c6
+meta::hook('postprocess-precompile-modules::main', <<'__e89769baa2c40b7d6cbac7244625d5e7');
+# Precompile all modules that don't contain preprocessor directives.
+file::read($_) =~ /^-\s*pinclude\s/m or precompile($_) for grep !/\.(min|pre)\.js$/, <modules/*.js>;
+__e89769baa2c40b7d6cbac7244625d5e7
 meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -1951,7 +1976,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
 __fc03b8c8c3e0c7adcfd785f563520956
-meta::sdoc('js::core/caterwaul.behaviors', <<'__550691ff2dec214d59e4bcf432de36ab');
+meta::sdoc('js::core/caterwaul.behaviors', <<'__7e0dfb246407efa8c08b580c5f49a5e6');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -2027,7 +2052,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-     field('precompiled_internal_table', {}).
+     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).
     method('precompile', precompile).method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
 
     method('init', function (f, environment) {if (f.constructor === String && this.precompiled_internal_table[f]) return this.precompiled_internal_table[f];
@@ -2056,7 +2081,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__550691ff2dec214d59e4bcf432de36ab
+__7e0dfb246407efa8c08b580c5f49a5e6
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -3194,7 +3219,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.precompile', <<'__4917cbeeb5fb656023ae13081f8793d0');
+meta::sdoc('js::core/caterwaul.precompile', <<'__4833fb3736465b9dcca511aa9e7ffefb');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3289,11 +3314,11 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
         trivial_function_gensym_template    = parse('function (_gensym) {_body}'),
 
         mark_nontrivial_function_macro = function (references) {return function (args, body) {
-                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: body});
+                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: annotate_functions_in(body, references)});
                                            return references[s] = {tree: result}, result}},
 
         mark_trivial_function_macro    = function (references) {return function (body) {
-                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: body});
+                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(body, references)});
                                            return references[s] = {tree: result}, result}},
 
   Macroexpansion for function origins.
@@ -3325,16 +3350,11 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     trivial_gensym_detection_pattern    = parse('function (_) {_}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var            matches = nontrivial_gensym_detection_pattern.match(tree), k = matches && matches[1].data;
-                        if (! matches) matches =    trivial_gensym_detection_pattern.match(tree), k = matches && matches[0].data;
-
-                        console.log(tree.serialize());
-
-                        if (matches && references[k])
-                          console.log('traced compilation of ' + tree.serialize() + ' for ' + references[k].tree);
+                        var            matches = tree.match(nontrivial_gensym_detection_pattern), k = matches && matches[1].data;
+                        if (! matches) matches = tree.match(   trivial_gensym_detection_pattern), k = matches && matches[0].data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
-                                                      else                        references[k].compiled = tree;
+                                                      else                        references[k].compiled = tree, references[k].environment = environment;
                         return original.call(this, tree, environment)}},
 
   Generating compiled functions.
@@ -3367,16 +3387,18 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
     right value for this property, since the value is a unique gensym.
 
-      serialize_ref             = function (ref) {if (ref.value instanceof syntax_node)        return syntax_ref_template.replace({_string: syntax_ref_string(ref)});
+      serialize_ref             = function (ref) {if (ref.value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(ref.value)});
                                              else if (ref.value.is_caterwaul === is_caterwaul) return caterwaul_ref_template.replace({_string: caterwaul_ref_string(ref.value.has)});
                                              else                                              throw new Error('syntax ref value is not serializable: ' + ref.value)},
 
     Variable table generation.
     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
-      variables_for             = function (tree) {var names = [], values = []; tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(n.value)});
-                                                   for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
-                                                   return names.length ? new syntax_node(';', vars) : closure_null_template},
+      variables_for             = function (tree, environment) {
+                                    var names = [], values = []; for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k]));
+                                                                 tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n))});
+                                    for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
+                                    return names.length ? new syntax_node(';', vars) : closure_null_template},
 
     Closure state generation.
     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
@@ -3407,7 +3429,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return compile(perform_substitution(references, references.annotated))}})();
-__4917cbeeb5fb656023ae13081f8793d0
+__4833fb3736465b9dcca511aa9e7ffefb
 meta::sdoc('js::core/caterwaul.tree', <<'__67e6757fdd2e73fb415aba23836d68ce');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -3829,6 +3851,22 @@ Licensed under the terms of the MIT source code license
 - pinclude pp::js::modules/caterwaul.memoize
 - pinclude pp::js::modules/caterwaul.parser
 __89090c3bf49c11fe682f000912014455
+meta::sdoc('js::modules/caterwaul.all.pre', <<'__5edda1fb53ca687feffd6b1c13c242ca');
+Caterwaul with all modules (precompiled) | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+- comment This is the template that produces caterwaul.all.pre.js.
+
+- pinclude core/caterwaul.js
+- pinclude modules/caterwaul.std.pre.js
+- pinclude modules/caterwaul.macro.pre.js
+- pinclude modules/caterwaul.opt.pre.js
+- pinclude modules/caterwaul.continuation.pre.js
+- pinclude modules/caterwaul.seq.pre.js
+- pinclude modules/caterwaul.heap.pre.js
+- pinclude modules/caterwaul.memoize.pre.js
+- pinclude modules/caterwaul.parser.pre.js
+__5edda1fb53ca687feffd6b1c13c242ca
 meta::sdoc('js::modules/caterwaul.continuation', <<'__d01f7225134d59279a11628ebc9fc7af');
 Continuation manipulation module | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -4352,6 +4390,16 @@ Expose the Caterwaul global function as an export.
 
 exports.caterwaul = caterwaul;
 __d4e5ce298895c0d59f093b80831556e4
+meta::sdoc('js::modules/caterwaul.node.pre', <<'__7ed77d5fc1c10641b08aa3520b9cde5b');
+Node/CommonJS Caterwaul module (preprocessed) | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+- pinclude pp::js::modules/caterwaul.all.pre
+
+Expose the Caterwaul global function as an export.
+
+exports.caterwaul = caterwaul;
+__7ed77d5fc1c10641b08aa3520b9cde5b
 meta::sdoc('js::modules/caterwaul.opt', <<'__eeda6a22d8304e62c118565efae2ee1a');
 Caterwaul optimization library | Spencer Tipping
 Licensed under the terms of the MIT source code license
