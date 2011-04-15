@@ -131,6 +131,8 @@
                         var            matches = nontrivial_gensym_detection_pattern.match(tree), k = matches && matches[1].data;
                         if (! matches) matches =    trivial_gensym_detection_pattern.match(tree), k = matches && matches[0].data;
 
+                        console.log(tree.serialize());
+
                         if (matches && references[k])
                           console.log('traced compilation of ' + tree.serialize() + ' for ' + references[k].tree);
 

@@ -1,4 +1,4 @@
-function (gensym_2_gmjj2u2q_fyco26){caterwaul.tconfiguration('std macro','opt.unroll',function (){this.rmacro(qs[opt.unroll[_,_][_]],fn[variable,iterations,body][with_gensyms[l,rs,es,j][qg[function (l){for (var rs=l>=0&&l>>3,es=l>=0&&l&7,_i_=0;
+caterwaul.tconfiguration('std macro','opt.unroll',function (){this.rmacro(qs[opt.unroll[_,_][_]],fn[variable,iterations,body][with_gensyms[l,rs,es,j][qg[function (l){for (var rs=l>=0&&l>>3,es=l>=0&&l&7,_i_=0;
 _i_<es;
  ++_i_)_body_;
 for (var j=0;
@@ -21,4 +21,3 @@ _body_;
 _i_++};
 return l}].call(this,_iterations_)].replace({_i_:variable,_body_:body,_iterations_:iterations})])});
 caterwaul.configuration('opt',function (){this.configure('opt.unroll')});
-}
