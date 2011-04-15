@@ -3194,7 +3194,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.precompile', <<'__79848bcde349c650c222ff54f88d6eaa');
+meta::sdoc('js::core/caterwaul.precompile', <<'__4917cbeeb5fb656023ae13081f8793d0');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3328,6 +3328,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                         var            matches = nontrivial_gensym_detection_pattern.match(tree), k = matches && matches[1].data;
                         if (! matches) matches =    trivial_gensym_detection_pattern.match(tree), k = matches && matches[0].data;
 
+                        console.log(tree.serialize());
+
                         if (matches && references[k])
                           console.log('traced compilation of ' + tree.serialize() + ' for ' + references[k].tree);
 
@@ -3405,7 +3407,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return compile(perform_substitution(references, references.annotated))}})();
-__79848bcde349c650c222ff54f88d6eaa
+__4917cbeeb5fb656023ae13081f8793d0
 meta::sdoc('js::core/caterwaul.tree', <<'__67e6757fdd2e73fb415aba23836d68ce');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -6067,14 +6069,14 @@ And here are the expression-mode transformations:
 
     this.after(
 __3a1c33101bf68061d3dd41ba5f3da257
-meta::sdoc('js::precompile', <<'__6b5918f3d8668e40f2a1475085318989');
+meta::sdoc('js::precompile', <<'__baf72de08bee45d572234824f4df6e0b');
 Offline precompilation.
 Uses caterwaul's precompile() method.
 
 var code = require('fs').readFileSync(process.argv[2], 'utf8');
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
-                            caterwaul.precompile('function () {' + code + '}').toString().replace(/^function\s*\(\w*\)[\s\n]*\{(.*)\}[\s\n]*$/, '$1'), 'utf8');
-__6b5918f3d8668e40f2a1475085318989
+                            caterwaul.precompile('function () {' + code + '}').toString().replace(/^function\s*\(\w*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
+__baf72de08bee45d572234824f4df6e0b
 meta::sdoc('js::test/after', <<'__fc15f6964f51604d56badbc1d46c94ea');
 Tests for composition via the after() method.
 
