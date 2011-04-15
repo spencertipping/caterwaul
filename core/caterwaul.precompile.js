@@ -25,16 +25,19 @@
 
 //   | function () {
 //       alert('hi');
-//       caterwaul.configuration('foo', (function () {
+//       caterwaul.tconfiguration('std', 'foo', caterwaul.precompiled_internal((function () {
 //         var gensym_1 = caterwaul.parse('foo');
 //         var gensym_2 = caterwaul.parse('bar');
 //         return function () {
 //           this.rmacro(gensym_1, function () {
 //             return gensym_2;
 //           });
-//         })());
+//         })()));
 //       return 10;
 //     }
+
+//   The precompiled_internal() function returns a reference that will inform Caterwaul not to operate on the function in question. You should (almost) never use this method! It will break all
+//   kinds of stuff if you artificially mark functions as being precompiled when they are not.
 
 //   There are some very important things to keep in mind when precompiling things:
 
@@ -86,19 +89,100 @@
     var function_pattern         = parse('function (_) {_}'),
         function_gensym_template = parse('function (_args, _gensym) {_body}'),
         mark_function_macro      = function (references) {return function (args, body) {var s = gensym(), result = function_gensym_template.replace({_args: args, _gensym: s, _body: body});
-                                                                                        return references[s] = result}},
+                                                                                        return references[s] = {tree: result}, result}},
 
 //   Macroexpansion for function origins.
 //   The function annotation is done by a macro that matches against each embedded function. Only one level of precompilation is applied; if you have invocations of caterwaul from inside
 //   transformed functions, these sub-functions won't be identified and thus won't be precompiled. (It's actually impossible to precompile them in the general case since we don't ultimately know
 //   what part of the code they came from.)
 
-    annotate_functions = function (tree, references) {return macro_expand_naive(tree, [function_pattern], [mark_function_macro(references)], null)},
+    annotate_functions_in = function (tree, references) {return macro_expand_naive(tree, [function_pattern], [mark_function_macro(references)], null)},
+
+//   Also, an interesting failure case has to do with duplicate compilation:
+
+//   | var f = function () {...};
+//     caterwaul.tconfiguration('std', 'foo', f);
+//     caterwaul.tconfiguration('macro', 'bar', f);
+
+//   In this example, f() will be compiled twice under two different configurations. But because the replacement happens against the original function (!) due to lack of flow analysis, we won't
+//   be able to substitute just one new function for the old one. In this case an error is thrown (see below).
 
 //   Compilation wrapper.
 //   Functions that get passed into compile() are assumed to be fully macroexpanded. If the function contains a gensym marker that we're familiar with, then we register the compiled function as
 //   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
 //   source, replacing the un-compiled functions with compiled ones.
 
-//   Already-compiled signaling.
+    gensym_detection_pattern = parse('function (_, _) {_}'),
+    wrapped_compile = function (original, references) {return function (tree, environment) {
+                        var matches = tree.match(gensym_detection_pattern), k = matches && matches[1].data;
+                        if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
+                                                      else                        references[k].compiled = tree;
+                        return original.call(this, tree, environment)}},
+
+//   Generating compiled functions.
+//   This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
+
+//     Already-compiled signaling.
+//     We don't necessarily know /why/ a particular function is being compiled, so it's beyond the scope of this module to try to produce a method call that bypasses this step. Rather, we just
+//     inform caterwaul that a function is going to be compiled ahead-of-time, and all caterwaul functions will bypass the compilation step automatically. To do this, we use the dangerous
+//     precompiled_internal() method, which returns a placeholder.
+
+      already_compiled_template = parse('caterwaul.precompiled_internal(_x)'),
+      signal_already_compiled = function (tree) {return already_compiled_template.replace({_x: tree})},
+
+//     Syntax ref serialization.
+//     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
+//     along with the compiled function, to simulate the closure capture performed by the compile() function.
+
+      closure_template          = parse('(function () {_vars; return (_value)})()'),
+      closure_variable_template = parse('var _var = _value'),
+      closure_null_template     = parse('null'),
+
+      syntax_ref_template       = parse('caterwaul.parse(_string)'),
+      caterwaul_ref_template    = parse('caterwaul.clone(_string)'),
+
+      syntax_ref_string         = function (ref) {return '\'' + ref.serialize().replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\''},
+      caterwaul_ref_string      = function (has) {var ks = []; for (var k in has) own.call(has, k) && ks.push(k); return '\'' + ks.join(' ') + '\''},
+
+//     Detecting caterwaul functions.
+//     This can be done by using the is_caterwaul property of caterwaul functions. (Presumably other functions won't have this property, but if they attempt to look like caterwaul functions by
+//     taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
+//     right value for this property, since the value is a unique gensym.
+
+      serialize_ref             = function (ref) {if (ref.value instanceof syntax_node)        return syntax_ref_template.replace({_string: syntax_ref_string(ref)});
+                                             else if (ref.value.is_caterwaul === is_caterwaul) return caterwaul_ref_template.replace({_string: caterwaul_ref_string(ref.value.has)});
+                                             else                                              throw new Error('syntax ref value is not serializable: ' + ref.value)},
+
+//     Variable table generation.
+//     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
+
+      variables_for             = function (tree) {var names = [], values = []; tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(n.value)});
+                                                   for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
+                                                   return names.length ? new syntax_node(';', vars) : closure_null_template},
+
+//     Closure state generation.
+//     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
+
+      precompiled_closure       = function (tree) {return closure_template.replace({_vars: variables_for(compiled), _value: compiled})},
+      precompiled_function      = function (tree) {return signal_already_compiled(precompiled_closure)},
+
+//   Substitution.
+//   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
+//   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
+
+    substitute_precompiled      = function (references) {return function (args, gensym, body) {return references[gensym.data] && precompiled_function(references[gensym.data].compiled)}},
+    perform_substitution        = function (references, tree) {return macro_expand_naive(tree, [gensym_detection_pattern], [substitute_precompiled(references)], null)},
+
+//   Tracing.
+//   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
+//   builds references for us. Because compile() is registered as a method, clones will inherit it automatically.
+
+//   Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
+
+    annotated_caterwaul         = function (original, references) {return original.clone().method('compile', wrapped_compile(original.compile, references))},
+    trace_execution_of          = function (f) {var references = {}, annotated = references.annotated = annotate_functions_in(parse(f));
+                                                compile(annotated, {caterwaul: annotated_caterwaul(this, references)})();
+                                                return references};
+
+    return function (f) {var references = trace_execution_of.call(this, f); return perform_substitution(references, references.annotated)}})();
 // Generated by SDoc 

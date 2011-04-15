@@ -58,6 +58,7 @@
 - pinclude pp::js::core/caterwaul.parser
 - pinclude pp::js::core/caterwaul.compiler
 - pinclude pp::js::core/caterwaul.macroexpander
+- pinclude pp::js::core/caterwaul.precompile
 - pinclude pp::js::core/caterwaul.configuration
 - pinclude pp::js::core/caterwaul.behaviors
 

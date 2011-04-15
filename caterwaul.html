@@ -666,6 +666,10 @@ meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
+meta::function('precompile', <<'__8ccc0b520545a38a2af407a351cb4451');
+terminal::info("precompiling $_[0]");
+node([qw|pp::js::core/caterwaul js::precompile|], @_);
+__8ccc0b520545a38a2af407a351cb4451
 meta::function('preprocess', <<'__66e539d29e9afa903569efad0eb7c886');
 # Implements a simple preprocessing language.
 # Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
@@ -990,10 +994,10 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::cleanup', <<'__53d7a659ec1b2c1702f61651a956d38c');
+meta::hook('after-render::cleanup', <<'__c258867ccdbe32bc0751ea38ef7c389d');
 # Nuke some things that get created by render().
-unlink qw/macroexpander.js parser.js minify.js minify.js.sdocp/;
-__53d7a659ec1b2c1702f61651a956d38c
+unlink qw/macroexpander.js parser.js precompile.js precompile.js.sdocp minify.js minify.js.sdocp/;
+__c258867ccdbe32bc0751ea38ef7c389d
 meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
 # Runs the hackery generation hooks (which happen after a render)
 #hook('hackery');
@@ -1875,7 +1879,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::core/caterwaul', <<'__85a9bcdb23aeb03be8168366fdf7fd59');
+meta::sdoc('js::core/caterwaul', <<'__fc03b8c8c3e0c7adcfd785f563520956');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1936,13 +1940,14 @@ See the 'Macroexpansion' section some distance below for more information about 
 - pinclude pp::js::core/caterwaul.parser
 - pinclude pp::js::core/caterwaul.compiler
 - pinclude pp::js::core/caterwaul.macroexpander
+- pinclude pp::js::core/caterwaul.precompile
 - pinclude pp::js::core/caterwaul.configuration
 - pinclude pp::js::core/caterwaul.behaviors
 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
-__85a9bcdb23aeb03be8168366fdf7fd59
-meta::sdoc('js::core/caterwaul.behaviors', <<'__7557891864eb5c739a462549771ad971');
+__fc03b8c8c3e0c7adcfd785f563520956
+meta::sdoc('js::core/caterwaul.behaviors', <<'__550691ff2dec214d59e4bcf432de36ab');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -2018,7 +2023,11 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-    method('init', function (f, environment) {var result = f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment);
+     field('precompiled_internal_table', {}).
+    method('precompile', precompile).method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
+
+    method('init', function (f, environment) {if (f.constructor === String && this.precompiled_internal_table[f]) return this.precompiled_internal_table[f];
+                                              var result = f.constructor === this.syntax ? this.macroexpand(f) : this.compile(this(this.decompile(f)), environment);
                                               if (f.constructor === this.syntax) for (var i = 0, l = this.after_functions.length; i < l; ++i) result = this.after_functions[i](result);
                                               return result}).
 
@@ -2043,7 +2052,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__7557891864eb5c739a462549771ad971
+__550691ff2dec214d59e4bcf432de36ab
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -3181,7 +3190,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.precompile', <<'__326c3c50026d737634c6c783add5b4e2');
+meta::sdoc('js::core/caterwaul.precompile', <<'__ae1f131e3dc3603cdd88636780f7c28c');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3209,16 +3218,19 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
 
   | function () {
       alert('hi');
-      caterwaul.configuration('foo', (function () {
+      caterwaul.tconfiguration('std', 'foo', caterwaul.precompiled_internal((function () {
         var gensym_1 = caterwaul.parse('foo');
         var gensym_2 = caterwaul.parse('bar');
         return function () {
           this.rmacro(gensym_1, function () {
             return gensym_2;
           });
-        })());
+        })()));
       return 10;
     }
+
+  The precompiled_internal() function returns a reference that will inform Caterwaul not to operate on the function in question. You should (almost) never use this method! It will break all
+  kinds of stuff if you artificially mark functions as being precompiled when they are not.
 
   There are some very important things to keep in mind when precompiling things:
 
@@ -3270,23 +3282,103 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     var function_pattern         = parse('function (_) {_}'),
         function_gensym_template = parse('function (_args, _gensym) {_body}'),
         mark_function_macro      = function (references) {return function (args, body) {var s = gensym(), result = function_gensym_template.replace({_args: args, _gensym: s, _body: body});
-                                                                                        return references[s] = result}},
+                                                                                        return references[s] = {tree: result}, result}},
 
   Macroexpansion for function origins.
   The function annotation is done by a macro that matches against each embedded function. Only one level of precompilation is applied; if you have invocations of caterwaul from inside
   transformed functions, these sub-functions won't be identified and thus won't be precompiled. (It's actually impossible to precompile them in the general case since we don't ultimately know
   what part of the code they came from.)
 
-    annotate_functions = function (tree, references) {return macro_expand_naive(tree, [function_pattern], [mark_function_macro(references)], null)},
+    annotate_functions_in = function (tree, references) {return macro_expand_naive(tree, [function_pattern], [mark_function_macro(references)], null)},
+
+  Also, an interesting failure case has to do with duplicate compilation:
+
+  | var f = function () {...};
+    caterwaul.tconfiguration('std', 'foo', f);
+    caterwaul.tconfiguration('macro', 'bar', f);
+
+  In this example, f() will be compiled twice under two different configurations. But because the replacement happens against the original function (!) due to lack of flow analysis, we won't
+  be able to substitute just one new function for the old one. In this case an error is thrown (see below).
 
   Compilation wrapper.
   Functions that get passed into compile() are assumed to be fully macroexpanded. If the function contains a gensym marker that we're familiar with, then we register the compiled function as
   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
   source, replacing the un-compiled functions with compiled ones.
 
-  Already-compiled signaling.
+    gensym_detection_pattern = parse('function (_, _) {_}'),
+    wrapped_compile = function (original, references) {return function (tree, environment) {
+                        var matches = tree.match(gensym_detection_pattern), k = matches && matches[1].data;
+                        if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
+                                                      else                        references[k].compiled = tree;
+                        return original.call(this, tree, environment)}},
 
-__326c3c50026d737634c6c783add5b4e2
+  Generating compiled functions.
+  This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
+
+    Already-compiled signaling.
+    We don't necessarily know /why/ a particular function is being compiled, so it's beyond the scope of this module to try to produce a method call that bypasses this step. Rather, we just
+    inform caterwaul that a function is going to be compiled ahead-of-time, and all caterwaul functions will bypass the compilation step automatically. To do this, we use the dangerous
+    precompiled_internal() method, which returns a placeholder.
+
+      already_compiled_template = parse('caterwaul.precompiled_internal(_x)'),
+      signal_already_compiled = function (tree) {return already_compiled_template.replace({_x: tree})},
+
+    Syntax ref serialization.
+    This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
+    along with the compiled function, to simulate the closure capture performed by the compile() function.
+
+      closure_template          = parse('(function () {_vars; return (_value)})()'),
+      closure_variable_template = parse('var _var = _value'),
+      closure_null_template     = parse('null'),
+
+      syntax_ref_template       = parse('caterwaul.parse(_string)'),
+      caterwaul_ref_template    = parse('caterwaul.clone(_string)'),
+
+      syntax_ref_string         = function (ref) {return '\'' + ref.serialize().replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\''},
+      caterwaul_ref_string      = function (has) {var ks = []; for (var k in has) own.call(has, k) && ks.push(k); return '\'' + ks.join(' ') + '\''},
+
+    Detecting caterwaul functions.
+    This can be done by using the is_caterwaul property of caterwaul functions. (Presumably other functions won't have this property, but if they attempt to look like caterwaul functions by
+    taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
+    right value for this property, since the value is a unique gensym.
+
+      serialize_ref             = function (ref) {if (ref.value instanceof syntax_node)        return syntax_ref_template.replace({_string: syntax_ref_string(ref)});
+                                             else if (ref.value.is_caterwaul === is_caterwaul) return caterwaul_ref_template.replace({_string: caterwaul_ref_string(ref.value.has)});
+                                             else                                              throw new Error('syntax ref value is not serializable: ' + ref.value)},
+
+    Variable table generation.
+    Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
+
+      variables_for             = function (tree) {var names = [], values = []; tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(n.value)});
+                                                   for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
+                                                   return names.length ? new syntax_node(';', vars) : closure_null_template},
+
+    Closure state generation.
+    This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
+
+      precompiled_closure       = function (tree) {return closure_template.replace({_vars: variables_for(compiled), _value: compiled})},
+      precompiled_function      = function (tree) {return signal_already_compiled(precompiled_closure)},
+
+  Substitution.
+  Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
+  precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
+
+    substitute_precompiled      = function (references) {return function (args, gensym, body) {return references[gensym.data] && precompiled_function(references[gensym.data].compiled)}},
+    perform_substitution        = function (references, tree) {return macro_expand_naive(tree, [gensym_detection_pattern], [substitute_precompiled(references)], null)},
+
+  Tracing.
+  This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
+  builds references for us. Because compile() is registered as a method, clones will inherit it automatically.
+
+  Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
+
+    annotated_caterwaul         = function (original, references) {return original.clone().method('compile', wrapped_compile(original.compile, references))},
+    trace_execution_of          = function (f) {var references = {}, annotated = references.annotated = annotate_functions_in(parse(f));
+                                                compile(annotated, {caterwaul: annotated_caterwaul(this, references)})();
+                                                return references};
+
+    return function (f) {var references = trace_execution_of.call(this, f); return perform_substitution(references, references.annotated)}})();
+__ae1f131e3dc3603cdd88636780f7c28c
 meta::sdoc('js::core/caterwaul.tree', <<'__67e6757fdd2e73fb415aba23836d68ce');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -3576,7 +3668,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                               for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                 this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
 __67e6757fdd2e73fb415aba23836d68ce
-meta::sdoc('js::core/caterwaul.utilities', <<'__8abb317799551d34715ca2175b6acca9');
+meta::sdoc('js::core/caterwaul.utilities', <<'__2fcc971f3a84b20b2608d5510d6373ec');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
@@ -3622,6 +3714,12 @@ The Caterwaul standard library gives you an equivalent but much more refined for
      merge = function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) has(_, k) && (o[k] = _[k]); return o},
     extend = function (f) {merge.apply(null, [f.prototype].concat(Array.prototype.slice.call(arguments, 1))); return f},
 
+  Caterwaul identification.
+  Caterwaul functions agree on a secret value to identify themselves. This needs to happen because there isn't another particularly good way to identify them. This ends up being installed as
+  the is_caterwaul property on every caterwaul function.
+
+    is_caterwaul = gensym(),
+
   Optimizations.
   The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
   syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
@@ -3639,7 +3737,7 @@ The Caterwaul standard library gives you an equivalent but much more refined for
    max_length_key = gensym(),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
-__8abb317799551d34715ca2175b6acca9
+__2fcc971f3a84b20b2608d5510d6373ec
 meta::sdoc('js::core/debug/profile.start', <<'__c57fde09ae1ed7924ae86e180a4077f7');
 Profiling extensions for performance tuning | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -5942,6 +6040,14 @@ And here are the expression-mode transformations:
 
     this.after(
 __3a1c33101bf68061d3dd41ba5f3da257
+meta::sdoc('js::precompile', <<'__7827e0999b64ce5fe68282547ca403c0');
+Offline precompilation.
+Uses caterwaul's precompile() method.
+
+var code = require('fs').readFileSync(process.argv[2], 'utf8');
+require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
+                            caterwaul.precompile('function () {' + code + '}').toString().replace(/^function\s*\(\)[\s\n]*\{(.*)\}[\s\n]*$/, '$1'), 'utf8');
+__7827e0999b64ce5fe68282547ca403c0
 meta::sdoc('js::test/after', <<'__fc15f6964f51604d56badbc1d46c94ea');
 Tests for composition via the after() method.
 
