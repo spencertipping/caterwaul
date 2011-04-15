@@ -1,0 +1,1 @@
+caterwaul.tconfiguration('std seq continuation','trace',function (){this.namespace('tracing')/se[_.before_listeners=[],_.after_listeners=[],_.before(f)=_/se[_.before_listeners.push(f)],_.after(f)=_/se[_.after_listeners.push(f)]],this.after()})

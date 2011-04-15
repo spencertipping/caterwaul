@@ -1322,17 +1322,29 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   can't track it). Finally, the function will be compiled within some environment. This is where we go through the compilation bindings, serializing each one with the function. We then wrap
 //   this in an immediately-invoked anonymous function (to create a new scope and to simulate the one created by compile()), and this becomes the output.
 
-    var function_pattern         = parse('function (_) {_}'),
-        function_gensym_template = parse('function (_args, _gensym) {_body}'),
-        mark_function_macro      = function (references) {return function (args, body) {var s = gensym(), result = function_gensym_template.replace({_args: args, _gensym: s, _body: body});
-                                                                                        return references[s] = {tree: result}, result}},
+    var nontrivial_function_pattern         = parse('function (_) {_}'),
+        trivial_function_pattern            = parse('function () {_}'),
+        nontrivial_function_gensym_template = parse('function (_args, _gensym) {_body}'),
+        trivial_function_gensym_template    = parse('function (_gensym) {_body}'),
+
+        mark_nontrivial_function_macro = function (references) {return function (args, body) {
+                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: body});
+                                           return references[s] = {tree: result}, result}},
+
+        mark_trivial_function_macro    = function (references) {return function (body) {
+                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: body});
+                                           return references[s] = {tree: result}, result}},
 
 //   Macroexpansion for function origins.
 //   The function annotation is done by a macro that matches against each embedded function. Only one level of precompilation is applied; if you have invocations of caterwaul from inside
 //   transformed functions, these sub-functions won't be identified and thus won't be precompiled. (It's actually impossible to precompile them in the general case since we don't ultimately know
 //   what part of the code they came from.)
 
-    annotate_functions_in = function (tree, references) {return macro_expand_naive(tree, [function_pattern], [mark_function_macro(references)], null)},
+//   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
+//   more generic case.
+
+    annotate_functions_in = function (tree, references) {return macro_expand_naive(tree, [trivial_function_pattern,                nontrivial_function_pattern],
+                                                                                         [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)], null)},
 
 //   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -1348,9 +1360,16 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
 //   source, replacing the un-compiled functions with compiled ones.
 
-    gensym_detection_pattern = parse('function (_, _) {_}'),
+    nontrivial_gensym_detection_pattern = parse('function (_, _) {_}'),
+    trivial_gensym_detection_pattern    = parse('function (_) {_}'),
+
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var matches = tree.match(gensym_detection_pattern), k = matches && matches[1].data;
+                        var            matches = nontrivial_gensym_detection_pattern.match(tree), k = matches && matches[1].data;
+                        if (! matches) matches =    trivial_gensym_detection_pattern.match(tree), k = matches && matches[0].data;
+
+                        if (matches && references[k])
+                          console.log('traced compilation of ' + tree.serialize() + ' for ' + references[k].tree);
+
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
                                                       else                        references[k].compiled = tree;
                         return original.call(this, tree, environment)}},
@@ -1399,15 +1418,19 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     Closure state generation.
 //     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
 
-      precompiled_closure       = function (tree) {return closure_template.replace({_vars: variables_for(compiled), _value: compiled})},
-      precompiled_function      = function (tree) {return signal_already_compiled(precompiled_closure)},
+      precompiled_closure       = function (tree) {return closure_template.replace({_vars: variables_for(tree), _value: tree})},
+      precompiled_function      = function (tree) {return signal_already_compiled(precompiled_closure(tree))},
 
 //   Substitution.
 //   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
 //   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
 
-    substitute_precompiled      = function (references) {return function (args, gensym, body) {return references[gensym.data] && precompiled_function(references[gensym.data].compiled)}},
-    perform_substitution        = function (references, tree) {return macro_expand_naive(tree, [gensym_detection_pattern], [substitute_precompiled(references)], null)},
+    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
+                                                                                                                 return ref && ref.compiled && precompiled_function(ref.compiled)}},
+
+    perform_substitution        = function (references, tree) {var expander = substitute_precompiled(references);
+                                                               return macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                                               [expander,                         expander], null)},
 
 //   Tracing.
 //   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
@@ -1415,12 +1438,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 //   Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
 
-    annotated_caterwaul         = function (original, references) {return original.clone().method('compile', wrapped_compile(original.compile, references))},
-    trace_execution_of          = function (f) {var references = {}, annotated = references.annotated = annotate_functions_in(parse(f));
-                                                compile(annotated, {caterwaul: annotated_caterwaul(this, references)})();
-                                                return references};
+    annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().field('compile', wrapped_compile(caterwaul.compile, references))},
+    trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(parse(f), references);
+                                                           compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})();
+                                                           return references};
 
-    return function (f) {var references = trace_execution_of.call(this, f); return perform_substitution(references, references.annotated)}})();
+    return function (f) {var references = trace_execution(this, f); return compile(perform_substitution(references, references.annotated))}})();
 // Generated by SDoc 
 
 
