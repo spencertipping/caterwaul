@@ -1035,19 +1035,11 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::cleanup', <<'__c258867ccdbe32bc0751ea38ef7c389d');
-# Nuke some things that get created by render().
-unlink qw/macroexpander.js parser.js precompile.js precompile.js.sdocp minify.js minify.js.sdocp/;
-__c258867ccdbe32bc0751ea38ef7c389d
+meta::hook('after-render::base-files', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors\\/)?core\\//, sort keys %data;');
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
 __6a97d3ed9a596b2e5e0429553fdb83e8
-meta::hook('after-render::postprocess', <<'__1b4667cf22b86d8fb53bc4a321cc8a9b');
-hook('postprocess-precompile-modules');
-hook('postprocess-minify-modules');
-hook('postprocess-compile-all');
-__1b4667cf22b86d8fb53bc4a321cc8a9b
 meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
