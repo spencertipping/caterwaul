@@ -368,10 +368,10 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
-meta::function('b', <<'__7cc6411f5a47fc44ef59baf2c86540a8');
-my @behaviors = select_keys('--criteria' => "sdoc::js::behaviors/$_[0]");
+meta::function('b', <<'__98038da0ce9e52e43be8530b56b96a5b');
+my @behaviors = select_keys('--criteria' => "sdoc::js::behaviors/(.*/)?$_[0]");
 edit($behaviors[0]);
-__7cc6411f5a47fc44ef59baf2c86540a8
+__98038da0ce9e52e43be8530b56b96a5b
 meta::function('bench-load', <<'__a7b9982a6b851aa1966ae81634ad7625');
 # Just loads the standard library.
 render() unless grep /^-R$/, @_;
@@ -2001,13 +2001,41 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/core/adverb', <<'__14673a258c8b69f0b64da9546e58825a');
+meta::sdoc('js::behaviors/core/adjective', <<'__1749df1609a11e4207d3d4a9d90e1571');
+Adjective macro forms | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Unlike adverbs, adjectives generally wrap a value as opposed to modifying a verb. It's a subtle distinction, but adjectives are often more noticeable (they come before the noun in English),
+and they can have a very direct impact on the context of the values they modify.
+
+  caterwaul.macro_form('prefix_adjective',  function (name, def, form) {this.rmacro(form.replace({_adjective: name}, def))}).
+            macro_form('postfix_adjective', function (name, def, form) {this.rmacro(form.replace({_adjective: name}, def))});
+__1749df1609a11e4207d3d4a9d90e1571
+meta::sdoc('js::behaviors/core/adverb', <<'__ecde803c3784c6fc93727fc2d3b9a876');
 Adverb macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
+Many macros in caterwaul function as adverbs from a linguistic point of view. Adverbs in English modify a process, but generally the process is more relevant than the adverb so we talk about
+it first. (Hence sentences such as 'go there if you need to' -- here 'if you need to' is the adverb, and it comes after the rest.)
 
-__14673a258c8b69f0b64da9546e58825a
+  caterwaul.macro_form('prefix_adverb',  function (name, def, form) {this.rmacro(form.replace({_adverb: name}, def))}).
+            macro_form('postfix_adverb', function (name, def, form) {this.rmacro(form.replace({_adverb: name}, def))});
+__ecde803c3784c6fc93727fc2d3b9a876
+meta::sdoc('js::behaviors/core/gen', <<'__cae1bcf7476f4557e1d8bdd05e32b01b');
+Code generation methods | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+These methods provide easy ways to generate common code patterns. Previous to caterwaul 1.0 they were encoded as standard-library macros, which created a lot of module interdependence and
+macroexpansion overhead (especially since most of them weren't used frequently in regular code). Now they're regular methods that take syntax trees as arguments.
+
+Scope creation.
+Creating a scope is one of the most common patterns. These methods create various kinds of scopes.
+
+  caterwaul.namespace('scope')
+__cae1bcf7476f4557e1d8bdd05e32b01b
 meta::sdoc('js::behaviors/core/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2072,11 +2100,14 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::behaviors/core/quote', <<'__e7673f9f547040eb4ff72c73bc237a38');
+meta::sdoc('js::behaviors/core/quote', <<'__bf597576f0e52c606a48a44b9ca736b2');
 Quotation behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
-__e7673f9f547040eb4ff72c73bc237a38
-meta::sdoc('js::core/caterwaul', <<'__fdd29c14be4513b73a4bb5b4b6ee43eb');
+
+Introduction.
+Quotation is very important for defining macros. It enables the qs[] form in your code, which returns a piece of quoted syntax.
+__bf597576f0e52c606a48a44b9ca736b2
+meta::sdoc('js::core/caterwaul', <<'__ea2a84ffa244f7d6a78005385fb0908b');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2102,14 +2133,13 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 
 - pinclude pp::js::core/caterwaul.macro-forms
-
 - pinclude pp::js::core/caterwaul.precompile
 - pinclude pp::js::core/caterwaul.composition
 
 - pinclude pp::js::core/caterwaul.init
 
   return caterwaul_global});
-__fdd29c14be4513b73a4bb5b4b6ee43eb
+__ea2a84ffa244f7d6a78005385fb0908b
 meta::sdoc('js::core/caterwaul.bake', <<'__1b3fc1a6e8ba658074509e37e4414e7f');
 Baking support.
 To "bake" a caterwaul function is to freeze its settings and apply long-run optimizations such as macroexpander compilation. Once a function is baked you can't do certain things, most notably
