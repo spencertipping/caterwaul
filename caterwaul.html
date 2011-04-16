@@ -528,17 +528,17 @@ my ($attribute, @criteria) = @_;
 my ($options, @stuff) = separate_options(@criteria);
 attribute_is($attribute, %$options);
 __1d3401965e4720ed972470b54b447db0
-meta::function('line', <<'__9fbecf2ffad502e3c9502d14a81ec216');
+meta::function('line', <<'__81fae678ccdc2819595d079da02d2e61');
 # Prints a line, with some context, from caterwaul.all.js. This is useful when a test fails.
-my @lines  = split /\n/, retrieve('pp::js::modules/caterwaul.all');
-my ($line) = @_;
+my ($line, $part) = @_;
+my @lines = split /\n/, $part eq '-a' ? retrieve('pp::js::modules/caterwaul.all') : retrieve('pp::js::core/caterwaul');
 
 for ($line - 5 .. $line + 5) {
   print "\033[1;32m" if $_ == $line;
   printf "%04d: %s\n", $_, $lines[$_ - 1];
   print "\033[0;0m" if $_ == $line;
 }
-__9fbecf2ffad502e3c9502d14a81ec216
+__81fae678ccdc2819595d079da02d2e61
 meta::function('load-state', <<'__ea18db867bd62a294e067f60e6975dcf');
 around_hook('load-state', @_, sub {
   my ($state_name) = @_;
@@ -747,6 +747,7 @@ file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) f
 hook('after-render');
 __d11b6e7522980db1022b1ccd575bdc30
 meta::function('repl', 'node([\'pp::js::modules/caterwaul.all\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('replc', 'node([\'pp::js::core/caterwaul\', \'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul\']);');
 meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
 around_hook('rm', @_, sub {
@@ -2108,7 +2109,7 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::core/caterwaul', <<'__cafd0945de2199811c103b668a8a60f8');
+meta::sdoc('js::core/caterwaul', <<'__4e161a488303e8cec0cbb47f6513b6a8');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2120,6 +2121,8 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 - pinclude pp::js::core/caterwaul.utilities
 - pinclude pp::js::core/caterwaul.configuration
 - pinclude pp::js::core/caterwaul.global
+
+- pinclude pp::js::core/caterwaul.parser-data
 
 - pinclude pp::js::core/caterwaul.tree
 - pinclude pp::js::core/caterwaul.parser
@@ -2137,7 +2140,7 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 - pinclude pp::js::core/caterwaul.init
 
   return caterwaul_global});
-__cafd0945de2199811c103b668a8a60f8
+__4e161a488303e8cec0cbb47f6513b6a8
 meta::sdoc('js::core/caterwaul.bake', <<'__1b3fc1a6e8ba658074509e37e4414e7f');
 Baking support.
 To "bake" a caterwaul function is to freeze its settings and apply long-run optimizations such as macroexpander compilation. Once a function is baked you can't do certain things, most notably
@@ -2190,7 +2193,7 @@ this doesn't happen for g if g comes after f, but generally that relationship is
                     method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
                                                  else                  return this.after_functions});
 __ee2b69d5708e5e9e4b3420b95fa8c083
-meta::sdoc('js::core/caterwaul.configuration', <<'__5b7ff3b2b5a8662992969c4e6e1d8254');
+meta::sdoc('js::core/caterwaul.configuration', <<'__fb6493eeb5a86629237e448e9c45172d');
 Configurations.
 Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
 replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
@@ -2268,7 +2271,7 @@ Related to this is a configure() method that modifies and returns the original f
 
   There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
 
-         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f}),
+         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f});
 
   Configuration and cloning.
   Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -2307,8 +2310,8 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})}})();
-__5b7ff3b2b5a8662992969c4e6e1d8254
-meta::sdoc('js::core/caterwaul.global', <<'__918a226fe9d5598aae9a42f072ba7e0f');
+__fb6493eeb5a86629237e448e9c45172d
+meta::sdoc('js::core/caterwaul.global', <<'__34398bf52f368c5043ecdfe6067dadcf');
 Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
@@ -2320,7 +2323,7 @@ available only on the global caterwaul() function. It wouldn't make much sense f
 Uniqueness and identification.
 Caterwaul has a number of features that require it to be able to identify caterwaul functions and easily distinguish between them. These methods provide a way to do that.
 
-  caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())})
+  caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
 
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
@@ -2331,7 +2334,7 @@ Sometimes you need to grab a unique value that is unlikely to exist elsewhere. C
 considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
                    method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}}));
-__918a226fe9d5598aae9a42f072ba7e0f
+__34398bf52f368c5043ecdfe6067dadcf
 meta::sdoc('js::core/caterwaul.init', <<'__389873c9c68a08a32a7177e7bc42cbe5');
 Init method.
 This is the main entry point of caterwaul when you use it as a function. As of version 0.6.4, the init() property is polymorphic in semantics as well as structure. There are two cases:
@@ -2349,7 +2352,7 @@ context of tree -> tree compilers (macroexpansion). Having such an arrangement i
 
                    method('init',                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)});
 __389873c9c68a08a32a7177e7bc42cbe5
-meta::sdoc('js::core/caterwaul.macroexpander', <<'__3a7fff42aa51c3d2b677532b49c859af');
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__da9af61b043889775877a28fcbf84b96');
 Macroexpansion.
 Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
 (or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
@@ -2472,10 +2475,10 @@ means that it may become arbitrarily optimized.
                                                                                          else return this.macro(pattern, function () {var t = expander.apply(this, arguments);
                                                                                                                                       return t && this.macroexpand(t)})})).
                       method('macroexpand', function (t) {return macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
-                  when_baked(function () {var f = this.create_baked_macroexpander();
+                  when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
                                           this.method('macroexpand', function (t) {return t.rmap(function (n) {return f.call(this, n)})})})})();
-__3a7fff42aa51c3d2b677532b49c859af
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__072dbb02f668367b2f615e544eec5111');
+__da9af61b043889775877a28fcbf84b96
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__2a458b26c7fb0fe6364cf8a4a8f080c5');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -2656,7 +2659,7 @@ For history's sake I've left some of the theoretical notes involving probability
     This is largely uninteresting, except that it provides the base context for path dereferencing (see 'Variable allocation' below). It also provides a temporary 'result' variable, which is
     used by the macroexpander invocation code.
 
-      pattern_match_function_template = parse('function (t) {var result; _body}'),
+      pattern_match_function_template = caterwaul_global.parse('function (t) {var result; _body}'),
       empty_variable_mapping_table    = function () {return {'': 't'}},
 
     Partition encoding.
@@ -2681,13 +2684,13 @@ For history's sake I've left some of the theoretical notes involving probability
     Note that we can't return false immediately after hitting a failing case. The reason has to do with overlapping macro definitions. If we have two macro definitions that would both
     potentially match the input, we have to proceed to the second if the first one rejects the match.
 
-      partition_template        = parse('switch (_value) {_cases}'),
-      partition_branch_template = parse('case _value: _body; break'),
+      partition_template        = caterwaul_global.parse('switch (_value) {_cases}'),
+      partition_branch_template = caterwaul_global.parse('case _value: _body; break'),
 
     Attempting a macro match is kind of interesting. We need a way to use 'break' to escape from a match, so we construct a null while loop that lets us do this. Any 'break' will then send the
     code into the sequential continuation, not escape from the function.
 
-      single_macro_attempt_template = parse('do {_body} while (false)'),
+      single_macro_attempt_template = caterwaul_global.parse('do {_body} while (false)'),
 
     Variable allocation.
     Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
@@ -2697,14 +2700,14 @@ For history's sake I've left some of the theoretical notes involving probability
     creates a unique temporary name and stashes it into the path -> variable mapping, and then it returns a syntax tree that uses that unique name and existing entries in the path -> variable
     mapping. The path's index is hard-coded. Note that if the path isn't properly adjacent you'll end up with an array instead of a syntax tree, and things will go downhill quickly from there.
 
-      indexed_path_reference_template  = parse('_base[_index]'),
-      absolute_path_reference_template = parse('_base'),
+      indexed_path_reference_template  = caterwaul_global.parse('_base[_index]'),
+      absolute_path_reference_template = caterwaul_global.parse('_base'),
       generate_path_reference          = function (variables, path) {
                                            return variables[path] ? absolute_path_reference_template.replace({_base: variables[path]}) :
                                                                     indexed_path_reference_template .replace({_base: generate_path_reference(variables, path.substr(0, path.length - 1)),
                                                                                                               _index: '' + path.charCodeAt(path.length - 1)})},
-      path_variable_template = parse('var _temp = _value; if (! _temp) break'),
-      path_exists_template   = parse('null'),
+      path_variable_template = caterwaul_global.parse('var _temp = _value; if (! _temp) break'),
+      path_exists_template   = caterwaul_global.parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
                                                            var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
@@ -2730,11 +2733,11 @@ For history's sake I've left some of the theoretical notes involving probability
     Note that a new array is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
     expensive and uncommon; a new array cons isn't going to make much difference at that point.
 
-      path_reference_array_template = parse('[_elements]'),
+      path_reference_array_template = caterwaul_global.parse('[_elements]'),
       generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
-                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new syntax_node(',', refs) : refs[0]})},
+                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new caterwaul_global.syntax(',', refs) : refs[0]})},
 
-      macroexpander_invocation_template = parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
+      macroexpander_invocation_template = caterwaul_global.parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
       generate_macroexpander_invocation = function (pattern_data, pattern, variables) {return macroexpander_invocation_template.replace(
                                                    {_expander:             new ref(pattern_data[pattern.id()].expander),
                                                     _path_reference_array: generate_path_reference_array(variables, pattern_data[pattern.id()].wildcard_paths)})},
@@ -2751,8 +2754,8 @@ For history's sake I've left some of the theoretical notes involving probability
       In this case we create a switch on the tree length first. Then we subdivide into the data comparison. We create the tree-length switch() even if only one tree matches; the reason is that
       we still need to know that the tree we're matching against has the right length, even if it doesn't narrow down the macro space at all.
 
-        length_reference_template = parse('_value.length'),
-        data_reference_template   = parse('_value.data'),
+        length_reference_template = caterwaul_global.parse('_value.length'),
+        data_reference_template   = caterwaul_global.parse('_value.data'),
 
         generate_partitioned_switch = function (trees, visited, variables, pattern_data) {
                                         var path = next_path(visited, trees), partitions = visit_path(path, visited, trees), lengths = {}, length_pairs = [];
@@ -2762,8 +2765,10 @@ For history's sake I've left some of the theoretical notes involving probability
                                         var new_variables = merge({}, variables), path_reference_variable = generate_path_variable(new_variables, path), variable = new_variables[path],
                                             length_reference = length_reference_template.replace({_value: variable}), data_reference = data_reference_template.replace({_value: variable});
 
-                                        for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length, pair; i < l; ++i) {
-                                          for (var data_cases = new syntax_node(';'), length = (pair = length_pairs[i])[0], values = pair[1], j = 0, lj = values.length, p, v; j < lj; ++j)
+                                        for (var length_cases = new caterwaul_global.syntax(';'), i = 0, l = length_pairs.length, pair; i < l; ++i) {
+                                          for (var data_cases = new caterwaul_global.syntax(';'), length = (pair = length_pairs[i])[0], values = pair[1], j = 0, lj = values.length, p, v;
+                                               j < lj; ++j)
+
                                             p = partitions[String.fromCharCode(length) + (v = values[j])],
                                             data_cases.push(partition_branch_template.replace({_value: '"' + v.replace(/([\\"])/g, '\\$1') + '"',
                                                                                                _body:  generate_decision_tree(p.trees, path, p.visited, new_variables, pattern_data)}));
@@ -2771,13 +2776,13 @@ For history's sake I've left some of the theoretical notes involving probability
                                           length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
                                                                                                _body:  partition_template.replace({_value: data_reference, _cases: data_cases})}))}
                                         return single_macro_attempt_template.replace({_body:
-                                                 new syntax_node(';', path_reference_variable,
-                                                                      length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases}) : [])})},
+                                                 new caterwaul_global.syntax(';', path_reference_variable,
+                                                                                  length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases}) : [])})},
 
       Second case: specified trees (base case).
       This is fairly simple. We just generate a sequence of invocations, since each tree has all of the constants assumed.
 
-        generate_unpartitioned_sequence = function (trees, variables, pattern_data) {for (var r = new syntax_node(';'), i = 0, l = trees.length; i < l; ++i)
+        generate_unpartitioned_sequence = function (trees, variables, pattern_data) {for (var r = new caterwaul_global.syntax(';'), i = 0, l = trees.length; i < l; ++i)
                                                                                        r.push(generate_macroexpander_invocation(pattern_data, trees[i], variables));
                                                                                      return r},
 
@@ -2785,7 +2790,7 @@ For history's sake I've left some of the theoretical notes involving probability
       This is where we delegate either to the partitioned switch logic or the sequential sequence logic.
 
         generate_decision_tree = function (trees, path, visited, variables, pattern_data) {
-                                   for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
+                                   for (var r = new caterwaul_global.syntax(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
                                      sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
                                                                      generate_partitioned_switch(sts[i], visited, variables, pattern_data));
                                    return r};
@@ -2794,10 +2799,9 @@ For history's sake I've left some of the theoretical notes involving probability
   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
     return function (patterns, expanders) {for (var i = patterns.length - 1, rps = [], res = []; i >= 0; --i) rps.push(patterns[i]), res.push(expanders[i]);
-                                           return compile(pattern_match_function_template.replace(
-                                             {_body: generate_decision_tree(rps, null, null, empty_variable_mapping_table(), pattern_data(rps, res))}))}})()).
-
-__072dbb02f668367b2f615e544eec5111
+                                           return this.compile(pattern_match_function_template.replace(
+                                             {_body: generate_decision_tree(rps, null, null, empty_variable_mapping_table(), pattern_data(rps, res))}))}})());
+__2a458b26c7fb0fe6364cf8a4a8f080c5
 meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__19791417df89bbe5ec79ce074e2a1a98');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
@@ -2821,7 +2825,7 @@ small macroexpansions.)
                            return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
                                                          if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(this, match))) return replacement})});
 __19791417df89bbe5ec79ce074e2a1a98
-meta::sdoc('js::core/caterwaul.parser', <<'__95cc6df332dc1850cb4e4422b935ce81');
+meta::sdoc('js::core/caterwaul.parser', <<'__72e0d62f62d0510c7fbc929f7216cb94');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
 expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
@@ -2877,47 +2881,6 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   begins, and advancing i independently. The span between mark and i is the substring that will be selected, and since each substring both requires O(n) time and consumes n characters, the
   lexer as a whole is O(n). (Though perhaps with a large constant.)
 
-    Precomputed table values.
-    The lexer uses several character lookups, which I've optimized by using integer->boolean arrays. The idea is that instead of using string membership checking or a hash lookup, we use the
-    character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency,
-    only the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. (I'm aware that the arrays are power-of-two-sized and that there are
-    enough of them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a Javascript JIT capable enough to have this
-    problem, I think we'll be OK.)
-
-    The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
-    cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
-    fail to parse. (See test/lex-neq-failure for examples.)
-
-     var lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
-                       'return throw case var const break continue void else u; ;'),
-
-      lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
-      lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
-      lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                    lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
-        lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
-       lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
-       lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
-
-    Parse data.
-    The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
-    as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
-
-    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&',
-                                    '^', '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue void', 'var const',
-                                    'if else try catch finally for switch with while do', ';']),
-
-parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
-   parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)}) (parse_reduce_order),
-   parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
-                                           for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs}) (parse_reduce_order),
-
-              parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
-   parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
-         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
-      parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
-           parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
- parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch'), parse_also_expression = hash('function');
-
   Parse function.
   As mentioned earlier, the parser and lexer aren't distinct. The lexer does most of the heavy lifting; it matches parens and brackets, arranges tokens into a hierarchical linked list, and
   provides an index of those tokens by their fold order. It does all of this by streaming tokens into a micro-parser whose language is grouping and that knows about the oddities required to
@@ -2943,7 +2906,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
         var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
             grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [],
-            new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)};
+            new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)},
+            syntax_node = caterwaul_global.syntax;
 
     Main lex loop.
     This loop takes care of reading all of the tokens in the input stream. At the end, we'll have a linked node structure with paren groups. At the beginning, we set the mark to the current
@@ -3159,8 +3123,53 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head}})());
-__95cc6df332dc1850cb4e4422b935ce81
-meta::sdoc('js::core/caterwaul.precompile', <<'__713678548b352fe550bb5edc2f8043fa');
+__72e0d62f62d0510c7fbc929f7216cb94
+meta::sdoc('js::core/caterwaul.parser-data', <<'__8a0f6d07cf2b0a3dfc2352c15bb69112');
+Shared parser data.
+This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
+
+  Precomputed table values.
+  The lexer uses several character lookups, which I've optimized by using integer->boolean arrays. The idea is that instead of using string membership checking or a hash lookup, we use the
+  character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency,
+  only the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. (I'm aware that the arrays are power-of-two-sized and that there are
+  enough of them, plus the right usage patterns, to cause cache line contention on most Pentium-class processors. If we are so lucky to have a Javascript JIT capable enough to have this
+  problem, I think we'll be OK.)
+
+  The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
+  cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
+  fail to parse. (See test/lex-neq-failure for examples.)
+
+   var lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
+                     'return throw case var const break continue void else u; ;'),
+
+    lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
+    lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
+    lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                    lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
+      lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
+     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
+     lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
+
+  Parse data.
+  The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
+  as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
+
+    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==', '&',
+                                    '^', '|', '&&', '||', 'case', '?', '= += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue void', 'var const',
+                                    'if else try catch finally for switch with while do', ';']),
+
+parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
+   parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)}) (parse_reduce_order),
+   parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
+                                           for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs}) (parse_reduce_order),
+
+              parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
+   parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
+         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
+      parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
+           parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch'), parse_also_expression = hash('function');
+__8a0f6d07cf2b0a3dfc2352c15bb69112
+meta::sdoc('js::core/caterwaul.precompile', <<'__32a2214af47c89ca39107b8d7df4eb20');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3254,10 +3263,10 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   can't track it). Finally, the function will be compiled within some environment. This is where we go through the compilation bindings, serializing each one with the function. We then wrap
   this in an immediately-invoked anonymous function (to create a new scope and to simulate the one created by compile()), and this becomes the output.
 
-    var nontrivial_function_pattern         = parse('function (_) {_}'),
-        trivial_function_pattern            = parse('function () {_}'),
-        nontrivial_function_gensym_template = parse('function (_args, _gensym) {_body}'),
-        trivial_function_gensym_template    = parse('function (_gensym) {_body}'),
+    var nontrivial_function_pattern         = caterwaul_global.parse('function (_) {_}'),
+        trivial_function_pattern            = caterwaul_global.parse('function () {_}'),
+        nontrivial_function_gensym_template = caterwaul_global.parse('function (_args, _gensym) {_body}'),
+        trivial_function_gensym_template    = caterwaul_global.parse('function (_gensym) {_body}'),
 
         mark_nontrivial_function_macro = function (references) {return function (args, body) {
                                            var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: annotate_functions_in(body, references)});
@@ -3292,8 +3301,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
   source, replacing the un-compiled functions with compiled ones.
 
-    nontrivial_gensym_detection_pattern = parse('function (_, _) {_}'),
-    trivial_gensym_detection_pattern    = parse('function (_) {_}'),
+    nontrivial_gensym_detection_pattern = caterwaul_global.parse('function (_, _) {_}'),
+    trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_) {_}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
                         var            matches = tree.match(nontrivial_gensym_detection_pattern), k = matches && matches[1].data;
@@ -3311,19 +3320,19 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     inform caterwaul that a function is going to be compiled ahead-of-time, and all caterwaul functions will bypass the compilation step automatically. To do this, we use the dangerous
     precompiled_internal() method, which returns a placeholder.
 
-      already_compiled_template = parse('caterwaul.precompiled_internal(_x)'),
+      already_compiled_template = caterwaul_global.parse('caterwaul.precompiled_internal(_x)'),
       signal_already_compiled = function (tree) {return already_compiled_template.replace({_x: tree})},
 
     Syntax ref serialization.
     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
     along with the compiled function, to simulate the closure capture performed by the compile() function.
 
-      closure_template          = parse('(function () {_vars; return (_value)})()'),
-      closure_variable_template = parse('var _var = _value'),
-      closure_null_template     = parse('null'),
+      closure_template          = caterwaul_global.parse('(function () {_vars; return (_value)})()'),
+      closure_variable_template = caterwaul_global.parse('var _var = _value'),
+      closure_null_template     = caterwaul_global.parse('null'),
 
-      syntax_ref_template       = parse('caterwaul.parse(_string)'),
-      caterwaul_ref_template    = parse('caterwaul.clone(_string)'),
+      syntax_ref_template       = caterwaul_global.parse('caterwaul.parse(_string)'),
+      caterwaul_ref_template    = caterwaul_global.parse('caterwaul.clone(_string)'),
 
       syntax_ref_string         = function (ref) {return '\'' + ref.serialize().replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\''},
       caterwaul_ref_string      = function (has) {var ks = []; for (var k in has) own.call(has, k) && ks.push(k); return '\'' + ks.join(' ') + '\''},
@@ -3336,12 +3345,12 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the standard library apparently depends on it somehow.
 
       serialize_ref             = function (value, name, seen) {
-                                        if (! value)                             return '' + value;
-                                   else if (value.constructor === syntax_node)   return seen[value.id()] || (seen[value.id()] = name,
-                                                                                   syntax_ref_template.replace({_string: syntax_ref_string(value)}));
-                                   else if (value.is_caterwaul === is_caterwaul) return seen[value.id()] || (seen[value.id()] = name,
-                                                                                   caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
-                                   else                                          throw new Error('syntax ref value is not serializable: ' + value)},
+                                        if (! value)                                       return '' + value;
+                                   else if (value.constructor === caterwaul_global.syntax) return seen[value.id()] || (seen[value.id()] = name,
+                                                                                             syntax_ref_template.replace({_string: syntax_ref_string(value)}));
+                                   else if (value.is_caterwaul === is_caterwaul)           return seen[value.id()] || (seen[value.id()] = name,
+                                                                                             caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
+                                   else                                                    throw new Error('syntax ref value is not serializable: ' + value)},
 
     Variable table generation.
     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
@@ -3353,7 +3362,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                     tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n.value, n.data, seen))});
 
                                     for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
-                                    return names.length ? new syntax_node(';', vars) : closure_null_template},
+                                    return names.length ? new caterwaul_global.syntax(';', vars) : closure_null_template},
 
     Closure state generation.
     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
@@ -3380,13 +3389,13 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
 
     annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().field('compile', wrapped_compile(caterwaul.compile, references))},
-    trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(parse(f), references);
+    trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(caterwaul_global.parse(f), references);
                                                            caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})();
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return this.compile(perform_substitution(references, references.annotated))}})());
-__713678548b352fe550bb5edc2f8043fa
-meta::sdoc('js::core/caterwaul.tree', <<'__8cb4f8be6e4879dfe67869eb32c1bb03');
+__32a2214af47c89ca39107b8d7df4eb20
+meta::sdoc('js::core/caterwaul.tree', <<'__5badd5abf7af4edccd52c2d4aade1582');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -3653,9 +3662,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                     has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
                                                                      op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
                                                                      op + space + map(syntax_node_tostring, this).join('') :
-                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}}
+                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
 
-    caterwaul_global.method('define_syntax_structure', function (name, ctor) {this.field(name, extend(ctor, syntax_structure_common))}).
+    caterwaul_global.method('define_syntax_structure', function (name, ctor) {return this.field(name, extend(ctor, syntax_structure_common))}).
                       field('syntax_structure_common', syntax_structure_common).
 
   References.
@@ -3679,7 +3688,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                          for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                            for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                              this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}})})();
-__8cb4f8be6e4879dfe67869eb32c1bb03
+__5badd5abf7af4edccd52c2d4aade1582
 meta::sdoc('js::core/caterwaul.utilities', <<'__2fcc971f3a84b20b2608d5510d6373ec');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
