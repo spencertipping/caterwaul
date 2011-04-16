@@ -2045,6 +2045,37 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
+meta::sdoc('js::behaviors/adverbs', <<'__595dedcfea41c5a4b5a80720b4113f84');
+Adverbial modifier pattern | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
+it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. One of these meanings is
+an 'adverb.'
+
+An adverb modifies something about how an expression works. For instance, 'where' is a common adverb used to bind local variables within an expression. 'when' and 'unless' determine whether an
+expression is run. 'until', new in caterwaul 1.0, is used to iterate an expression. These adverbs are no longer defined using qs[]. Instead, they are defined using adverb(), which takes the
+name of the adverb and a function that transforms the modified expression and any modifiers passed to the adverb.
+
+The advantage to this separation is that later on you can establish new ways for adverbs to be used in your code. For instance, if you were writing in Coffeescript you wouldn't have access to
+brackets with commas. In that case you'd want to use a regular function, so you would say this:
+
+| my_caterwaul.adverb_form(qs[_expression /_adverb(_modifiers)]);       // after this, 'x /where(x = 10)' would be a valid way to say 'x /where[x = 10]'
+  my_caterwaul.adverb_form(qs[_expression(_adverb(_modifiers))]);       // enables 'x where x = 10', which is more Coffeescript-idiomatic
+
+  caterwaul.shallow('adverbs', []).shallow('adverb_forms', []).
+
+    method('adverb',      function (name, definition) {for (var i = 0, l = this.adverb_forms.length; i < l; ++i) this.define_adverb(name, definition, this.adverb_forms[i]);
+                                                       return this.adverbs.push({name: name, definition: definition}), this}).
+
+    method('adverb_form', function (form)             {for (var i = 0, l = this.adverbs.length; i < l; ++i) this.define_adverb(this.adverbs[i].name, this.adverbs[i].description, form);
+                                                       return this.adverb_forms.push(form), this}).
+
+Adverb macro construction.
+
+    method('define_adverb', function (name, definition, form) {
+__595dedcfea41c5a4b5a80720b4113f84
 meta::sdoc('js::behaviors/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2825,7 +2856,7 @@ small macroexpansions.)
                            return t.rmap(function (n) {for (var i = macros.length - 1, macro, match, replacement; i >= 0 && (macro = macros[i]); --i)
                                                          if ((match = macro_try_match(macro, n)) && (replacement = expanders[i].apply(this, match))) return replacement})});
 __19791417df89bbe5ec79ce074e2a1a98
-meta::sdoc('js::core/caterwaul.parser', <<'__72e0d62f62d0510c7fbc929f7216cb94');
+meta::sdoc('js::core/caterwaul.parser', <<'__05ad6045b32afa668b081b12a9d0c01b');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
 expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
@@ -3089,7 +3120,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       prevent this from causing problems, I only collapse a node if it is not followed by a colon. (And the only case where any of these would legally be followed by a colon is as an object
       key.)
 
-       else if (has(parse_r_until_block, data) && node.r && node.r.data !== ':')  
+       else if (has(parse_r_until_block, data) && node.r && node.r.data !== ':')
                                                  {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node._fold_r();
                                                   node.r && node.r.data !== ';' && node._fold_r();
                                                   if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node._fold_r().pop()._fold_r();
@@ -3123,7 +3154,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head}})());
-__72e0d62f62d0510c7fbc929f7216cb94
+__05ad6045b32afa668b081b12a9d0c01b
 meta::sdoc('js::core/caterwaul.parser-data', <<'__8a0f6d07cf2b0a3dfc2352c15bb69112');
 Shared parser data.
 This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
