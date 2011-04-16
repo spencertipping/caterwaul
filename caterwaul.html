@@ -935,13 +935,14 @@ terminal::info('with precompiled caterwaul');
 node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
 gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
 __48664f2725423f9977bd81d5256a502c
-meta::function('testq-pre', <<'__32ec47105d76da408dbf0bb72fbe5ac5');
+meta::function('testq-pre', <<'__b3ff940a4407dc6dd3414f3984749be3');
+my ($options, @stuff) = separate_options(@_);
 my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*\\.?test");
 
 terminal::warning('running tests without rendering');
 node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
 gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
-__32ec47105d76da408dbf0bb72fbe5ac5
+__b3ff940a4407dc6dd3414f3984749be3
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
