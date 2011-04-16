@@ -750,7 +750,7 @@ file::write(attribute($_) .            '.js',       retrieve($_), mkpath => 1) f
 file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/sdocp::js::/, keys %data;
 hook('after-render');
 __d11b6e7522980db1022b1ccd575bdc30
-meta::function('repl', 'node([\'pp::js::modules/caterwaul.all\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('repl', 'node([\'pp::js::caterwaul\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('replc', 'node([\'pp::js::core/caterwaul\', \'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul\']);');
 meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
@@ -2001,7 +2001,19 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/core/adjective', <<'__1749df1609a11e4207d3d4a9d90e1571');
+meta::sdoc('js::behaviors/core', <<'__c1c28df8d8e86af0fea45e33ececb5f9');
+Core caterwaul behaviors | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+- pinclude pp::js::behaviors/core/adverbs
+- pinclude pp::js::behaviors/core/adjectives
+- pinclude pp::js::behaviors/core/quote
+- pinclude pp::js::behaviors/core/gen
+
+- pinclude pp::js::behaviors/core/inversion
+- pinclude pp::js::behaviors/core/javascript-forms
+__c1c28df8d8e86af0fea45e33ececb5f9
+meta::sdoc('js::behaviors/core/adjective', <<'__e7a78354c90b5c3afbc0a2c8e90dacc6');
 Adjective macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2009,10 +2021,9 @@ Introduction.
 Unlike adverbs, adjectives generally wrap a value as opposed to modifying a verb. It's a subtle distinction, but adjectives are often more noticeable (they come before the noun in English),
 and they can have a very direct impact on the context of the values they modify.
 
-  caterwaul.macro_form('prefix_adjective',  function (name, def, form) {this.rmacro(form.replace({_adjective: name}, def))}).
-            macro_form('postfix_adjective', function (name, def, form) {this.rmacro(form.replace({_adjective: name}, def))});
-__1749df1609a11e4207d3d4a9d90e1571
-meta::sdoc('js::behaviors/core/adverb', <<'__ecde803c3784c6fc93727fc2d3b9a876');
+  caterwaul.macro_form('unary_adjective', 'prefix_binary_adjective', 'postfix_binary_adjective', function (name, def, form) {this.rmacro(form.replace({_adjective: name}, def))});
+__e7a78354c90b5c3afbc0a2c8e90dacc6
+meta::sdoc('js::behaviors/core/adverb', <<'__d7b84c10b3e1544f3b1eb5ed0ceafba1');
 Adverb macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2020,9 +2031,8 @@ Introduction.
 Many macros in caterwaul function as adverbs from a linguistic point of view. Adverbs in English modify a process, but generally the process is more relevant than the adverb so we talk about
 it first. (Hence sentences such as 'go there if you need to' -- here 'if you need to' is the adverb, and it comes after the rest.)
 
-  caterwaul.macro_form('prefix_adverb',  function (name, def, form) {this.rmacro(form.replace({_adverb: name}, def))}).
-            macro_form('postfix_adverb', function (name, def, form) {this.rmacro(form.replace({_adverb: name}, def))});
-__ecde803c3784c6fc93727fc2d3b9a876
+  caterwaul.macro_form('unary_adverb', 'prefix_binary_adverb', 'postfix_binary_adverb', function (name, def, form) {this.rmacro(form.replace({_adverb: name}, def))});
+__d7b84c10b3e1544f3b1eb5ed0ceafba1
 meta::sdoc('js::behaviors/core/gen', <<'__cae1bcf7476f4557e1d8bdd05e32b01b');
 Code generation methods | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2100,13 +2110,42 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::behaviors/core/quote', <<'__bf597576f0e52c606a48a44b9ca736b2');
+meta::sdoc('js::behaviors/core/javascript-forms', <<'__643e6db3cb1c5891aca0f1376e525bed');
+Javascript macro forms | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This module creates macro forms optimized for hand-coded Javascript. They won't work well at all for Coffeescript or other variants that don't support the comma operator.
+
+  caterwaul.unary_adjective_form('_adjective[_]').unary_adjective_form('_ /_adjective');
+__643e6db3cb1c5891aca0f1376e525bed
+meta::sdoc('js::behaviors/core/quote', <<'__5a3a3152d7a0c89b3155943beea3505f');
 Quotation behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-Quotation is very important for defining macros. It enables the qs[] form in your code, which returns a piece of quoted syntax.
-__bf597576f0e52c606a48a44b9ca736b2
+Quotation is very important for defining macros. It enables the qs[] form in your code, which returns a piece of quoted syntax. qs is an adjective, and its exact rendition depends on which
+language port you're using. For the native JS port, it will be enabled in these forms:
+
+| qs[x]
+  x /qs
+
+  caterwaul.unary_adjective('qs', function (tree) {return tree});
+__5a3a3152d7a0c89b3155943beea3505f
+meta::sdoc('js::caterwaul', <<'__0e7fa33d7c5a799b1c8aa54fe5196e90');
+Caterwaul JS | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Core caterwaul compiler.
+This is generated from the files in the core/ directory of the source distribution.
+
+- pinclude pp::js::core/caterwaul
+
+Core behaviors.
+These are pulled from behaviors/core/ and add standard macros and code generation facilities to the core compiler.
+
+- pinclude pp::js::behaviors/core
+__0e7fa33d7c5a799b1c8aa54fe5196e90
 meta::sdoc('js::core/caterwaul', <<'__ea2a84ffa244f7d6a78005385fb0908b');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2351,7 +2390,7 @@ context of tree -> tree compilers (macroexpansion). Having such an arrangement i
 
                    method('init',                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)});
 __389873c9c68a08a32a7177e7bc42cbe5
-meta::sdoc('js::core/caterwaul.macro-forms', <<'__59d8dc2d8b16903cc7a1806328b87b10');
+meta::sdoc('js::core/caterwaul.macro-forms', <<'__2ead71488e935075a2869882ec4e1655');
 Macro forms.
 Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
 it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. One of these meanings is
@@ -2379,20 +2418,23 @@ Adverb forms always have the modifiers following the expression to be modified; 
 
   The function you give it will be invoked for each new adverb or adverb form. This function is also bound as a method called 'define_adverb'.
 
-  caterwaul_global.method('macro_form', function (name, define) {
-    var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
+  caterwaul_global.
+    method('macro_form', function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) this.define_macro_form(arguments[i], arguments[l]); return this}).
+    method('define_macro_form', function (name, define) {
+      var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
 
-    return this.
-      shallow(names, []).
-       method(name, function (name, definition) {for (var i = 0, fs = this[forms], l = fs.length, d = this[define_name]; i < l; ++i) d.call(this, name, definition, fs[i]);
-                                                 return this[names].push({name: name, definition: definition}), this}).
-      shallow(forms, []).
-       method(form, function (form)             {for (var i = 0, xs = this[names], l = xs.length, d = this[define_name]; i < l; ++i) d.call(this, xs[i].name, xs[i].description, form);
-                                                 return this[forms].push(form), this}).
+      return this.
+        shallow(names, []).
+         method(name, function (name, definition) {for (var i = 0, fs = this[forms], l = fs.length, d = this[define_name]; i < l; ++i) d.call(this, name, definition, fs[i]);
+                                                   return this[names].push({name: name, definition: definition}), this}).
+        shallow(forms, []).
+         method(form, function (form)             {form = this.ensure_syntax(form);
+                                                   for (var i = 0, xs = this[names], l = xs.length, d = this[define_name]; i < l; ++i) d.call(this, xs[i].name, xs[i].description, form);
+                                                   return this[forms].push(form), this}).
 
-       method(define_name, function () {return define.apply(this, arguments), this})});
-__59d8dc2d8b16903cc7a1806328b87b10
-meta::sdoc('js::core/caterwaul.macroexpander', <<'__da9af61b043889775877a28fcbf84b96');
+         method(define_name, function () {return define.apply(this, arguments), this})});
+__2ead71488e935075a2869882ec4e1655
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__5d83ee5b5dc2897a185adf3e1db35918');
 Macroexpansion.
 Caterwaul is a Lisp, which in this case means that it provides the ability to transform code before that code is compiled. Lisp does macroexpansion inline; that is, as the code is being read
 (or compiled -- there are several stages I believe). Caterwaul provides offline macros instead; that is, you define them separately from their use. This gives Caterwaul some opportunity to
@@ -2505,19 +2547,22 @@ means that it may become arbitrarily optimized.
 
     var variadic_definition = function (f) {return function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) f.call(this, arguments[i], arguments[l]); return this}};
 
-    caterwaul_global.shallow('macro_patterns', []).
+    caterwaul_global.shallow('macro_patterns',  []).
                      shallow('macro_expanders', []).
 
-          method_until_baked('macro',  variadic_definition(function (pattern, expander) {if (! expander.apply) throw new Error('macro: cannot define macro with non-function expander');
-                                                                                         else return this.macro_patterns.push(pattern), this.macro_expanders.push(expander), this})).
+          method_until_baked('macro',  variadic_definition(function (pattern, expander) {
+                                                             if (! expander.apply) throw new Error('macro: cannot define macro with non-function expander');
+                                                             else return this.macro_patterns.push(this.ensure_syntax(pattern)), this.macro_expanders.push(expander), this})).
 
-          method_until_baked('rmacro', variadic_definition(function (pattern, expander) {if (! expander.apply) throw new Error('rmacro: cannot define macro with non-function expander');
-                                                                                         else return this.macro(pattern, function () {var t = expander.apply(this, arguments);
-                                                                                                                                      return t && this.macroexpand(t)})})).
+          method_until_baked('rmacro', variadic_definition(function (pattern, expander) {
+                                                             if (! expander.apply) throw new Error('rmacro: cannot define macro with non-function expander');
+                                                             else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})).
+
                       method('macroexpand', function (t) {return macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
+
                   when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
                                           this.method('macroexpand', function (t) {return t.rmap(function (n) {return f.call(this, n)})})})})();
-__da9af61b043889775877a28fcbf84b96
+__5d83ee5b5dc2897a185adf3e1db35918
 meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__2a458b26c7fb0fe6364cf8a4a8f080c5');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
@@ -3435,7 +3480,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
 
     return function (f) {var references = trace_execution(this, f); return this.compile(perform_substitution(references, references.annotated))}})());
 __32a2214af47c89ca39107b8d7df4eb20
-meta::sdoc('js::core/caterwaul.tree', <<'__5badd5abf7af4edccd52c2d4aade1582');
+meta::sdoc('js::core/caterwaul.tree', <<'__f933b02a90aebf0d991e6d64eee68e52');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -3705,6 +3750,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                 has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
 
     caterwaul_global.method('define_syntax_structure', function (name, ctor) {return this.field(name, extend(ctor, syntax_structure_common))}).
+                     method('ensure_syntax',           function (thing)      {return thing && thing.constructor === String ? this.parse(thing) : thing}).
                       field('syntax_structure_common', syntax_structure_common).
 
   References.
@@ -3728,7 +3774,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                          for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                            for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                              this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}})})();
-__5badd5abf7af4edccd52c2d4aade1582
+__f933b02a90aebf0d991e6d64eee68e52
 meta::sdoc('js::core/caterwaul.utilities', <<'__2fcc971f3a84b20b2608d5510d6373ec');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated

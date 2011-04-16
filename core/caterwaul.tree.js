@@ -267,6 +267,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                 has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
 
     caterwaul_global.method('define_syntax_structure', function (name, ctor) {return this.field(name, extend(ctor, syntax_structure_common))}).
+                     method('ensure_syntax',           function (thing)      {return thing && thing.constructor === String ? this.parse(thing) : thing}).
                       field('syntax_structure_common', syntax_structure_common).
 
 //   References.
