@@ -28,9 +28,15 @@ var test = function (name, f) {
     caterwaul = original_caterwaul.clone();
     f();
 
-    eq_count  = 0;
-    caterwaul = caterwaul.reinitialize(caterwaul);
-    f();
+    var precompiled = 0;
+    for (var k in caterwaul.precompiled_internal_table) Object.hasOwnProperty.call(caterwaul.precompiled_internal_table, k) && ++precompiled;
+
+    if (! precompiled) {
+      eq_count  = 0;
+      log_message('[unit] reinitializing');
+      caterwaul = caterwaul.reinitialize(caterwaul);
+      f();
+    }
   } catch (e) {
     on_error(name, e);
   }

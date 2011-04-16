@@ -1401,31 +1401,40 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
 //     right value for this property, since the value is a unique gensym.
 
-      serialize_ref             = function (ref) {if (ref.value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(ref.value)});
-                                             else if (ref.value.is_caterwaul === is_caterwaul) return caterwaul_ref_template.replace({_string: caterwaul_ref_string(ref.value.has)});
-                                             else                                              throw new Error('syntax ref value is not serializable: ' + ref.value)},
+//     Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the standard library apparently depends on it somehow.
+
+      serialize_ref             = function (value, name, seen) {
+                                        if (! value)                             return '' + value;
+                                   else if (value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(value)});
+                                   else if (value.is_caterwaul === is_caterwaul) return seen[value.id()] || (seen[value.id()] = name,
+                                                                                   caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
+                                   else                                          throw new Error('syntax ref value is not serializable: ' + value)},
 
 //     Variable table generation.
 //     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
       variables_for             = function (tree, environment) {
-                                    var names = [], values = []; for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k]));
-                                                                 tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n))});
+                                    var names = [], values = [], seen = {};
+
+                                    for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k], k, seen));
+                                    tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n.value, n.data, seen))});
+
                                     for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
                                     return names.length ? new syntax_node(';', vars) : closure_null_template},
 
 //     Closure state generation.
 //     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
 
-      precompiled_closure       = function (tree) {return closure_template.replace({_vars: variables_for(tree), _value: tree})},
-      precompiled_function      = function (tree) {return signal_already_compiled(precompiled_closure(tree))},
+      precompiled_closure       = function (tree, environment) {return closure_template.replace({_vars: variables_for(tree, environment), _value: tree})},
+      precompiled_function      = function (tree, environment) {return signal_already_compiled(precompiled_closure(tree, environment))},
 
 //   Substitution.
 //   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
 //   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
 
-    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
-                                                                                                                 return ref && ref.compiled && precompiled_function(ref.compiled)}},
+    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {
+                                    var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
+                                    return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
 
     perform_substitution        = function (references, tree) {var expander = substitute_precompiled(references);
                                                                return macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
@@ -1641,7 +1650,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).
+     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).method('id', function () {return this._id || (this._id = genint())}).
     method('precompile', precompile).method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
 
     method('init', function (f, environment) {if (f.constructor === String && this.precompiled_internal_table[f]) return this.precompiled_internal_table[f];

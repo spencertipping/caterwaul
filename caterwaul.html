@@ -363,7 +363,7 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
-meta::function('bench-load', <<'__aba933cafd3b2b290fc4a2d36972911e');
+meta::function('bench-load', <<'__e60f3781e54febb25303bd0999e61920');
 # Just loads the standard library.
 render();
 
@@ -371,12 +371,22 @@ my $all = grep /^-a$/, @_;
 
 terminal::info('loading with node');
 bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.js js::core/debug/profile.stop|])});
+bench(sub {node(['caterwaul.all.js'])});
+
+terminal::info('loading precompiled with node');
+bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.pre.js js::core/debug/profile.stop|])});
+bench(sub {node(['caterwaul.all.pre.js'])});
 
 if ($all) {
   terminal::info('loading with gjs');
   bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.js js::core/debug/profile.stop|])});
+  bench(sub {gjs(['caterwaul.all.js'])});
+
+  terminal::info('loading precompiled with gjs');
+  bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.pre.js js::core/debug/profile.stop|])});
+  bench(sub {gjs(['caterwaul.all.pre.js'])});
 }
-__aba933cafd3b2b290fc4a2d36972911e
+__e60f3781e54febb25303bd0999e61920
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -732,6 +742,7 @@ file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) f
 hook('after-render');
 __d11b6e7522980db1022b1ccd575bdc30
 meta::function('repl', 'node([\'pp::js::modules/caterwaul.all\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -1976,7 +1987,7 @@ See the 'Macroexpansion' section some distance below for more information about 
   var caterwaul_global = caterwaul = caterwaul_core(merge(replica(), {deglobalize: function () {caterwaul = _caterwaul; return this}}));
   return caterwaul_global});
 __fc03b8c8c3e0c7adcfd785f563520956
-meta::sdoc('js::core/caterwaul.behaviors', <<'__7e0dfb246407efa8c08b580c5f49a5e6');
+meta::sdoc('js::core/caterwaul.behaviors', <<'__29bb25882f2ed0ef1970d6d5b1644ecc');
 Macroexpansion behavior.
 Caterwaul exposes macroexpansion as a contained interface. This lets you write your own compilers with macroexpansion functionality, even if the syntax trees weren't created by Caterwaul. In
 order for this to work, your syntax trees must:
@@ -2052,7 +2063,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).
+     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).method('id', function () {return this._id || (this._id = genint())}).
     method('precompile', precompile).method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
 
     method('init', function (f, environment) {if (f.constructor === String && this.precompiled_internal_table[f]) return this.precompiled_internal_table[f];
@@ -2081,7 +2092,7 @@ New in version 0.6.5 is the ability to bind closure variables during a tconfigur
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
      method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}})({}))};
-__7e0dfb246407efa8c08b580c5f49a5e6
+__29bb25882f2ed0ef1970d6d5b1644ecc
 meta::sdoc('js::core/caterwaul.compiler', <<'__e67397b6d19f677b6c0402a7c46732ef');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
@@ -3219,7 +3230,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.precompile', <<'__4833fb3736465b9dcca511aa9e7ffefb');
+meta::sdoc('js::core/caterwaul.precompile', <<'__a469a6578ca76208ea12edeac6733a8e');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3387,31 +3398,40 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
     right value for this property, since the value is a unique gensym.
 
-      serialize_ref             = function (ref) {if (ref.value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(ref.value)});
-                                             else if (ref.value.is_caterwaul === is_caterwaul) return caterwaul_ref_template.replace({_string: caterwaul_ref_string(ref.value.has)});
-                                             else                                              throw new Error('syntax ref value is not serializable: ' + ref.value)},
+    Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the standard library apparently depends on it somehow.
+
+      serialize_ref             = function (value, name, seen) {
+                                        if (! value)                             return '' + value;
+                                   else if (value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(value)});
+                                   else if (value.is_caterwaul === is_caterwaul) return seen[value.id()] || (seen[value.id()] = name,
+                                                                                   caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
+                                   else                                          throw new Error('syntax ref value is not serializable: ' + value)},
 
     Variable table generation.
     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
       variables_for             = function (tree, environment) {
-                                    var names = [], values = []; for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k]));
-                                                                 tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n))});
+                                    var names = [], values = [], seen = {};
+
+                                    for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k], k, seen));
+                                    tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n.value, n.data, seen))});
+
                                     for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
                                     return names.length ? new syntax_node(';', vars) : closure_null_template},
 
     Closure state generation.
     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
 
-      precompiled_closure       = function (tree) {return closure_template.replace({_vars: variables_for(tree), _value: tree})},
-      precompiled_function      = function (tree) {return signal_already_compiled(precompiled_closure(tree))},
+      precompiled_closure       = function (tree, environment) {return closure_template.replace({_vars: variables_for(tree, environment), _value: tree})},
+      precompiled_function      = function (tree, environment) {return signal_already_compiled(precompiled_closure(tree, environment))},
 
   Substitution.
   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
 
-    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
-                                                                                                                 return ref && ref.compiled && precompiled_function(ref.compiled)}},
+    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {
+                                    var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
+                                    return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
 
     perform_substitution        = function (references, tree) {var expander = substitute_precompiled(references);
                                                                return macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
@@ -3429,7 +3449,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return compile(perform_substitution(references, references.annotated))}})();
-__4833fb3736465b9dcca511aa9e7ffefb
+__a469a6578ca76208ea12edeac6733a8e
 meta::sdoc('js::core/caterwaul.tree', <<'__67e6757fdd2e73fb415aba23836d68ce');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -6321,7 +6341,7 @@ test('lex-semicolon-failure', function () {
   t('/foo/g;/bar/g', '(; (/foo/g) (/bar/g))');
 });
 __49490aff075a90b745e45ad9bad59b7a
-meta::sdoc('js::test/lib/unit', <<'__67c1c04065c6451957f49497c6830d84');
+meta::sdoc('js::test/lib/unit', <<'__cdaa8d6652d068c9bcd98aa7cf164c1d');
 Unit testing library functions
 
 var original_caterwaul = caterwaul.deglobalize();
@@ -6352,14 +6372,20 @@ var test = function (name, f) {
     caterwaul = original_caterwaul.clone();
     f();
 
-    eq_count  = 0;
-    caterwaul = caterwaul.reinitialize(caterwaul);
-    f();
+    var precompiled = 0;
+    for (var k in caterwaul.precompiled_internal_table) Object.hasOwnProperty.call(caterwaul.precompiled_internal_table, k) && ++precompiled;
+
+    if (! precompiled) {
+      eq_count  = 0;
+      log_message('[unit] reinitializing');
+      caterwaul = caterwaul.reinitialize(caterwaul);
+      f();
+    }
   } catch (e) {
     on_error(name, e);
   }
 };
-__67c1c04065c6451957f49497c6830d84
+__cdaa8d6652d068c9bcd98aa7cf164c1d
 meta::sdoc('js::test/lib/unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
 Client-side unit testing hooks.
 

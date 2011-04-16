@@ -73,7 +73,7 @@
      field('macroexpansion', macroexpansion).field('replica', replica).field('configurable', configurable).field('caterwaul', caterwaul_core).field('decompile', parse).
      field('composition', composition).field('global', function () {return caterwaul_global}).
 
-     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).
+     field('precompiled_internal_table', {}).field('is_caterwaul', is_caterwaul).method('id', function () {return this._id || (this._id = genint())}).
     method('precompile', precompile).method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
 
     method('init', function (f, environment) {if (f.constructor === String && this.precompiled_internal_table[f]) return this.precompiled_internal_table[f];
