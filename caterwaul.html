@@ -364,6 +364,10 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
+meta::function('b', <<'__7cc6411f5a47fc44ef59baf2c86540a8');
+my @behaviors = select_keys('--criteria' => "sdoc::js::behaviors/$_[0]");
+edit($behaviors[0]);
+__7cc6411f5a47fc44ef59baf2c86540a8
 meta::function('bench-load', <<'__a7b9982a6b851aa1966ae81634ad7625');
 # Just loads the standard library.
 render() unless grep /^-R$/, @_;
@@ -1571,6 +1575,111 @@ I'm axing (1) right off the bat just because it's no fun. This leaves (2) and (3
 
   Interrupting thought: Why not just transform the nodes as soon as we hit them? No need to build these lists at all. Therefore node ordering is irrelevant to the optimization problem.
 __73d8ab136c386600bac133c292f4318e
+meta::note('math', <<'__a1d0cb20cdd13c6eed99ad5cdb66a1ed');
+Mathematical constructs in caterwaul 1.0.
+Caterwaul is no longer just about transforming syntax in convenient ways. It's also about doing totally off the hook stuff with macros and adding structure to its extensions.
+
+| 1. Macros should have standard forms. One common one is the "adverb", which includes things like when[], unless[], where[], se[], re[], etc.
+  2. Expressions should have well-defined destructuring semantics (see below).
+
+Destructuring.
+The lvalue() macro needs to become significantly more capable. Here's an example:
+
+| Foo = fc[x, y][this.x = x, this.y = y];
+  Bar = fc[x, y][this.x = x, this.y = y];
+  f(new Foo(x, y)) = x + y;
+  f(new Bar(x, y)) = x * y;
+  f(new Foo(3, 4))      // returns 7
+  f(new Bar(3, 4))      // returns 12
+
+| f(x + 1) = Number(x) * 2
+  f(4)                  // returns 6
+  f('41')               // returns 8
+
+I'm not 100% sure how to do the failover for pattern matching because it requires knowledge of previous cases. The generated code would have to end up looking like this:
+
+| Foo = ...
+  Bar = ...
+  f = function (gs_value) {
+    var gs_bindings = null;
+    if (gs_value.constructor === Foo && Foo.gs_caterwaul_invert && (gs_bindings = Foo.gs_caterwaul_invert(gs_value)))
+      return (function (x, y) {return x + y}).call(this, gs_bindings.x, gs_bindings.y);
+    else if (gs_value.constructor === Bar && Bar.gs_caterwaul_invert && (gs_bindings = Bar.gs_caterwaul_invert(gs_value)))
+      return (function (x, y) {return x * y}).call(this, gs_bindings.x, gs_bindings.y);
+    else
+      return undefined;
+  };
+
+  Implementing function inversion.
+  It's possible to invert a function. All we have to do is assign it combinatory semantics and then invert each combinator in turn. For instance:
+
+  | f(x, y) = {foo: x, bar: y}                                  // If this definition is made...
+    f.gs_caterwaul_invert(o) = o && {x: o.foo, y: o.bar}        // this one will be too.
+
+  Inversion can happen even over closures:
+
+  | f(g)(x, y) = {foo: x, bar: y, bif: g};
+    f(g).gs_caterwaul_invert(o) = o && o.bif === g && {x: o.foo, y: o.bar};
+    f.gs_caterwaul_invert(g)(o) = o && o.bif === g && {x: o.foo, y: o.bar};
+
+  Failover.
+  This is really tricky. We have to know in advance whether f has been defined. For example:
+
+  | f(x, y) = x + y;
+    f(new Foo(bar)) = bar.x + bar.y;
+
+  What does the generated code look like? (Especially considering that each of these is an imperative statement.)
+
+  Interesting case:
+
+  | f(x, y) = x + y;
+    f(3, 4);            // should return 7
+    f(x + 1, y) = x * y;
+    f(3, 4);            // should return 8
+
+  Actually, we don't care whether f is already defined; we can assume it:
+
+  | f(x, y) = x + y
+    f(new Foo(bar)) = bar.x * bar.y;
+
+  Here's the code:
+
+  | f = function (x, y) {return x + y};         // No modifiers; gets inlined into an erasing assignment
+    f = (function (old_f) {
+      var this_case = function (x, y) {return x * y};
+      return function (gensym) {
+        var gensym_result = Foo && Foo.gensym_caterwaul_invert && Foo.gensym_caterwaul_invert(gensym);
+        if (gensym_result) return this_case.call(this, gensym_result.x, gensym_result.y);
+        else return old_f.apply(this, arguments);
+      };
+    }).call(this, typeof f === 'undefined' ? function () {throw new Error('no matching case for f')} : f);
+
+  It's true that this imposes a linear-time overhead in the number of cases, but it's the best we can do for dynamic assignment.
+
+  Consequences of ubiquitous inversion.
+  One nice side-effect of assigning an inverse to every function is that you can have pattern-matching functions invert each other:
+
+  | f(x, y) = x + y
+    g(f(x, 1)) = x * 2
+    g(10)               // -> 18
+
+  Perhaps more interestingly:
+
+  | modifier(m, x) = m + ' ' + x;
+    variable(n, v) = n + ' = ' + v;
+    g(modifier('var', variable('x', value))) = alert('x is assigned ' + value);
+
+  We'd have to detect the presence of a constant in the destructuring pattern and propagate it through the combinatory logic somehow. (This is computationally expensive!) However, it's also
+  really important to be able to do.
+
+  Anonymous destructuring functions.
+  There isn't a good reason fn[] couldn't take on destructuring semantics. The only difficulty is having multiple alternatives.
+
+  | fn[new Foo(x, y)][x + y]
+    fn[x + 1][x * (x + 1)]
+
+  Ultimately the problem is that Javascript doesn't have a way to represent parameter-based multiple dispatch. So pattern matching is something that gets superimposed at the last minute.
+__a1d0cb20cdd13c6eed99ad5cdb66a1ed
 meta::note('modules', <<'__92e7978739a04aa66d1b7859a730e367');
 Modules.
 Modules are for extensions as much as they are for fundamentals. This sounds weird perhaps, but it's true. For example, the replication behavior of caterwaul is useful outside of just the
@@ -1644,6 +1753,20 @@ Unimportant things that might help at some point in the future.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
 __48c65f082344a2efd22342ecbffcd69b
+meta::note('reorganization', <<'__4ed3f1379c7cf90df053a13da4409d66');
+Module/core reorganization.
+I want things to be better organized in caterwaul version 1. What needs to change?
+
+| 1. The standard library is kind of a mess. You have to include a bunch of configurations to get most things done, which is silly.
+  2. The micro-configuration model isn't necessarily a good thing. I don't want users to have to think about the fact that 'std' is really made of 20 different configurations.
+
+This might also be a good time to address shared-prototype configurations such as 'seq' and the syntax stuff. (Though there are significant problems with cloning them when caterwaul is
+cloned.)
+
+Modules could also have better names. 'std' is not descriptive, and there isn't anything particularly standard about it anyway.
+
+Also, caterwaul 1.0 should introduce aggressive destructuring and polymorphic pattern matching. How to do this?
+__4ed3f1379c7cf90df053a13da4409d66
 meta::parent('/home/spencertipping/bin/configuration', <<'__6a9b27ada805f6b566787caf03c9b318');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
 parent::/home/spencertipping/bin/object  281e882a68d555bbd5c0e098c22d1bf3
@@ -1921,6 +2044,70 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
+meta::sdoc('js::behaviors/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
+Inversion behavior | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Enabling this behavior results in two interesting things. First, every function will be automatically annotated with an inverse, which is stored as a gensym-encoded attribute on the function.
+Second, the lvalue behavior will be extended to allow functional and expression destructuring. It isn't possible to assign into a complex expression in JS grammar, so only parameters can be
+bound this way.
+
+Inversion isn't guaranteed to be accurate in the general case. All it guarantees is that it is accurate under the function being inverted. That is, if f is an invertible function and fi is its
+inverse, then x === fi(f(x)) isn't true in general. However, f(x) === f(fi(f(x))) generally is.
+
+Combinatory inversion.
+Each kind of expression has certain inversion semantics. Some of them perform runtime type detection to figure out how best to invert something. For example, the + operator is overloaded
+across strings and numbers, so we have to do a type check on the arguments before knowing which inversion to use. Also, different cases are taken depending on which operand is a constant.
+(Most binary operators fail with two variables.)
+
+Information gets lost when you invert stuff, as most operators are closed within a finite type. For example, suppose x | 3 = 7. We now don't know the lowest two bits of x, so we arbitrarily
+set them to zero for the purposes of destructuring. (Also, if x | 3 = 6, we reject the match because we know something about the bits set by |.)
+
+Inversion never degenerates into nondeterminism. That is, ambiguous multivariate cases are rejected immediately rather than explored. So, for example, if f(x, y) = x + y, you can't match
+against f(x, y) and expect it to work. You could match against f(x, 1) or f(5, y), though, since once the constants are propagated through the expression you will end up with an unambiguous
+way to invert the + operator. In some cases nondeterminism is eliminated through default behavior: if f(x, y) = x && y, then matching against f(x, y) = X will result in x = true, y = X when X
+is truthy, and x = X, y = undefined when X is falsy. || behaves similarly; x || y = X results in x = X, y = undefined when X is true, and x = false, y = X when X is falsy.
+
+Constructor inversion.
+Constructors are a bizarre case of function application, and it's possible to invert them with some accuracy. Basically, we track the assignment of parameters into named 'this' properties and
+construct the inverse based on corresponding properties of the object being matched against. For example, the constructor fc[x, y][this.x = x, this.y = y] is invertible by pulling .x and .y
+from the object.
+
+Decisional inversion.
+This isn't a joke; it's actually possible to invert a decisional sometimes. However, it may end up taking every branch. The idea is that you try the first branch; if it succeeds, then we
+assume the condition variable was true and return. If it fails, then we try the second branch and assume that the condition variable was false. So, for example:
+
+| f(cond, x, y) = cond ? {foo: x} : {bar: y};
+  g(f(b, x, y)) = 'got ' + b + ' with ' + [x, y];
+  g({foo: 10})                  // returns 'got true with 10,undefined'
+  g({bar: 10})                  // returns 'got false with undefined,10'
+
+It's important to have decisional inversion because we might want to invert a pattern-matching function. For example:
+
+| foo('foo' + bar) = 'got a foo: ' + bar
+  foo('bif' + bar) = 'got a bif: ' + bar
+  g(foo(x)) = x
+  g('got a foo: bar')           // returns 'foobar'
+  g('got a bif: bar')           // returns 'bifbar'
+
+Recursive inversion.
+This also isn't a joke, though you can cause an infinite loop if you're not careful. You shouldn't really use this, but it's a natural side-effect of the way I'm representing inversions
+anyway. Here's an example:
+
+| power_of_two(n) = n === 0 ? 1 : 2 * power_of_two(n - 1);
+  g(power_of_two(x)) = x;
+  g(1)                  // -> 0
+  g(2)                  // -> 1
+  g(4)                  // -> 2
+
+Here's what the inverse function looks like (modulo formatting, error checking, etc):
+
+| power_of_two_inverse(x) = x === 1 ? {n: 0} : {n: 1 + power_of_two_inverse(x / 2).n};
+
+Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
+works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
+__6437a7d509f9cc3a9c75b7ee0898ed66
 meta::sdoc('js::core/caterwaul', <<'__cafd0945de2199811c103b668a8a60f8');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -3899,6 +4086,19 @@ Indentation is two spaces, and each block-style construct triggers additional in
                                             '#{op} #{map(serialize(), tree).join(" ")}' :
                                           op})});
 __7d67d57915c2722f359b8c24b594b451
+meta::sdoc('js::modules/caterwaul.gen', <<'__4695de67cfd8d94be31af343c247bcff');
+Code generation functions | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Many Caterwaul functions generate code in common patterns. This module provides functions that handle the most common cases.
+
+  caterwaul.tconfiguration('gen', function () {
+    var gen = this.namespace('gen'),
+        
+
+    gen.scope = function (vars, body) {
+__4695de67cfd8d94be31af343c247bcff
 meta::sdoc('js::modules/caterwaul.heap', <<'__0de58fc36044652470964f57fb7dd68f');
 Heap implementation | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -5457,7 +5657,7 @@ test('caterwaul.seq.numeric', function () {
   })(eq);
 });
 __b0a2d54c0f5713cd919ec25076478def
-meta::sdoc('js::modules/caterwaul.std', <<'__e2597ab9cf827f8e5fc2c5aa3f8643e3');
+meta::sdoc('js::modules/caterwaul.std', <<'__e5420ac27db893070714adaafe33a583');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -5487,12 +5687,6 @@ These configurations contain macros to grab references to syntax nodes or to byp
   like they are ordinarily. Already-parenthesized expressions aren't wrapped.
 
     tconfiguration('std.qs', 'std.qg', function () {this.rmacro(qs[qg[_]], function (expression) {return expression.as('(')})}).
-
-Imports.
-New in caterwaul 1.0 is the ability to, at compile time, import an object's keys into local scope. The semantics are similar to those of a with() statement, but importing is much faster
-because no dynamic scope resolution gets performed. It assumes that the object(s) that you're using are available both at compile-time and at runtime.
-
-  tconfiguration('std.qs', 'std.using', function () {this.macro(qs[using[_] in _], qs[using[_][_]], function (objects, body) {})}).
 
 Common shorthands.
 The rest of the macros in the standard library implement shorthands for commonly-used constructs.
@@ -5619,11 +5813,43 @@ The rest of the macros in the standard library implement shorthands for commonly
             this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
             new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
 
+Imports via 'using'.
+New in caterwaul 1.0 is the ability to, at compile time, import an object's keys into local scope. The semantics are similar to those of a with() statement, but importing is much faster
+because no dynamic scope resolution gets performed. It assumes that the object(s) that you're using are available both at compile-time and at runtime. So, for example:
+
+| var foo = {bar: {bif: {baz: 'bok'}}};
+  caterwaul.clone('std')(function () {
+    using[foo.bar.bif] in baz
+  });
+
+The compiled result is:
+
+| var foo = {bar: {bif: {baz: 'bok'}}};
+  (function () {
+    (function (gensym_1) {
+      return (function (baz) {
+        return baz
+      }).call(this, gensym_1.baz);
+    }).call(this, foo.bar.bif);
+  });
+
+In general, each key/value pair is converted into another parameter of the anonymous scope. You can also specify multiple objects to use:
+
+| using[foo.bar, bif.baz] in ...
+
+Note that using[] uses compile-time evaluation! You can't use it to import the values of runtime objects. This also means that if you put a function expression into a using[] block (which is
+totally allowed), the function call will happen at macroexpansion-time and again at runtime.
+
+  tconfiguration('std.qs', 'std.using', function () {this.rmacro(qs[using[_] in _], qs[using[_][_]], fn[os, body][
+    
+                  ])}).
+
+
 Standard configuration.
 This loads all of the production-use extensions.
 
-  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.mb std.se std.ref std.string')});
-__e2597ab9cf827f8e5fc2c5aa3f8643e3
+  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.mb std.se std.ref std.string std.using')});
+__e5420ac27db893070714adaafe33a583
 meta::sdoc('js::modules/caterwaul.std.test/falsy-refs', <<'__ee6542bd537959e722d2ad5d08cdf6f4');
 Falsy ref tests.
 It's possible that Caterwaul 0.5 and earlier reject falsy references; e.g.
