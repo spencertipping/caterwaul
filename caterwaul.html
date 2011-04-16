@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
 
+# For the benefit of HTML viewers:
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+
 $|++;
 
 my %data;
@@ -257,9 +260,12 @@ meta::bootstrap('html', <<'__9b839f4c0c8d6bb18bf6d9d0e670e497');
 </html>
 
 __9b839f4c0c8d6bb18bf6d9d0e670e497
-meta::bootstrap('initialization', <<'__8774229a1a0ce7fd056d81ba0b077f79');
+meta::bootstrap('initialization', <<'__b39f25c213ceb0418551084d1bddeb20');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
+
+# For the benefit of HTML viewers:
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
 
 $|++;
 
@@ -295,7 +301,7 @@ meta::define_form 'meta', sub {
   my ($name, $value) = @_;
   meta::eval_in($value, "meta::$name")};
 
-__8774229a1a0ce7fd056d81ba0b077f79
+__b39f25c213ceb0418551084d1bddeb20
 meta::bootstrap('perldoc', <<'__c63395cbc6f7160b603befbb2d9b6700');
 =head1 Self-modifying Perl script
 
@@ -744,12 +750,10 @@ while ($old_string ne $string and $expansions++ < $limit) {
 $string;
 __66e539d29e9afa903569efad0eb7c886
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
-meta::function('render', <<'__d11b6e7522980db1022b1ccd575bdc30');
+meta::function('render', <<'__4962b4a2e6bc800fd5c11b97550b623e');
 hook('before-render');
-file::write(attribute($_) .            '.js',       retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;
-file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/sdocp::js::/, keys %data;
 hook('after-render');
-__d11b6e7522980db1022b1ccd575bdc30
+__4962b4a2e6bc800fd5c11b97550b623e
 meta::function('repl', 'node([\'pp::js::caterwaul\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('replc', 'node([\'pp::js::core/caterwaul\', \'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul\']);');
 meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
@@ -1724,25 +1728,25 @@ Modules could also have better names. 'std' is not descriptive, and there isn't 
 
 Also, caterwaul 1.0 should introduce aggressive destructuring and polymorphic pattern matching. How to do this?
 __4ed3f1379c7cf90df053a13da4409d66
-meta::parent('/home/spencertipping/bin/configuration', <<'__6a9b27ada805f6b566787caf03c9b318');
+meta::parent('/home/spencertipping/bin/configuration', <<'__6bc40f5c3e6345088ffaa99cda539327');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  281e882a68d555bbd5c0e098c22d1bf3
-__6a9b27ada805f6b566787caf03c9b318
-meta::parent('/home/spencertipping/bin/node-base', <<'__ae5fd8bbce0d68ffe89f765751c60515');
+parent::/home/spencertipping/bin/object  f23aa0012cbf6a998cb464002582e694
+__6bc40f5c3e6345088ffaa99cda539327
+meta::parent('/home/spencertipping/bin/node-base', <<'__75661d906fd9a1b70b4882f5ffbcb4a3');
 function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
 function::node                                              3522fde8f76947a5f70bca33f1ee0016
 function::node-custom                                       c2f4063798c997ec7f78a3543b1240b3
-function::render                                            d11b6e7522980db1022b1ccd575bdc30
+function::render                                            4962b4a2e6bc800fd5c11b97550b623e
 function::run-forever                                       76175932a2d2692fc802856c28d0848d
 internal_function::dep                                      bad9b934374b176318ed2295b63130bc
 message_color::test                                         14e993fdf2c62df353613c243dc9053b
 meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
-parent::/home/spencertipping/bin/repository                 07e9a020871aea8085d81c6363c1aced
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  17ae8eb5d9f395141bb54697e055d30b
-__ae5fd8bbce0d68ffe89f765751c60515
-meta::parent('/home/spencertipping/bin/object', <<'__281e882a68d555bbd5c0e098c22d1bf3');
+parent::/home/spencertipping/bin/repository                 7495fc0dd9bd33af5f590f673a817c7c
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  037565556ca6a27523e5db457332d07c
+__75661d906fd9a1b70b4882f5ffbcb4a3
+meta::parent('/home/spencertipping/bin/object', <<'__f23aa0012cbf6a998cb464002582e694');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
-bootstrap::initialization               8774229a1a0ce7fd056d81ba0b077f79
+bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
 function::alias                         28744564997657da45ab16cd5b441104
 function::cat                           a19fdfda461f9a0aa01978dff2e2c2f7
@@ -1845,31 +1849,31 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__281e882a68d555bbd5c0e098c22d1bf3
-meta::parent('/home/spencertipping/bin/repository', <<'__c32dfb76e68c205326e21e99618641e5');
+__f23aa0012cbf6a998cb464002582e694
+meta::parent('/home/spencertipping/bin/repository', <<'__7495fc0dd9bd33af5f590f673a817c7c');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  6a9b27ada805f6b566787caf03c9b318
-__c32dfb76e68c205326e21e99618641e5
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__a03eb8ad830bf083a0bdc01dc27ab526');
+parent::/home/spencertipping/bin/configuration  6bc40f5c3e6345088ffaa99cda539327
+__7495fc0dd9bd33af5f590f673a817c7c
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__037565556ca6a27523e5db457332d07c');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  281e882a68d555bbd5c0e098c22d1bf3
+parent::/home/spencertipping/bin/object  f23aa0012cbf6a998cb464002582e694
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
-__a03eb8ad830bf083a0bdc01dc27ab526
-meta::parent('notes', <<'__9c368586e3352c56a5ff8f4a7fdd1d8e');
+__037565556ca6a27523e5db457332d07c
+meta::parent('notes', <<'__f6aeea0df61016c8dbfecb09cd3dc6c8');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    281e882a68d555bbd5c0e098c22d1bf3
-__9c368586e3352c56a5ff8f4a7fdd1d8e
-meta::parent('object', <<'__281e882a68d555bbd5c0e098c22d1bf3');
+parent::object    f23aa0012cbf6a998cb464002582e694
+__f6aeea0df61016c8dbfecb09cd3dc6c8
+meta::parent('object', <<'__f23aa0012cbf6a998cb464002582e694');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
-bootstrap::initialization               8774229a1a0ce7fd056d81ba0b077f79
+bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
 function::alias                         28744564997657da45ab16cd5b441104
 function::cat                           a19fdfda461f9a0aa01978dff2e2c2f7
@@ -1972,18 +1976,18 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__281e882a68d555bbd5c0e098c22d1bf3
-meta::parent('preprocessor', <<'__169a13e1d2d89936390b6f2b6b2c789f');
+__f23aa0012cbf6a998cb464002582e694
+meta::parent('preprocessor', <<'__bf6cb81317d426080bfb08d893df0203');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 281e882a68d555bbd5c0e098c22d1bf3
+parent::object                 f23aa0012cbf6a998cb464002582e694
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
 template::failing_conditional  5c593329b434a7044f68cec4b77e8ed9
 template::include              e0624844a65ae41e0217dd871fc0dbfb
 template::pinclude             5ba61c3034a4b183881936aec30d2be9
-__169a13e1d2d89936390b6f2b6b2c789f
+__bf6cb81317d426080bfb08d893df0203
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('html-sdoc', <<'__54d22ab83d9f3f2e27ef51033b4817a7');
 my ($attribute) = @_;
