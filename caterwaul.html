@@ -363,9 +363,9 @@ my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
 __28744564997657da45ab16cd5b441104
-meta::function('bench-load', <<'__e60f3781e54febb25303bd0999e61920');
+meta::function('bench-load', <<'__a7b9982a6b851aa1966ae81634ad7625');
 # Just loads the standard library.
-render();
+render() unless grep /^-R$/, @_;
 
 my $all = grep /^-a$/, @_;
 
@@ -386,7 +386,7 @@ if ($all) {
   bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.pre.js js::core/debug/profile.stop|])});
   bench(sub {gjs(['caterwaul.all.pre.js'])});
 }
-__e60f3781e54febb25303bd0999e61920
+__a7b9982a6b851aa1966ae81634ad7625
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -3230,7 +3230,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head};
 __d03fdc55271075ed8b0a95edbe5fe5ca
-meta::sdoc('js::core/caterwaul.precompile', <<'__a469a6578ca76208ea12edeac6733a8e');
+meta::sdoc('js::core/caterwaul.precompile', <<'__e76ba18165f4aaba04a779ab2f8afd73');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3402,7 +3402,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
 
       serialize_ref             = function (value, name, seen) {
                                         if (! value)                             return '' + value;
-                                   else if (value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(value)});
+                                   else if (value.constructor === syntax_node)   return seen[value.id()] || (seen[value.id()] = name,
+                                                                                   syntax_ref_template.replace({_string: syntax_ref_string(value)}));
                                    else if (value.is_caterwaul === is_caterwaul) return seen[value.id()] || (seen[value.id()] = name,
                                                                                    caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
                                    else                                          throw new Error('syntax ref value is not serializable: ' + value)},
@@ -3449,7 +3450,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return compile(perform_substitution(references, references.annotated))}})();
-__a469a6578ca76208ea12edeac6733a8e
+__e76ba18165f4aaba04a779ab2f8afd73
 meta::sdoc('js::core/caterwaul.tree', <<'__67e6757fdd2e73fb415aba23836d68ce');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific

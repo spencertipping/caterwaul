@@ -1405,7 +1405,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
       serialize_ref             = function (value, name, seen) {
                                         if (! value)                             return '' + value;
-                                   else if (value.constructor === syntax_node)   return syntax_ref_template.replace({_string: syntax_ref_string(value)});
+                                   else if (value.constructor === syntax_node)   return seen[value.id()] || (seen[value.id()] = name,
+                                                                                   syntax_ref_template.replace({_string: syntax_ref_string(value)}));
                                    else if (value.is_caterwaul === is_caterwaul) return seen[value.id()] || (seen[value.id()] = name,
                                                                                    caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
                                    else                                          throw new Error('syntax ref value is not serializable: ' + value)},
