@@ -22,6 +22,8 @@
 - pinclude pp::js::core/caterwaul.macroexpander.naive
 - pinclude pp::js::core/caterwaul.macroexpander.jit
 
+- pinclude pp::js::core/caterwaul.macro-forms
+
 - pinclude pp::js::core/caterwaul.precompile
 - pinclude pp::js::core/caterwaul.composition
 
