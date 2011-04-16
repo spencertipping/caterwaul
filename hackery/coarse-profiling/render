@@ -1,6 +1,0 @@
-#!/bin/bash
-
-cat ../../caterwaul.js     ../../modules/caterwaul.std.js     caterwaul.profiled.js activate-profiling.js caterwaul.configurations.js     > caterwaul.all-profiled.js
-cat ../../caterwaul.min.js ../../modules/caterwaul.std.min.js caterwaul.profiled.js activate-profiling.js caterwaul.configurations.min.js > caterwaul.all-profiled.min.js
-
-cat caterwaul.0.6.7.custom.js ../../modules/caterwaul.std.js caterwaul.profiled.js activate-profiling.js caterwaul.configurations.js > caterwaul.profiled-core.js

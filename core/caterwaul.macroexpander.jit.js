@@ -8,7 +8,7 @@
 
 // For history's sake I've left some of the theoretical notes involving probability, but in practice we don't know what the probability will be when we're building the decision tree.
 
-  var jit_macroexpander = (function () {
+  caterwaul_global.method('create_baked_macroexpander', (function () {
 
 //   Irrelevance of discrimination.
 //   Suppose you have two macro trees, each with the same form (i.e. same arity of each node and same wildcard positions). I propose that the traversal order doesn't require any extensive
@@ -178,7 +178,7 @@
 //     This is largely uninteresting, except that it provides the base context for path dereferencing (see 'Variable allocation' below). It also provides a temporary 'result' variable, which is
 //     used by the macroexpander invocation code.
 
-      pattern_match_function_template = parse('function (t) {var result; _body}'),
+      pattern_match_function_template = caterwaul_global.parse('function (t) {var result; _body}'),
       empty_variable_mapping_table    = function () {return {'': 't'}},
 
 //     Partition encoding.
@@ -203,13 +203,13 @@
 //     Note that we can't return false immediately after hitting a failing case. The reason has to do with overlapping macro definitions. If we have two macro definitions that would both
 //     potentially match the input, we have to proceed to the second if the first one rejects the match.
 
-      partition_template        = parse('switch (_value) {_cases}'),
-      partition_branch_template = parse('case _value: _body; break'),
+      partition_template        = caterwaul_global.parse('switch (_value) {_cases}'),
+      partition_branch_template = caterwaul_global.parse('case _value: _body; break'),
 
 //     Attempting a macro match is kind of interesting. We need a way to use 'break' to escape from a match, so we construct a null while loop that lets us do this. Any 'break' will then send the
 //     code into the sequential continuation, not escape from the function.
 
-      single_macro_attempt_template = parse('do {_body} while (false)'),
+      single_macro_attempt_template = caterwaul_global.parse('do {_body} while (false)'),
 
 //     Variable allocation.
 //     Variables are allocated to hold temporary trees. This reduces the amount of dereferencing that must be done. If at any point we hit a variable that should have a value but doesn't, we bail
@@ -219,14 +219,14 @@
 //     creates a unique temporary name and stashes it into the path -> variable mapping, and then it returns a syntax tree that uses that unique name and existing entries in the path -> variable
 //     mapping. The path's index is hard-coded. Note that if the path isn't properly adjacent you'll end up with an array instead of a syntax tree, and things will go downhill quickly from there.
 
-      indexed_path_reference_template  = parse('_base[_index]'),
-      absolute_path_reference_template = parse('_base'),
+      indexed_path_reference_template  = caterwaul_global.parse('_base[_index]'),
+      absolute_path_reference_template = caterwaul_global.parse('_base'),
       generate_path_reference          = function (variables, path) {
                                            return variables[path] ? absolute_path_reference_template.replace({_base: variables[path]}) :
                                                                     indexed_path_reference_template .replace({_base: generate_path_reference(variables, path.substr(0, path.length - 1)),
                                                                                                               _index: '' + path.charCodeAt(path.length - 1)})},
-      path_variable_template = parse('var _temp = _value; if (! _temp) break'),
-      path_exists_template   = parse('null'),
+      path_variable_template = caterwaul_global.parse('var _temp = _value; if (! _temp) break'),
+      path_exists_template   = caterwaul_global.parse('null'),
       generate_path_variable = function (variables, path) {if (variables[path]) return path_exists_template;
                                                            var name = 't' + genint(), replacements = {_value: generate_path_reference(variables, path), _temp: name};
                                                            return variables[path] = name, path_variable_template.replace(replacements)},
@@ -252,11 +252,11 @@
 //     Note that a new array is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
 //     expensive and uncommon; a new array cons isn't going to make much difference at that point.
 
-      path_reference_array_template = parse('[_elements]'),
+      path_reference_array_template = caterwaul_global.parse('[_elements]'),
       generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
-                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new syntax_node(',', refs) : refs[0]})},
+                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new caterwaul_global.syntax(',', refs) : refs[0]})},
 
-      macroexpander_invocation_template = parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
+      macroexpander_invocation_template = caterwaul_global.parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
       generate_macroexpander_invocation = function (pattern_data, pattern, variables) {return macroexpander_invocation_template.replace(
                                                    {_expander:             new ref(pattern_data[pattern.id()].expander),
                                                     _path_reference_array: generate_path_reference_array(variables, pattern_data[pattern.id()].wildcard_paths)})},
@@ -273,8 +273,8 @@
 //       In this case we create a switch on the tree length first. Then we subdivide into the data comparison. We create the tree-length switch() even if only one tree matches; the reason is that
 //       we still need to know that the tree we're matching against has the right length, even if it doesn't narrow down the macro space at all.
 
-        length_reference_template = parse('_value.length'),
-        data_reference_template   = parse('_value.data'),
+        length_reference_template = caterwaul_global.parse('_value.length'),
+        data_reference_template   = caterwaul_global.parse('_value.data'),
 
         generate_partitioned_switch = function (trees, visited, variables, pattern_data) {
                                         var path = next_path(visited, trees), partitions = visit_path(path, visited, trees), lengths = {}, length_pairs = [];
@@ -284,8 +284,10 @@
                                         var new_variables = merge({}, variables), path_reference_variable = generate_path_variable(new_variables, path), variable = new_variables[path],
                                             length_reference = length_reference_template.replace({_value: variable}), data_reference = data_reference_template.replace({_value: variable});
 
-                                        for (var length_cases = new syntax_node(';'), i = 0, l = length_pairs.length, pair; i < l; ++i) {
-                                          for (var data_cases = new syntax_node(';'), length = (pair = length_pairs[i])[0], values = pair[1], j = 0, lj = values.length, p, v; j < lj; ++j)
+                                        for (var length_cases = new caterwaul_global.syntax(';'), i = 0, l = length_pairs.length, pair; i < l; ++i) {
+                                          for (var data_cases = new caterwaul_global.syntax(';'), length = (pair = length_pairs[i])[0], values = pair[1], j = 0, lj = values.length, p, v;
+                                               j < lj; ++j)
+
                                             p = partitions[String.fromCharCode(length) + (v = values[j])],
                                             data_cases.push(partition_branch_template.replace({_value: '"' + v.replace(/([\\"])/g, '\\$1') + '"',
                                                                                                _body:  generate_decision_tree(p.trees, path, p.visited, new_variables, pattern_data)}));
@@ -293,13 +295,13 @@
                                           length_cases.push(partition_branch_template.replace({_value: '' + length_pairs[i][0],
                                                                                                _body:  partition_template.replace({_value: data_reference, _cases: data_cases})}))}
                                         return single_macro_attempt_template.replace({_body:
-                                                 new syntax_node(';', path_reference_variable,
-                                                                      length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases}) : [])})},
+                                                 new caterwaul_global.syntax(';', path_reference_variable,
+                                                                                  length_cases.length ? partition_template.replace({_value: length_reference, _cases: length_cases}) : [])})},
 
 //       Second case: specified trees (base case).
 //       This is fairly simple. We just generate a sequence of invocations, since each tree has all of the constants assumed.
 
-        generate_unpartitioned_sequence = function (trees, variables, pattern_data) {for (var r = new syntax_node(';'), i = 0, l = trees.length; i < l; ++i)
+        generate_unpartitioned_sequence = function (trees, variables, pattern_data) {for (var r = new caterwaul_global.syntax(';'), i = 0, l = trees.length; i < l; ++i)
                                                                                        r.push(generate_macroexpander_invocation(pattern_data, trees[i], variables));
                                                                                      return r},
 
@@ -307,7 +309,7 @@
 //       This is where we delegate either to the partitioned switch logic or the sequential sequence logic.
 
         generate_decision_tree = function (trees, path, visited, variables, pattern_data) {
-                                   for (var r = new syntax_node(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
+                                   for (var r = new caterwaul_global.syntax(';'), sts = split_treeset_on_specification(trees, pattern_data, visited), i = 0, l = sts.length; i < l; ++i)
                                      sts[i].length && r.push(i & 1 ? generate_unpartitioned_sequence(sts[i], variables, pattern_data) :
                                                                      generate_partitioned_switch(sts[i], visited, variables, pattern_data));
                                    return r};
@@ -316,8 +318,6 @@
 //   This is where all of the logic comes together. The only remotely weird thing we do here is reverse both the pattern and expansion lists so that the macros get applied in the right order.
 
     return function (patterns, expanders) {for (var i = patterns.length - 1, rps = [], res = []; i >= 0; --i) rps.push(patterns[i]), res.push(expanders[i]);
-                                           return compile(pattern_match_function_template.replace(
-                                             {_body: generate_decision_tree(rps, null, null, empty_variable_mapping_table(), pattern_data(rps, res))}))}})(),
-
-  macro_expand_baked = function (t, f, context) {return t.rmap(function (n) {return f.call(context, n)})};
+                                           return this.compile(pattern_match_function_template.replace(
+                                             {_body: generate_decision_tree(rps, null, null, empty_variable_mapping_table(), pattern_data(rps, res))}))}})());
 // Generated by SDoc 

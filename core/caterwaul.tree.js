@@ -2,6 +2,8 @@
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 // nodes. At the end of folding there is only one child per paren-group.
 
+  (function () {
+
 //   Doubly-linked paren-group lists.
 //   When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
 
@@ -51,7 +53,7 @@
 //   These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
 //   turns out to be an issue.
 
-      node_methods = {
+    syntax_structure_common = {
 
 //     Mutability.
 //     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
@@ -262,7 +264,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                     has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
                                                                      op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
                                                                      op + space + map(syntax_node_tostring, this).join('') :
-                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}},
+                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
+
+    caterwaul_global.method('define_syntax_structure', function (name, ctor) {return this.field(name, extend(ctor, syntax_structure_common))}).
+                      field('syntax_structure_common', syntax_structure_common).
 
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
@@ -272,17 +277,17 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    ref = extend(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                   else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}, node_methods),
+    define_syntax_structure('ref', function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                                     else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}).
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    syntax_node = extend(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                          else {this.data = data && data.toString(); this.length = 0;
-                                            for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                              for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}, node_methods);
+    define_syntax_structure('syntax', function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                       else {this.data = data && data.toString(); this.length = 0;
+                                                         for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                           for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                             this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}})})();
 // Generated by SDoc 

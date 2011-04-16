@@ -2045,37 +2045,6 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/adverbs', <<'__595dedcfea41c5a4b5a80720b4113f84');
-Adverbial modifier pattern | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
-it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. One of these meanings is
-an 'adverb.'
-
-An adverb modifies something about how an expression works. For instance, 'where' is a common adverb used to bind local variables within an expression. 'when' and 'unless' determine whether an
-expression is run. 'until', new in caterwaul 1.0, is used to iterate an expression. These adverbs are no longer defined using qs[]. Instead, they are defined using adverb(), which takes the
-name of the adverb and a function that transforms the modified expression and any modifiers passed to the adverb.
-
-The advantage to this separation is that later on you can establish new ways for adverbs to be used in your code. For instance, if you were writing in Coffeescript you wouldn't have access to
-brackets with commas. In that case you'd want to use a regular function, so you would say this:
-
-| my_caterwaul.adverb_form(qs[_expression /_adverb(_modifiers)]);       // after this, 'x /where(x = 10)' would be a valid way to say 'x /where[x = 10]'
-  my_caterwaul.adverb_form(qs[_expression(_adverb(_modifiers))]);       // enables 'x where x = 10', which is more Coffeescript-idiomatic
-
-  caterwaul.shallow('adverbs', []).shallow('adverb_forms', []).
-
-    method('adverb',      function (name, definition) {for (var i = 0, l = this.adverb_forms.length; i < l; ++i) this.define_adverb(name, definition, this.adverb_forms[i]);
-                                                       return this.adverbs.push({name: name, definition: definition}), this}).
-
-    method('adverb_form', function (form)             {for (var i = 0, l = this.adverbs.length; i < l; ++i) this.define_adverb(this.adverbs[i].name, this.adverbs[i].description, form);
-                                                       return this.adverb_forms.push(form), this}).
-
-Adverb macro construction.
-
-    method('define_adverb', function (name, definition, form) {
-__595dedcfea41c5a4b5a80720b4113f84
 meta::sdoc('js::behaviors/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2140,6 +2109,46 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
+meta::sdoc('js::behaviors/meta/adverb', <<'__5bf315116a3f2e33d956e08f156e9d7d');
+Adverbial modifier pattern | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
+it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. One of these meanings is
+an 'adverb.'
+
+An adverb modifies something about how an expression works. For instance, 'where' is a common adverb used to bind local variables within an expression. 'when' and 'unless' determine whether an
+expression is run. 'until', new in caterwaul 1.0, is used to iterate an expression. These adverbs are no longer defined using qs[]. Instead, they are defined using adverb(), which takes the
+name of the adverb and a function that transforms the modified expression and any modifiers passed to the adverb.
+
+The advantage to this separation is that later on you can establish new ways for adverbs to be used in your code. For instance, if you were writing in Coffeescript you wouldn't have access to
+brackets with commas. In that case you'd want to use a regular function, so you would say this:
+
+| my_caterwaul.adverb_form(qs[_ /_adverb(_)]);       // after this, 'x /where(x = 10)' would be a valid way to say 'x /where[x = 10]'
+  my_caterwaul.adverb_form(qs[_(_adverb(_))]);       // enables 'x where x = 10', which is more Coffeescript-idiomatic
+
+Adverb forms always have the modifiers following the expression to be modified; this keeps relevant information first.
+
+  caterwaul.shallow('adverbs', []).shallow('adverb_forms', []).
+
+    method('adverb',      function (name, definition) {for (var i = 0, l = this.adverb_forms.length; i < l; ++i) this.define_adverb(name, definition, this.adverb_forms[i]);
+                                                       return this.adverbs.push({name: name, definition: definition}), this}).
+
+    method('adverb_form', function (form)             {for (var i = 0, l = this.adverbs.length; i < l; ++i) this.define_adverb(this.adverbs[i].name, this.adverbs[i].description, form);
+                                                       return this.adverb_forms.push(form), this}).
+
+Adverb macro construction.
+This is fairly straightforward; macros are built directly from the forms.
+
+    method('define_adverb', function (name, definition, form) {return this.rmacro(form.replace({_adverb: name}), definition)});
+__5bf315116a3f2e33d956e08f156e9d7d
+meta::sdoc('js::behaviors/quote', <<'__a04a6e48254b7ce12939637dbb965236');
+Quotation behavior | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+
+__a04a6e48254b7ce12939637dbb965236
 meta::sdoc('js::core/caterwaul', <<'__4e161a488303e8cec0cbb47f6513b6a8');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license

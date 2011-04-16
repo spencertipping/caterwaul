@@ -1,9 +1,0 @@
-#!/bin/bash
-
-echo 'loading each file with GJS'
-ls *.js | each 'echo -n _ && time gjs _ >& /dev/null'
-echo -n caterwaul.js && time gjs ../../caterwaul.js >& /dev/null
-
-echo 'loading each file with node'
-ls *.js | each 'echo -n _ && time node _ >& /dev/null'
-echo -n caterwaul.js && time node ../../caterwaul.js >& /dev/null

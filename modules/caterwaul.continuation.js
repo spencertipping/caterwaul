@@ -6,7 +6,7 @@
 // nonblocking things such as AJAX. In this case the callback function is the continuation of the call. (I'm not going to fully explain continuations here, but
 // http://en.wikipedia.org/wiki/Continuation is a good if intimidating place to start if you're into functional programming -- which I assume you are if you're using Caterwaul :).)
 
-  caterwaul.configuration('continuation.core', function () {this.shallow('continuation', {})}).
+  caterwaul.
 
 // Unwind protection.
 // This is how you can implement error handling. You can intercept both the normal and the escaping cases and specify a return value for each alternative. Unwind-protect ultimately compiles into
@@ -21,10 +21,11 @@
 // its return value is the return value of the unwind_protect block. The escape block can refer to 'e', the escaping value. 'this' is preserved in the body and escape blocks.
 
   tconfiguration('std', 'continuation.unwind', function () {
-    this.configure('std.fn continuation.core').continuation /se[_.unwind_protect = function (escape, f) {try {return f()} catch (e) {return escape(e)}},
-                                                                _.unwind         = function (e) {throw e}];
-    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qse[_f(fb[e][_escape], fb_[_body])].replace({_f: qs[caterwaul.continuation.unwind_protect], _escape: escape, _body: body})]).
-         rmacro(qs[unwind[_]], fn[e][qs[caterwaul.continuation.unwind(_e)].replace({_e: e})])}).
+    this.namespace('continuation') /se[_.unwind_protect = function (escape, f) {try {return f()} catch (e) {return escape(e)}},
+                                       _.unwind         = function (e) {throw e}];
+
+    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qse[caterwaul.continuation.unwind_protect(fb[e][_escape], fb_[_body])].replace({_escape: escape, _body: body})]).
+         rmacro(qs[unwind[_]],            fn[e]           [ qs[caterwaul.continuation.unwind(_e)].replace({_e: e})])}).
 
 // CPS-conversion.
 // Converting a whole program to CPS to get re-entrant continuations is a lot of work, so I'm not even trying that. But localized CPS is really useful, especially for nested AJAX calls and such.
