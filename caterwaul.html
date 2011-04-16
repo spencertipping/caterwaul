@@ -235,6 +235,9 @@ meta::alias('ep', 'edit sdoc::js::core/caterwaul.parser');
 meta::alias('er', 'edit sdoc::js::core/caterwaul.precompile');
 meta::alias('et', 'edit sdoc::js::core/caterwaul.tree');
 meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
+meta::alias('lsb', 'ls -a sdoc::js::behaviors/');
+meta::alias('lsc', 'ls -a sdoc::js::core/');
+meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
@@ -1032,10 +1035,6 @@ meta::hook('after-render::cleanup', <<'__c258867ccdbe32bc0751ea38ef7c389d');
 # Nuke some things that get created by render().
 unlink qw/macroexpander.js parser.js precompile.js precompile.js.sdocp minify.js minify.js.sdocp/;
 __c258867ccdbe32bc0751ea38ef7c389d
-meta::hook('after-render::hackery', <<'__049a9817dec529eff29f94917eb1ee83');
-# Runs the hackery generation hooks (which happen after a render)
-#hook('hackery');
-__049a9817dec529eff29f94917eb1ee83
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
@@ -1068,50 +1067,6 @@ $scripts
 </html>
 EOF
 __45102e0cfa23cfa11c7f56f6dd4acbe9
-meta::hook('before-render::notify', 'terminal::info(\'rendering\');');
-meta::hook('hackery::coarse-profiling', <<'__4056c8cc24a2c3e884837cc95efa0bba');
-# Render versions of caterwaul.all.js, but leave out the core caterwaul.
-my $filename = 'hackery/coarse-profiling/caterwaul.configurations.js';
-file::write($filename, cat(map "js::modules/caterwaul.$_", qw/heap memoize opt continuation seq parser/));
-minify($filename);
-__4056c8cc24a2c3e884837cc95efa0bba
-meta::hook('hackery::partials', <<'__f84a0f54cf39f3fa5f294e44a925a8fb');
-# Builds partial versions of Caterwaul to test the loading time of each.
-my @accepted_modules;
-
-sub build_caterwaul {
-  my @modules = @_;
-  my $modules = join '-', @modules;
-  my $filename = "hackery/partials/caterwaul-$modules.js";
-  file::write($filename, cat('js::caterwaul', map "js::modules/caterwaul.$_", @modules));
-  minify($filename);
-}
-
-my @all_modules = qw/std heap memoize opt continuation seq parser/;
-for (@all_modules) {
-  push @accepted_modules, $_;
-  build_caterwaul(@accepted_modules);
-}
-__f84a0f54cf39f3fa5f294e44a925a8fb
-meta::hook('postprocess-compile-all::main', <<'__49feac91e8c9f4928e30fbeddd13519e');
-# Compile caterwaul.js by preprocessing sdoc::js::core/caterwaul.
-file::write('caterwaul.js',          retrieve('pp::js::core/caterwaul'));
-file::write('caterwaul.all.js',      retrieve('pp::js::modules/caterwaul.all'));
-file::write('caterwaul.all.pre.js',  retrieve('pp::js::modules/caterwaul.all.pre'));
-file::write('caterwaul.node.js',     retrieve('pp::js::modules/caterwaul.node'));
-file::write('caterwaul.node.pre.js', retrieve('pp::js::modules/caterwaul.node.pre'));
-file::write('caterwaul.js.sdocp',    retrieve('sdocp::pp::js::core/caterwaul'));
-
-minify($_) for qw(caterwaul.js caterwaul.all.js caterwaul.all.pre.js);
-__49feac91e8c9f4928e30fbeddd13519e
-meta::hook('postprocess-minify-modules::main', <<'__0e437ba9691bb125c614c06cad2f53c6');
-# Minify all of the generated files, but not those which contain preprocessor directives.
-file::read($_) =~ /^-\s*pinclude\s/m or minify($_) for grep !/\.min\.js$/, <modules/*.js>;
-__0e437ba9691bb125c614c06cad2f53c6
-meta::hook('postprocess-precompile-modules::main', <<'__e89769baa2c40b7d6cbac7244625d5e7');
-# Precompile all modules that don't contain preprocessor directives.
-file::read($_) =~ /^-\s*pinclude\s/m or precompile($_) for grep !/\.(min|pre)\.js$/, <modules/*.js>;
-__e89769baa2c40b7d6cbac7244625d5e7
 meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -2046,7 +2001,14 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
+meta::sdoc('js::behaviors/core/adverb', <<'__14673a258c8b69f0b64da9546e58825a');
+Adverb macro forms | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+
+__14673a258c8b69f0b64da9546e58825a
+meta::sdoc('js::behaviors/core/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2110,11 +2072,10 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::behaviors/quote', <<'__b22fb50fd229dbbba775725b4afd4e87');
+meta::sdoc('js::behaviors/core/quote', <<'__e7673f9f547040eb4ff72c73bc237a38');
 Quotation behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
-
-__b22fb50fd229dbbba775725b4afd4e87
+__e7673f9f547040eb4ff72c73bc237a38
 meta::sdoc('js::core/caterwaul', <<'__fdd29c14be4513b73a4bb5b4b6ee43eb');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
