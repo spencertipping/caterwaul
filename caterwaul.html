@@ -2151,7 +2151,7 @@ language port you're using. For the native JS port, it will be enabled in these 
 
   caterwaul.configuration('core.quote', function () {this.unary_adjective('qs', function (tree) {return tree})});
 __8321be26f03f2f39a7425dcb232e1a0b
-meta::sdoc('js::behaviors/core/words', <<'__c6d808fc51b18ac37071f0143d3c14bb');
+meta::sdoc('js::behaviors/core/words', <<'__4a7e2e07bf6b2e98079fb3cf73cd4b4c');
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2163,30 +2163,56 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 
 In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
 
-  caterwaul.tconfiguration('core.quote core.js', 'core.words', function () {
+  caterwaul.configuration('core.words', function () {
 
-Function words.
-These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
-binding.
+Scoping and referencing.
+These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
 
-    this.postfix_binary_adverb('given',  function (expression, args) {return this.gen.      lambda(args, expression)}).
-         postfix_binary_adverb('bgiven', function (expression, args) {return this.gen.bound_lambda(args, expression)});
+  Function words.
+  These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
+  binding.
 
-Conditionals.
-These impact whether an expression gets evaluated. x /when[y] evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
-true.
+    this.postfix_binary_adverb('given',  'lambda',  function (expression, args) {return this.gen.      lambda(args, expression)}).
+         postfix_binary_adverb('bgiven', 'blambda', function (expression, args) {return this.gen.bound_lambda(args, expression)});
+
+  Side-effecting.
+  The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
+  Older versions of caterwaul bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
+
+  | hash(k, v) = {} /effect[it[k] = v];
+
+    this.postfix_binary_adverb('effect', 'se', function (expression, effect) {return this.gen.with_binding({it: expression}, effect)});
+
+Control flow modifiers.
+These impact how something gets evaluated.
+
+  Conditionals.
+  These impact whether an expression gets evaluated. x /when[y] evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
+  true.
 
     this.postfix_binary_adverb('when',   function (expression, condition) {return this.gen.predicate(condition, expression)}).
          postfix_binary_adverb('unless', function (expression, condition) {return this.gen.predicate(this.gen.negate(condition), expression)});
 
-Side-effecting.
-The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
-Older versions of caterwaul bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
+  Collection-based loops.
+  These are compact postfix forms of common looping constructs. Used alone they are assumed to provide side-effects, but see below for comprehension cases. For example:
 
-| hash(k, v) = {} /effect[it[k] = v];
+  | console.log(it), over[[1, 2, 3]]            // logs 1, then 2, then 3
+    console.log(it), over_keys[{foo: 'bar'}]    // logs foo
+    console.log(it), over_values[{foo: 'bar'}]  // logs bar
+    console.log(it), over_pairs[{foo: 'bar}]    // logs ['foo', 'bar']
 
-    this.postfix_binary_adverb('effect', 'se'
-__c6d808fc51b18ac37071f0143d3c14bb
+    this.postfix_binary_adverb('over',        function (expression, array)  {return this.gen.array_iteration_loop('it', array,  expression)}).
+         postfix_binary_adverb('over_keys',   function (expression, object) {return this.gen.key_iteration_loop  ('it', object, expression)}).
+         postfix_binary_adverb('over_values', function (expression, object) {return this.gen.value_iteration_loop('it', object, expression)}).
+         postfix_binary_adverb('over_pairs',  function (expression, object) {return this.gen.pair_iteration_loop ('it', object, expression)});
+
+  Condition-based loops.
+  These iterate until something is true or false. For example:
+
+  | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
+
+    this.postfix_binary_adverb('until', function (expression, condition) {return this.gen.condition_iteration_loop(condition, expression)})});
+__4a7e2e07bf6b2e98079fb3cf73cd4b4c
 meta::sdoc('js::caterwaul', <<'__0e7fa33d7c5a799b1c8aa54fe5196e90');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
