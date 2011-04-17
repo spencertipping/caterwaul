@@ -29,6 +29,11 @@
 
     this.modified_adverb('effect', 'se', '(function (it) {return (_modifiers), it}).call(this, (_expression))');
 
+//   Scoping.
+//   You can create local variables by using the where[] adverb. If you do this, the locals can all see each other since they're placed into a 'var' statement.
+
+    this.modified_adverb('where', '(function () {var _modifiers; return (_expression)}).call(this)');
+
 // Control flow modifiers.
 // These impact how something gets evaluated.
 
