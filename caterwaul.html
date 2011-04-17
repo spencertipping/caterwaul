@@ -243,7 +243,7 @@ meta::alias('lsc', 'ls -a sdoc::js::core/');
 meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
-meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify)');
+meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify|macroexpand|precompile|modules|core/debug)');
 meta::bootstrap('html', <<'__9b839f4c0c8d6bb18bf6d9d0e670e497');
 <html>
   <head>
