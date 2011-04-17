@@ -183,10 +183,15 @@
 //     Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
 //     eta-reduced (if it were, then the 'this' binding would be lost).
 
+//     Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
+//     than a string comparison. The ASCII value for underscore is 95.
+
                is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
               is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
                is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+
+             is_wildcard: function () {return this.data.charCodeAt(0) === 95},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
     is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
@@ -215,9 +220,19 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result},
 
 //     Matching.
-//     Syntax trees can use the Caterwaul match function to return a list of wildcards.
+//     Any syntax tree can act as a matching pattern to destructure another one. It's often much more fun to do things this way than it is to try to pick it apart by hand. For example, suppose
+//     you wanted to determine whether a node represents a function that immediately returns, and to know what it returns. The simplest way to do it is like this:
 
-         match: function (pattern) {return macro_try_match(pattern, this)},
+//     | var tree = ...
+//       var match = caterwaul.parse('function (_) {return _value}').match(tree);
+//       if (match) {
+//         var value = match._value;
+//         ...
+//       }
+
+//     
+
+         match: function (target, variables) {},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
