@@ -1035,7 +1035,10 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::base-files', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors\\/)?core\\//, sort keys %data;');
+meta::hook('after-render::base-files', <<'__60fd6106dabc91a584001e88887ae0f9');
+file::write(attribute($_) . '.js', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors\/)?core\//, sort keys %data;
+file::write('caterwaul.js', retrieve('pp::js::caterwaul'));
+__60fd6106dabc91a584001e88887ae0f9
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
@@ -2142,10 +2145,7 @@ These are pulled from behaviors/core/ and add standard macros and code generatio
 
 - pinclude pp::js::behaviors/core
 __0e7fa33d7c5a799b1c8aa54fe5196e90
-meta::sdoc('js::core/caterwaul', <<'__ea2a84ffa244f7d6a78005385fb0908b');
-Caterwaul JS | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
+meta::sdoc('js::core/caterwaul', <<'__9f04e9f1c1eb6543755443e502610bb4');
 Introduction.
 Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.com/caterwaul/caterwaul.html for information about how and why you might use it.
 
@@ -2174,7 +2174,7 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 - pinclude pp::js::core/caterwaul.init
 
   return caterwaul_global});
-__ea2a84ffa244f7d6a78005385fb0908b
+__9f04e9f1c1eb6543755443e502610bb4
 meta::sdoc('js::core/caterwaul.bake', <<'__1b3fc1a6e8ba658074509e37e4414e7f');
 Baking support.
 To "bake" a caterwaul function is to freeze its settings and apply long-run optimizations such as macroexpander compilation. Once a function is baked you can't do certain things, most notably
