@@ -230,9 +230,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //         ...
 //       }
 
-//     
+//     The second parameter 'variables' stores a running total of match data. You don't normally provide this; match creates it for you on the toplevel invocation.
 
-         match: function (target, variables) {},
+         match: function (target, variables) {variables || (variables = {});
+                                              if (this.is_wildcard())                                          return variables[this.data] = target, variables;
+                                         else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
+                                                                                                                 if (! this[i].match(target[i], variables)) return null;
+                                                                                                               return variables}},
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
