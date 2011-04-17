@@ -64,7 +64,8 @@
 
 //   There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
 
-         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f});
+    replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy).
+                                                                                                         behavior('self_reference', function () {return this})}, function (f) {f.init = f});
 
 //   Configuration and cloning.
 //   Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:

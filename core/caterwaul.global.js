@@ -10,10 +10,13 @@
 // Caterwaul has a number of features that require it to be able to identify caterwaul functions and easily distinguish between them. These methods provide a way to do that. Also, I'm using this
 // section as an excuse to stash some useful utility methods onto caterwaul.
 
+// Finally, the 'caterwaul' property of any caterwaul function will refer to the caterwaul function. This makes the node.js API more systematic.
+
   caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
 
                    method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).field('merge', merge).
+           self_reference('caterwaul').
 
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
                                                                                       erase_configurations || (result.configurations = this.configurations); return result}).

@@ -155,7 +155,8 @@
 
 //   There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
 
-         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f});
+    replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy).
+                                                                                                         behavior('self_reference', function () {return this})}, function (f) {f.init = f});
 
 //   Configuration and cloning.
 //   Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -212,10 +213,13 @@
 // Caterwaul has a number of features that require it to be able to identify caterwaul functions and easily distinguish between them. These methods provide a way to do that. Also, I'm using this
 // section as an excuse to stash some useful utility methods onto caterwaul.
 
+// Finally, the 'caterwaul' property of any caterwaul function will refer to the caterwaul function. This makes the node.js API more systematic.
+
   caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
 
                    method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).field('merge', merge).
+           self_reference('caterwaul').
 
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
                                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
@@ -914,7 +918,6 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   caterwaul_global.method('compile',
     function (tree, environment) {
-      console.log('compiling ' + tree.serialize());
       var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});

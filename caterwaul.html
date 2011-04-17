@@ -2339,7 +2339,7 @@ adding macros. (Other restrictions may apply later as further optimizations are 
 
           method_until_baked('bake', function () {for (var i = 0, l = this.bake_listeners.length; i < l; ++i) this.bake_listeners[i].call(this); delete this.bake_listeners; return this});
 __6f4f8648eb165125a7e56991f80ea4fe
-meta::sdoc('js::core/caterwaul.compiler', <<'__9054cd3d9837ea53388efd9cfe14fcb4');
+meta::sdoc('js::core/caterwaul.compiler', <<'__8eafaefd2aeb30dd35a9b9a5764e8a09');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
 must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
@@ -2351,11 +2351,10 @@ New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the con
 
   caterwaul_global.method('compile',
     function (tree, environment) {
-      console.log('compiling ' + tree.serialize());
       var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
-__9054cd3d9837ea53388efd9cfe14fcb4
+__8eafaefd2aeb30dd35a9b9a5764e8a09
 meta::sdoc('js::core/caterwaul.composition', <<'__ee2b69d5708e5e9e4b3420b95fa8c083');
 Composition behavior.
 New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
@@ -2377,7 +2376,7 @@ this doesn't happen for g if g comes after f, but generally that relationship is
                     method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
                                                  else                  return this.after_functions});
 __ee2b69d5708e5e9e4b3420b95fa8c083
-meta::sdoc('js::core/caterwaul.configuration', <<'__108f86bfe40fc8ddeb42505799251d37');
+meta::sdoc('js::core/caterwaul.configuration', <<'__310459a92e8d57cc6dd98a8d8adf7c86');
 Configurations.
 Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
 replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
@@ -2444,7 +2443,8 @@ Related to this is a configure() method that modifies and returns the original f
 
   There's a convenience method called 'namespace', which is used when you have a shallow hash shared among different modules. It goes only one level deep.
 
-         replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy)}, function (f) {f.init = f});
+    replica = se(function () {return copy_of({behaviors: {method: function (v) {return bind(v, this)}}}).behavior('field').behavior('shallow', shallow_copy).
+                                                                                                         behavior('self_reference', function () {return this})}, function (f) {f.init = f});
 
   Configuration and cloning.
   Caterwaul ships with a standard library of useful macros, though they aren't activated by default. To activate them, you say something like this:
@@ -2483,8 +2483,8 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})}})();
-__108f86bfe40fc8ddeb42505799251d37
-meta::sdoc('js::core/caterwaul.global', <<'__9bb2e9f292209a0b2e23086a2a8aa9cb');
+__310459a92e8d57cc6dd98a8d8adf7c86
+meta::sdoc('js::core/caterwaul.global', <<'__a3323a8401f7470228aca800680a217f');
 Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
@@ -2497,10 +2497,13 @@ Uniqueness and identification.
 Caterwaul has a number of features that require it to be able to identify caterwaul functions and easily distinguish between them. These methods provide a way to do that. Also, I'm using this
 section as an excuse to stash some useful utility methods onto caterwaul.
 
+Finally, the 'caterwaul' property of any caterwaul function will refer to the caterwaul function. This makes the node.js API more systematic.
+
   caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
 
                    method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).field('merge', merge).
+           self_reference('caterwaul').
 
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
                                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
@@ -2510,7 +2513,7 @@ Sometimes you need to grab a unique value that is unlikely to exist elsewhere. C
 considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
                    method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}}));
-__9bb2e9f292209a0b2e23086a2a8aa9cb
+__a3323a8401f7470228aca800680a217f
 meta::sdoc('js::core/caterwaul.init', <<'__389873c9c68a08a32a7177e7bc42cbe5');
 Init method.
 This is the main entry point of caterwaul when you use it as a function. As of version 0.6.4, the init() property is polymorphic in semantics as well as structure. There are two cases:
