@@ -21,7 +21,7 @@
 //   | var f = caterwaul.precompile(function () {
 //       alert('hi');
 //       caterwaul.tconfiguration('std', 'foo', function () {
-//         this.rmacro(qs[foo], fn_[qs[bar]]);
+//         this.macro(qs[foo], qs[bar]);
 //       });
 //       return 10;
 //     });
@@ -34,7 +34,7 @@
 //         var gensym_1 = caterwaul.parse('foo');
 //         var gensym_2 = caterwaul.parse('bar');
 //         return function () {
-//           this.rmacro(gensym_1, function () {
+//           this.macro(gensym_1, function () {
 //             return gensym_2;
 //           });
 //         })()));
@@ -91,17 +91,18 @@
 //   can't track it). Finally, the function will be compiled within some environment. This is where we go through the compilation bindings, serializing each one with the function. We then wrap
 //   this in an immediately-invoked anonymous function (to create a new scope and to simulate the one created by compile()), and this becomes the output.
 
-    var nontrivial_function_pattern         = caterwaul_global.parse('function (_) {_}'),
-        trivial_function_pattern            = caterwaul_global.parse('function () {_}'),
+    var nontrivial_function_pattern         = caterwaul_global.parse('function (_args) {_body}'),
+        trivial_function_pattern            = caterwaul_global.parse('function () {_body}'),
         nontrivial_function_gensym_template = caterwaul_global.parse('function (_args, _gensym) {_body}'),
         trivial_function_gensym_template    = caterwaul_global.parse('function (_gensym) {_body}'),
 
-        mark_nontrivial_function_macro = function (references) {return function (args, body) {
-                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: annotate_functions_in(body, references)});
+        mark_nontrivial_function_macro = function (references) {return function (match) {
+                                           var s      = gensym(),
+                                               result = nontrivial_function_gensym_template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)});
                                            return references[s] = {tree: result}, result}},
 
-        mark_trivial_function_macro    = function (references) {return function (body) {
-                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(body, references)});
+        mark_trivial_function_macro    = function (references) {return function (match) {
+                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(match._body, references)});
                                            return references[s] = {tree: result}, result}},
 
 //   Macroexpansion for function origins.
@@ -129,15 +130,14 @@
 //   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
 //   source, replacing the un-compiled functions with compiled ones.
 
-    nontrivial_gensym_detection_pattern = caterwaul_global.parse('function (_, _) {_}'),
-    trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_) {_}'),
+    nontrivial_gensym_detection_pattern = caterwaul_global.parse('function (_args, _gensym) {_body}'),
+    trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_gensym) {_body}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var            matches = tree.match(nontrivial_gensym_detection_pattern), k = matches && matches[1].data;
-                        if (! matches) matches = tree.match(   trivial_gensym_detection_pattern), k = matches && matches[0].data;
+                        var matches = tree.match(nontrivial_gensym_detection_pattern) || tree.match(trivial_gensym_detection_pattern), k = matches && matches._gensym.data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
-                                                      else                        references[k].compiled = tree, references[k].environment = environment;
+                                                      else                        references[k].compiled = tree, references[k].environment = merge({}, this.globals, environment);
                         return original.call(this, tree, environment)}},
 
 //   Generating compiled functions.
@@ -183,7 +183,7 @@
 //     Variable table generation.
 //     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
-      variables_for             = function (tree, environment) {
+      variables_for             = function (tree, environment, globals) {
                                     var names = [], values = [], seen = {};
 
                                     for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k], k, seen));

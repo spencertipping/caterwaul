@@ -2344,7 +2344,7 @@ adding macros. (Other restrictions may apply later as further optimizations are 
 
           method_until_baked('bake', function () {for (var i = 0, l = this.bake_listeners.length; i < l; ++i) this.bake_listeners[i].call(this); delete this.bake_listeners; return this});
 __6f4f8648eb165125a7e56991f80ea4fe
-meta::sdoc('js::core/caterwaul.compiler', <<'__8eafaefd2aeb30dd35a9b9a5764e8a09');
+meta::sdoc('js::core/caterwaul.compiler', <<'__f8dfe9194d64ff8d32cc18e4a97469f5');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
 must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
@@ -2354,12 +2354,16 @@ An optional second parameter 'environment' can contain a hash of variable->value
 
 New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
-  caterwaul_global.method('compile',
+Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature can prevent
+precompilation, since the global references may not be serializable.
+
+  caterwaul_global.shallow('globals', {}).method('compile',
     function (tree, environment) {
-      var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
+      var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
+      for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
-__8eafaefd2aeb30dd35a9b9a5764e8a09
+__f8dfe9194d64ff8d32cc18e4a97469f5
 meta::sdoc('js::core/caterwaul.composition', <<'__ee2b69d5708e5e9e4b3420b95fa8c083');
 Composition behavior.
 New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
@@ -3367,7 +3371,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
            parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
  parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch'), parse_also_expression = hash('function');
 __8a0f6d07cf2b0a3dfc2352c15bb69112
-meta::sdoc('js::core/caterwaul.precompile', <<'__32a2214af47c89ca39107b8d7df4eb20');
+meta::sdoc('js::core/caterwaul.precompile', <<'__327c2f4013b6e72e13cef06e7dc35e74');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3391,7 +3395,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   | var f = caterwaul.precompile(function () {
       alert('hi');
       caterwaul.tconfiguration('std', 'foo', function () {
-        this.rmacro(qs[foo], fn_[qs[bar]]);
+        this.macro(qs[foo], qs[bar]);
       });
       return 10;
     });
@@ -3404,7 +3408,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
         var gensym_1 = caterwaul.parse('foo');
         var gensym_2 = caterwaul.parse('bar');
         return function () {
-          this.rmacro(gensym_1, function () {
+          this.macro(gensym_1, function () {
             return gensym_2;
           });
         })()));
@@ -3461,17 +3465,18 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   can't track it). Finally, the function will be compiled within some environment. This is where we go through the compilation bindings, serializing each one with the function. We then wrap
   this in an immediately-invoked anonymous function (to create a new scope and to simulate the one created by compile()), and this becomes the output.
 
-    var nontrivial_function_pattern         = caterwaul_global.parse('function (_) {_}'),
-        trivial_function_pattern            = caterwaul_global.parse('function () {_}'),
+    var nontrivial_function_pattern         = caterwaul_global.parse('function (_args) {_body}'),
+        trivial_function_pattern            = caterwaul_global.parse('function () {_body}'),
         nontrivial_function_gensym_template = caterwaul_global.parse('function (_args, _gensym) {_body}'),
         trivial_function_gensym_template    = caterwaul_global.parse('function (_gensym) {_body}'),
 
-        mark_nontrivial_function_macro = function (references) {return function (args, body) {
-                                           var s = gensym(), result = nontrivial_function_gensym_template.replace({_args: args, _gensym: s, _body: annotate_functions_in(body, references)});
+        mark_nontrivial_function_macro = function (references) {return function (match) {
+                                           var s      = gensym(),
+                                               result = nontrivial_function_gensym_template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)});
                                            return references[s] = {tree: result}, result}},
 
-        mark_trivial_function_macro    = function (references) {return function (body) {
-                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(body, references)});
+        mark_trivial_function_macro    = function (references) {return function (match) {
+                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(match._body, references)});
                                            return references[s] = {tree: result}, result}},
 
   Macroexpansion for function origins.
@@ -3499,15 +3504,14 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
   source, replacing the un-compiled functions with compiled ones.
 
-    nontrivial_gensym_detection_pattern = caterwaul_global.parse('function (_, _) {_}'),
-    trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_) {_}'),
+    nontrivial_gensym_detection_pattern = caterwaul_global.parse('function (_args, _gensym) {_body}'),
+    trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_gensym) {_body}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var            matches = tree.match(nontrivial_gensym_detection_pattern), k = matches && matches[1].data;
-                        if (! matches) matches = tree.match(   trivial_gensym_detection_pattern), k = matches && matches[0].data;
+                        var matches = tree.match(nontrivial_gensym_detection_pattern) || tree.match(trivial_gensym_detection_pattern), k = matches && matches._gensym.data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
-                                                      else                        references[k].compiled = tree, references[k].environment = environment;
+                                                      else                        references[k].compiled = tree, references[k].environment = merge({}, this.globals, environment);
                         return original.call(this, tree, environment)}},
 
   Generating compiled functions.
@@ -3553,7 +3557,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     Variable table generation.
     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
-      variables_for             = function (tree, environment) {
+      variables_for             = function (tree, environment, globals) {
                                     var names = [], values = [], seen = {};
 
                                     for (var k in environment) if (own.call(environment, k)) names.push(k), values.push(serialize_ref(environment[k], k, seen));
@@ -3592,7 +3596,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return this.compile(perform_substitution(references, references.annotated))}})());
-__32a2214af47c89ca39107b8d7df4eb20
+__327c2f4013b6e72e13cef06e7dc35e74
 meta::sdoc('js::core/caterwaul.tree', <<'__9cee91656fadb1be780a15fd878e1c28');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
