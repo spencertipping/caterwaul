@@ -52,6 +52,8 @@
     genint = function () {var v = genval(); return (v[0] << 2) + v[0] + (v[1] << 1) + v[1] + v[2]},
     gensym = function () {var v = genval(); return ['gensym', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
 
+      fail = function (m) {throw new Error(m)},
+
       bind = function (f, t) {return f.binding === t ? f : f.original ? bind(f.original, t) : merge(function () {return f.apply(t, arguments)}, {original: f, binding: t})},
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
       hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
@@ -555,7 +557,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
 //     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
 
-        toString: function ()   {return this.inspect()},
+        toString: function ()   {return this.serialize()},
          inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                         (this.r ? ' -> ' + this.r.inspect() : '')},
 
@@ -920,6 +922,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   caterwaul_global.method('compile',
     function (tree, environment) {
+      console.log(tree.serialize());
       var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
@@ -1006,38 +1009,42 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //      be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
 //      rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
 //   3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
+//   4. Implement an .is_wildcard() method. This should return a truthy value if your node represents a wildcard when used in a pattern.
 
 // As of version 0.7.0 this compatibility may change without notice. The reason is that the macroexpansion logic used by Caterwaul is becoming more sophisticated to increase performance, which
-// means that it may become arbitrarily optimized.
+// means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.macroexpand-jit for information about additional features your nodes should support.)
 
-//   Macro vs. rmacro.
-//   macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
-//   want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
+//   Macro vs. final_macro.
+//   Normally you want the output of a macro to be re-macroexpanded. For example, suppose you're mapping _a + _b to (_a).plus(_b). If you didn't re-expand the output of this macro, then applying
+//   it to the expression 'x + y + z' would yield (x + y).plus(z), since macros are applied outside-in. Fortunately macro() takes care of this for you and re-expands output automatically.
 
-//   | caterwaul.configure(function () {
-//       // Using macro() instead of rmacro(), so no further expansion:
-//       this.macro('literal[_x]', '_x');
-//     });
+//   There are some cases where you wouldn't want re-expansion. One of them is when you're assigning context-specific meaning to operators or other syntax nodes; in this case you want to control
+//   the traversal process manually. Another case is if you were to define a literal macro:
 
-//   New in caterwaul 1.0 is the ability to specify multiple macro patterns that share an expander by passing more than two arguments to macro() and rmacro().
+//   | caterwaul.final_macro('literal(_x)', '_x')          // final_macro says "don't re-expand the output"
+
+//   Under the hood the macro() method ultimately uses final_macro(), but wraps your macroexpander in a function that knows how to re-expand output. All re-expansion is done by the compiler that
+//   is macroexpanding in the first place.
 
     var variadic_definition = function (f) {return function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) f.call(this, arguments[i], arguments[l]); return this}};
 
     caterwaul_global.shallow('macro_patterns',  []).
                      shallow('macro_expanders', []).
 
-          method_until_baked('macro',  variadic_definition(function (pattern, expander) {
-                                                             if (! expander.apply) throw new Error('macro: cannot define macro with non-function expander');
-                                                             else return this.macro_patterns.push(this.ensure_syntax(pattern)), this.macro_expanders.push(expander), this})).
-
-          method_until_baked('rmacro', variadic_definition(function (pattern, expander) {
-                                                             if (! expander.apply) throw new Error('rmacro: cannot define macro with non-function expander');
-                                                             else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})).
-
-                      method('macroexpand', function (t) {return macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
-
+                      method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
                   when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
-                                          this.method('macroexpand', function (t) {return t.rmap(function (n) {return f.call(this, n)})})})})();
+                                          this.method('macroexpand', function (t) {return this.ensure_syntax(t).rmap(function (n) {return f.call(this, n)})})}).
+
+                      method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
+                      method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
+                                                                                 expander.constructor === this.syntax ? function (match) {return expander.replace(match)} :
+                                                                                 expander.constructor === Function    ? expander : fail('unknown macroexpander format: ' + expander)}).
+          method_until_baked('final_macro', variadic_definition(
+            function (pattern, expander) {return this.macro_patterns.push(this.ensure_syntax(pattern)), this.macro_expanders.push(this.ensure_expander(expander)), this})).
+
+          method_until_baked('macro',       variadic_definition(
+            function (pattern, expander) {expander = this.ensure_expander(expander);
+                                          return this.final_macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))})();
 // Generated by SDoc 
 
 
@@ -1069,8 +1076,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     qs[_a + _b].match(qs[3 / x])        // -> null
 
   caterwaul_global.method('macro_expand_naive', function (t, macros, expanders) {
+                           var self = this;
                            return t.rmap(function (n) {for (var i = macros.length - 1, match, replacement; i >= 0; --i)
-                                                         if ((match = macros[i].match(n)) && (replacement = expanders[i].call(this, match))) return replacement})});
+                                                         if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})});
 // Generated by SDoc 
 
 
@@ -1094,8 +1102,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   optimization beyond one thing: How much information is being gained per comparison? This is very different from discrimination, which was the focus of the probabilistic JIT macroexpander
 //   design. Here is an example.
 
-//   | (, (_) (* (where) ([] ([ (=  (_) (_))))))               <- the macro patterns
-//     (, (_) (* (where) ([] ([ (== (_) (_))))))
+//   | (, (_expr) (* (where) ([] ([ (=  (_var) (_value))))))               <- the macro patterns
+//     (, (_expr) (* (where) ([] ([ (== (_var) (_value))))))
 
 //   Suppose we run into a syntax tree that starts with ','. The likelihood of a comma occurring anyway is P(','), so we now have 1 / P(',') information. It doesn't matter that this fails to
 //   discriminate between the two macro patterns. We needed to know it anyway if we were going to perform a match, and it let us jump out early if it wasn't there. The left-hand side of each
@@ -1177,7 +1185,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     next_path = function (visited, trees) {if (! visited) return '';
                                            for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
                                              if (! ((p = k + String.fromCharCode(i)) in visited)) {
-                                               for (var j = 0, lj = trees.length, skip; j < lj; ++j) if (skip = resolve_tree_path(trees[j], p).data === '_') break;
+                                               for (var j = 0, lj = trees.length, skip; j < lj; ++j) if (skip = resolve_tree_path(trees[j], p).is_wildcard()) break;
                                                if (! skip) return p}},
 
     visit_path = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
@@ -1198,8 +1206,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   There's a kind of pathological case that also needs to be considered. Suppose you've got a couple of macro patterns like this:
 
-//   | (a (b) (_))
-//     (a (_) (b))
+//   | (a (b) (_c))
+//     (a (_c) (b))
 
 //   In this case we may very well have to try both even though technically neither tree will be specified yet (and hence we don't think there's any ambiguity). The way to address this is to make
 //   sure that any trees we put into an 'unspecified' partition are all unspecified in the same place. So the two trees above would go into separate partitions, even though they're both
@@ -1237,7 +1245,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   By convention I call the result of this function pattern_data, which shadows this function definition. (Seems somehow appropriate to do it this way.)
 
-    wildcard_paths = function (t) {for (var r = t.data === '_' ? [''] : [], i = 0, l = t.length; i < l; ++i)
+    wildcard_paths = function (t) {for (var r = t.is_wildcard() ? [''] : [], i = 0, l = t.length; i < l; ++i)
                                      for (var ps = t[i] && wildcard_paths(t[i]), j = 0, lj = ps.length; j < lj; ++j) r.push(String.fromCharCode(i) + ps[j]);
                                    return r},
 
@@ -1314,31 +1322,33 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
 //     made. (This is actually one of the trickier points of this implementation.) Detecting this isn't too bad though. It's done above by split_treeset_on_specification.
 
-      non_wildcard_node_count = function (tree) {var r = 0; tree.reach(function (node) {r += node.data !== '_'}); return r},
+      non_wildcard_node_count = function (tree) {var r = 0; tree.reach(function (node) {r += ! node.is_wildcard()}); return r},
 
 //     Invocations of the macroexpander should be fast, so there's some kind of interesting logic to quickly match wildcards with a minimum of array consing. This optimization requires a
 //     simplifying assumption that all _ nodes are leaf nodes, but this is generally true. (It's possible to build macro patterns that don't have this property, but they won't, and never would
 //     have, behaved properly.) The idea is that once we have a fully-specified macro pattern we can simply go through each visited path, grab the direct children of each node, and detect
 //     wildcards. We then encode these wildcard paths as hard-coded offsets from the tree variables. So, for example:
 
-//     | (+ (/ (_) (b)) (* (a) (_)))
+//     | (+ (/ (_a) (b)) (* (a) (_b)))
 //       visited: [0], [0][1], [1], [1][0]
-//       children: (_), (b), (a), (_)
-//       parameters: [paths[0][0], paths[1][1]]
+//       children: (_a), (b), (a), (_b)
+//       parameters: {_a: paths[0][0], _b: paths[1][1]}
 
-//     This requires a lexicographic sort of the paths to make sure the tree is traversed from left to right.
+//     Note that a new object is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
+//     expensive and uncommon; a new cons isn't going to make much difference at that point.
 
-//     Note that a new array is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
-//     expensive and uncommon; a new array cons isn't going to make much difference at that point.
+      path_reference_object_template = caterwaul_global.parse('{_elements}'),
+      variable_value_pair_template   = caterwaul_global.parse('_variable: _value'),
+      generate_path_reference_object = function (pattern, variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i)
+                                                                               refs.push(variable_value_pair_template.replace({_variable: resolve_tree_path(pattern, paths[i]).data,
+                                                                                                                                  _value: generate_path_reference(variables, paths[i])}));
+                                                                             return path_reference_object_template.replace({_elements: refs.length ? new caterwaul_global.syntax(',', refs) :
+                                                                                                                                                     undefined})},
 
-      path_reference_array_template = caterwaul_global.parse('[_elements]'),
-      generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
-                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new caterwaul_global.syntax(',', refs) : refs[0]})},
-
-      macroexpander_invocation_template = caterwaul_global.parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
+      macroexpander_invocation_template = caterwaul_global.parse('if (result = _expander.apply(this, _path_reference_object)) return result'),
       generate_macroexpander_invocation = function (pattern_data, pattern, variables) {return macroexpander_invocation_template.replace(
-                                                   {_expander:             new ref(pattern_data[pattern.id()].expander),
-                                                    _path_reference_array: generate_path_reference_array(variables, pattern_data[pattern.id()].wildcard_paths)})},
+                                                   {_expander:              new caterwaul_global.ref(pattern_data[pattern.id()].expander),
+                                                    _path_reference_object: generate_path_reference_object(pattern, variables, pattern_data[pattern.id()].wildcard_paths)})},
 
 //     Multiple match handling.
 //     When one or more macros are fully specified, we need to go through them in a particular order. Failover is handled gracefully; we just separate the macro patterns by a semicolon, since a

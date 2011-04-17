@@ -54,36 +54,40 @@
 //      be subsituted for the node passed in and traversal should continue on the next node (not the one that was grafted in). Otherwise traversal should descend into the unmodified node. The
 //      rmap() method defined for Caterwaul syntax trees can be used as a reference implementation. (It's fairly straightforward.)
 //   3. Implement a .data property. This represents an equivalence class for syntax nodes under ===. Right now there is no support for using other equivalence relations.
+//   4. Implement an .is_wildcard() method. This should return a truthy value if your node represents a wildcard when used in a pattern.
 
 // As of version 0.7.0 this compatibility may change without notice. The reason is that the macroexpansion logic used by Caterwaul is becoming more sophisticated to increase performance, which
-// means that it may become arbitrarily optimized.
+// means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.macroexpand-jit for information about additional features your nodes should support.)
 
-//   Macro vs. rmacro.
-//   macro() defines a macro whose expansion is left alone. rmacro(), on the other hand, will macroexpand the expansion, letting you emit macro-forms such as fn[][]. Most of the time you will
-//   want to use rmacro(), but if you want to have a literal[] macro, for instance, you would use macro():
+//   Macro vs. final_macro.
+//   Normally you want the output of a macro to be re-macroexpanded. For example, suppose you're mapping _a + _b to (_a).plus(_b). If you didn't re-expand the output of this macro, then applying
+//   it to the expression 'x + y + z' would yield (x + y).plus(z), since macros are applied outside-in. Fortunately macro() takes care of this for you and re-expands output automatically.
 
-//   | caterwaul.configure(function () {
-//       // Using macro() instead of rmacro(), so no further expansion:
-//       this.macro('literal[_x]', '_x');
-//     });
+//   There are some cases where you wouldn't want re-expansion. One of them is when you're assigning context-specific meaning to operators or other syntax nodes; in this case you want to control
+//   the traversal process manually. Another case is if you were to define a literal macro:
 
-//   New in caterwaul 1.0 is the ability to specify multiple macro patterns that share an expander by passing more than two arguments to macro() and rmacro().
+//   | caterwaul.final_macro('literal(_x)', '_x')          // final_macro says "don't re-expand the output"
+
+//   Under the hood the macro() method ultimately uses final_macro(), but wraps your macroexpander in a function that knows how to re-expand output. All re-expansion is done by the compiler that
+//   is macroexpanding in the first place.
 
     var variadic_definition = function (f) {return function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) f.call(this, arguments[i], arguments[l]); return this}};
 
     caterwaul_global.shallow('macro_patterns',  []).
                      shallow('macro_expanders', []).
 
-          method_until_baked('macro',  variadic_definition(function (pattern, expander) {
-                                                             if (! expander.apply) throw new Error('macro: cannot define macro with non-function expander');
-                                                             else return this.macro_patterns.push(this.ensure_syntax(pattern)), this.macro_expanders.push(expander), this})).
-
-          method_until_baked('rmacro', variadic_definition(function (pattern, expander) {
-                                                             if (! expander.apply) throw new Error('rmacro: cannot define macro with non-function expander');
-                                                             else return this.macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})).
-
-                      method('macroexpand', function (t) {return macro_expand_naive(t, this.macro_patterns, this.macro_expanders, this)}).
-
+                      method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
                   when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
-                                          this.method('macroexpand', function (t) {return t.rmap(function (n) {return f.call(this, n)})})})})();
+                                          this.method('macroexpand', function (t) {return this.ensure_syntax(t).rmap(function (n) {return f.call(this, n)})})}).
+
+                      method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
+                      method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
+                                                                                 expander.constructor === this.syntax ? function (match) {return expander.replace(match)} :
+                                                                                 expander.constructor === Function    ? expander : fail('unknown macroexpander format: ' + expander)}).
+          method_until_baked('final_macro', variadic_definition(
+            function (pattern, expander) {return this.macro_patterns.push(this.ensure_syntax(pattern)), this.macro_expanders.push(this.ensure_expander(expander)), this})).
+
+          method_until_baked('macro',       variadic_definition(
+            function (pattern, expander) {expander = this.ensure_expander(expander);
+                                          return this.final_macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))})();
 // Generated by SDoc 

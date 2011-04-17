@@ -15,8 +15,8 @@
 //   optimization beyond one thing: How much information is being gained per comparison? This is very different from discrimination, which was the focus of the probabilistic JIT macroexpander
 //   design. Here is an example.
 
-//   | (, (_) (* (where) ([] ([ (=  (_) (_))))))               <- the macro patterns
-//     (, (_) (* (where) ([] ([ (== (_) (_))))))
+//   | (, (_expr) (* (where) ([] ([ (=  (_var) (_value))))))               <- the macro patterns
+//     (, (_expr) (* (where) ([] ([ (== (_var) (_value))))))
 
 //   Suppose we run into a syntax tree that starts with ','. The likelihood of a comma occurring anyway is P(','), so we now have 1 / P(',') information. It doesn't matter that this fails to
 //   discriminate between the two macro patterns. We needed to know it anyway if we were going to perform a match, and it let us jump out early if it wasn't there. The left-hand side of each
@@ -98,7 +98,7 @@
     next_path = function (visited, trees) {if (! visited) return '';
                                            for (var k in visited) if (visited.hasOwnProperty(k)) for (var i = 0, l = visited[k], p; i < l; ++i)
                                              if (! ((p = k + String.fromCharCode(i)) in visited)) {
-                                               for (var j = 0, lj = trees.length, skip; j < lj; ++j) if (skip = resolve_tree_path(trees[j], p).data === '_') break;
+                                               for (var j = 0, lj = trees.length, skip; j < lj; ++j) if (skip = resolve_tree_path(trees[j], p).is_wildcard()) break;
                                                if (! skip) return p}},
 
     visit_path = function (path, visited, trees) {var partitions = partition_treeset(trees, path), kv = function (k, v) {var r = {}; r[k] = v; return r};
@@ -119,8 +119,8 @@
 
 //   There's a kind of pathological case that also needs to be considered. Suppose you've got a couple of macro patterns like this:
 
-//   | (a (b) (_))
-//     (a (_) (b))
+//   | (a (b) (_c))
+//     (a (_c) (b))
 
 //   In this case we may very well have to try both even though technically neither tree will be specified yet (and hence we don't think there's any ambiguity). The way to address this is to make
 //   sure that any trees we put into an 'unspecified' partition are all unspecified in the same place. So the two trees above would go into separate partitions, even though they're both
@@ -158,7 +158,7 @@
 
 //   By convention I call the result of this function pattern_data, which shadows this function definition. (Seems somehow appropriate to do it this way.)
 
-    wildcard_paths = function (t) {for (var r = t.data === '_' ? [''] : [], i = 0, l = t.length; i < l; ++i)
+    wildcard_paths = function (t) {for (var r = t.is_wildcard() ? [''] : [], i = 0, l = t.length; i < l; ++i)
                                      for (var ps = t[i] && wildcard_paths(t[i]), j = 0, lj = ps.length; j < lj; ++j) r.push(String.fromCharCode(i) + ps[j]);
                                    return r},
 
@@ -235,31 +235,33 @@
 //     The actual macroexpander functions are invoked by embedding ref nodes in the syntax tree. If one function fails, it's important to continue processing with whatever assumptions have been
 //     made. (This is actually one of the trickier points of this implementation.) Detecting this isn't too bad though. It's done above by split_treeset_on_specification.
 
-      non_wildcard_node_count = function (tree) {var r = 0; tree.reach(function (node) {r += node.data !== '_'}); return r},
+      non_wildcard_node_count = function (tree) {var r = 0; tree.reach(function (node) {r += ! node.is_wildcard()}); return r},
 
 //     Invocations of the macroexpander should be fast, so there's some kind of interesting logic to quickly match wildcards with a minimum of array consing. This optimization requires a
 //     simplifying assumption that all _ nodes are leaf nodes, but this is generally true. (It's possible to build macro patterns that don't have this property, but they won't, and never would
 //     have, behaved properly.) The idea is that once we have a fully-specified macro pattern we can simply go through each visited path, grab the direct children of each node, and detect
 //     wildcards. We then encode these wildcard paths as hard-coded offsets from the tree variables. So, for example:
 
-//     | (+ (/ (_) (b)) (* (a) (_)))
+//     | (+ (/ (_a) (b)) (* (a) (_b)))
 //       visited: [0], [0][1], [1], [1][0]
-//       children: (_), (b), (a), (_)
-//       parameters: [paths[0][0], paths[1][1]]
+//       children: (_a), (b), (a), (_b)
+//       parameters: {_a: paths[0][0], _b: paths[1][1]}
 
-//     This requires a lexicographic sort of the paths to make sure the tree is traversed from left to right.
+//     Note that a new object is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
+//     expensive and uncommon; a new cons isn't going to make much difference at that point.
 
-//     Note that a new array is consed per macroexpander invocation. I'm not reusing the array from last time because (1) it's too much work, and (2) the fallthrough-macro case is already fairly
-//     expensive and uncommon; a new array cons isn't going to make much difference at that point.
+      path_reference_object_template = caterwaul_global.parse('{_elements}'),
+      variable_value_pair_template   = caterwaul_global.parse('_variable: _value'),
+      generate_path_reference_object = function (pattern, variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i)
+                                                                               refs.push(variable_value_pair_template.replace({_variable: resolve_tree_path(pattern, paths[i]).data,
+                                                                                                                                  _value: generate_path_reference(variables, paths[i])}));
+                                                                             return path_reference_object_template.replace({_elements: refs.length ? new caterwaul_global.syntax(',', refs) :
+                                                                                                                                                     undefined})},
 
-      path_reference_array_template = caterwaul_global.parse('[_elements]'),
-      generate_path_reference_array = function (variables, paths) {for (var refs = [], i = 0, l = paths.length; i < l; ++i) refs.push(generate_path_reference(variables, paths[i]));
-                                                                   return path_reference_array_template.replace({_elements: refs.length > 1 ? new caterwaul_global.syntax(',', refs) : refs[0]})},
-
-      macroexpander_invocation_template = caterwaul_global.parse('if (result = _expander.apply(this, _path_reference_array)) return result'),
+      macroexpander_invocation_template = caterwaul_global.parse('if (result = _expander.apply(this, _path_reference_object)) return result'),
       generate_macroexpander_invocation = function (pattern_data, pattern, variables) {return macroexpander_invocation_template.replace(
-                                                   {_expander:             new ref(pattern_data[pattern.id()].expander),
-                                                    _path_reference_array: generate_path_reference_array(variables, pattern_data[pattern.id()].wildcard_paths)})},
+                                                   {_expander:              new caterwaul_global.ref(pattern_data[pattern.id()].expander),
+                                                    _path_reference_object: generate_path_reference_object(pattern, variables, pattern_data[pattern.id()].wildcard_paths)})},
 
 //     Multiple match handling.
 //     When one or more macros are fully specified, we need to go through them in a particular order. Failover is handled gracefully; we just separate the macro patterns by a semicolon, since a

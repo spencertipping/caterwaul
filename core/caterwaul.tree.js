@@ -265,7 +265,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
 //     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
 
-        toString: function ()   {return this.inspect()},
+        toString: function ()   {return this.serialize()},
          inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                         (this.r ? ' -> ' + this.r.inspect() : '')},
 
