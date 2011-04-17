@@ -539,17 +539,17 @@ my ($attribute, @criteria) = @_;
 my ($options, @stuff) = separate_options(@criteria);
 attribute_is($attribute, %$options);
 __1d3401965e4720ed972470b54b447db0
-meta::function('line', <<'__81fae678ccdc2819595d079da02d2e61');
+meta::function('line', <<'__598645438b1ff90e982ead9ec2b5d1ab');
 # Prints a line, with some context, from caterwaul.all.js. This is useful when a test fails.
 my ($line, $part) = @_;
-my @lines = split /\n/, $part eq '-a' ? retrieve('pp::js::modules/caterwaul.all') : retrieve('pp::js::core/caterwaul');
+my @lines = split /\n/, $part eq '-a' ? retrieve('pp::js::caterwaul') : retrieve('pp::js::core/caterwaul');
 
 for ($line - 5 .. $line + 5) {
   print "\033[1;32m" if $_ == $line;
   printf "%04d: %s\n", $_, $lines[$_ - 1];
   print "\033[0;0m" if $_ == $line;
 }
-__81fae678ccdc2819595d079da02d2e61
+__598645438b1ff90e982ead9ec2b5d1ab
 meta::function('load-state', <<'__ea18db867bd62a294e067f60e6975dcf');
 around_hook('load-state', @_, sub {
   my ($state_name) = @_;
@@ -2001,18 +2001,17 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/core', <<'__c1c28df8d8e86af0fea45e33ececb5f9');
+meta::sdoc('js::behaviors/core', <<'__c290354e665303c3c93c36dcbcd93853');
 Core caterwaul behaviors | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-- pinclude pp::js::behaviors/core/adverbs
-- pinclude pp::js::behaviors/core/adjectives
+- pinclude pp::js::behaviors/core/adverb
+- pinclude pp::js::behaviors/core/adjective
 - pinclude pp::js::behaviors/core/quote
-- pinclude pp::js::behaviors/core/gen
 
 - pinclude pp::js::behaviors/core/inversion
 - pinclude pp::js::behaviors/core/javascript-forms
-__c1c28df8d8e86af0fea45e33ececb5f9
+__c290354e665303c3c93c36dcbcd93853
 meta::sdoc('js::behaviors/core/adjective', <<'__0726bb30f9087320ee3a09cbe3ca5d8f');
 Adjective macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2033,25 +2032,30 @@ it first. (Hence sentences such as 'go there if you need to' -- here 'if you nee
 
   caterwaul.macro_form('unary_adverb', 'prefix_binary_adverb', 'postfix_binary_adverb', function (name, def, form) {this.rmacro(form.replace({it: name}, def))});
 __21c1a227c43f4e46543d8974f55af3c3
-meta::sdoc('js::behaviors/core/gen', <<'__96471118465db14831eed588207caa66');
-Code generation methods | Spencer Tipping
+meta::sdoc('js::behaviors/core/implicit', <<'__39a49e8725dd955cfc5c824c767040fe');
+Implicit lexical pattern | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-These methods provide easy ways to generate common code patterns. Previous to caterwaul 1.0 they were encoded as standard-library macros, which created a lot of module interdependence and
-macroexpansion overhead (especially since most of them weren't used frequently in regular code). Now they're regular methods that take syntax trees as arguments.
+Often expressions will be evaluated within some context that impacts their behavior. While adverbs can establish context by wrapping an expression somehow, sometimes it isn't sufficient to
+treat an expression as being opaque. For example, suppose we're writing unit tests and want to assert equivalence. We could say this:
 
-  caterwaul.configure(caterwaul.clone('core.quote core.js')(function () {
-    var gen = this.namespace('gen');
+| [1, 2, 3].reverse() /must_be[[3, 2, 1]]
 
-Scope creation.
-Creating a scope is one of the most common patterns. These methods create various kinds of scopes.
+But it isn't clear what kind of equivalence relation we should be using. In this case we need to bind a local variable to provide that default:
 
-    gen.names_of(vars)    = vars.flatten(',').map(n[0], given[n]).unflatten(),
-    gen.values_of(vars)   = vars.flatten(',').map(n[1], given[n]).unflatten(),
+| [1, 2, 3].reverse() /must_be[[3, 2, 1]] /where[the_equivalence_relation(x, y) = x.length === y.length && ...]
+  [1, 2, 3].reverse() /must_be[[3, 2, 1]] /under[caterwaul.unit.array_equivalence]              // a more concise way to say it
 
-    gen.scope(vars, body) = qs[(function (_args) {return _body}).call(this, _values)].replace({_body: body, _args: gen.names_of(vars), _values: gen.values_of(vars)}),
-__96471118465db14831eed588207caa66
+This pattern of using the 'the_' prefix is what I'm calling the implicit lexical pattern. The idea is that you can have multiple the_ variables bound at once, and inner ones shadow outer ones
+(much like you'd expect in English). You can ask about one by just referring to it:
+
+| console.log(the_equivalence_relation)
+
+  Immutability.
+  You should never reassign one of these context variables! Rather, you should rebind it using an adverb. The reason for this is that they're really globals in a sense; they're defined
+  potentially far outside of their use site.
+__39a49e8725dd955cfc5c824c767040fe
 meta::sdoc('js::behaviors/core/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2116,7 +2120,7 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::behaviors/core/javascript-forms', <<'__a5006e5ae72f4ce362195bc5fe1aefd8');
+meta::sdoc('js::behaviors/core/javascript-forms', <<'__cef3ba8b36c0bf906d5ce67e07b3e945');
 Javascript macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2129,16 +2133,48 @@ Adjective and adverb forms.
 These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
 grouping operators.
 
-    this.unary_adjective_form('it[_]', '_ /it').
-         postfix_binary_adverb_form('_, it[_]', '_ /it[_]', '_ -it[_]');
+    this.unary_adjective_form('it[_expression]', '_expression /it').
+         postfix_binary_adverb_form('_expression, it[_modifiers]', '_expression /it[_modifiers]');
 
-Destructuring function creation.
-This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
-regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
+Javascript-specific shorthands.
+Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
 
-    var function_assignment_template = this.parse('_left = (function (_args) {return _right})');
-    this.rmacro('_(_) = _', function (left, args, right) {return function_assignment_template.replace({_left: left, _args: args, _right: right})})});
-__a5006e5ae72f4ce362195bc5fe1aefd8
+  String interpolation.
+  Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
+  bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.
+
+  This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
+  used on the string itself, but you can now include balanced braces in the interpolated text. For example, this is now valid:
+
+  | 'foo #{{bar: "bif"}.bar}'
+
+  There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
+
+  | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
+
+    this.macro('_string', function (match) {
+      var s = match._string.data, q = s.charAt(0);
+      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;
+
+      for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
+        if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
+                         else                            brace_depth += c === '{';
+        else             if ((c = s.charAt(i)) === '#')  got_hash = true;
+                         else if (c === '{' && got_hash) pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
+                         else                            got_hash = false;
+
+      pieces.push(s.substring(start, l));
+
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) if (i & 1) pieces[i] = this.parse(pieces[i].replace(escaped, q)).as('(');
+                                                                                            else       pieces[i] = new this.syntax(q + pieces[i] + q);
+      return new this.syntax('+', pieces).unflatten().as('(')});
+
+  Destructuring function creation.
+  This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
+  regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
+
+    this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
+__cef3ba8b36c0bf906d5ce67e07b3e945
 meta::sdoc('js::behaviors/core/quote', <<'__8321be26f03f2f39a7425dcb232e1a0b');
 Quotation behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2152,6 +2188,13 @@ language port you're using. For the native JS port, it will be enabled in these 
 
   caterwaul.configuration('core.quote', function () {this.unary_adjective('qs', function (tree) {return tree})});
 __8321be26f03f2f39a7425dcb232e1a0b
+meta::sdoc('js::behaviors/core/unit', <<'__061478fbaad0d288234c6835259bc5cf');
+Unit testing behavior | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This behavior provides adjectives and adverbs useful for unit testing. It also makes use of the implicit pattern (a way to propagate settings through a lexical scope).
+__061478fbaad0d288234c6835259bc5cf
 meta::sdoc('js::behaviors/core/words', <<'__4a7e2e07bf6b2e98079fb3cf73cd4b4c');
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2258,22 +2301,23 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 
   return caterwaul_global});
 __9f04e9f1c1eb6543755443e502610bb4
-meta::sdoc('js::core/caterwaul.bake', <<'__1b3fc1a6e8ba658074509e37e4414e7f');
+meta::sdoc('js::core/caterwaul.bake', <<'__6f4f8648eb165125a7e56991f80ea4fe');
 Baking support.
 To "bake" a caterwaul function is to freeze its settings and apply long-run optimizations such as macroexpander compilation. Once a function is baked you can't do certain things, most notably
-adding macros. (Other restrictions may apply later as further optimizations are implemented.)
+adding macros. (Other restrictions may apply later as further optimizations are implemented.) You also can't re-bake a caterwaul instance.
 
   Meta-methods.
   Baking is a state transition, and these are hooks and behaviors that are aware of the state (so that your code doesn't have to be). method_until_baked() is just like method(), but replaces
-  the method with an error generator once bake() is called. when_baked() installs an event listener and allows you to perform some optimization.
+  the method with an error generator once bake() is called. when_baked() installs an event listener and allows you to perform some optimization. 'this' within a when_baked() listener always
+  refers to the caterwaul being baked.
 
-    caterwaul_global.shallow('bake_listeners', []).method('bake', function () {for (var i = 0, l = this.bake_listeners.length; i < l; ++i) this.bake_listeners[i].call(this); return this}).
-                      method('when_baked', function (f) {this.bake_listeners.push(f); return this}).
-
+    caterwaul_global.shallow('bake_listeners', []).method('when_baked', function () {for (var i = 0, l = arguments.length; i < l; ++i) this.bake_listeners.push(arguments[i]); return this}).
                       method('method_until_baked', function (name, f) {return this.method(name, f).when_baked(function () {
-                                                                                this.method(name, function () {throw new Error('cannot call ' + name + ' on a baked caterwaul')})})});
-__1b3fc1a6e8ba658074509e37e4414e7f
-meta::sdoc('js::core/caterwaul.compiler', <<'__58bc68e91d4f4ce2a423199af4810fb2');
+                                                                              this.method(name, function () {throw new Error('cannot call ' + name + ' on a baked caterwaul')})})}).
+
+          method_until_baked('bake', function () {for (var i = 0, l = this.bake_listeners.length; i < l; ++i) this.bake_listeners[i].call(this); delete this.bake_listeners; return this});
+__6f4f8648eb165125a7e56991f80ea4fe
+meta::sdoc('js::core/caterwaul.compiler', <<'__9054cd3d9837ea53388efd9cfe14fcb4');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
 must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
@@ -2285,11 +2329,11 @@ New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the con
 
   caterwaul_global.method('compile',
     function (tree, environment) {
-      console.log(tree.serialize());
+      console.log('compiling ' + tree.serialize());
       var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
-__58bc68e91d4f4ce2a423199af4810fb2
+__9054cd3d9837ea53388efd9cfe14fcb4
 meta::sdoc('js::core/caterwaul.composition', <<'__ee2b69d5708e5e9e4b3420b95fa8c083');
 Composition behavior.
 New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
@@ -2311,7 +2355,7 @@ this doesn't happen for g if g comes after f, but generally that relationship is
                     method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
                                                  else                  return this.after_functions});
 __ee2b69d5708e5e9e4b3420b95fa8c083
-meta::sdoc('js::core/caterwaul.configuration', <<'__fb6493eeb5a86629237e448e9c45172d');
+meta::sdoc('js::core/caterwaul.configuration', <<'__108f86bfe40fc8ddeb42505799251d37');
 Configurations.
 Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
 replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
@@ -2333,17 +2377,6 @@ Related to this is a configure() method that modifies and returns the original f
   });
 
   var configurable = (function () {
-
-  Core interface.
-  The core API for replicable functions is exposed as 'caterwaul.replica'. This is primarily of use to API developers and not to end users. Also of use is the configuration
-  'caterwaul.configurable', which when applied to a replicable function will install Caterwaul's configurability onto it. For example:
-
-  | var my_compiler = caterwaul.configurable(caterwaul.replica());
-    my_compiler.method('init', function () {/* custom compiler behavior */});
-    my_compiler.clone();        // A new instance
-
-  You can then customize this function, which will have the same replication interface that Caterwaul has but won't have Caterwaul's default behavior. (A less elegant way to achieve the same
-  thing is to clone caterwaul and give it a new 'init' method.)
 
   Attributes and methods.
   Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
@@ -2428,8 +2461,8 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})}})();
-__fb6493eeb5a86629237e448e9c45172d
-meta::sdoc('js::core/caterwaul.global', <<'__34398bf52f368c5043ecdfe6067dadcf');
+__108f86bfe40fc8ddeb42505799251d37
+meta::sdoc('js::core/caterwaul.global', <<'__75204e9b3abefb5c0a809249da77483f');
 Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
@@ -2444,6 +2477,8 @@ Caterwaul has a number of features that require it to be able to identify caterw
   caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
 
+                   method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).
+
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
                                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
 
@@ -2452,7 +2487,7 @@ Sometimes you need to grab a unique value that is unlikely to exist elsewhere. C
 considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
                    method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}}));
-__34398bf52f368c5043ecdfe6067dadcf
+__75204e9b3abefb5c0a809249da77483f
 meta::sdoc('js::core/caterwaul.init', <<'__389873c9c68a08a32a7177e7bc42cbe5');
 Init method.
 This is the main entry point of caterwaul when you use it as a function. As of version 0.6.4, the init() property is polymorphic in semantics as well as structure. There are two cases:

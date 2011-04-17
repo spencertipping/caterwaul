@@ -12,6 +12,8 @@
   caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
 
+                   method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).
+
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
                                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
 

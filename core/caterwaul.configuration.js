@@ -20,17 +20,6 @@
 
   var configurable = (function () {
 
-//   Core interface.
-//   The core API for replicable functions is exposed as 'caterwaul.replica'. This is primarily of use to API developers and not to end users. Also of use is the configuration
-//   'caterwaul.configurable', which when applied to a replicable function will install Caterwaul's configurability onto it. For example:
-
-//   | var my_compiler = caterwaul.configurable(caterwaul.replica());
-//     my_compiler.method('init', function () {/* custom compiler behavior */});
-//     my_compiler.clone();        // A new instance
-
-//   You can then customize this function, which will have the same replication interface that Caterwaul has but won't have Caterwaul's default behavior. (A less elegant way to achieve the same
-//   thing is to clone caterwaul and give it a new 'init' method.)
-
 //   Attributes and methods.
 //   Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
 //   so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute

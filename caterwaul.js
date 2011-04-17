@@ -111,17 +111,6 @@
 
   var configurable = (function () {
 
-//   Core interface.
-//   The core API for replicable functions is exposed as 'caterwaul.replica'. This is primarily of use to API developers and not to end users. Also of use is the configuration
-//   'caterwaul.configurable', which when applied to a replicable function will install Caterwaul's configurability onto it. For example:
-
-//   | var my_compiler = caterwaul.configurable(caterwaul.replica());
-//     my_compiler.method('init', function () {/* custom compiler behavior */});
-//     my_compiler.clone();        // A new instance
-
-//   You can then customize this function, which will have the same replication interface that Caterwaul has but won't have Caterwaul's default behavior. (A less elegant way to achieve the same
-//   thing is to clone caterwaul and give it a new 'init' method.)
-
 //   Attributes and methods.
 //   Function copying doesn't involve copying over every attribute indiscriminately, since different behaviors are required for different properties. For example, the macro table should be copied
 //   so that clones append to their local copies, methods should be rebound to the new function, and some attributes should just be referenced. These behaviors are encoded by way of an attribute
@@ -224,6 +213,8 @@
 
   caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = genint())}).
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
+
+                   method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).
 
                    method('reinitialize', function (transform, erase_configurations) {var c = transform(this.initializer), result = c(c, this.unique).deglobalize();
                                                                                       erase_configurations || (result.configurations = this.configurations); return result}).
@@ -922,7 +913,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   caterwaul_global.method('compile',
     function (tree, environment) {
-      console.log(tree.serialize());
+      console.log('compiling ' + tree.serialize());
       var vars = [], values = [], bindings = merge({}, environment || {}, tree.bindings()), s = gensym(); for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
@@ -935,17 +926,18 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // Baking support.
 // To "bake" a caterwaul function is to freeze its settings and apply long-run optimizations such as macroexpander compilation. Once a function is baked you can't do certain things, most notably
-// adding macros. (Other restrictions may apply later as further optimizations are implemented.)
+// adding macros. (Other restrictions may apply later as further optimizations are implemented.) You also can't re-bake a caterwaul instance.
 
 //   Meta-methods.
 //   Baking is a state transition, and these are hooks and behaviors that are aware of the state (so that your code doesn't have to be). method_until_baked() is just like method(), but replaces
-//   the method with an error generator once bake() is called. when_baked() installs an event listener and allows you to perform some optimization.
+//   the method with an error generator once bake() is called. when_baked() installs an event listener and allows you to perform some optimization. 'this' within a when_baked() listener always
+//   refers to the caterwaul being baked.
 
-    caterwaul_global.shallow('bake_listeners', []).method('bake', function () {for (var i = 0, l = this.bake_listeners.length; i < l; ++i) this.bake_listeners[i].call(this); return this}).
-                      method('when_baked', function (f) {this.bake_listeners.push(f); return this}).
-
+    caterwaul_global.shallow('bake_listeners', []).method('when_baked', function () {for (var i = 0, l = arguments.length; i < l; ++i) this.bake_listeners.push(arguments[i]); return this}).
                       method('method_until_baked', function (name, f) {return this.method(name, f).when_baked(function () {
-                                                                                this.method(name, function () {throw new Error('cannot call ' + name + ' on a baked caterwaul')})})});
+                                                                              this.method(name, function () {throw new Error('cannot call ' + name + ' on a baked caterwaul')})})}).
+
+          method_until_baked('bake', function () {for (var i = 0, l = this.bake_listeners.length; i < l; ++i) this.bake_listeners[i].call(this); delete this.bake_listeners; return this});
 // Generated by SDoc 
 
 
@@ -1760,11 +1752,29 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
+// Adverb macro forms | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// Many macros in caterwaul function as adverbs from a linguistic point of view. Adverbs in English modify a process, but generally the process is more relevant than the adverb so we talk about
+// it first. (Hence sentences such as 'go there if you need to' -- here 'if you need to' is the adverb, and it comes after the rest.)
+
+  caterwaul.macro_form('unary_adverb', 'prefix_binary_adverb', 'postfix_binary_adverb', function (name, def, form) {this.rmacro(form.replace({it: name}, def))});
+// Generated by SDoc 
 
 
 
 
 
+// Adjective macro forms | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// Unlike adverbs, adjectives generally wrap a value as opposed to modifying a verb. It's a subtle distinction, but adjectives are often more noticeable (they come before the noun in English),
+// and they can have a very direct impact on the context of the values they modify.
+
+  caterwaul.macro_form('unary_adjective', 'prefix_binary_adjective', 'postfix_binary_adjective', function (name, def, form) {this.rmacro(form.replace({it: name}, def))});
+// Generated by SDoc 
 
 
 
@@ -1781,29 +1791,6 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   x /qs
 
   caterwaul.configuration('core.quote', function () {this.unary_adjective('qs', function (tree) {return tree})});
-// Generated by SDoc 
-
-
-
-
-
-// Code generation methods | Spencer Tipping
-// Licensed under the terms of the MIT source code license
-
-// Introduction.
-// These methods provide easy ways to generate common code patterns. Previous to caterwaul 1.0 they were encoded as standard-library macros, which created a lot of module interdependence and
-// macroexpansion overhead (especially since most of them weren't used frequently in regular code). Now they're regular methods that take syntax trees as arguments.
-
-  caterwaul.configure(caterwaul.clone('core.quote core.js')(function () {
-    var gen = this.namespace('gen');
-
-// Scope creation.
-// Creating a scope is one of the most common patterns. These methods create various kinds of scopes.
-
-    gen.names_of(vars)    = vars.flatten(',').map(n[0], given[n]).unflatten(),
-    gen.values_of(vars)   = vars.flatten(',').map(n[1], given[n]).unflatten(),
-
-    gen.scope(vars, body) = qs[(function (_args) {return _body}).call(this, _values)].replace({_body: body, _args: gen.names_of(vars), _values: gen.values_of(vars)}),
 // Generated by SDoc 
 
 
@@ -1891,15 +1878,47 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
 // grouping operators.
 
-    this.unary_adjective_form('it[_]', '_ /it').
-         postfix_binary_adverb_form('_, it[_]', '_ /it[_]', '_ -it[_]');
+    this.unary_adjective_form('it[_expression]', '_expression /it').
+         postfix_binary_adverb_form('_expression, it[_modifiers]', '_expression /it[_modifiers]');
 
-// Destructuring function creation.
-// This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
-// regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
+// Javascript-specific shorthands.
+// Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
 
-    var function_assignment_template = this.parse('_left = (function (_args) {return _right})');
-    this.rmacro('_(_) = _', function (left, args, right) {return function_assignment_template.replace({_left: left, _args: args, _right: right})})});
+//   String interpolation.
+//   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
+//   bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.
+
+//   This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
+//   used on the string itself, but you can now include balanced braces in the interpolated text. For example, this is now valid:
+
+//   | 'foo #{{bar: "bif"}.bar}'
+
+//   There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
+
+//   | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
+
+    this.macro('_string', function (match) {
+      var s = match._string.data, q = s.charAt(0);
+      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;
+
+      for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
+        if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
+                         else                            brace_depth += c === '{';
+        else             if ((c = s.charAt(i)) === '#')  got_hash = true;
+                         else if (c === '{' && got_hash) pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
+                         else                            got_hash = false;
+
+      pieces.push(s.substring(start, l));
+
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) if (i & 1) pieces[i] = this.parse(pieces[i].replace(escaped, q)).as('(');
+                                                                                            else       pieces[i] = new this.syntax(q + pieces[i] + q);
+      return new this.syntax('+', pieces).unflatten().as('(')});
+
+//   Destructuring function creation.
+//   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
+//   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
+
+    this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
 // Generated by SDoc 
 
 
