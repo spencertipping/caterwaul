@@ -8,10 +8,10 @@
 
 // Adjective and adverb forms.
 // These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
-// grouping operators.
+// having to use grouping operators.
 
-    this.unary_adjective_form('it[_expression]', '_expression /it').
-         postfix_binary_adverb_form('_expression, it[_modifiers]', '_expression /it[_modifiers]');
+    this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
+         modified_adverb_form('_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]');
 
 // Javascript-specific shorthands.
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.

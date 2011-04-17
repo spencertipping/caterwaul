@@ -949,19 +949,17 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Caterwaul's main purpose is to transform code, and the way it does this is by using macroexpansion. Macroexpansion involves finding pieces of the syntax tree that have a particular form and
 // changing them somehow. Normally this is done by first defining a pattern and then defining a function that returns something to replace occurrences of that pattern. For example:
 
-// | caterwaul.rmacro('_a + _b', '_a * _b');
+// | caterwaul.macro('_a + _b', '_a * _b');
 
 // This macro finds binary addition and replaces it with multiplication. In previous versions of caterwaul the macro would have been written using anonymous wildcards and a macroexpansion
 // function, but caterwaul 1.0 now supports named pattern matching. If you write a function to generate the expansion, it will receive an object containing the match data:
 
 // | var tree = caterwaul.parse('foo + bar');
-//   caterwaul.rmacro('_a + _b', function (match) {
+//   caterwaul.macro('_a + _b', function (match) {
 //     console.log(match);                                 // logs {_a: (foo), _b: (bar)}
 //   });
 
 // Inside the macroexpander 'this' is bound to the instance of caterwaul that is performing macroexpansion.
-
-// Notice that I've been typing 'rmacro' rather than just 'macro'. Both are methods, but generally you'll want to use rmacro. (See 'Macro vs. rmacro' below for more details.)
 
   (function () {
 
@@ -1022,6 +1020,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
     caterwaul_global.shallow('macro_patterns',  []).
                      shallow('macro_expanders', []).
+
+                      method('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
+                                                             return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})}).
 
                       method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
                   when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
@@ -1410,20 +1411,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // Macro forms.
 // Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
-// it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. One of these meanings is
-// an 'adverb.'
-
-// An adverb modifies something about how an expression works. For instance, 'where' is a common adverb used to bind local variables within an expression. 'when' and 'unless' determine whether an
-// expression is run. 'until', new in caterwaul 1.0, is used to iterate an expression. These adverbs are no longer defined using qs[]. Instead, they are defined using adverb(), which takes the
-// name of the adverb and a function that transforms the modified expression and any modifiers passed to the adverb.
-
-// The advantage to this separation is that later on you can establish new ways for adverbs to be used in your code. For instance, if you were writing in Coffeescript you wouldn't have access to
-// brackets with commas. In that case you'd want to use a regular function, so you would say this:
-
-// | my_caterwaul.adverb_form(qs[_ /_adverb(_)]);       // after this, 'x /where(x = 10)' would be a valid way to say 'x /where[x = 10]'
-//   my_caterwaul.adverb_form(qs[_(_adverb(_))]);       // enables 'x where x = 10', which is more Coffeescript-idiomatic
-
-// Adverb forms always have the modifiers following the expression to be modified; this keeps relevant information first.
+// it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. For examples of this,
+// see sdoc::js::behaviors/core/adverb (for a macro form definition), sdoc::js::behaviors/core/words (for macro definitions), and sdoc::js::behaviors/core/javascript-forms (for form definitions).
 
 //   Defining a macro form.
 //   You can define a new macro form using caterwaul's macro_form() method. This takes the name of the form to define and a function that accepts a name, definition, and form and performs the
@@ -1441,17 +1430,17 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
 
       return this.
-        shallow(names, []).
-         method(name, function () {for (var fs = this[forms], def = this[define_name], i = 0, l = arguments.length - 1, definition = arguments[l], lj = fs.length; i < l; ++i) {
-                                     for (var name = arguments[i], j = 0; j < lj; ++j) def.call(this, name, definition, fs[j]);
-                                     this[names].push({name: name, definition: definition})}
-                                   return this}).
+        shallow(names, []).method(name, function () {
+          for (var fs = this[forms], def = this[define_name], i = 0, l = arguments.length - 1, definition = this.ensure_expander(arguments[l]), lj = fs.length; i < l; ++i) {
+            for (var name = arguments[i], j = 0; j < lj; ++j) def.call(this, name, definition, fs[j]);
+            this[names].push({name: name, definition: definition})}
+          return this}).
 
-        shallow(forms, []).
-         method(form, function () {for (var xs = this[names], def = this[define_name], i = 0, l = arguments.length, lj = xs.length; i < l; ++i) {
-                                     for (var form = this.ensure_syntax(arguments[i]), j = 0; j < lj; ++j) def.call(this, xs[j].name, xs[j].description, form);
-                                     this[forms].push(form)}
-                                   return this}).
+        shallow(forms, []).method(form, function () {
+          for (var xs = this[names], def = this[define_name], i = 0, l = arguments.length, lj = xs.length; i < l; ++i) {
+            for (var form = this.ensure_syntax(arguments[i]), j = 0; j < lj; ++j) def.call(this, xs[j].name, xs[j].description, form);
+            this[forms].push(form)}
+          return this}).
 
          method(define_name, function () {return define.apply(this, arguments), this})});
 // Generated by SDoc 
@@ -1759,7 +1748,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Many macros in caterwaul function as adverbs from a linguistic point of view. Adverbs in English modify a process, but generally the process is more relevant than the adverb so we talk about
 // it first. (Hence sentences such as 'go there if you need to' -- here 'if you need to' is the adverb, and it comes after the rest.)
 
-  caterwaul.macro_form('unary_adverb', 'prefix_binary_adverb', 'postfix_binary_adverb', function (name, def, form) {this.rmacro(form.replace({it: name}, def))});
+  caterwaul.macro_form('adverb', 'modified_adverb', function (name, def, form) {this.macro(form.replace({it: name}), def)});
 // Generated by SDoc 
 
 
@@ -1771,10 +1760,15 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // Introduction.
 // Unlike adverbs, adjectives generally wrap a value as opposed to modifying a verb. It's a subtle distinction, but adjectives are often more noticeable (they come before the noun in English),
-// and they can have a very direct impact on the context of the values they modify.
+// and they can have a very direct impact on the context of the values they modify. A regular adjective takes no parameters other than the thing it's modifying, whereas a modified adjective takes
+// an extra modifier parameter. For example:
 
-  caterwaul.macro_form('unary_adjective', 'prefix_binary_adjective', 'postfix_binary_adjective', function (name, def, form) {this.rmacro(form.replace({it: name}, def))});
+// | caterwaul.adjective('qs', function (tree) {return new this.ref(tree)});       // No modifiers, since qs[] requires no extra information
+//   caterwaul.modified_adjective('mapped_through', '(_modifiers)(_expression)');  // We need to know what to map it through
+
+  caterwaul.macro_form('adjective', 'modified_adjective', function (name, def, form) {this.macro(form.replace({it: name}), def)});
 // Generated by SDoc 
+
 
 
 
@@ -1793,6 +1787,78 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
   caterwaul.configuration('core.quote', function () {this.unary_adjective('qs', function (tree) {return tree})});
 // Generated by SDoc 
 
+
+
+
+
+// Common adjectives and adverbs | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// This behavior installs a bunch of common words and sensible behaviors for them. The goal is to handle most Javascript syntactic cases by using words rather than Javascript primitive syntax.
+// For example, constructing lambdas can be done with 'given' rather than the normal function() construct:
+
+// | [1, 2, 3].map(x + 1, given[x])        // -> [1, 2, 3].map(function (x) {return x + 1})
+
+// In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
+
+  caterwaul.configuration('core.words', function () {
+
+// Scoping and referencing.
+// These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
+
+//   Function words.
+//   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
+//   binding.
+
+    this.modified_adverb('given',  'lambda',  '(function (_modifiers) {return _expression})').
+         modified_adverb('bgiven', 'blambda', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
+
+//   Side-effecting.
+//   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
+//   Older versions of caterwaul bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
+
+//   | hash(k, v) = {} /effect[it[k] = v];
+
+    this.modified_adverb('effect', 'se', '(function (it) {return (_modifiers), it}).call(this, (_expression))');
+
+// Control flow modifiers.
+// These impact how something gets evaluated.
+
+//   Conditionals.
+//   These impact whether an expression gets evaluated. x /when[y] evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
+//   true.
+
+    this.modified_adverb('when',   '((_modifiers) && (_expression))').
+         modified_adverb('unless', '(! (_modifiers) && (_expression))');
+
+//   Collection-based loops.
+//   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
+
+//   | console.log(it), over[[1, 2, 3]]            // logs 1, then 2, then 3
+//     console.log(it), over_keys[{foo: 'bar'}]    // logs foo
+//     console.log(it), over_values[{foo: 'bar'}]  // logs bar
+
+    this.modified_adverb('over',        this.with_gensyms(
+           '(function () {for (var gensym_xs = (_modifiers), gensym_result = [], gensym_i = 0, gensym_l = gensym_xs.length, it; gensym_i < gensym_l; ++gensym_i) ' +
+                         '  it = gensym_xs[gensym_i], gensym_result.push(_expression); return gensym_result}).call(this)')).
+
+         modified_adverb('over_keys',   this.with_gensyms(
+           '(function () {var gensym_x = (_modifiers), gensym_result = []; ' +
+                         'for (var it in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, it) && gensym_result.push(_expression); return gensym_result}).call(this)')).
+
+         modified_adverb('over_values', this.with_gensyms(
+           '(function () {var gensym_x = (_modifiers), gensym_result = [], it; ' +
+                         'for (var gensym_k in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, gensym_k) && (it = gensym_x[gensym_k], gensym_result.push(_expression));' +
+                         'return gensym_result}).call(this)'));
+
+//   Condition-based loops.
+//   These iterate until something is true or false, collecting the results of the expression and returning them as an array. For example:
+
+//   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
+
+    this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
+// Generated by SDoc 
 
 
 
@@ -1866,6 +1932,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
+
 // Javascript macro forms | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
@@ -1876,10 +1943,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // Adjective and adverb forms.
 // These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
-// grouping operators.
+// having to use grouping operators.
 
-    this.unary_adjective_form('it[_expression]', '_expression /it').
-         postfix_binary_adverb_form('_expression, it[_modifiers]', '_expression /it[_modifiers]');
+    this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
+         modified_adverb_form('_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]');
 
 // Javascript-specific shorthands.
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.

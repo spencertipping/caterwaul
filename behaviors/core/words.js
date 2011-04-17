@@ -18,8 +18,8 @@
 //   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
 //   binding.
 
-    this.postfix_binary_adverb('given',  'lambda',  function (expression, args) {return this.gen.      lambda(args, expression)}).
-         postfix_binary_adverb('bgiven', 'blambda', function (expression, args) {return this.gen.bound_lambda(args, expression)});
+    this.modified_adverb('given',  'lambda',  '(function (_modifiers) {return _expression})').
+         modified_adverb('bgiven', 'blambda', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -27,7 +27,7 @@
 
 //   | hash(k, v) = {} /effect[it[k] = v];
 
-    this.postfix_binary_adverb('effect', 'se', function (expression, effect) {return this.gen.with_binding({it: expression}, effect)});
+    this.modified_adverb('effect', 'se', '(function (it) {return (_modifiers), it}).call(this, (_expression))');
 
 // Control flow modifiers.
 // These impact how something gets evaluated.
@@ -36,26 +36,33 @@
 //   These impact whether an expression gets evaluated. x /when[y] evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
 //   true.
 
-    this.postfix_binary_adverb('when',   function (expression, condition) {return this.gen.predicate(condition, expression)}).
-         postfix_binary_adverb('unless', function (expression, condition) {return this.gen.predicate(this.gen.negate(condition), expression)});
+    this.modified_adverb('when',   '((_modifiers) && (_expression))').
+         modified_adverb('unless', '(! (_modifiers) && (_expression))');
 
 //   Collection-based loops.
-//   These are compact postfix forms of common looping constructs. Used alone they are assumed to provide side-effects, but see below for comprehension cases. For example:
+//   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
 
 //   | console.log(it), over[[1, 2, 3]]            // logs 1, then 2, then 3
 //     console.log(it), over_keys[{foo: 'bar'}]    // logs foo
 //     console.log(it), over_values[{foo: 'bar'}]  // logs bar
-//     console.log(it), over_pairs[{foo: 'bar}]    // logs ['foo', 'bar']
 
-    this.postfix_binary_adverb('over',        function (expression, array)  {return this.gen.array_iteration_loop('it', array,  expression)}).
-         postfix_binary_adverb('over_keys',   function (expression, object) {return this.gen.key_iteration_loop  ('it', object, expression)}).
-         postfix_binary_adverb('over_values', function (expression, object) {return this.gen.value_iteration_loop('it', object, expression)}).
-         postfix_binary_adverb('over_pairs',  function (expression, object) {return this.gen.pair_iteration_loop ('it', object, expression)});
+    this.modified_adverb('over',        this.with_gensyms(
+           '(function () {for (var gensym_xs = (_modifiers), gensym_result = [], gensym_i = 0, gensym_l = gensym_xs.length, it; gensym_i < gensym_l; ++gensym_i) ' +
+                         '  it = gensym_xs[gensym_i], gensym_result.push(_expression); return gensym_result}).call(this)')).
+
+         modified_adverb('over_keys',   this.with_gensyms(
+           '(function () {var gensym_x = (_modifiers), gensym_result = []; ' +
+                         'for (var it in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, it) && gensym_result.push(_expression); return gensym_result}).call(this)')).
+
+         modified_adverb('over_values', this.with_gensyms(
+           '(function () {var gensym_x = (_modifiers), gensym_result = [], it; ' +
+                         'for (var gensym_k in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, gensym_k) && (it = gensym_x[gensym_k], gensym_result.push(_expression));' +
+                         'return gensym_result}).call(this)'));
 
 //   Condition-based loops.
-//   These iterate until something is true or false. For example:
+//   These iterate until something is true or false, collecting the results of the expression and returning them as an array. For example:
 
 //   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    this.postfix_binary_adverb('until', function (expression, condition) {return this.gen.condition_iteration_loop(condition, expression)})});
+    this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
 // Generated by SDoc 

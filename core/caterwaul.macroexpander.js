@@ -2,19 +2,17 @@
 // Caterwaul's main purpose is to transform code, and the way it does this is by using macroexpansion. Macroexpansion involves finding pieces of the syntax tree that have a particular form and
 // changing them somehow. Normally this is done by first defining a pattern and then defining a function that returns something to replace occurrences of that pattern. For example:
 
-// | caterwaul.rmacro('_a + _b', '_a * _b');
+// | caterwaul.macro('_a + _b', '_a * _b');
 
 // This macro finds binary addition and replaces it with multiplication. In previous versions of caterwaul the macro would have been written using anonymous wildcards and a macroexpansion
 // function, but caterwaul 1.0 now supports named pattern matching. If you write a function to generate the expansion, it will receive an object containing the match data:
 
 // | var tree = caterwaul.parse('foo + bar');
-//   caterwaul.rmacro('_a + _b', function (match) {
+//   caterwaul.macro('_a + _b', function (match) {
 //     console.log(match);                                 // logs {_a: (foo), _b: (bar)}
 //   });
 
 // Inside the macroexpander 'this' is bound to the instance of caterwaul that is performing macroexpansion.
-
-// Notice that I've been typing 'rmacro' rather than just 'macro'. Both are methods, but generally you'll want to use rmacro. (See 'Macro vs. rmacro' below for more details.)
 
   (function () {
 
@@ -75,6 +73,9 @@
 
     caterwaul_global.shallow('macro_patterns',  []).
                      shallow('macro_expanders', []).
+
+                      method('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
+                                                             return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})}).
 
                       method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
                   when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
