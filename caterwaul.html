@@ -335,6 +335,7 @@ meta::configuration('dependencies', <<'__e6452f707a2f0de738e51033b8e9d792');
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
 __e6452f707a2f0de738e51033b8e9d792
 meta::data('author', 'Spencer Tipping');
+meta::data('current-continuation', 'precompiler');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
 meta::data('libraries', <<'__cca38bdfe6664615b581ec6dff43cf46');
@@ -378,30 +379,6 @@ meta::function('b', <<'__98038da0ce9e52e43be8530b56b96a5b');
 my @behaviors = select_keys('--criteria' => "sdoc::js::behaviors/(.*/)?$_[0]");
 edit($behaviors[0]);
 __98038da0ce9e52e43be8530b56b96a5b
-meta::function('bench-load', <<'__a7b9982a6b851aa1966ae81634ad7625');
-# Just loads the standard library.
-render() unless grep /^-R$/, @_;
-
-my $all = grep /^-a$/, @_;
-
-terminal::info('loading with node');
-bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.js js::core/debug/profile.stop|])});
-bench(sub {node(['caterwaul.all.js'])});
-
-terminal::info('loading precompiled with node');
-bench(sub {node([qw|js::core/debug/profile.start caterwaul.all.pre.js js::core/debug/profile.stop|])});
-bench(sub {node(['caterwaul.all.pre.js'])});
-
-if ($all) {
-  terminal::info('loading with gjs');
-  bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.js js::core/debug/profile.stop|])});
-  bench(sub {gjs(['caterwaul.all.js'])});
-
-  terminal::info('loading precompiled with gjs');
-  bench(sub {gjs([qw|js::core/debug/profile.start caterwaul.all.pre.js js::core/debug/profile.stop|])});
-  bench(sub {gjs(['caterwaul.all.pre.js'])});
-}
-__a7b9982a6b851aa1966ae81634ad7625
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
@@ -566,21 +543,17 @@ around_hook('load-state', @_, sub {
   reload();
   verify()});
 __ea18db867bd62a294e067f60e6975dcf
-meta::function('load-time', <<'__599109fa7c6ded3f10c9723dc2c1f53b');
+meta::function('load-time', <<'__182ac8ff8db32271b7d395fe0db1d63d');
 render();
 
 terminal::info('benchmarking GJS load time (SpiderMonkey)');
-terminal::info('loading caterwaul.all.js');
-  bench(sub {sh('gjs caterwaul.all.js > /dev/null 2>&1')});
-terminal::info('loading caterwaul.all.min.js');
-  bench(sub {sh('gjs caterwaul.all.min.js > /dev/null 2>&1')});
+terminal::info('loading caterwaul.js');
+  bench(sub {sh('gjs caterwaul.js > /dev/null 2>&1')});
 
 terminal::info('', 'benchmarking node load time (V8)');
-terminal::info('loading caterwaul.all.js');
-  bench(sub {sh('node caterwaul.all.js > /dev/null 2>&1')});
-terminal::info('loading caterwaul.all.min.js');
-  bench(sub {sh('node caterwaul.all.min.js > /dev/null 2>&1')});
-__599109fa7c6ded3f10c9723dc2c1f53b
+terminal::info('loading caterwaul.js');
+  bench(sub {sh('node caterwaul.js > /dev/null 2>&1')});
+__182ac8ff8db32271b7d395fe0db1d63d
 meta::function('loc', <<'__36e0cabf1fe1c1bcaa3c8c708bd82ca0');
 # Counts SLOC, whitespace, and total LOC in the codebase.
 hook('before-loc', @_);
@@ -636,14 +609,6 @@ meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
 my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
 edit($modules[0]);
 __3167c4c7bc087a3b0d524cada827fe55
-meta::function('macroexpand', <<'__ba8d14b1caf169f49834baa8018001c0');
-# Macroexpands stuff.
-node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::macroexpander'], @_);
-__ba8d14b1caf169f49834baa8018001c0
-meta::function('minify', <<'__483938b52dbc38c3aed97bf1b524b436');
-terminal::info("minifying $_[0]");
-node([qw|js::core/debug/profile pp::js::core/caterwaul js::minify|], @_);
-__483938b52dbc38c3aed97bf1b524b436
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
@@ -683,10 +648,6 @@ create("note::$_[0]");
 __bcbfeac6dd2112f47296265444570a6e
 meta::function('notes', 'ls(\'-a\', \'^note::\');');
 meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
-meta::function('parse', <<'__d74e1dc365978bc2ce245d9c4d22e123');
-# Parses stuff.
-node(['caterwaul.all.js', 'modules/caterwaul.format.js', 'js::parser'], @_);
-__d74e1dc365978bc2ce245d9c4d22e123
 meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
@@ -1372,14 +1333,6 @@ terminal::warning("$@ when running with_exported()") if $@;
 unlink $name;
 $result;
 __fc4f32c46d95c6deed0414364d1c7410
-meta::js('macroexpander', <<'__c21d8a4d0fee3d39aef360d077637bd1');
-// A quick macroexpander REPL:
-console.log('%s', caterwaul.clone('format').format(caterwaul.clone('std seq opt continuation parser').macroexpand(caterwaul.parse(process.argv.slice(2).join(' ')))));
-__c21d8a4d0fee3d39aef360d077637bd1
-meta::js('parser', <<'__ae8553a05bf29ed84554d0a426ca1406');
-// A quick parser REPL:
-console.log('%s', caterwaul.parse(process.argv.slice(2).join(' ')).toString());
-__ae8553a05bf29ed84554d0a426ca1406
 meta::library('shell', <<'__528f486cc4d9eb390e4c350b8727c751');
 # Functions for shell parsing and execution.
 package shell;
@@ -4021,14 +3974,6 @@ for (var k in all_profiled_functions) all_profiled_functions[k].average = (all_p
 fs.sort(function (x, y) {return x.total - y.total});
 typeof console === 'undefined' ? print(fs) : console.log(fs);
 __990b468eb0612075050f2a50509c1c40
-meta::sdoc('js::minify', <<'__050b10a052015886ecad866ded895049');
-Minifies a JavaScript file by using the Caterwaul parse/deparse mechanism.
-This won't do identifier packing (which is unsafe in Caterwaul), but it will provide decent minification by removing comments and most whitespace.
-
-var code   = require('fs').readFileSync(process.argv[2], 'utf8'),
-    header = '// Caterwaul JS | Spencer Tipping\n// Licensed under the terms of the MIT source code license\n';
-require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.min.js'), header + caterwaul.parse(code).serialize(), 'utf8');
-__050b10a052015886ecad866ded895049
 meta::sdoc('js::modules/caterwaul.all', <<'__89090c3bf49c11fe682f000912014455');
 Caterwaul with all modules | Spencer Tipping
 Licensed under the terms of the MIT source code license

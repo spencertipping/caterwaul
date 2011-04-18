@@ -1,1 +1,0 @@
-sdocp('sdoc::js::test/parse-grouping', 'Grouping construct parsing.\n\ntest(\'parse-grouping\', function () {\n  var p = function (s, i) {return eq(caterwaul.parse(s).inspect(), i)},\n      s = function (s, i) {return eq(caterwaul.parse(s).serialize(), i)};\n\n  p(\'(3)[4]\', \'([] (( (3)) (4))\');\n  p(\'([3])\', \'(( ([ (3)))\');\n  p(\'([{3}])\', \'(( ([ ({ (3))))\');\n});');

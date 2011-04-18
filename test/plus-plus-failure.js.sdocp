@@ -1,1 +1,0 @@
-sdocp('sdoc::js::test/plus-plus-failure', 'A failure case involving prefix and infix plus.\n\ntest(\'plus-plus-failure\', function () {\n  caterwaul.clone(\'std\')(function (eq) {\n    var x = 5;\n    var y = x + +x;\n    eq(y, 10);\n  })(eq);\n});');

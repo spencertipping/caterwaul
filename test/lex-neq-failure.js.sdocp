@@ -1,1 +1,0 @@
-sdocp('sdoc::js::test/lex-neq-failure', 'Proper parsing of != and !== (in response to a failure)\n\ntest(\'lex-neq-failure\', function () {\n  eq(caterwaul.parse(\'foo[1] !== 5\').inspect(), \'(!== ([] (foo) (1)) (5))\');\n  eq(caterwaul.parse(\'foo[1] != 5\').inspect(), \'(!= ([] (foo) (1)) (5))\');\n});');
