@@ -244,22 +244,24 @@ meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify|macroexpand|precompile|modules|core/debug)');
-meta::bootstrap('html', <<'__9b839f4c0c8d6bb18bf6d9d0e670e497');
+meta::bootstrap('html', <<'__2e8bfd6f3cadf9328905860a1c656b99');
 <html>
   <head>
   <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
   <link rel='stylesheet' href='http://spencertipping.com/perl-objects/web/style.css'/>
 
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js'></script>
-  <script src='http://spencertipping.com/caterwaul/caterwaul.all.min.js'></script>
-  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
   <script src='http://spencertipping.com/perl-objects/web/attribute-parser.js'></script>
-  <script src='http://spencertipping.com/perl-objects/web/interface.js'></script>
+  <script>
+    $(function () {
+      $('body').empty().append('hi there!');
+    });
+  </script>
   </head>
   <body></body>
 </html>
 
-__9b839f4c0c8d6bb18bf6d9d0e670e497
+__2e8bfd6f3cadf9328905860a1c656b99
 meta::bootstrap('initialization', <<'__b39f25c213ceb0418551084d1bddeb20');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
@@ -335,7 +337,7 @@ meta::configuration('dependencies', <<'__e6452f707a2f0de738e51033b8e9d792');
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
 __e6452f707a2f0de738e51033b8e9d792
 meta::data('author', 'Spencer Tipping');
-meta::data('current-continuation', 'precompiler');
+meta::data('current-continuation', 'caterwaul.html page');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
 meta::data('libraries', <<'__cca38bdfe6664615b581ec6dff43cf46');
@@ -431,19 +433,19 @@ for (keys %dependencies) {
   terminal::info("Retrieving $dependencies{$_} as $_");
   associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
 __1c0273217c5b9f2756bb14a4a00aa7e2
-meta::function('edit', <<'__36bd3f2c1165d0c041b0fa9a96a85378');
+meta::function('edit', <<'__c31d73791820a10ec910af043f67d4eb');
 my ($name, %options) = @_;
 my $extension = extension_for($name);
 
 die "$name is virtual or does not exist" unless exists $data{$name};
-die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || exists $options{'-f'};
+die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || is($name, '-d') || exists $options{'-f'};
 
 around_hook('edit', @_, sub {
   associate($name, invoke_editor_on($data{$name} || "# Attribute $name", %options, attribute => $name, extension => $extension),
             execute => $name !~ /^bootstrap::/)});
 save() unless $data{'data::edit::no-save'};
 '';
-__36bd3f2c1165d0c041b0fa9a96a85378
+__c31d73791820a10ec910af043f67d4eb
 meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
 meta::function('export', <<'__388e0cc60507443cb1c0cc3e2658cfef');
 # Exports data into a text file.
@@ -583,10 +585,10 @@ terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
 hook('after-loc', @_);
 __36e0cabf1fe1c1bcaa3c8c708bd82ca0
 meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
-meta::function('ls', <<'__992087a0d63d41e0bb551803476cfe72');
+meta::function('ls', <<'__61a247f0a582f63d85b5d5a963a46893');
 my ($options, @criteria) = separate_options(@_);
-my ($all, $shadows, $sizes, $flags, $hashes) = @$options{qw(-a -s -z -l -h)};
-$sizes ||= $flags;
+my ($external, $shadows, $sizes, $flags, $long, $hashes, $parent_hashes) = @$options{qw(-e -s -z -f -l -h -p)};
+$sizes = $flags = $hashes = $parent_hashes = 1 if $long;
 
 return table_display([grep ! exists $data{$externalized_functions{$_}}, sort keys %externalized_functions]) if $shadows;
 
@@ -596,14 +598,17 @@ my @definitions = select_keys('--criteria' => $criteria, %$options);
 my %inverses  = map {$externalized_functions{$_} => $_} keys %externalized_functions;
 my @externals = map $inverses{$_}, grep length, @definitions;
 my @internals = grep length $inverses{$_}, @definitions;
-my @sizes     = map sprintf('%6d %6d', length(serialize_single($_)), length(retrieve($_))), @{$all ? \@definitions : \@internals} if $sizes;
+my @sizes     = map sprintf('%6d %6d', length(serialize_single($_)), length(retrieve($_))), @{$external ? \@internals : \@definitions} if $sizes;
+
+my @flags     = map {my $k = $_; join '', map(is($k, "-$_") ? $_ : '-', qw(d i m u))} @definitions if $flags;
 my @hashes    = map fast_hash(retrieve($_)), @definitions if $hashes;
 
-my %flag_hashes = map {$_ => {map {$_ => 1} select_keys("-$_" => 1)}} qw(m u i) if $flags;
-my @flags       = map {my $k = $_; join '', map($flag_hashes{$_}{$k} ? $_ : '-', sort keys %flag_hashes)} @definitions if $flags;
+my %inherited     = parent_attributes(grep /^parent::/o, keys %data) if $parent_hashes;
+my @parent_hashes = map $inherited{$_} || '-', @definitions if $parent_hashes;
 
-join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [grep length, @externals], $sizes ? ([@sizes]) : (), $hashes ? ([@hashes]) : (), $flags ? ([@flags]) : ());
-__992087a0d63d41e0bb551803476cfe72
+join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @externals] : [@definitions],
+                                                    $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : (), $hashes ? ([@hashes]) : (), $parent_hashes ? ([@parent_hashes]) : ());
+__61a247f0a582f63d85b5d5a963a46893
 meta::function('ls-a', 'ls(\'-ad\', @_);');
 meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
 my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
@@ -1059,16 +1064,21 @@ my ($name) = @_;
 $name =~ s/^[^:]*:://;
 $name;
 __62efb9f22157835940af1d5feae98d98
-meta::internal_function('attribute_is', <<'__7bf6fde9d247cbba37d5e0ff6a9dc1ee');
+meta::internal_function('attribute_is', <<'__c88e0f87cf807ab0af73ca10032b54b2');
 my ($a, %options) = @_;
-my %inherited     = parent_attributes(grep /^parent::/o, sort keys %data) if $options{'-u'} or $options{'-U'};
+my %inherited     = parent_attributes(grep /^parent::/o, sort keys %data) if grep exists $options{$_}, qw/-u -U -d -D/;
 my $criteria      = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
 
-$a =~ /$criteria/ and ! $options{'-u'} || ! $inherited{$a} and ! $options{'-U'} || $inherited{$a}
-                  and ! $options{'-d'} || fast_hash(retrieve($a)) ne $inherited{$a} and ! $options{'-D'} || fast_hash(retrieve($a)) eq $inherited{$a}
-                  and ! $options{'-I'} || ! $transient{inherit}{namespace($a)} and ! $options{'-i'} || $transient{inherit}{namespace($a)}
-                  and ! $options{'-S'} || ! $a =~ /^state::/o and ! $options{'-M'} || ! /^meta::/o and ! $options{'-m'} || $a =~ /^meta::/o;
-__7bf6fde9d247cbba37d5e0ff6a9dc1ee
+my %tests = ('-u' => sub {! $inherited{$a}},
+             '-d' => sub {$inherited{$a} && fast_hash(retrieve($a)) ne $inherited{$a}},
+             '-i' => sub {$transient{inherit}{namespace($a)}},
+             '-s' => sub {$a =~ /^state::/o},
+             '-m' => sub {$a =~ /^meta::/o});
+
+return 0 unless scalar keys %tests == scalar grep ! exists $options{$_}    ||   &{$tests{$_}}(), keys %tests;
+return 0 unless scalar keys %tests == scalar grep ! exists $options{uc $_} || ! &{$tests{$_}}(), keys %tests;
+$a =~ /$criteria/
+__c88e0f87cf807ab0af73ca10032b54b2
 meta::internal_function('bench', <<'__d77400a4154b5004d42b6086bbd9b02c');
 use Time::HiRes qw/gettimeofday tv_interval/;
 
@@ -1678,11 +1688,11 @@ Modules could also have better names. 'std' is not descriptive, and there isn't 
 
 Also, caterwaul 1.0 should introduce aggressive destructuring and polymorphic pattern matching. How to do this?
 __4ed3f1379c7cf90df053a13da4409d66
-meta::parent('/home/spencertipping/bin/configuration', <<'__6bc40f5c3e6345088ffaa99cda539327');
+meta::parent('/home/spencertipping/bin/configuration', <<'__38975bf350806cd4fb978bde5bc79fe6');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  f23aa0012cbf6a998cb464002582e694
-__6bc40f5c3e6345088ffaa99cda539327
-meta::parent('/home/spencertipping/bin/node-base', <<'__75661d906fd9a1b70b4882f5ffbcb4a3');
+parent::/home/spencertipping/bin/object  3138f43dfe4f21288bd577b3fa2ae8a6
+__38975bf350806cd4fb978bde5bc79fe6
+meta::parent('/home/spencertipping/bin/node-base', <<'__40bdcb37312ddee253e78072477b01d8');
 function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
 function::node                                              3522fde8f76947a5f70bca33f1ee0016
 function::node-custom                                       c2f4063798c997ec7f78a3543b1240b3
@@ -1691,10 +1701,10 @@ function::run-forever                                       76175932a2d2692fc802
 internal_function::dep                                      bad9b934374b176318ed2295b63130bc
 message_color::test                                         14e993fdf2c62df353613c243dc9053b
 meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
-parent::/home/spencertipping/bin/repository                 7495fc0dd9bd33af5f590f673a817c7c
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  037565556ca6a27523e5db457332d07c
-__75661d906fd9a1b70b4882f5ffbcb4a3
-meta::parent('/home/spencertipping/bin/object', <<'__f23aa0012cbf6a998cb464002582e694');
+parent::/home/spencertipping/bin/repository                 ddf35269572b2c4c6c4769a059c79f73
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  766a1025f69be619044da6ee3b8e963b
+__40bdcb37312ddee253e78072477b01d8
+meta::parent('/home/spencertipping/bin/object', <<'__3138f43dfe4f21288bd577b3fa2ae8a6');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
 bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
@@ -1708,7 +1718,7 @@ function::cp                            e5fee448a74ecbf4ae215e6b43dfc048
 function::create                        090c342a2dc304b39c643d53350474a0
 function::current-state                 d83ae43551c0f58d1d0ce576402a315a
 function::disable                       49db26fcd680ca34c1f52629a7375d2f
-function::edit                          36bd3f2c1165d0c041b0fa9a96a85378
+function::edit                          c31d73791820a10ec910af043f67d4eb
 function::enable                        37af2d2e603e2455be227ae3c5a42c3a
 function::export                        388e0cc60507443cb1c0cc3e2658cfef
 function::extern                        6a9fa8c2a8a4eaae9fe8d38e402145e4
@@ -1722,7 +1732,7 @@ function::initial-state                 e21ba3519838b221a7b2d4e8a7544e7f
 function::is                            1d3401965e4720ed972470b54b447db0
 function::load-state                    ea18db867bd62a294e067f60e6975dcf
 function::lock                          9bf21fee2f0f809131d43553bde82fa5
-function::ls                            992087a0d63d41e0bb551803476cfe72
+function::ls                            61a247f0a582f63d85b5d5a963a46893
 function::mv                            52e95180e3c7019116bd798e0da0fdda
 function::name                          6848cbc257e4b6d7441b25acb04e23c9
 function::parents                       f94c3a5addbc92fe7f90d198fa701484
@@ -1747,7 +1757,7 @@ function::verify                        d31b85fffd464ddf516d2afeb63dcbde
 internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
 internal_function::associate            fc4f785bcf3ffe3225a73a1fdd314703
 internal_function::attribute            62efb9f22157835940af1d5feae98d98
-internal_function::attribute_is         7bf6fde9d247cbba37d5e0ff6a9dc1ee
+internal_function::attribute_is         c88e0f87cf807ab0af73ca10032b54b2
 internal_function::cache                c119f9d7ea9a147c6d526a6283fb119a
 internal_function::chmod_self           b13487447c65f2dc790bd6b21dde89dd
 internal_function::dangerous            4b8343178d6d4d1b760d61b1cfda008c
@@ -1799,29 +1809,29 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__f23aa0012cbf6a998cb464002582e694
-meta::parent('/home/spencertipping/bin/repository', <<'__7495fc0dd9bd33af5f590f673a817c7c');
+__3138f43dfe4f21288bd577b3fa2ae8a6
+meta::parent('/home/spencertipping/bin/repository', <<'__ddf35269572b2c4c6c4769a059c79f73');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  6bc40f5c3e6345088ffaa99cda539327
-__7495fc0dd9bd33af5f590f673a817c7c
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__037565556ca6a27523e5db457332d07c');
+parent::/home/spencertipping/bin/configuration  38975bf350806cd4fb978bde5bc79fe6
+__ddf35269572b2c4c6c4769a059c79f73
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__766a1025f69be619044da6ee3b8e963b');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  f23aa0012cbf6a998cb464002582e694
+parent::/home/spencertipping/bin/object  3138f43dfe4f21288bd577b3fa2ae8a6
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
-__037565556ca6a27523e5db457332d07c
-meta::parent('notes', <<'__f6aeea0df61016c8dbfecb09cd3dc6c8');
+__766a1025f69be619044da6ee3b8e963b
+meta::parent('notes', <<'__58054cfd9dabc2e5091aa5900fbc00e5');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    f23aa0012cbf6a998cb464002582e694
-__f6aeea0df61016c8dbfecb09cd3dc6c8
-meta::parent('object', <<'__f23aa0012cbf6a998cb464002582e694');
+parent::object    3138f43dfe4f21288bd577b3fa2ae8a6
+__58054cfd9dabc2e5091aa5900fbc00e5
+meta::parent('object', <<'__3138f43dfe4f21288bd577b3fa2ae8a6');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
 bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
@@ -1835,7 +1845,7 @@ function::cp                            e5fee448a74ecbf4ae215e6b43dfc048
 function::create                        090c342a2dc304b39c643d53350474a0
 function::current-state                 d83ae43551c0f58d1d0ce576402a315a
 function::disable                       49db26fcd680ca34c1f52629a7375d2f
-function::edit                          36bd3f2c1165d0c041b0fa9a96a85378
+function::edit                          c31d73791820a10ec910af043f67d4eb
 function::enable                        37af2d2e603e2455be227ae3c5a42c3a
 function::export                        388e0cc60507443cb1c0cc3e2658cfef
 function::extern                        6a9fa8c2a8a4eaae9fe8d38e402145e4
@@ -1849,7 +1859,7 @@ function::initial-state                 e21ba3519838b221a7b2d4e8a7544e7f
 function::is                            1d3401965e4720ed972470b54b447db0
 function::load-state                    ea18db867bd62a294e067f60e6975dcf
 function::lock                          9bf21fee2f0f809131d43553bde82fa5
-function::ls                            992087a0d63d41e0bb551803476cfe72
+function::ls                            61a247f0a582f63d85b5d5a963a46893
 function::mv                            52e95180e3c7019116bd798e0da0fdda
 function::name                          6848cbc257e4b6d7441b25acb04e23c9
 function::parents                       f94c3a5addbc92fe7f90d198fa701484
@@ -1874,7 +1884,7 @@ function::verify                        d31b85fffd464ddf516d2afeb63dcbde
 internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
 internal_function::associate            fc4f785bcf3ffe3225a73a1fdd314703
 internal_function::attribute            62efb9f22157835940af1d5feae98d98
-internal_function::attribute_is         7bf6fde9d247cbba37d5e0ff6a9dc1ee
+internal_function::attribute_is         c88e0f87cf807ab0af73ca10032b54b2
 internal_function::cache                c119f9d7ea9a147c6d526a6283fb119a
 internal_function::chmod_self           b13487447c65f2dc790bd6b21dde89dd
 internal_function::dangerous            4b8343178d6d4d1b760d61b1cfda008c
@@ -1926,18 +1936,18 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__f23aa0012cbf6a998cb464002582e694
-meta::parent('preprocessor', <<'__bf6cb81317d426080bfb08d893df0203');
+__3138f43dfe4f21288bd577b3fa2ae8a6
+meta::parent('preprocessor', <<'__ac16423eefc8f51dee131d4c04b2d2b1');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 f23aa0012cbf6a998cb464002582e694
+parent::object                 3138f43dfe4f21288bd577b3fa2ae8a6
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
 template::failing_conditional  5c593329b434a7044f68cec4b77e8ed9
 template::include              e0624844a65ae41e0217dd871fc0dbfb
 template::pinclude             5ba61c3034a4b183881936aec30d2be9
-__bf6cb81317d426080bfb08d893df0203
+__ac16423eefc8f51dee131d4c04b2d2b1
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('html-sdoc', <<'__54d22ab83d9f3f2e27ef51033b4817a7');
 my ($attribute) = @_;
@@ -1955,19 +1965,36 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/core', <<'__24010c6ef8c16431a03165a39cb6a63c');
+meta::sdoc('js::behaviors/core', <<'__c527eb3f77a60f650dbec023f8fbbc65');
 Core caterwaul behaviors | Spencer Tipping
 Licensed under the terms of the MIT source code license
+
+Core meta-behaviors.
+These provide methods required by other behaviors to be defined.
 
 - pinclude pp::js::behaviors/core/adverb
 - pinclude pp::js::behaviors/core/adjective
 
-- pinclude pp::js::behaviors/core/quote
-- pinclude pp::js::behaviors/core/words
-- pinclude pp::js::behaviors/core/inversion
+Language specializations.
+These provide configurations that specialize caterwaul to operate well with a given programming language. This is relevant because not all languages compile to Javascript the same way, and
+caterwaul should be able to adapt to the syntactic limitations of generated code (and thus be usable with non-Javascript languages like Coffeescript).
 
 - pinclude pp::js::behaviors/core/javascript-forms
-__24010c6ef8c16431a03165a39cb6a63c
+
+Word definitions.
+These define basic words that are considered central to caterwaul.
+
+- pinclude pp::js::behaviors/core/quote
+- pinclude pp::js::behaviors/core/words
+
+Libraries.
+These apply more advanced syntactic transforms to the code and can depend on the words defined above.
+
+- pinclude pp::js::behaviors/core/context-sensitive-traversal
+- pinclude pp::js::behaviors/core/inversion
+- pinclude pp::js::behaviors/core/implicit
+- pinclude pp::js::behaviors/core/unit
+__c527eb3f77a60f650dbec023f8fbbc65
 meta::sdoc('js::behaviors/core/adjective', <<'__b61f07d05119222703824424b1bd71a5');
 Adjective macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -1992,6 +2019,45 @@ it first. (Hence sentences such as 'go there if you need to' -- here 'if you nee
 
   caterwaul.macro_form('adverb', 'modified_adverb', function (name, def, form) {this.macro(form.replace({it: name}), def)});
 __45a71d03e369150992bdb3864b462d0d
+meta::sdoc('js::behaviors/core/context-sensitive-traversal', <<'__acf97288e5c44034c06d1e359aebe937');
+Context-sensitive syntax tree traversal | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+A recurring pattern in previous versions of caterwaul was to clone the global caterwaul function and set it up as a DSL processor by defining a macro that manually dictated tree traversal
+semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve this
+problem by implementing a grammar-like structure for tree traversal.
+
+  Sequence DSL example.
+  Caterwaul 0.4 introduced the seq[] macro, which enabled most Javascript operators to be reinterpreted as sequence methods. Implementing this transform was fairly gnarly; each macro needed to
+  specify whether it would expand its left/right sides, and such rules could be only one layer deep. Many of the macros looked like this (converted to caterwaul 1.0 notation):
+
+  | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
+    _xs *~[_body]  ->  qs[_xs.map(_body, given[_, _i])].replace({_xs: match._xs, _body: macroexpand(match._body)) /given.match
+
+  A more useful approach is to define semantic tags for different parse states and to use those tags to expand various regions of code. For example:
+
+  | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
+    _xs *~[_body]  ->  _xs.map(seq[_body], given[_, _i])
+
+  Here the seq[] tag is used to indicate expansion by the named 'seq' transformer.
+
+  Alternation.
+  You can create alternatives to specify what happens if one macroexpander fails to match a tree. Like a packrat grammar, the first matching alternative is taken with no backtracking. This is
+  done by specifying alternatives in an array:
+
+  | _node._class -> ['dom_node[_node].addClass(_class)', 'html[_node]._class']
+
+  The actual mechanism here uses a truth check against the output of the caterwaul function's macroexpand_single() method, which returns a falsy value if no macros matched or the
+  macroexpansion failed to transform anything. (Presumably macros that match would elect to transform the syntax tree somehow.)
+
+  Default behaviors.
+  A significant advantage of using a structured approach to tree-parsing is that you can define the default behavior for non-matching cases. For many operator-overloading macros we want to
+  leave non-matching cases alone but continue diving through the syntax tree. This is done internally by using 'map' with a function:
+
+  | seq = caterwaul.grammar();
+    seq.on(null, seq);
+__acf97288e5c44034c06d1e359aebe937
 meta::sdoc('js::behaviors/core/implicit', <<'__39a49e8725dd955cfc5c824c767040fe');
 Implicit lexical pattern | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2080,7 +2146,7 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
 __6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::behaviors/core/javascript-forms', <<'__b2a3af2119cd740585a967365a3ce652');
+meta::sdoc('js::behaviors/core/javascript-forms', <<'__94a68fe660d2e0bc822c87590a06a77a');
 Javascript macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2094,7 +2160,9 @@ These are designed to be fairly unusual in normal Javascript code (since we don'
 having to use grouping operators.
 
     this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
-         modified_adverb_form('_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]');
+         modified_adverb_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
+                              '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]',
+                              '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers');
 
 Javascript-specific shorthands.
 Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
@@ -2134,7 +2202,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
 
     this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
-__b2a3af2119cd740585a967365a3ce652
+__94a68fe660d2e0bc822c87590a06a77a
 meta::sdoc('js::behaviors/core/quote', <<'__caf6a765b72cf6577c0c4f7255afd2d8');
 Quotation behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2155,7 +2223,7 @@ Licensed under the terms of the MIT source code license
 Introduction.
 This behavior provides adjectives and adverbs useful for unit testing. It also makes use of the implicit pattern (a way to propagate settings through a lexical scope).
 __061478fbaad0d288234c6835259bc5cf
-meta::sdoc('js::behaviors/core/words', <<'__02430d0cf06b371450ec7d81a5b9eeeb');
+meta::sdoc('js::behaviors/core/words', <<'__3dfbc69e6c7443b36a8c3a100e40e1fc');
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2176,8 +2244,8 @@ These all impact scope or references somehow -- in other words, they create vari
   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
   binding.
 
-    this.modified_adverb('given',  'lambda',  '(function (_modifiers) {return _expression})').
-         modified_adverb('bgiven', 'blambda', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
+    this.modified_adverb('given',  'fn', '(function (_modifiers) {return _expression})').
+         modified_adverb('bgiven', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
 
   Side-effecting.
   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -2228,7 +2296,7 @@ These impact how something gets evaluated.
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
     this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
-__02430d0cf06b371450ec7d81a5b9eeeb
+__3dfbc69e6c7443b36a8c3a100e40e1fc
 meta::sdoc('js::caterwaul', <<'__0e7fa33d7c5a799b1c8aa54fe5196e90');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2529,7 +2597,7 @@ see sdoc::js::behaviors/core/adverb (for a macro form definition), sdoc::js::beh
 
          method(define_name, function () {return define.apply(this, arguments), this})});
 __2bc81de7c518471b7e7f798bc9a1069d
-meta::sdoc('js::core/caterwaul.macroexpander', <<'__6027725c7abd245bd261ab3eb5ffa5e2');
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__b240609ef973b293040ae5ce98ca5bac');
 Macroexpansion.
 Caterwaul's main purpose is to transform code, and the way it does this is by using macroexpansion. Macroexpansion involves finding pieces of the syntax tree that have a particular form and
 changing them somehow. Normally this is done by first defining a pattern and then defining a function that returns something to replace occurrences of that pattern. For example:
@@ -2609,9 +2677,10 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
                       method('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
                                                              return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})}).
 
-                      method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
-                  when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
-                                          this.method('macroexpand', function (t) {return this.ensure_syntax(t).rmap(function (n) {return f.call(this, n)})})}).
+                      method('macroexpand',        function (t) {return this.ensure_syntax(t).rmap(this.macroexpand_single)}).
+                      method('macroexpand_single', function (t) {return this.macro_expand_naive(t, this.macro_patterns, this.macro_expanders)}).
+
+                  when_baked(function () {this.method('macroexpand_single', this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders))}).
 
                       method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
                       method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
@@ -2623,7 +2692,7 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
           method_until_baked('macro',       variadic_definition(
             function (pattern, expander) {expander = this.ensure_expander(expander);
                                           return this.final_macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))})();
-__6027725c7abd245bd261ab3eb5ffa5e2
+__b240609ef973b293040ae5ce98ca5bac
 meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__05fa8df08517a70a17cc0f339a2b7a7e');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a

@@ -77,9 +77,10 @@
                       method('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
                                                              return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})}).
 
-                      method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
-                  when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
-                                          this.method('macroexpand', function (t) {return this.ensure_syntax(t).rmap(function (n) {return f.call(this, n)})})}).
+                      method('macroexpand',        function (t) {return this.ensure_syntax(t).rmap(this.macroexpand_single)}).
+                      method('macroexpand_single', function (t) {return this.macro_expand_naive(t, this.macro_patterns, this.macro_expanders)}).
+
+                  when_baked(function () {this.method('macroexpand_single', this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders))}).
 
                       method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
                       method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :

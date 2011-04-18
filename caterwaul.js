@@ -1032,9 +1032,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                       method('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
                                                              return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})}).
 
-                      method('macroexpand', function (t) {return this.macro_expand_naive(this.ensure_syntax(t), this.macro_patterns, this.macro_expanders)}).
-                  when_baked(function () {var f = this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders);
-                                          this.method('macroexpand', function (t) {return this.ensure_syntax(t).rmap(function (n) {return f.call(this, n)})})}).
+                      method('macroexpand',        function (t) {return this.ensure_syntax(t).rmap(this.macroexpand_single)}).
+                      method('macroexpand_single', function (t) {return this.macro_expand_naive(t, this.macro_patterns, this.macro_expanders)}).
+
+                  when_baked(function () {this.method('macroexpand_single', this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders))}).
 
                       method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
                       method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
@@ -1747,6 +1748,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Core caterwaul behaviors | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
+// Core meta-behaviors.
+// These provide methods required by other behaviors to be defined.
+
 
 
 // Adverb macro forms | Spencer Tipping
@@ -1779,6 +1783,75 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
+
+// Language specializations.
+// These provide configurations that specialize caterwaul to operate well with a given programming language. This is relevant because not all languages compile to Javascript the same way, and
+// caterwaul should be able to adapt to the syntactic limitations of generated code (and thus be usable with non-Javascript languages like Coffeescript).
+
+
+
+// Javascript macro forms | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// This module creates macro forms optimized for hand-coded Javascript. They won't work well at all for Coffeescript or other variants that don't support the side-effect comma operator.
+
+  caterwaul.configuration('core.js', function () {
+
+// Adjective and adverb forms.
+// These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
+// having to use grouping operators.
+
+    this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
+         modified_adverb_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
+                              '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]',
+                              '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers');
+
+// Javascript-specific shorthands.
+// Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
+
+//   String interpolation.
+//   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
+//   bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.
+
+//   This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
+//   used on the string itself, but you can now include balanced braces in the interpolated text. For example, this is now valid:
+
+//   | 'foo #{{bar: "bif"}.bar}'
+
+//   There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
+
+//   | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
+
+    this.macro('_string', function (match) {
+      var s = match._string.data, q = s.charAt(0);
+      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;
+
+      for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
+        if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
+                         else                            brace_depth += c === '{';
+        else             if ((c = s.charAt(i)) === '#')  got_hash = true;
+                         else if (c === '{' && got_hash) pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
+                         else                            got_hash = false;
+
+      pieces.push(s.substring(start, l));
+
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) if (i & 1) pieces[i] = this.parse(pieces[i].replace(escaped, q)).as('(');
+                                                                                            else       pieces[i] = new this.syntax(q + pieces[i] + q);
+      return new this.syntax('+', pieces).unflatten().as('(')});
+
+//   Destructuring function creation.
+//   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
+//   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
+
+    this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
+// Generated by SDoc 
+
+
+
+
+// Word definitions.
+// These define basic words that are considered central to caterwaul.
 
 
 
@@ -1819,8 +1892,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
 //   binding.
 
-    this.modified_adverb('given',  'lambda',  '(function (_modifiers) {return _expression})').
-         modified_adverb('bgiven', 'blambda', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
+    this.modified_adverb('given',  'fn', '(function (_modifiers) {return _expression})').
+         modified_adverb('bgiven', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -1871,6 +1944,53 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
     this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
+// Generated by SDoc 
+
+
+
+
+// Libraries.
+// These apply more advanced syntactic transforms to the code and can depend on the words defined above.
+
+
+
+// Context-sensitive syntax tree traversal | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// A recurring pattern in previous versions of caterwaul was to clone the global caterwaul function and set it up as a DSL processor by defining a macro that manually dictated tree traversal
+// semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve this
+// problem by implementing a grammar-like structure for tree traversal.
+
+//   Sequence DSL example.
+//   Caterwaul 0.4 introduced the seq[] macro, which enabled most Javascript operators to be reinterpreted as sequence methods. Implementing this transform was fairly gnarly; each macro needed to
+//   specify whether it would expand its left/right sides, and such rules could be only one layer deep. Many of the macros looked like this (converted to caterwaul 1.0 notation):
+
+//   | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
+//     _xs *~[_body]  ->  qs[_xs.map(_body, given[_, _i])].replace({_xs: match._xs, _body: macroexpand(match._body)) /given.match
+
+//   A more useful approach is to define semantic tags for different parse states and to use those tags to expand various regions of code. For example:
+
+//   | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
+//     _xs *~[_body]  ->  _xs.map(seq[_body], given[_, _i])
+
+//   Here the seq[] tag is used to indicate expansion by the named 'seq' transformer.
+
+//   Alternation.
+//   You can create alternatives to specify what happens if one macroexpander fails to match a tree. Like a packrat grammar, the first matching alternative is taken with no backtracking. This is
+//   done by specifying alternatives in an array:
+
+//   | _node._class -> ['dom_node[_node].addClass(_class)', 'html[_node]._class']
+
+//   The actual mechanism here uses a truth check against the output of the caterwaul function's macroexpand_single() method, which returns a falsy value if no macros matched or the
+//   macroexpansion failed to transform anything. (Presumably macros that match would elect to transform the syntax tree somehow.)
+
+//   Default behaviors.
+//   A significant advantage of using a structured approach to tree-parsing is that you can define the default behavior for non-matching cases. For many operator-overloading macros we want to
+//   leave non-matching cases alone but continue diving through the syntax tree. This is done internally by using 'map' with a function:
+
+//   | seq = caterwaul.grammar();
+//     seq.on(null, seq);
 // Generated by SDoc 
 
 
@@ -1945,60 +2065,39 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-
-// Javascript macro forms | Spencer Tipping
+// Implicit lexical pattern | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
 // Introduction.
-// This module creates macro forms optimized for hand-coded Javascript. They won't work well at all for Coffeescript or other variants that don't support the side-effect comma operator.
+// Often expressions will be evaluated within some context that impacts their behavior. While adverbs can establish context by wrapping an expression somehow, sometimes it isn't sufficient to
+// treat an expression as being opaque. For example, suppose we're writing unit tests and want to assert equivalence. We could say this:
 
-  caterwaul.configuration('core.js', function () {
+// | [1, 2, 3].reverse() /must_be[[3, 2, 1]]
 
-// Adjective and adverb forms.
-// These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
-// having to use grouping operators.
+// But it isn't clear what kind of equivalence relation we should be using. In this case we need to bind a local variable to provide that default:
 
-    this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
-         modified_adverb_form('_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]');
+// | [1, 2, 3].reverse() /must_be[[3, 2, 1]] /where[the_equivalence_relation(x, y) = x.length === y.length && ...]
+//   [1, 2, 3].reverse() /must_be[[3, 2, 1]] /under[caterwaul.unit.array_equivalence]              // a more concise way to say it
 
-// Javascript-specific shorthands.
-// Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
+// This pattern of using the 'the_' prefix is what I'm calling the implicit lexical pattern. The idea is that you can have multiple the_ variables bound at once, and inner ones shadow outer ones
+// (much like you'd expect in English). You can ask about one by just referring to it:
 
-//   String interpolation.
-//   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
-//   bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.
+// | console.log(the_equivalence_relation)
 
-//   This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
-//   used on the string itself, but you can now include balanced braces in the interpolated text. For example, this is now valid:
+//   Immutability.
+//   You should never reassign one of these context variables! Rather, you should rebind it using an adverb. The reason for this is that they're really globals in a sense; they're defined
+//   potentially far outside of their use site.
+// Generated by SDoc 
 
-//   | 'foo #{{bar: "bif"}.bar}'
 
-//   There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
 
-//   | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
 
-    this.macro('_string', function (match) {
-      var s = match._string.data, q = s.charAt(0);
-      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;
 
-      for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
-        if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
-                         else                            brace_depth += c === '{';
-        else             if ((c = s.charAt(i)) === '#')  got_hash = true;
-                         else if (c === '{' && got_hash) pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
-                         else                            got_hash = false;
+// Unit testing behavior | Spencer Tipping
+// Licensed under the terms of the MIT source code license
 
-      pieces.push(s.substring(start, l));
-
-      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) if (i & 1) pieces[i] = this.parse(pieces[i].replace(escaped, q)).as('(');
-                                                                                            else       pieces[i] = new this.syntax(q + pieces[i] + q);
-      return new this.syntax('+', pieces).unflatten().as('(')});
-
-//   Destructuring function creation.
-//   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
-//   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
-
-    this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
+// Introduction.
+// This behavior provides adjectives and adverbs useful for unit testing. It also makes use of the implicit pattern (a way to propagate settings through a lexical scope).
 // Generated by SDoc 
 
 

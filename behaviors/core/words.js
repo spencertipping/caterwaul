@@ -18,8 +18,8 @@
 //   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
 //   binding.
 
-    this.modified_adverb('given',  'lambda',  '(function (_modifiers) {return _expression})').
-         modified_adverb('bgiven', 'blambda', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
+    this.modified_adverb('given',  'fn', '(function (_modifiers) {return _expression})').
+         modified_adverb('bgiven', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
