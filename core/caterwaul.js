@@ -13,6 +13,7 @@
 - pinclude pp::js::core/caterwaul.parser
 - pinclude pp::js::core/caterwaul.compiler
 
+- pinclude pp::js::core/caterwaul.events
 - pinclude pp::js::core/caterwaul.bake
 
 - pinclude pp::js::core/caterwaul.macroexpander
