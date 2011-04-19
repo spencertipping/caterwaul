@@ -340,7 +340,7 @@ meta::configuration('dependencies', <<'__e6452f707a2f0de738e51033b8e9d792');
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
 __e6452f707a2f0de738e51033b8e9d792
 meta::data('author', 'Spencer Tipping');
-meta::data('current-continuation', 'caterwaul.html page');
+meta::data('current-continuation', 'trace module');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
 meta::data('libraries', <<'__cca38bdfe6664615b581ec6dff43cf46');
@@ -1004,12 +1004,12 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::base-files', <<'__d101e38a5e1ac32b1f50e9970d07fbba');
-file::write(attribute($_) . '.js', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors\/)?core\//, sort keys %data;
+meta::hook('after-render::base-files', <<'__6330c5d07443b55e0e7df86a7d58c2c0');
+file::write(attribute($_) . '.js', retrieve("pp::$_"), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors|core)\//, sort keys %data;
 
 file::write('caterwaul.js',      retrieve('pp::js::caterwaul'));
 file::write('caterwaul.node.js', retrieve('pp::js::caterwaul.node'));
-__d101e38a5e1ac32b1f50e9970d07fbba
+__6330c5d07443b55e0e7df86a7d58c2c0
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
@@ -2219,7 +2219,7 @@ language port you're using. For the native JS port, it will be enabled in these 
 
   caterwaul.configuration('core.quote', function () {this.adjective('qs', function (match) {return new this.ref(match._expression)})});
 __caf6a765b72cf6577c0c4f7255afd2d8
-meta::sdoc('js::behaviors/core/trace', <<'__c029e7b477294778e1d431874f7afc51');
+meta::sdoc('js::behaviors/core/trace', <<'__d28e16d099b0cd675ad39ab7b99a7a15');
 Code trace behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2227,7 +2227,7 @@ Introduction.
 The tracing configuration lets you create traces of code as it executes. It gives you a uniform interface to observe the evaluation of each expression in the program. To do this, first enable
 the 'trace' configuration, then add hooks. For example, here's a profiler:
 
-| var tracer  = caterwaul.clone('core.trace');
+| var tracer  = caterwaul.clone('trace');
   var timings = {};
   var timers  = [];
   tracer.on_before_trace(timings[index] = timings[index] || 0, timers.push(+new Date()), given[expression, index]).
@@ -2316,19 +2316,24 @@ And here are the expression-mode transformations:
   T[x]                                                          -> H[x]                                         // For all identifiers x
   T[undefined]                                                  -> H[undefined]                                 // undefined is a variable, not a literal (I'm reminding myself)
 
-  caterwaul.configuration('core.trace', function () {this.after(this.trace)}).shallow('trace', caterwaul.clone().configure(caterwaul.clone('core.js core.words')(function () {
-    this.event('before_trace', 'after_trace').method('before_hook', this.before_trace(tree, index)                       /given[tree, index]).
-                                              method('after_hook',  value /effect[this.after_trace (tree, index, value)] /given[tree, index, value]);
+  caterwaul.configuration('trace', function () {this.after(this.trace)}).shallow('trace', caterwaul.clone().configure(caterwaul.clone('core.js core.words')(function () {
+    this.event('before_trace', 'after_trace').method('before_hook',       this.before_trace(tree, index)                      /given[tree, index]).
+                                              method('after_hook',        value /effect[this.after_trace(tree, index, value)] /given[tree, index, value]),
+                                              method('after_method_hook', fn[tree, index, object, method, parameters] in
+                                                                          
     var self                     = this,
         expression_hook_template = this.parse('(_before_hook(_tree, _index), _after_hook(_tree, _index, _expression))'),
-        expression_hook          = expression_hook_template.replace({_before_hook: this.before_hook, _after_hook: this.after_hook, _tree: new this.ref(
-                                   | bgiven[tree, index],
-        method_hook_template     = this.parse('(
-        
-
-    this.macro('H[_x]', function (match) {return 
-    })));
-__c029e7b477294778e1d431874f7afc51
+        expression_hook          = fb[tree, index] in expression_hook_template.replace({_before_hook: this.before_hook, _after_hook: this.after_hook,
+                                                                                        _tree: new this.ref(tree), _index: index.toString(), _expression: tree}),
+        method_hook_template     = this.parse('(_before_hook(_tree, _index), _after_hook(_tree, _index, _object, _method, _parameters))'),
+        direct_method_pattern    = this.parse('_object._method(_parameters)'),
+        indirect_method_pattern  = this.parse('_object[_method](_parameters)'),
+        method_hook              = fb[tree, index] in method_hook_template.replace({_before_hook: this.before_method_hook, _after_hook: this.after_method_hook,
+                                                                                    _tree: new this.ref(tree), _index: index.toString(), _object: match._object, _method: match._method,
+                                                                                    _parameters: match._parameters}) /where[match = direct_method_pattern.match(tree) ||
+                                                                                                                                    indirect_method_pattern.match(tree)];
+    )));
+__d28e16d099b0cd675ad39ab7b99a7a15
 meta::sdoc('js::behaviors/core/unit', <<'__061478fbaad0d288234c6835259bc5cf');
 Unit testing behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2336,7 +2341,7 @@ Licensed under the terms of the MIT source code license
 Introduction.
 This behavior provides adjectives and adverbs useful for unit testing. It also makes use of the implicit pattern (a way to propagate settings through a lexical scope).
 __061478fbaad0d288234c6835259bc5cf
-meta::sdoc('js::behaviors/core/words', <<'__3dfbc69e6c7443b36a8c3a100e40e1fc');
+meta::sdoc('js::behaviors/core/words', <<'__049fee054d35572235fcddd89c43259d');
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2355,7 +2360,11 @@ These all impact scope or references somehow -- in other words, they create vari
 
   Function words.
   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
-  binding.
+  binding. They're aliased to the more concise fn[] and fb[] for historical and ergonomic reasons. For example:
+
+  | var f = fn[x] in x + 1
+    var f = x + 1 |given[x];
+    var f = x + 1 |given.x;
 
     this.modified_adverb('given',  'fn', '(function (_modifiers) {return _expression})').
          modified_adverb('bgiven', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
@@ -2369,9 +2378,13 @@ These all impact scope or references somehow -- in other words, they create vari
     this.modified_adverb('effect', 'se', '(function (it) {return (_modifiers), it}).call(this, (_expression))');
 
   Scoping.
-  You can create local variables by using the where[] adverb. If you do this, the locals can all see each other since they're placed into a 'var' statement.
+  You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
 
-    this.modified_adverb('where', '(function () {var _modifiers; return (_expression)}).call(this)');
+  | where[x = 10][alert(x)]
+    alert(x), where[x = 10]
+    bind[f(x) = x + 1] in alert(f(10))
+
+    this.modified_adverb('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)');
 
 Control flow modifiers.
 These impact how something gets evaluated.
@@ -2409,7 +2422,7 @@ These impact how something gets evaluated.
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
     this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
-__3dfbc69e6c7443b36a8c3a100e40e1fc
+__049fee054d35572235fcddd89c43259d
 meta::sdoc('js::caterwaul', <<'__0e7fa33d7c5a799b1c8aa54fe5196e90');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license

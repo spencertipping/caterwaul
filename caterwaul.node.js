@@ -1909,7 +1909,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   Function words.
 //   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
-//   binding.
+//   binding. They're aliased to the more concise fn[] and fb[] for historical and ergonomic reasons. For example:
+
+//   | var f = fn[x] in x + 1
+//     var f = x + 1 |given[x];
+//     var f = x + 1 |given.x;
 
     this.modified_adverb('given',  'fn', '(function (_modifiers) {return _expression})').
          modified_adverb('bgiven', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
@@ -1923,9 +1927,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     this.modified_adverb('effect', 'se', '(function (it) {return (_modifiers), it}).call(this, (_expression))');
 
 //   Scoping.
-//   You can create local variables by using the where[] adverb. If you do this, the locals can all see each other since they're placed into a 'var' statement.
+//   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
 
-    this.modified_adverb('where', '(function () {var _modifiers; return (_expression)}).call(this)');
+//   | where[x = 10][alert(x)]
+//     alert(x), where[x = 10]
+//     bind[f(x) = x + 1] in alert(f(10))
+
+    this.modified_adverb('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)');
 
 // Control flow modifiers.
 // These impact how something gets evaluated.
