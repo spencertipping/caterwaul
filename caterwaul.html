@@ -245,24 +245,26 @@ meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify|macroexpand|precompile|modules|core/debug)');
-meta::bootstrap('html', <<'__2e8bfd6f3cadf9328905860a1c656b99');
+meta::bootstrap('html', <<'__1f3c5f87b525d16ed712e1d184f6f579');
 <html>
   <head>
   <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
   <link rel='stylesheet' href='http://spencertipping.com/perl-objects/web/style.css'/>
 
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js'></script>
+  <script src='http://spencertipping.com/caterwaul/caterwaul.js'></script>
   <script src='http://spencertipping.com/perl-objects/web/attribute-parser.js'></script>
   <script>
-    $(function () {
-      $('body').empty().append('hi there!');
-    });
+    $(caterwaul.clone('core dom.jquery')(function () {
+      $('body').empty().append(JSON.stringify(attributes)),
+      where[attributes = parse_attributes($('body').html())];
+    }));
   </script>
   </head>
   <body></body>
 </html>
 
-__2e8bfd6f3cadf9328905860a1c656b99
+__1f3c5f87b525d16ed712e1d184f6f579
 meta::bootstrap('initialization', <<'__b39f25c213ceb0418551084d1bddeb20');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
