@@ -660,10 +660,10 @@ meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
-meta::function('precompile', <<'__e569ebd761dd0a0800d1806b326642c4');
+meta::function('precompile', <<'__9e8bceee318c469f0edab72648374b88');
 terminal::info("precompiling $_[0]");
-node([qw|pp::js::modules/caterwaul.all js::precompile|], @_);
-__e569ebd761dd0a0800d1806b326642c4
+node([qw|pp::js::caterwaul js::precompile|], @_);
+__9e8bceee318c469f0edab72648374b88
 meta::function('preprocess', <<'__66e539d29e9afa903569efad0eb7c886');
 # Implements a simple preprocessing language.
 # Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
@@ -1004,12 +1004,13 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::base-files', <<'__6330c5d07443b55e0e7df86a7d58c2c0');
+meta::hook('after-render::base-files', <<'__4bc301c572346b66c939991a25a85336');
 file::write(attribute($_) . '.js', retrieve("pp::$_"), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors|core)\//, sort keys %data;
 
 file::write('caterwaul.js',      retrieve('pp::js::caterwaul'));
+file::write('caterwaul.core.js', retrieve('pp::js::caterwaul.core'));
 file::write('caterwaul.node.js', retrieve('pp::js::caterwaul.node'));
-__6330c5d07443b55e0e7df86a7d58c2c0
+__4bc301c572346b66c939991a25a85336
 meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
@@ -2423,20 +2424,28 @@ These impact how something gets evaluated.
 
     this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
 __049fee054d35572235fcddd89c43259d
-meta::sdoc('js::caterwaul', <<'__0e7fa33d7c5a799b1c8aa54fe5196e90');
+meta::sdoc('js::caterwaul', <<'__25a87f260dc3ba5ee2957808bfa28fe1');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Core caterwaul compiler.
-This is generated from the files in the core/ directory of the source distribution.
+This is generated from the files in the core/ directory of the source distribution and has a version tag.
 
-- pinclude pp::js::core/caterwaul
+- pinclude pp::js::caterwaul.core
 
 Core behaviors.
 These are pulled from behaviors/core/ and add standard macros and code generation facilities to the core compiler.
 
 - pinclude pp::js::behaviors/core
-__0e7fa33d7c5a799b1c8aa54fe5196e90
+__25a87f260dc3ba5ee2957808bfa28fe1
+meta::sdoc('js::caterwaul.core', <<'__5712571ee8aafb2751a4c031372330b9');
+Core caterwaul build with version ID | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+- pinclude pp::js::core/caterwaul
+
+- eval "caterwaul.field('version', '" . fast_hash(retrieve('pp::js::core/caterwaul')) . "');"
+__5712571ee8aafb2751a4c031372330b9
 meta::sdoc('js::caterwaul.node', <<'__effa5b9724888e9f1b9067aa237a4896');
 CommonJS-compatible Caterwaul build | Spencer Tipping
 Licensed under the terms of the MIT source code license
