@@ -112,6 +112,8 @@
     where[self                                                 = this,
           qw(s)                                                = s.split(/\s+/),
 
+          expand_traces_in(tree)                               = 
+
           before_hook(tree)                                    = self.before_trace(tree),
           after_hook(tree, value)                              = self.after_trace(tree, value) -returning- value,
           after_method_hook(tree, object, method, parameters)  = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-

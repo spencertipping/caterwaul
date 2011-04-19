@@ -1969,7 +1969,7 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/core', <<'__c527eb3f77a60f650dbec023f8fbbc65');
+meta::sdoc('js::behaviors/core', <<'__66986b8dfd1d9b572bb195c85a870b1d');
 Core caterwaul behaviors | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1998,7 +1998,8 @@ These apply more advanced syntactic transforms to the code and can depend on the
 - pinclude pp::js::behaviors/core/inversion
 - pinclude pp::js::behaviors/core/implicit
 - pinclude pp::js::behaviors/core/unit
-__c527eb3f77a60f650dbec023f8fbbc65
+- pinclude pp::js::behaviors/core/trace
+__66986b8dfd1d9b572bb195c85a870b1d
 meta::sdoc('js::behaviors/core/adjective', <<'__b61f07d05119222703824424b1bd71a5');
 Adjective macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2223,7 +2224,7 @@ Also available is qse[], which pre-expands the syntax tree before returning it.
   caterwaul.configuration('core.quote', function () {this.adjective('qs', function (match) {return new this.ref(match._expression)}).
                                                           adjective('qse', function (match) {return new this.ref(this.macroexpand(match._expression))})});
 __5f51c9b05b56beda701236ce7d2a2260
-meta::sdoc('js::behaviors/core/trace', <<'__9174bbc3479bd2f6971830e1873815b4');
+meta::sdoc('js::behaviors/core/trace', <<'__096441ce8082c080a3ea23c288eb2a93');
 Code trace behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2338,6 +2339,8 @@ or (2) caching of the object. In this case I've written a special function to ha
     where[self                                                 = this,
           qw(s)                                                = s.split(/\s+/),
 
+          expand_traces_in(tree)                               = 
+
           before_hook(tree)                                    = self.before_trace(tree),
           after_hook(tree, value)                              = self.after_trace(tree, value) -returning- value,
           after_method_hook(tree, object, method, parameters)  = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-
@@ -2360,7 +2363,7 @@ or (2) caching of the object. In this case I've written a special function to ha
 
           direct_method_hook(tree, index, match)               = method_hook(tree, index, match._object, quote_method_name(match._method), match._parameters),
           indirect_method_hook(tree, index, match)             = method_hook(tree, index, match._object, match._method, match._parameters)]})));
-__9174bbc3479bd2f6971830e1873815b4
+__096441ce8082c080a3ea23c288eb2a93
 meta::sdoc('js::behaviors/core/unit', <<'__061478fbaad0d288234c6835259bc5cf');
 Unit testing behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
