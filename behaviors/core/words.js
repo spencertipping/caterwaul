@@ -22,16 +22,18 @@
 //     var f = x + 1 |given[x];
 //     var f = x + 1 |given.x;
 
-    this.modified_adverb('given',  'fn', '(function (_modifiers) {return _expression})').
-         modified_adverb('bgiven', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
+    this.modified_adverb('given',  'from',  'fn', '(function (_modifiers) {return _expression})').
+         modified_adverb('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
 //   Older versions of caterwaul bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
 
 //   | hash(k, v) = {} /effect[it[k] = v];
+//     compose(f, g)(x) = g(x) -then- f(it);
 
-    this.modified_adverb('effect', 'se', '(function (it) {return (_modifiers), it}).call(this, (_expression))');
+    this.modified_adverb('effect', 'se',              '(function (it) {return (_modifiers), it}).call(this, (_expression))').
+         modified_adverb('then',   're', 'returning', '(function (it) {return (_modifiers)}).call(this, (_expression))');
 
 //   Scoping.
 //   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -47,10 +49,13 @@
 
 //   Conditionals.
 //   These impact whether an expression gets evaluated. x /when[y] evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
-//   true.
+//   true. A final option 'otherwise' is like || but can have different precedence:
 
-    this.modified_adverb('when',   '((_modifiers) && (_expression))').
-         modified_adverb('unless', '(! (_modifiers) && (_expression))');
+//   | x = x /otherwise.y + z;
+
+    this.modified_adverb('when',      '((_modifiers) && (_expression))').
+         modified_adverb('unless',    '(! (_modifiers) && (_expression))').
+         modified_adverb('otherwise', '((_expression) || (_modifiers))');
 
 //   Collection-based loops.
 //   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.

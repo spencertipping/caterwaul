@@ -3,13 +3,13 @@
 
 // Introduction.
 // The tracing configuration lets you create traces of code as it executes. It gives you a uniform interface to observe the evaluation of each expression in the program. To do this, first enable
-// the 'trace' configuration, then add hooks. For example, here's a profiler:
+// the 'trace' configuration, then add hooks. For example, here's a very simple profiler (it doesn't account for 'own time', just 'total time'):
 
 // | var tracer  = caterwaul.clone('trace');
 //   var timings = {};
 //   var timers  = [];
-//   tracer.on_before_trace(timings[index] = timings[index] || 0, timers.push(+new Date()), given[expression, index]).
-//           on_after_trace(timings[index] += +new Date() - timers.pop(),                   given[expression, index, value]);
+//   tracer.on_before_trace(timings[expression.id()] = timings[expression.id()] || 0, timers.push(+new Date()), given[expression]).
+//           on_after_trace(timings[expression.id()] += +new Date() - timers.pop(),                             given[expression, value]);
 
 // Interface details.
 // Tracing things involves modifying the generated expressions in a specific way. First, the tracer marks that an expression will be evaluated. This is done by invoking a 'start' function, which
@@ -21,10 +21,7 @@
 
 // Here is the basic transformation applied to the code:
 
-// | some_expression   ->   (before_hook(qs[some_expression], some_index), after_hook(qs[some_expression], some_index, some_expression))
-
-// The index is an integer that uniquely identifies the expression. This prevents you from having to do anything too weird trying to use syntax trees as hash-keys. (This isn't safe anyway due to
-// the intensionality of syntax nodes and their semantics.)
+// | some_expression   ->   (before_hook(qs[some_expression]), after_hook(qs[some_expression], some_expression))
 
 // Note that the tracer inserts itself as an after-step in the compilation process. This means that if you have other after-configurations, you should think about whether you want them to operate
 // on the traced or untraced code. If untraced, then you should configure caterwaul with those configurations first:
@@ -70,45 +67,78 @@
 //   T[x; y]                                                       -> T[x]; T[y]
 //   T[{x}]                                                        -> {T[x]}                                       // Done by context on statement-level things (because we trace object literals)
 
-// And here are the expression-mode transformations:
+  caterwaul.configuration('core.trace', function () {this.after(this.trace)}).shallow('trace', caterwaul.clone().configure(caterwaul.clone('core.js core.words core.quote')(function () {
+    this.event('before_trace', 'after_trace').method('tmacro', this.macro(lhs, expand_traces(rhs)) /given[lhs, rhs]).
 
-// | T[function (x, y) {body}]                                     -> H[function (x, y) {T[body]}]
-//   T[x ? y : z]                                                  -> H[T[x] ? T[y] : T[z]]
-//   T[x + y]                                                      -> H[T[x] + T[y]]                               // For most binary operators; exceptions listed below
-//   T[+x]                                                         -> H[+T[x]]                                     // For most unary operators; exceptions listed below
-//   T[++x], T[--x], T[x++], T[x--]                                -> H[++x], H[--x], H[x++], H[x--]               // Lvalue, so can't trace the original without disassembling the ++ or --
-//   T[[x, y, z]]                                                  -> H[[T[x], T[y], T[z]]]                        // Trace the constructor output as well as the components
-//   T[{x: y, z: w}]                                               -> H[{x: T[y], z: T[w]}]
-//   T[object.method(x, y)]                                        -> M[T[object], T[method], [T[x], T[y]]]        // M[] is like H[], but preserves invocation binding
-//   T[new f(x, y)]                                                -> H[new T[f](T[x], T[y])]                      // No H[] around the function call
-//   T[delete x.y]                                                 -> H[delete T[x].y]                             // Lvalue, so can't trace y
-//   T[void x]                                                     -> H[void T[x]]                                 // No point really, but capturing for completeness
-//   T[typeof x]                                                   -> H[typeof x]                                  // Can't trace x due to potential ReferenceErrors if it isn't in scope
-//   T[f(x, y)]                                                    -> H[T[f](T[x], T[y])]
-//   T[x.y]                                                        -> H[T[x].y]
-//   T[x.y = z]                                                    -> H[T[x].y = T[z]]
-//   T[x[y] = z]                                                   -> H[T[x][T[y]] = T[z]]
-//   T[x = y]                                                      -> H[x = T[y]]                                  // And all variants such as +=, -=, etc
-//   T['literal']                                                  -> 'literal'                                    // Literal syntax nodes aren't traced
-//   T[x, y]                                                       -> T[x], T[y]
-//   T[x]                                                          -> H[x]                                         // For all identifiers x
-//   T[undefined]                                                  -> H[undefined]                                 // undefined is a variable, not a literal (I'm reminding myself)
+//   Expression-mode transformations.
+//   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', M[] means 'hook this method call', E[] means 'trace this expression
+//   recursively', and S[] means 'trace this statement recursively'. It's essentially a context-free grammar over tree expressions.
 
-  caterwaul.configuration('trace', function () {this.after(this.trace)}).shallow('trace', caterwaul.clone().configure(caterwaul.clone('core.js core.words')(function () {
-    this.event('before_trace', 'after_trace').method('before_hook',       this.before_trace(tree, index)                      /given[tree, index]).
-                                              method('after_hook',        value /effect[this.after_trace(tree, index, value)] /given[tree, index, value]),
-                                              method('after_method_hook', fn[tree, index, object, method, parameters] in
-                                                                          
-    var self                     = this,
-        expression_hook_template = this.parse('(_before_hook(_tree, _index), _after_hook(_tree, _index, _expression))'),
-        expression_hook          = fb[tree, index] in expression_hook_template.replace({_before_hook: this.before_hook, _after_hook: this.after_hook,
-                                                                                        _tree: new this.ref(tree), _index: index.toString(), _expression: tree}),
-        method_hook_template     = this.parse('(_before_hook(_tree, _index), _after_hook(_tree, _index, _object, _method, _parameters))'),
-        direct_method_pattern    = this.parse('_object._method(_parameters)'),
-        indirect_method_pattern  = this.parse('_object[_method](_parameters)'),
-        method_hook              = fb[tree, index] in method_hook_template.replace({_before_hook: this.before_method_hook, _after_hook: this.after_method_hook,
-                                                                                    _tree: new this.ref(tree), _index: index.toString(), _object: match._object, _method: match._method,
-                                                                                    _parameters: match._parameters}) /where[match = direct_method_pattern.match(tree) ||
-                                                                                                                                    indirect_method_pattern.match(tree)];
-    )));
+    expression.tmacro('_x',                        'H[_x]').
+               tmacro('_x, _y',                    'E[_x], E[_y]').
+               tmacro('_x._y',                     'H[E[_x]._y]').
+
+               tmacro('_x = _y',                   'H[_x = E[_y]]').
+               tmacro('_x += _y',                  'H[_x += E[_y]]').
+               tmacro('_x -= _y',                  'H[_x -= E[_y]]').
+               tmacro('_x *= _y',                  'H[_x *= E[_y]]').
+               tmacro('_x /= _y',                  'H[_x /= E[_y]]').
+               tmacro('_x %= _y',                  'H[_x %= E[_y]]').
+               tmacro('_x ^= _y',                  'H[_x ^= E[_y]]').
+               tmacro('_x &= _y',                  'H[_x &= E[_y]]').
+               tmacro('_x |= _y',                  'H[_x |= E[_y]]').
+               tmacro('_x <<= _y',                 'H[_x <<= E[_y]]').
+               tmacro('_x >>= _y',                 'H[_x >>= E[_y]]').
+               tmacro('_x >>>= _y',                'H[_x >>>= E[_y]]').
+
+               tmacro('_x[_y] = _z',               'H[E[_x][E[_y]] = E[_z]]').
+
+               tmacro('_x._y = _z',                'H[E[_x]._y = E[_z]]').
+
+               tmacro('_f(_xs)',                   'H[E[_f](E[_xs])]').
+               tmacro('typeof _x',                 'H[typeof _x]').
+               tmacro('void _x',                   'H[void E[_x]]').
+               tmacro('delete _x._y',              'H[delete E[_x]._y]').
+               tmacro('new _f(_xs)',               'H[new E[_f](E[_xs])]').
+               tmacro('_o._m(_xs)',                'M[E[_o], _m, [E[_xs]]]').
+               tmacro('{_ps}',                     'H[{E[_ps]}]').
+               tmacro('_k: _v',                    '_k: E[_v]').
+               tmacro('[_xs]',                     'H[[E[_xs]]]').
+               tmacro('++_x',                      'H[++_x]').
+               tmacro('--_x',                      'H[--_x]').
+               tmacro('_x++',                      'H[_x++]').
+               tmacro('_x--',                      'H[_x--]').
+               tmacro('+_x',                       'H[+E[_x]]').
+               tmacro('_x + _y',                   'H[E[_x] + E[_y]]').
+               tmacro('_x ? _y : _z',              'H[E[_x] ? E[_y] : E[_z]]').
+               tmacro('function (_xs) {_body}',    'H[function (_xs) {S[_body]}]').
+               tmacro('(_x)',                      'E[_x]').
+
+//   Statement-mode transformations.
+
+    where[self                                                 = this,
+
+
+          before_hook(tree)                                    = self.before_trace(tree),
+          after_hook(tree, value)                              = self.after_trace(tree, value) -returning- value,
+          after_method_hook(tree, object, method, parameters)  = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-
+                                                                 self.after_trace(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
+
+          before_hook_ref                                      = new this.ref(before_hook),
+          after_hook_ref                                       = new this.ref(after_hook),
+          after_method_hook_ref                                = new this.ref(after_method_hook),
+
+          expression_hook_template                             = qs[_before_hook(_tree, _index), _after_hook(_tree, _index, _expression)].as('('),
+          expression_hook(tree, index)                         = expression_hook_template.replace({_before_hook: before_hook, _after_hook: after_hook, _tree: new self.ref(tree),
+                                                                                                   _index: index.toString(), _expression: tree}),
+
+          indirect_method_hook_template                        = qs[_before_hook(_tree, _index), _after_hook(_tree, _index, _object, _method, [_parameters])].as('('),
+          quote_method_name(method)                            = '"#{method.data.replace(/"/g, "\\\"")}"',
+
+          method_hook(tree, index, object, method, parameters) = indirect_method_hook_template.replace({_before_hook: this.before_method_hook, _after_hook: this.after_method_hook,
+                                                                                                        _tree: new this.ref(tree), _index: index.toString(), _object: object, _method: method,
+                                                                                                        _parameters: parameters}),
+
+          direct_method_hook(tree, index, match)               = method_hook(tree, index, match._object, quote_method_name(match._method), match._parameters),
+          indirect_method_hook(tree, index, match)             = method_hook(tree, index, match._object, match._method, match._parameters)]})));
 // Generated by SDoc 
