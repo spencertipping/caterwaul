@@ -36,88 +36,81 @@
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-// Gory details.
-// Here's the list of transformations broken down by construct. Transformation is denoted by T[], and the generic hook transformation is denoted by H[]. T is understood to be recursive, since it
-// drives the tree descent. First, here are the statement-mode transformations:
-
-// | T[function foo (x, y) {body}]                                 -> function foo (x, y) {T[body]}
-//   T[var x = y, z = w]                                           -> var x = T[y], z = T[w]
-//   T[var x]                                                      -> var x
-//   T[const x = y, z = w]                                         -> const x = T[y], z = T[w]                     // Most people don't use this, but just in case...
-//   T[if (x) y; else z]                                           -> if (T[x]) T[y]; else T[z];
-//   T[if (x) y;]                                                  -> if (T[x]) T[y];
-//   T[for (x; y; z) w;]                                           -> for (T[x]; T[y]; T[z]) T[w];
-//   T[for (x in y) z;]                                            -> for (x in T[y]) T[z];                        // Exceptional case: can't transform x because lvalue is implied
-//   T[for (var x in y) z;]                                        -> for (var x in T[y]) T[z];
-//   T[while (x) y;]                                               -> while (T[x]) T[y];
-//   T[do x; while (y);]                                           -> do T[x]; while (T[y]);
-//   T[try {x} catch (e) {y} finally {z}]                          -> try {T[x]} catch (e) {T[y]} finally {T[z]}
-//   T[try {x} catch (e) {y}]                                      -> try {T[x]} catch (e) {T[y]}
-//   T[return x]                                                   -> return T[x]
-//   T[return]                                                     -> return
-//   T[throw x]                                                    -> throw T[x]
-//   T[break label]                                                -> break label                                  // Exceptional case: labels aren't transformed
-//   T[break]                                                      -> break
-//   T[continue label]                                             -> continue label
-//   T[continue]                                                   -> continue
-//   T[label: for ...]                                             -> label: T[for ...]
-//   T[label: while ...]                                           -> label: T[while ...]
-//   T[switch (x) {case v1: e1; break; ...; default: en}]          -> switch (T[x]) {case v1: T[e1]; break; ...; default: T[en]}
-//   T[with (x) y;]                                                -> with (T[x]) T[y];
-//   T[x; y]                                                       -> T[x]; T[y]
-//   T[{x}]                                                        -> {T[x]}                                       // Done by context on statement-level things (because we trace object literals)
-
   caterwaul.configuration('core.trace', function () {this.after(this.trace)}).shallow('trace', caterwaul.clone().configure(caterwaul.clone('core.js core.words core.quote')(function () {
-    this.event('before_trace', 'after_trace').method('tmacro', this.macro(lhs, expand_traces(rhs)) /given[lhs, rhs]).
+    this.event('before_trace', 'after_trace').method('tmacro', this.macro(lhs, expand_traces(rhs)) /given[lhs, rhs]),
 
 //   Expression-mode transformations.
 //   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', M[] means 'hook this method call', E[] means 'trace this expression
 //   recursively', and S[] means 'trace this statement recursively'. It's essentially a context-free grammar over tree expressions.
 
-    expression.tmacro('_x',                        'H[_x]').
-               tmacro('_x, _y',                    'E[_x], E[_y]').
-               tmacro('_x._y',                     'H[E[_x]._y]').
+    this.shallow('expression', this.clone(function () {
+      this.variadic('assignment_operator', this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[_x           = E[_y]]].replace({'=': op})).
+                                                tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[E[_x][E[_y]] = E[_z]]].replace({'=': op})).
+                                                tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[E[_x]._y     = E[_z]]].replace({'=': op})) | given.op).
+           variadic('binary_operator',     this.tmacro(qs[_x + _y].replace({'+': op}), qs[H[E[_x] + E[_y]]].replace({'+': op}))            | given.op).
+           variadic('unary_operator',      this.tmacro(qs[+_x].replace({'u+': 'u#{op}'}), qs[H[+T[_x]]].replace({'u+': 'u#{op}'}))         | given.op),
 
-               tmacro('_x = _y',                   'H[_x = E[_y]]').
-               tmacro('_x += _y',                  'H[_x += E[_y]]').
-               tmacro('_x -= _y',                  'H[_x -= E[_y]]').
-               tmacro('_x *= _y',                  'H[_x *= E[_y]]').
-               tmacro('_x /= _y',                  'H[_x /= E[_y]]').
-               tmacro('_x %= _y',                  'H[_x %= E[_y]]').
-               tmacro('_x ^= _y',                  'H[_x ^= E[_y]]').
-               tmacro('_x &= _y',                  'H[_x &= E[_y]]').
-               tmacro('_x |= _y',                  'H[_x |= E[_y]]').
-               tmacro('_x <<= _y',                 'H[_x <<= E[_y]]').
-               tmacro('_x >>= _y',                 'H[_x >>= E[_y]]').
-               tmacro('_x >>>= _y',                'H[_x >>>= E[_y]]').
+      this.tmacro('_x', 'H[_x]').                                                                                       // Base case: identifier or literal
+           tmacro('(_x)', '(E[_x])').                                                                                   // Destructuring of parens
+           tmacro('++_x', 'H[++_x]').tmacro('--_x', 'H[--_x]').tmacro('_x++', 'H[_x++]').tmacro('_x--', 'H[_x--]').     // Increment/decrement (can't trace original value)
 
-               tmacro('_x[_y] = _z',               'H[E[_x][E[_y]] = E[_z]]').
+           tmacro('_x, _y',                 'E[_x], E[_y]').                                                            // Preserve commas -- works in an argument list
+           tmacro('_x._y',                  'H[E[_x]._y]').                                                             // No tracing for constant attributes
+           tmacro('typeof _x',              'H[typeof _x]').                                                            // No tracing for typeof since the value may not exist
+           tmacro('delete _x._y',           'H[delete E[_x]._y]').                                                      // Lvalue, so no tracing for the original
+           tmacro('_o._m(_xs)',             'M[E[_o], _m, [E[_xs]]]').                                                  // Use M[] to provide correct binding via apply()
+           tmacro('{_ps}',                  'H[{E[_ps]}]').                                                             // Hook the final object and distribute across k/v pairs (more)
+           tmacro('_k: _v',                 '_k: E[_v]').                                                               // Ignore keys (which are constant)
+           tmacro('[_xs]',                  'H[[E[_xs]]]').                                                             // Hook the final array and distribute across elements
+           tmacro('_x ? _y : _z',           'H[E[_x] ? E[_y] : E[_z]]').
+           tmacro('function (_xs) {_body}', 'H[function (_xs) {S[_body]}]'),                                            // Trace body in statement mode rather than expression mode
 
-               tmacro('_x._y = _z',                'H[E[_x]._y = E[_z]]').
-
-               tmacro('_f(_xs)',                   'H[E[_f](E[_xs])]').
-               tmacro('typeof _x',                 'H[typeof _x]').
-               tmacro('void _x',                   'H[void E[_x]]').
-               tmacro('delete _x._y',              'H[delete E[_x]._y]').
-               tmacro('new _f(_xs)',               'H[new E[_f](E[_xs])]').
-               tmacro('_o._m(_xs)',                'M[E[_o], _m, [E[_xs]]]').
-               tmacro('{_ps}',                     'H[{E[_ps]}]').
-               tmacro('_k: _v',                    '_k: E[_v]').
-               tmacro('[_xs]',                     'H[[E[_xs]]]').
-               tmacro('++_x',                      'H[++_x]').
-               tmacro('--_x',                      'H[--_x]').
-               tmacro('_x++',                      'H[_x++]').
-               tmacro('_x--',                      'H[_x--]').
-               tmacro('+_x',                       'H[+E[_x]]').
-               tmacro('_x + _y',                   'H[E[_x] + E[_y]]').
-               tmacro('_x ? _y : _z',              'H[E[_x] ? E[_y] : E[_z]]').
-               tmacro('function (_xs) {_body}',    'H[function (_xs) {S[_body]}]').
-               tmacro('(_x)',                      'E[_x]').
+      this.assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),                                 // Use methods above to define these regular macros
+      this.binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
+      this.unary_operator(it)      -over- qw('+ - void new')})),
 
 //   Statement-mode transformations.
+//   A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
+//   assignment. Another is the {} construct, which can be either a block or an object literal.
+
+    this.shallow('statement', this.clone(function () {
+      this.tmacro('_x',                                    'E[_x]').
+           tmacro('{_x}',                                  '{S[_x]}').
+           tmacro('_x; _y',                                'S[_x]; S[_y]').
+
+           tmacro('function _f(_args) {_body}',            'function _f(_args) {S[_body]}').
+           tmacro('_x, _y',                                'S[_x], S[_y]').
+           tmacro('_x = _y',                               '_x = E[_y]').
+           tmacro('var _xs',                               'var S[_xs]').
+           tmacro('const _xs',                             'const S[_xs]').
+
+           tmacro('if (_x) _y',                            'if (E[_x]) S[_y]').
+           tmacro('if (_x) _y; else _z',                   'if (E[_x]) S[_y]; else S[_z]').
+           tmacro('if (_x) {_y} else _z',                  'if (E[_x]) {S[_y]} else S[_z]').
+
+           tmacro('switch (_c) {_body}',                   'switch (E[_c]) {S[_body]}').
+           tmacro('with (_x) _y',                          'with (E[_x]) S[_y]').
+
+           tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
+           tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
+           tmacro('while (_x) y',                          'while (E[_x]) S[_y]').
+           tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
+           tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
+
+           tmacro('try {_x} catch (_e) {_y}',              'try {S[_x]} catch (_e) {S[_y]}').
+           tmacro('try {_x} catch (_e) {_y} finally {_z}', 'try {S[_x]} catch (_e) {S[_y]}').
+
+           tmacro('return _x',                             'return E[_x]').
+           tmacro('return',                                'return').
+           tmacro('throw _x',                              'throw E[_x]').
+           tmacro('break _label',                          'break _label').
+           tmacro('break',                                 'break').
+           tmacro('continue _label',                       'continue _label').
+           tmacro('continue',                              'continue').
+           tmacro('_label: _stuff',                        '_label: S[_stuff]')})),
 
     where[self                                                 = this,
-
+          qw(s)                                                = s.split(/\s+/),
 
           before_hook(tree)                                    = self.before_trace(tree),
           after_hook(tree, value)                              = self.after_trace(tree, value) -returning- value,
