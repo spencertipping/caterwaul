@@ -434,7 +434,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      clone: function () {return this.rmap(function () {return false})},
 
    collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-   replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
+   replace: function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                           var replacement = rs[n.data];
+                                                           return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                      replacement})},
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
@@ -598,7 +601,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
-       serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
+       serialize: function (xs) {var op = this.data, space = op && /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
                                  return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
                           has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                          has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
@@ -1621,8 +1624,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
 //   more generic case.
 
-    annotate_functions_in = function (tree, references) {return macro_expand_naive(tree, [trivial_function_pattern,                nontrivial_function_pattern],
-                                                                                         [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)], null)},
+    annotate_functions_in = function (tree, references) {return caterwaul_global.macro_expand_naive(tree,
+                                                                  [trivial_function_pattern,                nontrivial_function_pattern],
+                                                                  [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)], null)},
 
 //   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -1642,7 +1646,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_gensym) {_body}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var matches = tree.match(nontrivial_gensym_detection_pattern) || tree.match(trivial_gensym_detection_pattern), k = matches && matches._gensym.data;
+                        var matches = nontrivial_gensym_detection_pattern.match(tree) || trivial_gensym_detection_pattern.match(tree), k = matches && matches._gensym.data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
                                                       else                        references[k].compiled = tree, references[k].environment = merge({}, this.globals, environment);
@@ -1710,13 +1714,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
 //   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
 
-    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {
-                                    var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
-                                    return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
+    substitute_precompiled      = function (references) {return function (match) {var ref = references[match._gensym.data];
+                                                                                  return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
 
     perform_substitution        = function (references, tree) {var expander = substitute_precompiled(references);
-                                                               return macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                               [expander,                         expander], null)},
+                                                               return caterwaul_global.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                                                                [expander,                         expander], null)},
 
 //   Tracing.
 //   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
@@ -1724,7 +1727,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
 
-    annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().field('compile', wrapped_compile(caterwaul.compile, references))},
+    annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().method('compile', wrapped_compile(caterwaul.compile, references))},
     trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(caterwaul_global.parse(f), references);
                                                            caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})();
                                                            return references};
@@ -1788,7 +1791,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.field('version', '94cf373976ebbba3d3fcb9807b07e59a').check_version();
+caterwaul.field('version', '0b474c58d74837b14d52a207b875505d').check_version();
 // Generated by SDoc 
 
 
@@ -2265,7 +2268,7 @@ caterwaul.field('version', '94cf373976ebbba3d3fcb9807b07e59a').check_version();
     this.shallow('statement', statement.after(trace_directive_expander).configure(function () {
       this.tmacro('_x',                                    'E[_x]').                         tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
            tmacro('{_x}',                                  '{S[_x]}').                       tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
-           tmacro('_x; _y',                                'S[_x]; S[_y]').                  tmacro('while (_x) y',                          'while (E[_x]) S[_y]').
+           tmacro('_x; _y',                                'S[_x]; S[_y]').                  tmacro('while (_x) _y',                         'while (E[_x]) S[_y]').
                                                                                              tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
            tmacro('function _f(_args) {_body}',            'function _f(_args) {S[_body]}'). tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
            tmacro('_x, _y',                                'S[_x], S[_y]').
@@ -2309,7 +2312,7 @@ caterwaul.field('version', '94cf373976ebbba3d3fcb9807b07e59a').check_version();
           qw(s)                                               = s.split(/\s+/),
 
           // Tracing setup: caterwaul functions to carry out the trace annotations.
-          trace_directive_aliases                             = {H: this.gensym(), M: this.gensym(), S: this.gensym(), E: this.gensym()} /effect[it[it[k]] = k, over_keys[it]],
+          trace_directive_aliases                             = {H: this.gensym(), M: this.gensym(), S: this.gensym(), E: this.gensym()} /effect[o[o[it]] = it, over_keys[o], where[o = it]],
           convert_trace_directives_in(tree)                   = self.ensure_syntax(tree).replace(trace_directive_aliases),
 
           with_tmacro()                                       = this.method('tmacro', this.final_macro(lhs, convert_trace_directives_in(rhs)) /given[lhs, rhs]),
@@ -2322,7 +2325,7 @@ caterwaul.field('version', '94cf373976ebbba3d3fcb9807b07e59a').check_version();
           before_hook(tree)                                   = self.before_trace(tree),
           after_hook(tree, value)                             = self.after_trace(tree, value) -returning- value,
           after_method_hook(tree, object, method, parameters) = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-
-                                                                self.after_trace(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
+                                                                after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
 
           before_hook_ref                                     = new this.ref(before_hook),
           after_hook_ref                                      = new this.ref(after_hook),

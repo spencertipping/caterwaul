@@ -89,7 +89,7 @@
     this.shallow('statement', statement.after(trace_directive_expander).configure(function () {
       this.tmacro('_x',                                    'E[_x]').                         tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
            tmacro('{_x}',                                  '{S[_x]}').                       tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
-           tmacro('_x; _y',                                'S[_x]; S[_y]').                  tmacro('while (_x) y',                          'while (E[_x]) S[_y]').
+           tmacro('_x; _y',                                'S[_x]; S[_y]').                  tmacro('while (_x) _y',                         'while (E[_x]) S[_y]').
                                                                                              tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
            tmacro('function _f(_args) {_body}',            'function _f(_args) {S[_body]}'). tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
            tmacro('_x, _y',                                'S[_x], S[_y]').
@@ -133,7 +133,7 @@
           qw(s)                                               = s.split(/\s+/),
 
           // Tracing setup: caterwaul functions to carry out the trace annotations.
-          trace_directive_aliases                             = {H: this.gensym(), M: this.gensym(), S: this.gensym(), E: this.gensym()} /effect[it[it[k]] = k, over_keys[it]],
+          trace_directive_aliases                             = {H: this.gensym(), M: this.gensym(), S: this.gensym(), E: this.gensym()} /effect[o[o[it]] = it, over_keys[o], where[o = it]],
           convert_trace_directives_in(tree)                   = self.ensure_syntax(tree).replace(trace_directive_aliases),
 
           with_tmacro()                                       = this.method('tmacro', this.final_macro(lhs, convert_trace_directives_in(rhs)) /given[lhs, rhs]),
@@ -146,7 +146,7 @@
           before_hook(tree)                                   = self.before_trace(tree),
           after_hook(tree, value)                             = self.after_trace(tree, value) -returning- value,
           after_method_hook(tree, object, method, parameters) = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-
-                                                                self.after_trace(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
+                                                                after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
 
           before_hook_ref                                     = new this.ref(before_hook),
           after_hook_ref                                      = new this.ref(after_hook),

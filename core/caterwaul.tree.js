@@ -110,7 +110,10 @@
      clone: function () {return this.rmap(function () {return false})},
 
    collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-   replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
+   replace: function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                           var replacement = rs[n.data];
+                                                           return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                      replacement})},
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
@@ -274,7 +277,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
-       serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
+       serialize: function (xs) {var op = this.data, space = op && /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
                                  return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
                           has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                          has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :

@@ -416,7 +416,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
      clone: function () {return this.rmap(function () {return false})},
 
    collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-   replace: function (rs) {return this.rnmap(function (n) {return own.call(rs, n.data) ? rs[n.data] : n})},
+   replace: function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                           var replacement = rs[n.data];
+                                                           return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                      replacement})},
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
@@ -580,7 +583,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
-       serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
+       serialize: function (xs) {var op = this.data, space = op && /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
                                  return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
                           has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
                          has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
@@ -1603,8 +1606,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
 //   more generic case.
 
-    annotate_functions_in = function (tree, references) {return macro_expand_naive(tree, [trivial_function_pattern,                nontrivial_function_pattern],
-                                                                                         [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)], null)},
+    annotate_functions_in = function (tree, references) {return caterwaul_global.macro_expand_naive(tree,
+                                                                  [trivial_function_pattern,                nontrivial_function_pattern],
+                                                                  [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)], null)},
 
 //   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -1624,7 +1628,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_gensym) {_body}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
-                        var matches = tree.match(nontrivial_gensym_detection_pattern) || tree.match(trivial_gensym_detection_pattern), k = matches && matches._gensym.data;
+                        var matches = nontrivial_gensym_detection_pattern.match(tree) || trivial_gensym_detection_pattern.match(tree), k = matches && matches._gensym.data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
                                                       else                        references[k].compiled = tree, references[k].environment = merge({}, this.globals, environment);
@@ -1692,13 +1696,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
 //   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
 
-    substitute_precompiled      = function (references) {return function (args_or_gensym, gensym_or_body, body) {
-                                    var ref = references[args_or_gensym.data] || references[gensym_or_body.data];
-                                    return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
+    substitute_precompiled      = function (references) {return function (match) {var ref = references[match._gensym.data];
+                                                                                  return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
 
     perform_substitution        = function (references, tree) {var expander = substitute_precompiled(references);
-                                                               return macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                               [expander,                         expander], null)},
+                                                               return caterwaul_global.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                                                                [expander,                         expander], null)},
 
 //   Tracing.
 //   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
@@ -1706,7 +1709,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
 
-    annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().field('compile', wrapped_compile(caterwaul.compile, references))},
+    annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().method('compile', wrapped_compile(caterwaul.compile, references))},
     trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(caterwaul_global.parse(f), references);
                                                            caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})();
                                                            return references};
