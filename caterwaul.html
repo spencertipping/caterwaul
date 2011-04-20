@@ -38,7 +38,7 @@ meta::define_form 'meta', sub {
   my ($name, $value) = @_;
   meta::eval_in($value, "meta::$name")};
 
-meta::meta('configure', <<'__25976e07665878d3fae18f050160343f');
+meta::meta('configure', <<'__');
 # A function to configure transients. Transients can be used to store any number of
 # different things, but one of the more common usages is type descriptors.
 
@@ -46,8 +46,8 @@ sub meta::configure {
   my ($datatype, %options) = @_;
   $transient{$_}{$datatype} = $options{$_} for keys %options;
 }
-__25976e07665878d3fae18f050160343f
-meta::meta('externalize', <<'__9141b4e8752515391385516ae94b23b5');
+__
+meta::meta('externalize', <<'__');
 # Function externalization. Data types should call this method when defining a function
 # that has an external interface.
 
@@ -56,8 +56,8 @@ sub meta::externalize {
   $externalized_functions{$name} = $attribute;
   *{"::$name"} = $implementation || $attribute;
 }
-__9141b4e8752515391385516ae94b23b5
-meta::meta('functor::editable', <<'__e3d2ede6edf65ffe2123584b2bd5dab7');
+__
+meta::meta('functor::editable', <<'__');
 # An editable type. This creates a type whose default action is to open an editor
 # on whichever value is mentioned. This can be changed using different flags.
 
@@ -78,8 +78,8 @@ sub meta::functor::editable {
       return edit($attribute) if $command eq 'edit' or $options{default} eq 'edit' and not defined $command;
       return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
       return retrieve($attribute)}}}
-__e3d2ede6edf65ffe2123584b2bd5dab7
-meta::meta('type::alias', <<'__28fe15dd61f4902ed5180d8604d15d97');
+__
+meta::meta('type::alias', <<'__');
 meta::configure 'alias', inherit => 0;
 meta::define_form 'alias', sub {
   my ($name, $value) = @_;
@@ -89,8 +89,8 @@ meta::define_form 'alias', sub {
     shell::run(shell::tokenize($value), shell::tokenize(@_));
   };
 };
-__28fe15dd61f4902ed5180d8604d15d97
-meta::meta('type::bootstrap', <<'__297d03fb32df03b46ea418469fc4e49e');
+__
+meta::meta('type::bootstrap', <<'__');
 # Bootstrap attributes don't get executed. The reason for this is that because
 # they are serialized directly into the header of the file (and later duplicated
 # as regular data attributes), they will have already been executed when the
@@ -98,16 +98,16 @@ meta::meta('type::bootstrap', <<'__297d03fb32df03b46ea418469fc4e49e');
 
 meta::configure 'bootstrap', extension => '.pl', inherit => 1;
 meta::define_form 'bootstrap', sub {};
-__297d03fb32df03b46ea418469fc4e49e
-meta::meta('type::cache', <<'__52eac0d7b550a358cc86803fe1a9d921');
+__
+meta::meta('type::cache', <<'__');
 meta::configure 'cache', inherit => 0;
 meta::define_form 'cache', \&meta::bootstrap::implementation;
-__52eac0d7b550a358cc86803fe1a9d921
-meta::meta('type::cached_dependency', <<'__e9455b403cbff27bbcc41d917fef482f');
+__
+meta::meta('type::cached_dependency', <<'__');
 meta::configure 'cached_dependency', inherit => 0, extension => '';
 meta::define_form 'cached_dependency', \&meta::bootstrap::implementation;
-__e9455b403cbff27bbcc41d917fef482f
-meta::meta('type::configuration', <<'__d67e10a128e6b1d958c5b9d3bbe25aa4');
+__
+meta::meta('type::configuration', <<'__');
 meta::functor::editable 'configuration', inherit => 0, extension => '.conf', default => sub {
   # Any lines starting with #, with or without leading whitespace, are treated as comments.
   # Comments are not parsed in option text; that is, you could specify an option that contained
@@ -120,23 +120,23 @@ meta::functor::editable 'configuration', inherit => 0, extension => '.conf', def
   $key_values[$_ << 1] and $key_values[$_ << 1] = lc $key_values[$_ << 1] for 0 .. @key_values >> 1;
   @key_values;
 };
-__d67e10a128e6b1d958c5b9d3bbe25aa4
+__
 meta::meta('type::data', 'meta::functor::editable \'data\', extension => \'\', inherit => 0, default => \'cat\';');
-meta::meta('type::function', <<'__d93b3cc15693707dac518e3d6b1f5648');
+meta::meta('type::function', <<'__');
 meta::configure 'function', extension => '.pl', inherit => 1;
 meta::define_form 'function', sub {
   my ($name, $value) = @_;
   meta::externalize $name, "function::$name", meta::eval_in("sub {\n$value\n}", "function::$name");
 };
-__d93b3cc15693707dac518e3d6b1f5648
-meta::meta('type::hook', <<'__f55a3f728ddfb90204dff3fe5d86845c');
+__
+meta::meta('type::hook', <<'__');
 meta::configure 'hook', extension => '.pl', inherit => 0;
 meta::define_form 'hook', sub {
   my ($name, $value) = @_;
   *{"hook::$name"} = meta::eval_in("sub {\n$value\n}", "hook::$name");
 };
-__f55a3f728ddfb90204dff3fe5d86845c
-meta::meta('type::inc', <<'__c95915391b969734305f2f492d5ca8e3');
+__
+meta::meta('type::inc', <<'__');
 meta::configure 'inc', inherit => 1, extension => '.pl';
 meta::define_form 'inc', sub {
   use File::Path 'mkpath';
@@ -155,57 +155,57 @@ meta::define_form 'inc', sub {
     close $fh;
   }
 };
-__c95915391b969734305f2f492d5ca8e3
-meta::meta('type::internal_function', <<'__34abb44c67c7e282569e28ef6f4d62ab');
+__
+meta::meta('type::internal_function', <<'__');
 meta::configure 'internal_function', extension => '.pl', inherit => 1;
 meta::define_form 'internal_function', sub {
   my ($name, $value) = @_;
   *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
 };
-__34abb44c67c7e282569e28ef6f4d62ab
+__
 meta::meta('type::js', 'meta::functor::editable \'js\', extension => \'.js\', inherit => 1;');
-meta::meta('type::library', <<'__b6dd78120e6d787acdb5c1629f7f1896');
+meta::meta('type::library', <<'__');
 meta::configure 'library', extension => '.pl', inherit => 1;
 meta::define_form 'library', sub {
   my ($name, $value) = @_;
   meta::eval_in($value, "library::$name");
 };
-__b6dd78120e6d787acdb5c1629f7f1896
-meta::meta('type::message_color', <<'__794bf137c425293738f07636bcfb5c55');
+__
+meta::meta('type::message_color', <<'__');
 meta::configure 'message_color', extension => '', inherit => 1;
 meta::define_form 'message_color', sub {
   my ($name, $value) = @_;
   terminal::color($name, $value);
 };
-__794bf137c425293738f07636bcfb5c55
-meta::meta('type::meta', <<'__640f25635ce2365b0648962918cf9932');
+__
+meta::meta('type::meta', <<'__');
 # This doesn't define a new type. It customizes the existing 'meta' type
 # defined in bootstrap::initialization. Note that horrible things will
 # happen if you redefine it using the editable functor.
 
 meta::configure 'meta', extension => '.pl', inherit => 1;
-__640f25635ce2365b0648962918cf9932
+__
 meta::meta('type::note', 'meta::functor::editable \'note\', extension => \'.sdoc\', inherit => 0, default => \'edit\';');
-meta::meta('type::parent', <<'__607e9931309b1b595424bedcee5dfa45');
+meta::meta('type::parent', <<'__');
 meta::define_form 'parent', \&meta::bootstrap::implementation;
 meta::configure 'parent', extension => '', inherit => 1;
-__607e9931309b1b595424bedcee5dfa45
-meta::meta('type::retriever', <<'__6e847a9d205e4a5589765a3366cdd115');
+__
+meta::meta('type::retriever', <<'__');
 meta::configure 'retriever', extension => '.pl', inherit => 1;
 meta::define_form 'retriever', sub {
   my ($name, $value) = @_;
   $transient{retrievers}{$name} = meta::eval_in("sub {\n$value\n}", "retriever::$name");
 };
-__6e847a9d205e4a5589765a3366cdd115
-meta::meta('type::sdoc', <<'__392c65eddae300e2aa67014b85884979');
+__
+meta::meta('type::sdoc', <<'__');
 # A meta-type for other types. So retrieve('js::main') will work if you have
 # the attribute 'sdoc::js::main'. The filename will be main.js.sdoc.
 
 meta::functor::editable 'sdoc', inherit => 1, extension => sub {
   extension_for(attribute($_[0])) . '.sdoc';
 };
-__392c65eddae300e2aa67014b85884979
-meta::meta('type::state', <<'__c1f29670be26f1df6100ffe4334e1202');
+__
+meta::meta('type::state', <<'__');
 # Allows temporary or long-term storage of states. Nothing particularly insightful
 # is done about compression, so storing alternative states will cause a large
 # increase in size. Also, states don't contain other states -- otherwise the size
@@ -215,14 +215,14 @@ meta::meta('type::state', <<'__c1f29670be26f1df6100ffe4334e1202');
 
 meta::configure 'state', inherit => 0, extension => '.pl';
 meta::define_form 'state', \&meta::bootstrap::implementation;
-__c1f29670be26f1df6100ffe4334e1202
-meta::meta('type::template', <<'__25f4d6eafb1d3eea6d5d3d9a71a5623e');
+__
+meta::meta('type::template', <<'__');
 meta::configure 'template', extension => '.pl', inherit => 1;
 meta::define_form 'template', sub {
   my ($name, $value) = @_;
   meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
 };
-__25f4d6eafb1d3eea6d5d3d9a71a5623e
+__
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::alias('e', 'edit sdoc::js::core/caterwaul');
 meta::alias('eb', 'edit sdoc::js::core/caterwaul.bake');
@@ -245,7 +245,7 @@ meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
 meta::alias('me', 'macroexpand');
 meta::alias('meopt', 'macroexpander-optimization');
 meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify|macroexpand|precompile|modules|core/debug)');
-meta::bootstrap('html', <<'__1f3c5f87b525d16ed712e1d184f6f579');
+meta::bootstrap('html', <<'__');
 <html>
   <head>
   <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
@@ -264,8 +264,8 @@ meta::bootstrap('html', <<'__1f3c5f87b525d16ed712e1d184f6f579');
   <body></body>
 </html>
 
-__1f3c5f87b525d16ed712e1d184f6f579
-meta::bootstrap('initialization', <<'__b39f25c213ceb0418551084d1bddeb20');
+__
+meta::bootstrap('initialization', <<'__');
 #!/usr/bin/perl
 # Run perldoc on this file for documentation.
 
@@ -306,8 +306,8 @@ meta::define_form 'meta', sub {
   my ($name, $value) = @_;
   meta::eval_in($value, "meta::$name")};
 
-__b39f25c213ceb0418551084d1bddeb20
-meta::bootstrap('perldoc', <<'__c63395cbc6f7160b603befbb2d9b6700');
+__
+meta::bootstrap('perldoc', <<'__');
 =head1 Self-modifying Perl script
 
 =head2 Original implementation by Spencer Tipping L<http://spencertipping.com>
@@ -323,8 +323,8 @@ run this script with the 'usage' argument.
 
 =cut
 
-__c63395cbc6f7160b603befbb2d9b6700
-meta::cache('parent-identification', <<'__c1b42b7ba418cde40af0086ff0ee16f1');
+__
+meta::cache('parent-identification', <<'__');
 /home/spencertipping/bin/configuration aa772900bb5b925cb84346bd72a4249d
 /home/spencertipping/bin/node-base da62d84a9e81832f089520c172982c1a
 /home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
@@ -333,22 +333,22 @@ meta::cache('parent-identification', <<'__c1b42b7ba418cde40af0086ff0ee16f1');
 notes a9e5975593ed5d90d943ad98405c71e5
 object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
-__c1b42b7ba418cde40af0086ff0ee16f1
-meta::configuration('dependencies', <<'__e6452f707a2f0de738e51033b8e9d792');
+__
+meta::configuration('dependencies', <<'__');
 # Named dependencies:
 #caterwaul.all.js:     http://spencertipping.com/caterwaul/caterwaul.all.min.js
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
-__e6452f707a2f0de738e51033b8e9d792
+__
 meta::data('author', 'Spencer Tipping');
 meta::data('current-continuation', 'trace module');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
-meta::data('libraries', <<'__cca38bdfe6664615b581ec6dff43cf46');
+meta::data('libraries', <<'__');
 # URLs of libraries to be downloaded into the lib/ directory.
 http://spencertipping.com/caterwaul/caterwaul.all.js
 http://spencertipping.com/montenegro/montenegro.server.js
-__cca38bdfe6664615b581ec6dff43cf46
-meta::data('license', <<'__3c6177256de0fddb721f534c3ad8c0ee');
+__
+meta::data('license', <<'__');
 MIT License
 Copyright (c) 2010 Spencer Tipping
 
@@ -369,64 +369,64 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-__3c6177256de0fddb721f534c3ad8c0ee
+__
 meta::data('main', 'server.js');
 meta::data('name', 'node-base');
 meta::data('permanent-identity', '97d938428ee6c4d2a505f6f35bad0906');
 meta::data('quiet', '1');
 meta::data('watching', '1');
-meta::function('alias', <<'__28744564997657da45ab16cd5b441104');
+meta::function('alias', <<'__');
 my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
 @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
-__28744564997657da45ab16cd5b441104
-meta::function('b', <<'__98038da0ce9e52e43be8530b56b96a5b');
+__
+meta::function('b', <<'__');
 my @behaviors = select_keys('--criteria' => "sdoc::js::behaviors/(.*/)?$_[0]");
 edit($behaviors[0]);
-__98038da0ce9e52e43be8530b56b96a5b
+__
 meta::function('cat', 'join "\\n", retrieve(@_);');
-meta::function('cc', <<'__c4d52b1d8f52a480f07b81b93c3aac7b');
+meta::function('cc', <<'__');
 # Stashes a quick one-line continuation. (Used to remind me what I was doing.)
 @_ ? associate('data::current-continuation', hook('set-cc', join(' ', @_))) : retrieve('data::current-continuation');
-__c4d52b1d8f52a480f07b81b93c3aac7b
+__
 meta::function('ccc', 'rm(\'data::current-continuation\');');
-meta::function('child', <<'__f69646398c3123d3d939a7f2b3156606');
+meta::function('child', <<'__');
 around_hook('child', @_, sub {
   my ($child_name) = @_;
   clone($child_name);
   enable();
   qx($child_name update-from $0 -n);
   disable()});
-__f69646398c3123d3d939a7f2b3156606
+__
 meta::function('cloc', 'loc(\'modules/caterwaul\\.(?!format)[^/]+$\', \'caterwaul$\')');
-meta::function('clone', <<'__54e00ff2103e54423d4c9febb97ce063');
+meta::function('clone', <<'__');
 for (grep length, @_) {
   around_hook('clone', $_, sub {
     hypothetically(sub {
       rm('data::permanent-identity');
       file::write($_, serialize(), noclobber => 1);
       chmod(0700, $_)})})}
-__54e00ff2103e54423d4c9febb97ce063
-meta::function('cp', <<'__e5fee448a74ecbf4ae215e6b43dfc048');
+__
+meta::function('cp', <<'__');
 my $from = shift @_;
 my $value = retrieve($from);
 associate($_, $value) for @_;
-__e5fee448a74ecbf4ae215e6b43dfc048
-meta::function('create', <<'__090c342a2dc304b39c643d53350474a0');
+__
+meta::function('create', <<'__');
 my ($name, $value) = @_;
 around_hook('create', $name, $value, sub {
   return edit($name) if exists $data{$name};
   associate($name, defined $value ? $value : '');
   edit($name) unless defined $value});
-__090c342a2dc304b39c643d53350474a0
+__
 meta::function('ct', 'create("sdoc::js::modules/caterwaul.$_[0].test/$_[1]");');
-meta::function('current-state', <<'__d83ae43551c0f58d1d0ce576402a315a');
+meta::function('current-state', <<'__');
 my @valid_keys   = grep ! /^state::/, sort keys %data;
 my @ordered_keys = (grep(/^meta::/, @valid_keys), grep(! /^meta::/, @valid_keys));
 join "\n", map serialize_single($_), @ordered_keys;
-__d83ae43551c0f58d1d0ce576402a315a
+__
 meta::function('disable', 'hook(\'disable\', chmod_self(sub {$_[0] & 0666}));');
-meta::function('dupdate', <<'__1c0273217c5b9f2756bb14a4a00aa7e2');
+meta::function('dupdate', <<'__');
 # Update the repository based on the dependencies it lists.
 use LWP::Simple ();
 rm(grep /^cached_dependency::/, keys %data);
@@ -435,8 +435,8 @@ my %dependencies = dependencies();
 for (keys %dependencies) {
   terminal::info("Retrieving $dependencies{$_} as $_");
   associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
-__1c0273217c5b9f2756bb14a4a00aa7e2
-meta::function('edit', <<'__c31d73791820a10ec910af043f67d4eb');
+__
+meta::function('edit', <<'__');
 my ($name, %options) = @_;
 my $extension = extension_for($name);
 
@@ -448,17 +448,17 @@ around_hook('edit', @_, sub {
             execute => $name !~ /^bootstrap::/)});
 save() unless $data{'data::edit::no-save'};
 '';
-__c31d73791820a10ec910af043f67d4eb
+__
 meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
-meta::function('export', <<'__388e0cc60507443cb1c0cc3e2658cfef');
+meta::function('export', <<'__');
 # Exports data into a text file.
 #   export attr1 attr2 attr3 ... file.txt
 my $name = pop @_;
 @_ or die 'Expected filename';
 file::write($name, join "\n", retrieve(@_));
-__388e0cc60507443cb1c0cc3e2658cfef
+__
 meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
-meta::function('gjs', <<'__8c86893807ad07373b300cd5c6ff8878');
+meta::function('gjs', <<'__');
 # Runs GJS on a collection of source files and arguments. The format is:
 # gjs([@source_strings], @process_args);
 my ($sources, @args) = @_;
@@ -468,8 +468,8 @@ with_exported(@$sources, sub {
   sh('gjs', $_[0], @args);
   hook('after-gjs', $_[0], @args);
 });
-__8c86893807ad07373b300cd5c6ff8878
-meta::function('grep', <<'__f2f28b81f4bcf4cf9fbe9e27bc9447b0');
+__
+meta::function('grep', <<'__');
 # Looks through attributes for a pattern. Usage is grep pattern [options], where
 # [options] is the format as provided to select_keys.
 
@@ -496,31 +496,31 @@ if ($$options{'-c'}) {
   s/^/\033[1;32m/o && s/$/\033[0;0m/o for @m_line_numbers}
 
 table_display([@m_attributes], [@m_line_numbers], [@m_lines]);
-__f2f28b81f4bcf4cf9fbe9e27bc9447b0
+__
 meta::function('hash', 'fast_hash(@_);');
-meta::function('hook', <<'__d74d8e2b611342af6a0897e0bd62e6e6');
+meta::function('hook', <<'__');
 my ($hook, @args) = @_;
 $transient{active_hooks}{$hook} = 1;
 dangerous('', sub {&$_(@args)}) for grep /^hook::${hook}::/, sort keys %data;
 @args;
-__d74d8e2b611342af6a0897e0bd62e6e6
+__
 meta::function('hooks', 'join "\\n", sort keys %{$transient{active_hooks}};');
 meta::function('identity', 'retrieve(\'data::permanent-identity\') || associate(\'data::permanent-identity\', fast_hash(rand() . name() . serialize()));');
-meta::function('import', <<'__ac86cbe9c9fb12fc8cef2cc88e80c01e');
+meta::function('import', <<'__');
 my $name = pop @_;
 associate($name, @_ ? join('', map(file::read($_), @_)) : join('', <STDIN>)); 
-__ac86cbe9c9fb12fc8cef2cc88e80c01e
-meta::function('import-bundle', <<'__4c7139ed5c9f65f38a33cf8f8a6cae27');
+__
+meta::function('import-bundle', <<'__');
 eval join '', <STDIN>;
 die $@ if $@;
-__4c7139ed5c9f65f38a33cf8f8a6cae27
+__
 meta::function('initial-state', '$transient{initial};');
-meta::function('is', <<'__1d3401965e4720ed972470b54b447db0');
+meta::function('is', <<'__');
 my ($attribute, @criteria) = @_;
 my ($options, @stuff) = separate_options(@criteria);
 attribute_is($attribute, %$options);
-__1d3401965e4720ed972470b54b447db0
-meta::function('line', <<'__598645438b1ff90e982ead9ec2b5d1ab');
+__
+meta::function('line', <<'__');
 # Prints a line, with some context, from caterwaul.all.js. This is useful when a test fails.
 my ($line, $part) = @_;
 my @lines = split /\n/, $part eq '-a' ? retrieve('pp::js::caterwaul') : retrieve('pp::js::core/caterwaul');
@@ -530,8 +530,8 @@ for ($line - 5 .. $line + 5) {
   printf "%04d: %s\n", $_, $lines[$_ - 1];
   print "\033[0;0m" if $_ == $line;
 }
-__598645438b1ff90e982ead9ec2b5d1ab
-meta::function('load-state', <<'__ea18db867bd62a294e067f60e6975dcf');
+__
+meta::function('load-state', <<'__');
 around_hook('load-state', @_, sub {
   my ($state_name) = @_;
   my $state = retrieve("state::$state_name");
@@ -547,8 +547,8 @@ around_hook('load-state', @_, sub {
   terminal::error(hook('load-state-failed', $@)) if $@;
   reload();
   verify()});
-__ea18db867bd62a294e067f60e6975dcf
-meta::function('load-time', <<'__182ac8ff8db32271b7d395fe0db1d63d');
+__
+meta::function('load-time', <<'__');
 render();
 
 terminal::info('benchmarking GJS load time (SpiderMonkey)');
@@ -558,8 +558,8 @@ terminal::info('loading caterwaul.js');
 terminal::info('', 'benchmarking node load time (V8)');
 terminal::info('loading caterwaul.js');
   bench(sub {sh('node caterwaul.js > /dev/null 2>&1')});
-__182ac8ff8db32271b7d395fe0db1d63d
-meta::function('loc', <<'__36e0cabf1fe1c1bcaa3c8c708bd82ca0');
+__
+meta::function('loc', <<'__');
 # Counts SLOC, whitespace, and total LOC in the codebase.
 hook('before-loc', @_);
 
@@ -586,9 +586,9 @@ terminal::info(map &$loc($_), @attributes);
 terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
 
 hook('after-loc', @_);
-__36e0cabf1fe1c1bcaa3c8c708bd82ca0
+__
 meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
-meta::function('ls', <<'__61a247f0a582f63d85b5d5a963a46893');
+meta::function('ls', <<'__');
 my ($options, @criteria) = separate_options(@_);
 my ($external, $shadows, $sizes, $flags, $long, $hashes, $parent_hashes) = @$options{qw(-e -s -z -f -l -h -p)};
 $sizes = $flags = $hashes = $parent_hashes = 1 if $long;
@@ -611,24 +611,24 @@ my @parent_hashes = map $inherited{$_} || '-', @definitions if $parent_hashes;
 
 join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @externals] : [@definitions],
                                                     $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : (), $hashes ? ([@hashes]) : (), $parent_hashes ? ([@parent_hashes]) : ());
-__61a247f0a582f63d85b5d5a963a46893
+__
 meta::function('ls-a', 'ls(\'-ad\', @_);');
-meta::function('m', <<'__3167c4c7bc087a3b0d524cada827fe55');
+meta::function('m', <<'__');
 my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
 edit($modules[0]);
-__3167c4c7bc087a3b0d524cada827fe55
-meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
+__
+meta::function('mv', <<'__');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
 associate($to, retrieve($from));
 rm($from);
-__52e95180e3c7019116bd798e0da0fdda
-meta::function('name', <<'__6848cbc257e4b6d7441b25acb04e23c9');
+__
+meta::function('name', <<'__');
 my $name = $0;
 $name =~ s/^.*\///;
 $name;
-__6848cbc257e4b6d7441b25acb04e23c9
-meta::function('node', <<'__3522fde8f76947a5f70bca33f1ee0016');
+__
+meta::function('node', <<'__');
 # Runs node on a collection of source files and arguments. The format is:
 # node([@source_strings], @process_args);
 my ($sources, @args) = @_;
@@ -638,8 +638,8 @@ with_exported(@$sources, sub {
   sh('node', $_[0], @args);
   hook('after-node', $_[0], @args);
 });
-__3522fde8f76947a5f70bca33f1ee0016
-meta::function('node-custom', <<'__c2f4063798c997ec7f78a3543b1240b3');
+__
+meta::function('node-custom', <<'__');
 # Runs node on a collection of source files and arguments. The format is:
 # &{'node-custom'}([@source_strings], [@node_arguments], @process_args);
 my ($sources, $node_args, @args) = @_;
@@ -649,22 +649,22 @@ with_exported(@$sources, sub {
   sh('node', @$node_args, $_[0], @args);
   hook('after-node-custom', @$node_args, $_[0], @args);
 });
-__c2f4063798c997ec7f78a3543b1240b3
-meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
+__
+meta::function('note', <<'__');
 # Creates a note with a given name, useful for jotting things down.
 create("note::$_[0]");
-__bcbfeac6dd2112f47296265444570a6e
+__
 meta::function('notes', 'ls(\'-a\', \'^note::\');');
 meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
-meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
+meta::function('perl', <<'__');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
-__986a274c013b77fe08d29726ce3799fe
-meta::function('precompile', <<'__9e8bceee318c469f0edab72648374b88');
+__
+meta::function('precompile', <<'__');
 terminal::info("precompiling $_[0]");
 node([qw|pp::js::caterwaul js::precompile|], @_);
-__9e8bceee318c469f0edab72648374b88
-meta::function('preprocess', <<'__66e539d29e9afa903569efad0eb7c886');
+__
+meta::function('preprocess', <<'__');
 # Implements a simple preprocessing language.
 # Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
 # but not spanning multiple lines. The other is 'block form', which gives you access to both one-line
@@ -717,21 +717,21 @@ while ($old_string ne $string and $expansions++ < $limit) {
 }
 
 $string;
-__66e539d29e9afa903569efad0eb7c886
+__
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
-meta::function('render', <<'__4962b4a2e6bc800fd5c11b97550b623e');
+meta::function('render', <<'__');
 hook('before-render');
 hook('after-render');
-__4962b4a2e6bc800fd5c11b97550b623e
+__
 meta::function('repl', 'node([\'pp::js::caterwaul\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('replc', 'node([\'pp::js::core/caterwaul\', \'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul\']);');
 meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
-meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
+meta::function('rm', <<'__');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
   delete @data{@_}});
-__7cecfb1691a7bf86741f00058bcc54ca
-meta::function('run-forever', <<'__76175932a2d2692fc802856c28d0848d');
+__
+meta::function('run-forever', <<'__');
 # Runs your application indefinitely, restarting each time it fails.
 # There's a one-second delay between restarts to prevent a tight loop.
 # Takes one argument, which is the function to run forever.
@@ -739,15 +739,15 @@ my ($f, @args) = @_;
 hook('bin/before-run-forever');
 &$f(@args) while sleep 0.1 && ! -f 'stop';
 hook('bin/after-run-forever');
-__76175932a2d2692fc802856c28d0848d
+__
 meta::function('save', 'around_hook(\'save\', sub {dangerous(\'\', sub {file::write($0, serialize()); $transient{initial} = state()}) if verify()});');
-meta::function('save-state', <<'__863e4d9fa75ca198ef7a755248d1002a');
+meta::function('save-state', <<'__');
 # Creates a named copy of the current state and stores it.
 my ($state_name) = @_;
 around_hook('save-state', $state_name, sub {
   associate("state::$state_name", &{'current-state'}(), execute => 1)});
-__863e4d9fa75ca198ef7a755248d1002a
-meta::function('sdoc', <<'__060cfa349e629eb90a82b87a8ba00c1d');
+__
+meta::function('sdoc', <<'__');
 # Applies SDoc processing to a file or attribute. Takes the file or attribute
 # name as the first argument and returns the processed text.
 
@@ -783,8 +783,8 @@ my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $
 
 join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
          "\n$start $generated_string $end\n";
-__060cfa349e629eb90a82b87a8ba00c1d
-meta::function('sdoc-html', <<'__5fffe6139a81ff67ee063ebcbfadad2a');
+__
+meta::function('sdoc-html', <<'__');
 # Converts SDoc to logically-structured HTML. Sections end up being nested,
 # and code sections and examples are marked as such. For instance, here is some
 # sample output:
@@ -846,22 +846,22 @@ for (@paragraphs) {
 &$close_section($section_level) while $section_level--;
 
 join "\n", @markup;
-__5fffe6139a81ff67ee063ebcbfadad2a
-meta::function('sdocp', <<'__8b7ed5bbd537234ae53c0691b6d02c97');
+__
+meta::function('sdocp', <<'__');
 # Renders an attribute as SDocP. This logic was taken directly from the sdoc script.
 my $attribute = retrieve($_[0]);
 sub escape {my @results = map {s/\\/\\\\/go; s/\n/\\n/go; s/'/\\'/go; $_} @_; wantarray ? @results : $results[0]}
 "sdocp('" . escape($_[0]) . "', '" . escape($attribute) . "');";
-__8b7ed5bbd537234ae53c0691b6d02c97
-meta::function('serialize', <<'__5148e8ca46eeb3e297f76d098e496bcf');
+__
+meta::function('serialize', <<'__');
 my ($options, @criteria) = separate_options(@_);
 my $partial     = $$options{'-p'};
 my $criteria    = join '|', @criteria;
 my @attributes  = map serialize_single($_), select_keys(%$options, '-m' => 1, '--criteria' => $criteria), select_keys(%$options, '-M' => 1, '--criteria' => $criteria);
 my @final_array = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__END__']};
 join "\n", @final_array;
-__5148e8ca46eeb3e297f76d098e496bcf
-meta::function('serialize_single', <<'__ef0f63556d22816ed102d3bbe2172b28');
+__
+meta::function('serialize_single', <<'__');
 # Serializes a single attribute and optimizes for content.
 
 my $name          = $_[0] || $_;
@@ -875,31 +875,40 @@ $escaped =~ s/'/\\'/go;
 return "$meta_function('$invocation', '$escaped');" unless $escaped =~ /\v/;
 
 my $delimiter = '__' . fast_hash($contents);
-return "$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
-__ef0f63556d22816ed102d3bbe2172b28
+my $chars     = 2;
+
+++$chars until $chars >= length($delimiter) || index("\n$contents", "\n" . substr($delimiter, 0, $chars)) == -1;
+$delimiter = substr($delimiter, 0, $chars);
+
+"$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
+__
 meta::function('sh', 'system(@_);');
-meta::function('shell', <<'__dc8238ad70b1e02eaf230c4f1bd21690');
+meta::function('shell', <<'__');
 terminal::cc(retrieve('data::current-continuation')) if length $data{'data::current-continuation'};
 shell::repl();
-__dc8238ad70b1e02eaf230c4f1bd21690
-meta::function('size', 'length(serialize());');
-meta::function('snapshot', <<'__d3d84a364524eeb8ee90623f545187e8');
+__
+meta::function('size', <<'__');
+my $size = 0;
+$size += length $data{$_} for keys %data;
+sprintf "% 7d % 7d", length(serialize()), $size;
+__
+meta::function('snapshot', <<'__');
 my ($name) = @_;
 file::write(my $finalname = temporary_name($name), serialize(), noclobber => 1);
 chmod 0700, $finalname;
 hook('snapshot', $finalname);
-__d3d84a364524eeb8ee90623f545187e8
-meta::function('state', <<'__119111f84c3e32a5536838ac84bc6f10');
+__
+meta::function('state', <<'__');
 my @keys = sort keys %data;
 my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
 $hash = fast_hash("$data{$_}|$hash") for @keys;
 $hash;
-__119111f84c3e32a5536838ac84bc6f10
-meta::function('t', <<'__f23723801f5d89769169e40894b9dba6');
+__
+meta::function('t', <<'__');
 my @tests = select_keys('--criteria' => "sdoc::js::.*$_[0].*test/$_[1]");
 edit($tests[0]);
-__f23723801f5d89769169e40894b9dba6
-meta::function('test', <<'__48664f2725423f9977bd81d5256a502c');
+__
+meta::function('test', <<'__');
 # Unit tests for caterwaul.
 # In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
 # gets run just once. This should be significantly faster.
@@ -917,19 +926,19 @@ unless ($$options{'-p'}) {
 terminal::info('with precompiled caterwaul');
 node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
 gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
-__48664f2725423f9977bd81d5256a502c
-meta::function('testq-pre', <<'__b3ff940a4407dc6dd3414f3984749be3');
+__
+meta::function('testq-pre', <<'__');
 my ($options, @stuff) = separate_options(@_);
 my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*\\.?test");
 
 terminal::warning('running tests without rendering');
 node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
 gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
-__b3ff940a4407dc6dd3414f3984749be3
+__
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
-meta::function('update-from', <<'__d86a78c26adf0414eedbceec62affb8e');
+meta::function('update-from', <<'__');
 # Upgrade all attributes that aren't customized. Customization is defined when the data type is created,
 # and we determine it here by checking for $transient{inherit}{$type}.
 
@@ -993,9 +1002,9 @@ around_hook('before-update-from-invocation', separate_options(@_), sub {
         terminal::error('Verification failed after the upgrade was complete.');
         terminal::info("$0 has been reverted to its pre-upgrade state.", "If you want to upgrade and keep the failure state, then run 'update-from $target --force'.") if $save_state;
         return &{'load-state'}('before-update') if $save_state}});
-__d86a78c26adf0414eedbceec62affb8e
+__
 meta::function('usage', '"Usage: $0 action [arguments]\\nUnique actions (run \'$0 ls\' to see all actions):" . ls(\'-u\');');
-meta::function('verify', <<'__d31b85fffd464ddf516d2afeb63dcbde');
+meta::function('verify', <<'__');
 file::write(my $other = $transient{temporary_filename} = temporary_name(), my $serialized_data = serialize());
 chomp(my $observed = join '', qx|perl '$other' state|);
 
@@ -1003,19 +1012,19 @@ unlink $other if my $result = $observed eq (my $state = state());
 terminal::error("Verification failed; expected $state but got $observed from $other") unless $result;
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
-__d31b85fffd464ddf516d2afeb63dcbde
-meta::hook('after-render::base-files', <<'__4bc301c572346b66c939991a25a85336');
+__
+meta::hook('after-render::base-files', <<'__');
 file::write(attribute($_) . '.js', retrieve("pp::$_"), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors|core)\//, sort keys %data;
 
 file::write('caterwaul.js',      retrieve('pp::js::caterwaul'));
 file::write('caterwaul.core.js', retrieve('pp::js::caterwaul.core'));
 file::write('caterwaul.node.js', retrieve('pp::js::caterwaul.node'));
-__4bc301c572346b66c939991a25a85336
-meta::hook('after-render::notes', <<'__6a97d3ed9a596b2e5e0429553fdb83e8');
+__
+meta::hook('after-render::notes', <<'__');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
-__6a97d3ed9a596b2e5e0429553fdb83e8
-meta::hook('after-render::test-page', <<'__45102e0cfa23cfa11c7f56f6dd4acbe9');
+__
+meta::hook('after-render::test-page', <<'__');
 # Builds test/index.html
 my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
 
@@ -1037,8 +1046,8 @@ $scripts
 </body>
 </html>
 EOF
-__45102e0cfa23cfa11c7f56f6dd4acbe9
-meta::internal_function('around_hook', <<'__e1cd17b80d4e8165df9c94facd9f239b');
+__
+meta::internal_function('around_hook', <<'__');
 # around_hook('hookname', @args, sub {
 #   stuff;
 # });
@@ -1055,20 +1064,20 @@ hook("before-$hook", @_);
 my $result = &$f(@_);
 hook("after-$hook", @_);
 $result;
-__e1cd17b80d4e8165df9c94facd9f239b
-meta::internal_function('associate', <<'__fc4f785bcf3ffe3225a73a1fdd314703');
+__
+meta::internal_function('associate', <<'__');
 my ($name, $value, %options) = @_;
 die "Namespace does not exist" unless exists $datatypes{namespace($name)};
 $data{$name} = $value;
 execute($name) if $options{'execute'};
 $value;
-__fc4f785bcf3ffe3225a73a1fdd314703
-meta::internal_function('attribute', <<'__62efb9f22157835940af1d5feae98d98');
+__
+meta::internal_function('attribute', <<'__');
 my ($name) = @_;
 $name =~ s/^[^:]*:://;
 $name;
-__62efb9f22157835940af1d5feae98d98
-meta::internal_function('attribute_is', <<'__c88e0f87cf807ab0af73ca10032b54b2');
+__
+meta::internal_function('attribute_is', <<'__');
 my ($a, %options) = @_;
 my %inherited     = parent_attributes(grep /^parent::/o, sort keys %data) if grep exists $options{$_}, qw/-u -U -d -D/;
 my $criteria      = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
@@ -1082,8 +1091,8 @@ my %tests = ('-u' => sub {! $inherited{$a}},
 return 0 unless scalar keys %tests == scalar grep ! exists $options{$_}    ||   &{$tests{$_}}(), keys %tests;
 return 0 unless scalar keys %tests == scalar grep ! exists $options{uc $_} || ! &{$tests{$_}}(), keys %tests;
 $a =~ /$criteria/
-__c88e0f87cf807ab0af73ca10032b54b2
-meta::internal_function('bench', <<'__d77400a4154b5004d42b6086bbd9b02c');
+__
+meta::internal_function('bench', <<'__');
 use Time::HiRes qw/gettimeofday tv_interval/;
 
 my ($f) = @_;
@@ -1091,53 +1100,53 @@ my $start_time = [gettimeofday];
 &$f();
 my $duration = tv_interval($start_time);
 terminal::info("$duration seconds elapsed");
-__d77400a4154b5004d42b6086bbd9b02c
-meta::internal_function('cache', <<'__c119f9d7ea9a147c6d526a6283fb119a');
+__
+meta::internal_function('cache', <<'__');
 my ($name, %pairs) = @_;
 if (%pairs) {associate("cache::$name", join "\n", map {$pairs{$_} =~ s/\n//g; "$_ $pairs{$_}"} sort keys %pairs)}
 else        {map split(/\s/, $_, 2), split /\n/, retrieve("cache::$name")}
-__c119f9d7ea9a147c6d526a6283fb119a
-meta::internal_function('chmod_self', <<'__b13487447c65f2dc790bd6b21dde89dd');
+__
+meta::internal_function('chmod_self', <<'__');
 my ($mode_function)      = @_;
 my (undef, undef, $mode) = stat $0;
 chmod &$mode_function($mode), $0;
-__b13487447c65f2dc790bd6b21dde89dd
-meta::internal_function('dangerous', <<'__4b8343178d6d4d1b760d61b1cfda008c');
+__
+meta::internal_function('dangerous', <<'__');
 # Wraps a computation that may produce an error.
 my ($message, $computation) = @_;
 terminal::info($message) if $message;
 my @result = eval {&$computation()};
 terminal::warning(translate_backtrace($@)), return undef if $@;
 wantarray ? @result : $result[0];
-__4b8343178d6d4d1b760d61b1cfda008c
-meta::internal_function('debug_trace', <<'__77644ab45a770a6e172680f659911507');
+__
+meta::internal_function('debug_trace', <<'__');
 terminal::debug(join ', ', @_);
 wantarray ? @_ : $_[0];
-__77644ab45a770a6e172680f659911507
-meta::internal_function('dep', <<'__bad9b934374b176318ed2295b63130bc');
+__
+meta::internal_function('dep', <<'__');
 # A variadic function to prepend cached_dependency:: onto things.
 # Used like this: dep(qw/caterwaul.all.js montenegro.server.js/)
 map "cached_dependency::$_", @_;
-__bad9b934374b176318ed2295b63130bc
-meta::internal_function('execute', <<'__4b4efc33bc6767a7aade7f427eedf83f');
+__
+meta::internal_function('execute', <<'__');
 my ($name, %options) = @_;
 my $namespace = namespace($name);
 eval {&{"meta::$namespace"}(attribute($name), retrieve($name))};
 warn $@ if $@ && $options{'carp'};
-__4b4efc33bc6767a7aade7f427eedf83f
-meta::internal_function('exported', <<'__27414e8f2ceeaef3555b9726e690eb0f');
+__
+meta::internal_function('exported', <<'__');
 # Allocates a temporary file containing the concatenation of attributes you specify,
 # and returns the filename. The filename will be safe for deletion anytime.
 my $filename = temporary_name();
 file::write($filename, cat(@_));
 $filename;
-__27414e8f2ceeaef3555b9726e690eb0f
-meta::internal_function('extension_for', <<'__65e48f50f20bc04aa561720b03bf494c');
+__
+meta::internal_function('extension_for', <<'__');
 my $extension = $transient{extension}{namespace($_[0])};
 $extension = &$extension($_[0]) if ref $extension eq 'CODE';
 $extension || '';
-__65e48f50f20bc04aa561720b03bf494c
-meta::internal_function('fast_hash', <<'__ac70f469e697725cfb87629833434ab1');
+__
+meta::internal_function('fast_hash', <<'__');
 my ($data)     = @_;
 my $piece_size = length($data) >> 3;
 
@@ -1150,15 +1159,15 @@ $hashes[$_] ^= $hashes[$_ + 4] >> 16 | ($hashes[$_ + 4] & 0xffff) << 16 for 0 ..
 $hashes[0]  ^= $hashes[8];
 
 sprintf '%08x' x 4, @hashes[0 .. 3];
-__ac70f469e697725cfb87629833434ab1
-meta::internal_function('file::read', <<'__186bbcef8f6f0dd8b72ba0fdeb1de040');
+__
+meta::internal_function('file::read', <<'__');
 my $name = shift;
 open my($handle), "<", $name;
 my $result = join "", <$handle>;
 close $handle;
 $result;
-__186bbcef8f6f0dd8b72ba0fdeb1de040
-meta::internal_function('file::write', <<'__eb7b1efebe0db73378b0cce46681788d');
+__
+meta::internal_function('file::write', <<'__');
 use File::Path     'mkpath';
 use File::Basename 'dirname';
 
@@ -1169,8 +1178,8 @@ mkpath(dirname($name)) if $options{mkpath};
 open my($handle), $options{append} ? '>>' : '>', $name or die "Can't open $name for writing";
 print $handle $contents;
 close $handle;
-__eb7b1efebe0db73378b0cce46681788d
-meta::internal_function('fnv_hash', <<'__8d001a3a7988631bab21a41cee559758');
+__
+meta::internal_function('fnv_hash', <<'__');
 # A rough approximation to the Fowler-No Voll hash. It's been 32-bit vectorized
 # for efficiency, which may compromise its effectiveness for short strings.
 
@@ -1182,8 +1191,8 @@ my $modulus                  = 2 ** 32;
 
 $hash = ($hash ^ ($_ & 0xffff) ^ ($_ >> 16)) * $fnv_prime % $modulus for unpack 'L*', $data . substr($data, -4) x 8;
 $hash;
-__8d001a3a7988631bab21a41cee559758
-meta::internal_function('hypothetically', <<'__33ee2e1595d3877bd1d9accaa72305c8');
+__
+meta::internal_function('hypothetically', <<'__');
 # Applies a temporary state and returns a serialized representation.
 # The original state is restored after this, regardless of whether the
 # temporary state was successful.
@@ -1195,8 +1204,8 @@ my $return_value  = eval {&$side_effect()};
 
 die $@ if $@;
 $return_value;
-__33ee2e1595d3877bd1d9accaa72305c8
-meta::internal_function('internal::main', <<'__435a9e83ac803960745d9aa5aac6c75f');
+__
+meta::internal_function('internal::main', <<'__');
 disable();
 
 $SIG{'INT'} = sub {snapshot(); exit 1};
@@ -1217,8 +1226,8 @@ save() unless state() eq $transient{initial};
 END {
   enable();
 }
-__435a9e83ac803960745d9aa5aac6c75f
-meta::internal_function('invoke_editor_on', <<'__1448132d5294a4b8390b4a684d8a78f9');
+__
+meta::internal_function('invoke_editor_on', <<'__');
 my ($data, %options) = @_;
 my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
 my $options   = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
@@ -1232,18 +1241,18 @@ system("$editor $options '$filename'");
 my $result = file::read($filename);
 unlink $filename;
 $result;
-__1448132d5294a4b8390b4a684d8a78f9
+__
 meta::internal_function('is_locked', '!((stat($0))[2] & 0222);');
-meta::internal_function('namespace', <<'__93213d60cafb9627e0736b48cd1f0760');
+meta::internal_function('namespace', <<'__');
 my ($name) = @_;
 $name =~ s/::.*$//;
 $name;
-__93213d60cafb9627e0736b48cd1f0760
-meta::internal_function('parent_attributes', <<'__480776f176ab728c6b7450287be5782a');
+__
+meta::internal_function('parent_attributes', <<'__');
 my $attributes = sub {my ($name, $value) = split /\s+/o, $_; $name => ($value || 1)};
 map &$attributes(), split /\n/o, join("\n", retrieve(@_));
-__480776f176ab728c6b7450287be5782a
-meta::internal_function('parent_ordering', <<'__61a829bfd725b367836b5342d26efce1');
+__
+meta::internal_function('parent_ordering', <<'__');
 # Topsorts the parents by dependency chain. The simplest way to do this is to
 # transitively compute the number of parents referred to by each parent.
 # You can pass in a list of parents if you want; otherwise it uses all of them.
@@ -1267,24 +1276,24 @@ $parent_count = sub {
 my %inverses;
 push @{$inverses{$parent_count->($_)} ||= []}, $_ for @parents;
 map @{$inverses{$_}}, sort keys %inverses;
-__61a829bfd725b367836b5342d26efce1
-meta::internal_function('retrieve', <<'__0b6f4342009684fdfa259f45ac75ae37');
+__
+meta::internal_function('retrieve', <<'__');
 my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
 wantarray ? @results : $results[0];
-__0b6f4342009684fdfa259f45ac75ae37
-meta::internal_function('retrieve_with_hooks', <<'__5186a0343624789d08d1cc2084550f3d');
+__
+meta::internal_function('retrieve_with_hooks', <<'__');
 # Uses the hooks defined in $transient{retrievers}, and returns undef if none work.
 my ($attribute) = @_;
 my $result      = undef;
 
 defined($result = &$_($attribute)) and return $result for map $transient{retrievers}{$_}, sort keys %{$transient{retrievers}};
 return undef;
-__5186a0343624789d08d1cc2084550f3d
-meta::internal_function('select_keys', <<'__1cd075b241905d9ab3199e680e86dced');
+__
+meta::internal_function('select_keys', <<'__');
 my %options = @_;
 grep attribute_is($_, %options), sort keys %data;
-__1cd075b241905d9ab3199e680e86dced
-meta::internal_function('separate_options', <<'__d47e8ee23fe55e27bb523c9fcb2f5ca1');
+__
+meta::internal_function('separate_options', <<'__');
 # Things with one dash are short-form options, two dashes are long-form.
 # Characters after short-form are combined; so -auv4 becomes -a -u -v -4.
 # Also finds equivalences; so --foo=bar separates into $$options{'--foo'} eq 'bar'.
@@ -1308,9 +1317,9 @@ my %options;
 ++$options{$_}      for grep ! /=/, @singles, @longs;
 
 ({%options}, @others, @_);
-__d47e8ee23fe55e27bb523c9fcb2f5ca1
+__
 meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
-meta::internal_function('table_display', <<'__8a6897e093f36bf05477a3889b84a61d');
+meta::internal_function('table_display', <<'__');
 # Displays an array of arrays as a table; that is, with alignment. Arrays are
 # expected to be in column-major order.
 
@@ -1326,18 +1335,18 @@ my @row_major = map {my $i = $_; [map $$_[$i], @arrays]} 0 .. $#{$arrays[0]};
 my $format    = join '  ', map "%-${_}s", @lengths;
 
 join "\n", map strip(sprintf($format, @$_)), @row_major;
-__8a6897e093f36bf05477a3889b84a61d
-meta::internal_function('temporary_name', <<'__0fb1402061581b69822f913631b4a9d9');
+__
+meta::internal_function('temporary_name', <<'__');
 use File::Temp 'tempfile';
 my (undef, $temporary_filename) = tempfile("$0." . 'X' x 4, OPEN => 0);
 $temporary_filename;
-__0fb1402061581b69822f913631b4a9d9
-meta::internal_function('translate_backtrace', <<'__06fad3d85833a6484e426401b95e0206');
+__
+meta::internal_function('translate_backtrace', <<'__');
 my ($trace) = @_;
 $trace =~ s/\(eval (\d+)\)/$locations{$1 - 1}/g;
 $trace;
-__06fad3d85833a6484e426401b95e0206
-meta::internal_function('with_exported', <<'__fc4f32c46d95c6deed0414364d1c7410');
+__
+meta::internal_function('with_exported', <<'__');
 # Like exported(), but removes the file after running some function.
 # Usage is with_exported(@files, sub {...});
 my $f      = pop @_;
@@ -1346,8 +1355,8 @@ my $result = eval {&$f($name)};
 terminal::warning("$@ when running with_exported()") if $@;
 unlink $name;
 $result;
-__fc4f32c46d95c6deed0414364d1c7410
-meta::library('shell', <<'__528f486cc4d9eb390e4c350b8727c751');
+__
+meta::library('shell', <<'__');
 # Functions for shell parsing and execution.
 package shell;
 use Term::ReadLine;
@@ -1390,8 +1399,8 @@ sub repl {
   my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
 
   &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
-__528f486cc4d9eb390e4c350b8727c751
-meta::library('terminal', <<'__c52308d05ebb4ff61c5fc36e6d9c7a8a');
+__
+meta::library('terminal', <<'__');
 # Functions for nice-looking terminal output.
 package terminal;
 
@@ -1404,13 +1413,13 @@ sub color {
 
 my %preloaded = (info => 32, progress => 32, state => 34, debug => 34, warning => 33, error => 31);
 color $_, $preloaded{$_} for keys %preloaded;
-__c52308d05ebb4ff61c5fc36e6d9c7a8a
+__
 meta::message_color('cc', '36');
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
-meta::note('macroexpander-optimization', <<'__73d8ab136c386600bac133c292f4318e');
+meta::note('macroexpander-optimization', <<'__');
 Optimization constraints for macroexpansion.
 This is a challenging problem. It looks like the total complexity of loading all modules is close to 7000, which isn't too bad by itself. However, there are more than 100 macros during some of
 these configurations, and that increases the amount of work by a factor of 100.
@@ -1499,8 +1508,8 @@ I'm axing (1) right off the bat just because it's no fun. This leaves (2) and (3
   search, it should be much faster in practice.
 
   Interrupting thought: Why not just transform the nodes as soon as we hit them? No need to build these lists at all. Therefore node ordering is irrelevant to the optimization problem.
-__73d8ab136c386600bac133c292f4318e
-meta::note('math', <<'__a1d0cb20cdd13c6eed99ad5cdb66a1ed');
+__
+meta::note('math', <<'__');
 Mathematical constructs in caterwaul 1.0.
 Caterwaul is no longer just about transforming syntax in convenient ways. It's also about doing totally off the hook stuff with macros and adding structure to its extensions.
 
@@ -1604,8 +1613,8 @@ I'm not 100% sure how to do the failover for pattern matching because it require
     fn[x + 1][x * (x + 1)]
 
   Ultimately the problem is that Javascript doesn't have a way to represent parameter-based multiple dispatch. So pattern matching is something that gets superimposed at the last minute.
-__a1d0cb20cdd13c6eed99ad5cdb66a1ed
-meta::note('modules', <<'__92e7978739a04aa66d1b7859a730e367');
+__
+meta::note('modules', <<'__');
 Modules.
 Modules are for extensions as much as they are for fundamentals. This sounds weird perhaps, but it's true. For example, the replication behavior of caterwaul is useful outside of just the
 caterwaul main library, so we could reasonably want to reuse it:
@@ -1624,8 +1633,8 @@ These modules are actually parts of Caterwaul's basis:
 
 Replication is fairly straightforward; there isn't much of an interface required of the function being replicated. Macroexpansion, on the other hand, involves some inversion of control with
 respect to syntax trees. So, in order to work with this macroexpander, the tree should support an rmap() method. (More details in the code.)
-__92e7978739a04aa66d1b7859a730e367
-meta::note('q', <<'__48c65f082344a2efd22342ecbffcd69b');
+__
+meta::note('q', <<'__');
 Bug list.
 Caterwaul does the right thing 99% of the time. This section is for the 1% when something goes wrong.
 
@@ -1677,8 +1686,8 @@ Unimportant things that might help at some point in the future.
   Hashed syntax nodes.
   This is useful for accelerating macroexpansion. I'm not sure whether it's relevant yet, but if done correctly it would give syntax nodes faster rejection (which is the most common case when
   macroexpanding). The challenge is incorporating wildcards.
-__48c65f082344a2efd22342ecbffcd69b
-meta::note('reorganization', <<'__4ed3f1379c7cf90df053a13da4409d66');
+__
+meta::note('reorganization', <<'__');
 Module/core reorganization.
 I want things to be better organized in caterwaul version 1. What needs to change?
 
@@ -1691,12 +1700,12 @@ cloned.)
 Modules could also have better names. 'std' is not descriptive, and there isn't anything particularly standard about it anyway.
 
 Also, caterwaul 1.0 should introduce aggressive destructuring and polymorphic pattern matching. How to do this?
-__4ed3f1379c7cf90df053a13da4409d66
-meta::parent('/home/spencertipping/bin/configuration', <<'__38975bf350806cd4fb978bde5bc79fe6');
+__
+meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  3138f43dfe4f21288bd577b3fa2ae8a6
-__38975bf350806cd4fb978bde5bc79fe6
-meta::parent('/home/spencertipping/bin/node-base', <<'__40bdcb37312ddee253e78072477b01d8');
+parent::/home/spencertipping/bin/object  39d8676c3913ed1d5b258342feebdd37
+__
+meta::parent('/home/spencertipping/bin/node-base', <<'__');
 function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
 function::node                                              3522fde8f76947a5f70bca33f1ee0016
 function::node-custom                                       c2f4063798c997ec7f78a3543b1240b3
@@ -1705,10 +1714,10 @@ function::run-forever                                       76175932a2d2692fc802
 internal_function::dep                                      bad9b934374b176318ed2295b63130bc
 message_color::test                                         14e993fdf2c62df353613c243dc9053b
 meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
-parent::/home/spencertipping/bin/repository                 ddf35269572b2c4c6c4769a059c79f73
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  766a1025f69be619044da6ee3b8e963b
-__40bdcb37312ddee253e78072477b01d8
-meta::parent('/home/spencertipping/bin/object', <<'__3138f43dfe4f21288bd577b3fa2ae8a6');
+parent::/home/spencertipping/bin/repository                 e2128b9a66621e93cea524db75999da6
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  8fb85ffdc70741762d75aa253faa59d3
+__
+meta::parent('/home/spencertipping/bin/object', <<'__');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
 bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
@@ -1746,10 +1755,10 @@ function::rm                            7cecfb1691a7bf86741f00058bcc54ca
 function::save                          181da4858ac39c157dbf38e6bac7a0d2
 function::save-state                    863e4d9fa75ca198ef7a755248d1002a
 function::serialize                     5148e8ca46eeb3e297f76d098e496bcf
-function::serialize_single              ef0f63556d22816ed102d3bbe2172b28
+function::serialize_single              e7a22f806b580d5c63982ffc7f218a1a
 function::sh                            9647fa9227bef6c139a79d0dd4acc8b4
 function::shell                         dc8238ad70b1e02eaf230c4f1bd21690
-function::size                          ed32c644d604fdc61dda48bd3fbe5559
+function::size                          140728e163286a0f3f514f468c475cfc
 function::snapshot                      d3d84a364524eeb8ee90623f545187e8
 function::state                         119111f84c3e32a5536838ac84bc6f10
 function::touch                         819878bc64df094d3323c7050f2c3e97
@@ -1813,29 +1822,29 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__3138f43dfe4f21288bd577b3fa2ae8a6
-meta::parent('/home/spencertipping/bin/repository', <<'__ddf35269572b2c4c6c4769a059c79f73');
+__
+meta::parent('/home/spencertipping/bin/repository', <<'__');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  38975bf350806cd4fb978bde5bc79fe6
-__ddf35269572b2c4c6c4769a059c79f73
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__766a1025f69be619044da6ee3b8e963b');
+parent::/home/spencertipping/bin/configuration  c44adb2efa4be1b7f7a14bd6fd8b2b57
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  3138f43dfe4f21288bd577b3fa2ae8a6
+parent::/home/spencertipping/bin/object  39d8676c3913ed1d5b258342feebdd37
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
-__766a1025f69be619044da6ee3b8e963b
-meta::parent('notes', <<'__58054cfd9dabc2e5091aa5900fbc00e5');
+__
+meta::parent('notes', <<'__');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    3138f43dfe4f21288bd577b3fa2ae8a6
-__58054cfd9dabc2e5091aa5900fbc00e5
-meta::parent('object', <<'__3138f43dfe4f21288bd577b3fa2ae8a6');
+parent::object    39d8676c3913ed1d5b258342feebdd37
+__
+meta::parent('object', <<'__');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
 bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
 bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
@@ -1873,10 +1882,10 @@ function::rm                            7cecfb1691a7bf86741f00058bcc54ca
 function::save                          181da4858ac39c157dbf38e6bac7a0d2
 function::save-state                    863e4d9fa75ca198ef7a755248d1002a
 function::serialize                     5148e8ca46eeb3e297f76d098e496bcf
-function::serialize_single              ef0f63556d22816ed102d3bbe2172b28
+function::serialize_single              e7a22f806b580d5c63982ffc7f218a1a
 function::sh                            9647fa9227bef6c139a79d0dd4acc8b4
 function::shell                         dc8238ad70b1e02eaf230c4f1bd21690
-function::size                          ed32c644d604fdc61dda48bd3fbe5559
+function::size                          140728e163286a0f3f514f468c475cfc
 function::snapshot                      d3d84a364524eeb8ee90623f545187e8
 function::state                         119111f84c3e32a5536838ac84bc6f10
 function::touch                         819878bc64df094d3323c7050f2c3e97
@@ -1940,36 +1949,36 @@ meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
 meta::type::state                       c1f29670be26f1df6100ffe4334e1202
 retriever::file                         b8e7aefc98b8341260d91f21dc61d749
 retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
-__3138f43dfe4f21288bd577b3fa2ae8a6
-meta::parent('preprocessor', <<'__ac16423eefc8f51dee131d4c04b2d2b1');
+__
+meta::parent('preprocessor', <<'__');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 3138f43dfe4f21288bd577b3fa2ae8a6
+parent::object                 39d8676c3913ed1d5b258342feebdd37
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
 template::failing_conditional  5c593329b434a7044f68cec4b77e8ed9
 template::include              e0624844a65ae41e0217dd871fc0dbfb
 template::pinclude             5ba61c3034a4b183881936aec30d2be9
-__ac16423eefc8f51dee131d4c04b2d2b1
+__
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
-meta::retriever('html-sdoc', <<'__54d22ab83d9f3f2e27ef51033b4817a7');
+meta::retriever('html-sdoc', <<'__');
 my ($attribute) = @_;
 return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute};
 &{'sdoc-html'}($attribute);
-__54d22ab83d9f3f2e27ef51033b4817a7
+__
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
-meta::retriever('pp', <<'__f4a8c288d69963d6ebc5ce0bf7794777');
+meta::retriever('pp', <<'__');
 return undef unless namespace($_[0]) eq 'pp';
 my $attr = retrieve(attribute($_[0]));
 defined $attr ? preprocess($attr) : undef;
-__f4a8c288d69963d6ebc5ce0bf7794777
+__
 meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
-meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
+meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
-__fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::behaviors/core', <<'__66986b8dfd1d9b572bb195c85a870b1d');
+__
+meta::sdoc('js::behaviors/core', <<'__');
 Core caterwaul behaviors | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1999,8 +2008,8 @@ These apply more advanced syntactic transforms to the code and can depend on the
 - pinclude pp::js::behaviors/core/implicit
 - pinclude pp::js::behaviors/core/unit
 - pinclude pp::js::behaviors/core/trace
-__66986b8dfd1d9b572bb195c85a870b1d
-meta::sdoc('js::behaviors/core/adjective', <<'__b61f07d05119222703824424b1bd71a5');
+__
+meta::sdoc('js::behaviors/core/adjective', <<'__');
 Adjective macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2013,8 +2022,8 @@ an extra modifier parameter. For example:
   caterwaul.modified_adjective('mapped_through', '(_modifiers)(_expression)');  // We need to know what to map it through
 
   caterwaul.macro_form('adjective', 'modified_adjective', function (name, def, form) {this.macro(form.replace({it: name}), def)});
-__b61f07d05119222703824424b1bd71a5
-meta::sdoc('js::behaviors/core/adverb', <<'__45a71d03e369150992bdb3864b462d0d');
+__
+meta::sdoc('js::behaviors/core/adverb', <<'__');
 Adverb macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2023,8 +2032,8 @@ Many macros in caterwaul function as adverbs from a linguistic point of view. Ad
 it first. (Hence sentences such as 'go there if you need to' -- here 'if you need to' is the adverb, and it comes after the rest.)
 
   caterwaul.macro_form('adverb', 'modified_adverb', function (name, def, form) {this.macro(form.replace({it: name}), def)});
-__45a71d03e369150992bdb3864b462d0d
-meta::sdoc('js::behaviors/core/context-sensitive-traversal', <<'__acf97288e5c44034c06d1e359aebe937');
+__
+meta::sdoc('js::behaviors/core/context-sensitive-traversal', <<'__');
 Context-sensitive syntax tree traversal | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2062,8 +2071,8 @@ problem by implementing a grammar-like structure for tree traversal.
 
   | seq = caterwaul.grammar();
     seq.on(null, seq);
-__acf97288e5c44034c06d1e359aebe937
-meta::sdoc('js::behaviors/core/implicit', <<'__39a49e8725dd955cfc5c824c767040fe');
+__
+meta::sdoc('js::behaviors/core/implicit', <<'__');
 Implicit lexical pattern | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2086,8 +2095,8 @@ This pattern of using the 'the_' prefix is what I'm calling the implicit lexical
   Immutability.
   You should never reassign one of these context variables! Rather, you should rebind it using an adverb. The reason for this is that they're really globals in a sense; they're defined
   potentially far outside of their use site.
-__39a49e8725dd955cfc5c824c767040fe
-meta::sdoc('js::behaviors/core/inversion', <<'__6437a7d509f9cc3a9c75b7ee0898ed66');
+__
+meta::sdoc('js::behaviors/core/inversion', <<'__');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2150,8 +2159,8 @@ Here's what the inverse function looks like (modulo formatting, error checking, 
 
 Don't use this feature! It's slow, it may infinite-loop, and it doesn't work for most recursive functions because of the nondeterminism limitation. I'm also not even going to guarantee that it
 works correctly in trivial cases like this, though if it doesn't it's probably because of a bug.
-__6437a7d509f9cc3a9c75b7ee0898ed66
-meta::sdoc('js::behaviors/core/javascript-forms', <<'__5d18590f9a08f5a674bee9abc3365a30');
+__
+meta::sdoc('js::behaviors/core/javascript-forms', <<'__');
 Javascript macro forms | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2207,8 +2216,8 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
 
     this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
-__5d18590f9a08f5a674bee9abc3365a30
-meta::sdoc('js::behaviors/core/quote', <<'__5f51c9b05b56beda701236ce7d2a2260');
+__
+meta::sdoc('js::behaviors/core/quote', <<'__');
 Quotation behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2223,8 +2232,8 @@ Also available is qse[], which pre-expands the syntax tree before returning it.
 
   caterwaul.configuration('core.quote', function () {this.adjective('qs', function (match) {return new this.ref(match._expression)}).
                                                           adjective('qse', function (match) {return new this.ref(this.macroexpand(match._expression))})});
-__5f51c9b05b56beda701236ce7d2a2260
-meta::sdoc('js::behaviors/core/trace', <<'__096441ce8082c080a3ea23c288eb2a93');
+__
+meta::sdoc('js::behaviors/core/trace', <<'__');
 Code trace behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2363,15 +2372,15 @@ or (2) caching of the object. In this case I've written a special function to ha
 
           direct_method_hook(tree, index, match)               = method_hook(tree, index, match._object, quote_method_name(match._method), match._parameters),
           indirect_method_hook(tree, index, match)             = method_hook(tree, index, match._object, match._method, match._parameters)]})));
-__096441ce8082c080a3ea23c288eb2a93
-meta::sdoc('js::behaviors/core/unit', <<'__061478fbaad0d288234c6835259bc5cf');
+__
+meta::sdoc('js::behaviors/core/unit', <<'__');
 Unit testing behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
 This behavior provides adjectives and adverbs useful for unit testing. It also makes use of the implicit pattern (a way to propagate settings through a lexical scope).
-__061478fbaad0d288234c6835259bc5cf
-meta::sdoc('js::behaviors/core/words', <<'__a735c78eec078ac38275746096e37266');
+__
+meta::sdoc('js::behaviors/core/words', <<'__');
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2457,8 +2466,8 @@ These impact how something gets evaluated.
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
     this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
-__a735c78eec078ac38275746096e37266
-meta::sdoc('js::caterwaul', <<'__25a87f260dc3ba5ee2957808bfa28fe1');
+__
+meta::sdoc('js::caterwaul', <<'__');
 Caterwaul JS | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2471,24 +2480,24 @@ Core behaviors.
 These are pulled from behaviors/core/ and add standard macros and code generation facilities to the core compiler.
 
 - pinclude pp::js::behaviors/core
-__25a87f260dc3ba5ee2957808bfa28fe1
-meta::sdoc('js::caterwaul.core', <<'__e69db7f5c6cd0cd5cf9678582c51a856');
+__
+meta::sdoc('js::caterwaul.core', <<'__');
 Core caterwaul build with version ID | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 - pinclude pp::js::core/caterwaul
 
 - eval "caterwaul.field('version', '" . fast_hash(retrieve('pp::js::core/caterwaul')) . "').check_version();"
-__e69db7f5c6cd0cd5cf9678582c51a856
-meta::sdoc('js::caterwaul.node', <<'__effa5b9724888e9f1b9067aa237a4896');
+__
+meta::sdoc('js::caterwaul.node', <<'__');
 CommonJS-compatible Caterwaul build | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 - pinclude pp::js::caterwaul
 
 caterwaul.merge(exports, caterwaul);
-__effa5b9724888e9f1b9067aa237a4896
-meta::sdoc('js::core/caterwaul', <<'__4d392d2d894b3d88183e0b7fcc28506d');
+__
+meta::sdoc('js::core/caterwaul', <<'__');
 Introduction.
 Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.com/caterwaul/caterwaul.html for information about how and why you might use it.
 
@@ -2520,8 +2529,8 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 - pinclude pp::js::core/caterwaul.init
 
   return caterwaul_global});
-__4d392d2d894b3d88183e0b7fcc28506d
-meta::sdoc('js::core/caterwaul.bake', <<'__337697aa3633cf87c308325687ad094e');
+__
+meta::sdoc('js::core/caterwaul.bake', <<'__');
 Baking support.
 To "bake" a caterwaul function is to freeze its settings and apply long-run optimizations such as macroexpander compilation. Once a function is baked you can't do certain things, most notably
 adding macros. (Other restrictions may apply later as further optimizations are implemented.) You also can't re-bake a caterwaul instance.
@@ -2529,8 +2538,8 @@ adding macros. (Other restrictions may apply later as further optimizations are 
   caterwaul_global.event('bake').on_bake(function () {this.on_bake(function () {throw new Error('cannot bake a caterwaul function more than once')})}).
                   method('method_until_baked', function (name, f) {return this.method(name, f).on_bake(function () {
                                                                           this.method(name, function () {throw new Error('cannot call ' + name + ' on a baked caterwaul')})})});
-__337697aa3633cf87c308325687ad094e
-meta::sdoc('js::core/caterwaul.compiler', <<'__f8dfe9194d64ff8d32cc18e4a97469f5');
+__
+meta::sdoc('js::core/caterwaul.compiler', <<'__');
 Environment-dependent compilation.
 It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
 must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
@@ -2549,8 +2558,8 @@ precompilation, since the global references may not be serializable.
       for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
       var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
       try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
-__f8dfe9194d64ff8d32cc18e4a97469f5
-meta::sdoc('js::core/caterwaul.composition', <<'__ee2b69d5708e5e9e4b3420b95fa8c083');
+__
+meta::sdoc('js::core/caterwaul.composition', <<'__');
 Composition behavior.
 New in 0.6.4 is the ability to compose caterwaul functions. This allows you to write distinct macroexpanders that might not be idempotent (as is the case for the Figment translator, for
 example: http://github.com/spencertipping/figment). Composition is achieved by invoking after(), which governs the behavior of the macroexpand() function. The list of functions to be invoked
@@ -2570,8 +2579,8 @@ this doesn't happen for g if g comes after f, but generally that relationship is
   caterwaul_global.shallow('after_functions', []).
                     method('after', function () {if (arguments.length) {for (var i = 0, l = arguments.length; i < l; ++i) this.after_functions.push(arguments[i]); return this}
                                                  else                  return this.after_functions});
-__ee2b69d5708e5e9e4b3420b95fa8c083
-meta::sdoc('js::core/caterwaul.configuration', <<'__310459a92e8d57cc6dd98a8d8adf7c86');
+__
+meta::sdoc('js::core/caterwaul.configuration', <<'__');
 Configurations.
 Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
 replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
@@ -2678,8 +2687,8 @@ Related to this is a configure() method that modifies and returns the original f
                                                                           if (this.configurations[_]) this.has[_] || (this.has[_] = this.configurations[_].call(this, this) || this);
                                                                           else                        throw new Error('error: configuration "' + _ + '" does not exist');
                                           else _ instanceof Array ? this.configure.apply(this, _.slice()) : _.call(this, this); return this})}})();
-__310459a92e8d57cc6dd98a8d8adf7c86
-meta::sdoc('js::core/caterwaul.events', <<'__e7cdc5aef4b8fd3de20f645c3fd7b6e4');
+__
+meta::sdoc('js::core/caterwaul.events', <<'__');
 Event listening API.
 Caterwaul can create pairs of listener/broadcast interfaces for events. For example, suppose we wanted to provide a facility for macros to issue compile-time warnings; one way to do this would
 be to create a 'warning' event and allow interested parties to listen for it. Here's how that might look:
@@ -2694,8 +2703,8 @@ The context (i.e. 'this') of each event listener is the caterwaul object.
     var listeners = name + '_listeners', broadcast = 'on_' + name;
     return this.shallow(listeners, []).variadic(name,      function (l) {this.listeners.push(l); return this}).
                                          method(broadcast, function () {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
-__e7cdc5aef4b8fd3de20f645c3fd7b6e4
-meta::sdoc('js::core/caterwaul.global', <<'__b058cee2d4d6b79da7e7754182a39159');
+__
+meta::sdoc('js::core/caterwaul.global', <<'__');
 Global management.
 Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
@@ -2736,8 +2745,8 @@ caterwaul, the extensions, and your code. Without version checking, however, the
   considered to be opaque. Because of the possibility of namespace collisions, you should name your magic after a configuration or otherwise prefix it somehow.
 
                    method('magic', (function (table) {return function (name) {return table[name] || (table[name] = {})}}));
-__b058cee2d4d6b79da7e7754182a39159
-meta::sdoc('js::core/caterwaul.init', <<'__389873c9c68a08a32a7177e7bc42cbe5');
+__
+meta::sdoc('js::core/caterwaul.init', <<'__');
 Init method.
 This is the main entry point of caterwaul when you use it as a function. As of version 0.6.4, the init() property is polymorphic in semantics as well as structure. There are two cases:
 
@@ -2753,8 +2762,8 @@ context of tree -> tree compilers (macroexpansion). Having such an arrangement i
                                                     return result}).
 
                    method('init',                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)});
-__389873c9c68a08a32a7177e7bc42cbe5
-meta::sdoc('js::core/caterwaul.macro-forms', <<'__2bc81de7c518471b7e7f798bc9a1069d');
+__
+meta::sdoc('js::core/caterwaul.macro-forms', <<'__');
 Macro forms.
 Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
 it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. For examples of this,
@@ -2789,8 +2798,8 @@ see sdoc::js::behaviors/core/adverb (for a macro form definition), sdoc::js::beh
           return this}).
 
          method(define_name, function () {return define.apply(this, arguments), this})});
-__2bc81de7c518471b7e7f798bc9a1069d
-meta::sdoc('js::core/caterwaul.macroexpander', <<'__e825a79dc56665de96e3d89a7bebb812');
+__
+meta::sdoc('js::core/caterwaul.macroexpander', <<'__');
 Macroexpansion.
 Caterwaul's main purpose is to transform code, and the way it does this is by using macroexpansion. Macroexpansion involves finding pieces of the syntax tree that have a particular form and
 changing them somehow. Normally this is done by first defining a pattern and then defining a function that returns something to replace occurrences of that pattern. For example:
@@ -2883,8 +2892,8 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
        right_variadic_binary('macro',
          function (pattern, expander) {expander = this.ensure_expander(expander);
                                        return this.final_macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})})();
-__e825a79dc56665de96e3d89a7bebb812
-meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__05fa8df08517a70a17cc0f339a2b7a7e');
+__
+meta::sdoc('js::core/caterwaul.macroexpander.jit', <<'__');
 JIT macroexpander.
 This macroexpander examines the syntax trees used as macro patterns, constructs a breadth-first decision tree, and JITs a custom macroexpander function for those trees. Because this is a
 fairly tine-consuming operation the process is memoized in the macro list.
@@ -3209,8 +3218,8 @@ For history's sake I've left some of the theoretical notes involving probability
     return function (patterns, expanders) {for (var i = patterns.length - 1, rps = [], res = []; i >= 0; --i) rps.push(patterns[i]), res.push(expanders[i]);
                                            return this.compile(pattern_match_function_template.replace(
                                              {_body: generate_decision_tree(rps, null, null, empty_variable_mapping_table(), pattern_data(rps, res))}))}})());
-__05fa8df08517a70a17cc0f339a2b7a7e
-meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__559fd6023eeb314cf2f6826a30f1c0bd');
+__
+meta::sdoc('js::core/caterwaul.macroexpander.naive', <<'__');
 Naive macroexpander implementation.
 This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. Version 0.7.0 and
 forward use the optimizing JIT macroexpander defined in sdoc::js::core/caterwaul.macroexpander.jit. (Note that this macroexpander is still here to reduce the amount of compilation overhead for
@@ -3239,8 +3248,8 @@ small macroexpansions.)
                            var self = this;
                            return t.rmap(function (n) {for (var i = macros.length - 1, match, replacement; i >= 0; --i)
                                                          if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})});
-__559fd6023eeb314cf2f6826a30f1c0bd
-meta::sdoc('js::core/caterwaul.parser', <<'__05ad6045b32afa668b081b12a9d0c01b');
+__
+meta::sdoc('js::core/caterwaul.parser', <<'__');
 Parsing.
 There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
 expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
@@ -3538,8 +3547,8 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
         return head}})());
-__05ad6045b32afa668b081b12a9d0c01b
-meta::sdoc('js::core/caterwaul.parser-data', <<'__8a0f6d07cf2b0a3dfc2352c15bb69112');
+__
+meta::sdoc('js::core/caterwaul.parser-data', <<'__');
 Shared parser data.
 This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
 
@@ -3583,8 +3592,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
            parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
  parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch'), parse_also_expression = hash('function');
-__8a0f6d07cf2b0a3dfc2352c15bb69112
-meta::sdoc('js::core/caterwaul.precompile', <<'__327c2f4013b6e72e13cef06e7dc35e74');
+__
+meta::sdoc('js::core/caterwaul.precompile', <<'__');
 Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
@@ -3809,8 +3818,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                            return references};
 
     return function (f) {var references = trace_execution(this, f); return this.compile(perform_substitution(references, references.annotated))}})());
-__327c2f4013b6e72e13cef06e7dc35e74
-meta::sdoc('js::core/caterwaul.tree', <<'__9cee91656fadb1be780a15fd878e1c28');
+__
+meta::sdoc('js::core/caterwaul.tree', <<'__');
 Syntax data structures.
 There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 nodes. At the end of folding there is only one child per paren-group.
@@ -4123,8 +4132,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                  for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
                                                    this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}})})();
-__9cee91656fadb1be780a15fd878e1c28
-meta::sdoc('js::core/caterwaul.utilities', <<'__afdeabc3be7d5f6e346fe46b495f448f');
+__
+meta::sdoc('js::core/caterwaul.utilities', <<'__');
 Utility methods.
 Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
 tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
@@ -4195,8 +4204,8 @@ The Caterwaul standard library gives you an equivalent but much more refined for
    max_length_key = gensym(),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty;
-__afdeabc3be7d5f6e346fe46b495f448f
-meta::sdoc('js::core/caterwaul.variadic', <<'__2a1508ab7654caf139dd361e3d0852c6');
+__
+meta::sdoc('js::core/caterwaul.variadic', <<'__');
 Variadic methods.
 A lot of the time we'll want some kind of variadic behavior for methods. These meta-methods define such behavior. There are a few templates that occur commonly in the caterwaul source, and you
 can define your own meta-methods to handle other possibilities.
@@ -4204,8 +4213,8 @@ can define your own meta-methods to handle other possibilities.
   caterwaul_global.method('variadic', function (name, f) {return this.method(name, function () {for (var i = 0, l = arguments.length; i < l; ++i) f.call(this, arguments[i]); return this})}).
                    method('right_variadic_binary', function (name, f) {return this.method(name, function () {
                                                      for (var i = 0, l = arguments.length - 1, x = arguments[l]; i < l; ++i) f.call(this, arguments[i], x); return this})});
-__2a1508ab7654caf139dd361e3d0852c6
-meta::sdoc('js::core/debug/profile.start', <<'__c57fde09ae1ed7924ae86e180a4077f7');
+__
+meta::sdoc('js::core/debug/profile.start', <<'__');
 Profiling extensions for performance tuning | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4231,8 +4240,8 @@ Function.prototype.profiled = function (name, no_recursion) {
     return result;
   };
 };
-__c57fde09ae1ed7924ae86e180a4077f7
-meta::sdoc('js::core/debug/profile.stop', <<'__990b468eb0612075050f2a50509c1c40');
+__
+meta::sdoc('js::core/debug/profile.stop', <<'__');
 Profile end code
 
 var fs = [];
@@ -4242,8 +4251,8 @@ for (var k in all_profiled_functions) all_profiled_functions[k].average = (all_p
 
 fs.sort(function (x, y) {return x.total - y.total});
 typeof console === 'undefined' ? print(fs) : console.log(fs);
-__990b468eb0612075050f2a50509c1c40
-meta::sdoc('js::modules/caterwaul.all', <<'__89090c3bf49c11fe682f000912014455');
+__
+meta::sdoc('js::modules/caterwaul.all', <<'__');
 Caterwaul with all modules | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4258,8 +4267,8 @@ Licensed under the terms of the MIT source code license
 - pinclude pp::js::modules/caterwaul.heap
 - pinclude pp::js::modules/caterwaul.memoize
 - pinclude pp::js::modules/caterwaul.parser
-__89090c3bf49c11fe682f000912014455
-meta::sdoc('js::modules/caterwaul.all.pre', <<'__5edda1fb53ca687feffd6b1c13c242ca');
+__
+meta::sdoc('js::modules/caterwaul.all.pre', <<'__');
 Caterwaul with all modules (precompiled) | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4274,8 +4283,8 @@ Licensed under the terms of the MIT source code license
 - pinclude modules/caterwaul.heap.pre.js
 - pinclude modules/caterwaul.memoize.pre.js
 - pinclude modules/caterwaul.parser.pre.js
-__5edda1fb53ca687feffd6b1c13c242ca
-meta::sdoc('js::modules/caterwaul.continuation', <<'__06b0d202095998a74280d94595d17b64');
+__
+meta::sdoc('js::modules/caterwaul.continuation', <<'__');
 Continuation manipulation module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4410,8 +4419,8 @@ continuations). call/cc is stored as caterwaul.continuation.call_cc, and call/ta
 End-user library.
 
   configuration('continuation', function () {this.configure('continuation.core continuation.unwind continuation.cps continuation.delimited')});
-__06b0d202095998a74280d94595d17b64
-meta::sdoc('js::modules/caterwaul.continuation.test/cps', <<'__967fd04a90612fecae992c68dc57953e');
+__
+meta::sdoc('js::modules/caterwaul.continuation.test/cps', <<'__');
 CPS-conversion tests.
 
 test('caterwaul.continuation.cps', function () {
@@ -4471,8 +4480,8 @@ test('caterwaul.continuation.cps', function () {
     eq(c(5, i(_) /cps[_ + 1], _) /cps.x[x + 1], 7);
   })(eq);
 });
-__967fd04a90612fecae992c68dc57953e
-meta::sdoc('js::modules/caterwaul.continuation.test/delimited', <<'__3a506c5150e3570d7729f673f48ee686');
+__
+meta::sdoc('js::modules/caterwaul.continuation.test/delimited', <<'__');
 Delimited continuation tests.
 
 test('caterwaul.continuation.delimited', function () {
@@ -4496,8 +4505,8 @@ test('caterwaul.continuation.delimited', function () {
     eq(call/cc[fn[cc][factorial_cps(5, 1, cc)]], 120);
   })(eq);
 });
-__3a506c5150e3570d7729f673f48ee686
-meta::sdoc('js::modules/caterwaul.format', <<'__7d67d57915c2722f359b8c24b594b451');
+__
+meta::sdoc('js::modules/caterwaul.format', <<'__');
 Code formatting module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4532,8 +4541,8 @@ Indentation is two spaces, and each block-style construct triggers additional in
                                             '#{op} #{serialize()(tree[0])} #{serialize()(tree[1])};\n#{spaces}#{serialize()(tree[2])}' :
                                             '#{op} #{map(serialize(), tree).join(" ")}' :
                                           op})});
-__7d67d57915c2722f359b8c24b594b451
-meta::sdoc('js::modules/caterwaul.gen', <<'__4695de67cfd8d94be31af343c247bcff');
+__
+meta::sdoc('js::modules/caterwaul.gen', <<'__');
 Code generation functions | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4545,8 +4554,8 @@ Many Caterwaul functions generate code in common patterns. This module provides 
         
 
     gen.scope = function (vars, body) {
-__4695de67cfd8d94be31af343c247bcff
-meta::sdoc('js::modules/caterwaul.heap', <<'__0de58fc36044652470964f57fb7dd68f');
+__
+meta::sdoc('js::modules/caterwaul.heap', <<'__');
 Heap implementation | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4583,8 +4592,8 @@ the math:
       _.heapify_up(i)   = this /se[_.swap(i, p).heapify_up(p), when[less.call(_, _[i], _[p])], where[p = i >> 1]],
       _.heapify_down(i) = this /se[_.swap(lr, i).heapify_down(lr), unless[lr === i],
                                    where*[s = _.size(), r = i + 1 << 1, l = r - 1, ll = l < s && less.call(_, _[l], _[i]) ? l : i, lr = r < s && less.call(_, _[r], _[ll]) ? r : ll]]]]});
-__0de58fc36044652470964f57fb7dd68f
-meta::sdoc('js::modules/caterwaul.heap.test/minheap', <<'__9fe45d54621677356c7e564a882f442b');
+__
+meta::sdoc('js::modules/caterwaul.heap.test/minheap', <<'__');
 Minheap tests.
 
 test('caterwaul.heap.minheap', function () {
@@ -4605,8 +4614,8 @@ test('caterwaul.heap.minheap', function () {
     eq(h.size(), 0);
   })(eq);
 });
-__9fe45d54621677356c7e564a882f442b
-meta::sdoc('js::modules/caterwaul.macro', <<'__06052fbb74a764a5b83bbf5adcb32372');
+__
+meta::sdoc('js::modules/caterwaul.macro', <<'__');
 Macro-authoring configurations | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4661,8 +4670,8 @@ Final configuration.
 This one loads the others.
 
   configuration('macro', function () {this.configure('macro.defmacro macro.with_gensyms macro.compile_eval')});
-__06052fbb74a764a5b83bbf5adcb32372
-meta::sdoc('js::modules/caterwaul.macro.test/compile-eval', <<'__c8273cdd5418074db7b758f47e82f6ab');
+__
+meta::sdoc('js::modules/caterwaul.macro.test/compile-eval', <<'__');
 Compile-time eval tests.
 
 test('caterwaul.macro.compile-eval', function () {
@@ -4681,8 +4690,8 @@ test('caterwaul.macro.compile-eval', function () {
     eq(also_zero, 0);
   })(eq);
 });
-__c8273cdd5418074db7b758f47e82f6ab
-meta::sdoc('js::modules/caterwaul.macro.test/defmacro', <<'__9914b01f7b4244f4e00a03ded4072b08');
+__
+meta::sdoc('js::modules/caterwaul.macro.test/defmacro', <<'__');
 Caterwaul defmacro standard library tests
 
 test('caterwaul.macro.defmacro', function () {
@@ -4716,8 +4725,8 @@ test('caterwaul.macro.defmacro', function () {
     eq(6 < 5, true);
   }) (eq);
 });
-__9914b01f7b4244f4e00a03ded4072b08
-meta::sdoc('js::modules/caterwaul.macro.test/with-gensyms', <<'__8827437acee16ed0aab3ed655d33c5b2');
+__
+meta::sdoc('js::modules/caterwaul.macro.test/with-gensyms', <<'__');
 Caterwaul with_gensyms tests
 
 test('caterwaul.macro.with-gensyms', function () {
@@ -4733,8 +4742,8 @@ test('caterwaul.macro.with-gensyms', function () {
     if (symbol1.data === symbol2.data) throw new Error('Gensyms not unique: #{symbol1.data} === #{symbol2.data}');
   }) (eq);
 });
-__8827437acee16ed0aab3ed655d33c5b2
-meta::sdoc('js::modules/caterwaul.memoize', <<'__706a518f525bc0e31bb93f2d05c6083d');
+__
+meta::sdoc('js::modules/caterwaul.memoize', <<'__');
 Memoization module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4776,8 +4785,8 @@ proxy function owns this object, so it's allowed to manipulate it in any way.
                                                 /se[_.original = f],
                                     m.perform(result) = result.error ? unwind[result.error] : result.result,
                                     m.from(proxy) = fn[f][l[state = {}, g = m.wrap(f)] in fn_[m.perform(proxy.call(state, this, arguments, g))]]]});
-__706a518f525bc0e31bb93f2d05c6083d
-meta::sdoc('js::modules/caterwaul.memoize.test/fib', <<'__1cf835634927d2aca7f5252efd1a2276');
+__
+meta::sdoc('js::modules/caterwaul.memoize.test/fib', <<'__');
 Fibonacci memoization test (trivial).
 
 test('caterwaul.memoize.fib', function () {
@@ -4801,8 +4810,8 @@ test('caterwaul.memoize.fib', function () {
     eq(c2, c2old);
   })(eq);
 });
-__1cf835634927d2aca7f5252efd1a2276
-meta::sdoc('js::modules/caterwaul.node', <<'__d4e5ce298895c0d59f093b80831556e4');
+__
+meta::sdoc('js::modules/caterwaul.node', <<'__');
 Node/CommonJS Caterwaul module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4811,8 +4820,8 @@ Licensed under the terms of the MIT source code license
 Expose the Caterwaul global function as an export.
 
 exports.caterwaul = caterwaul;
-__d4e5ce298895c0d59f093b80831556e4
-meta::sdoc('js::modules/caterwaul.node.pre', <<'__7ed77d5fc1c10641b08aa3520b9cde5b');
+__
+meta::sdoc('js::modules/caterwaul.node.pre', <<'__');
 Node/CommonJS Caterwaul module (preprocessed) | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4821,8 +4830,8 @@ Licensed under the terms of the MIT source code license
 Expose the Caterwaul global function as an export.
 
 exports.caterwaul = caterwaul;
-__7ed77d5fc1c10641b08aa3520b9cde5b
-meta::sdoc('js::modules/caterwaul.opt', <<'__eeda6a22d8304e62c118565efae2ee1a');
+__
+meta::sdoc('js::modules/caterwaul.opt', <<'__');
 Caterwaul optimization library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -4896,8 +4905,8 @@ Opt module collection.
 Loading the 'opt' configuration will enable all of the individual macros in the optimization library.
 
   caterwaul.configuration('opt', function () {this.configure('opt.unroll')});
-__eeda6a22d8304e62c118565efae2ee1a
-meta::sdoc('js::modules/caterwaul.opt.test/unroll', <<'__389added7daf92aea5679f58cd4b6940');
+__
+meta::sdoc('js::modules/caterwaul.opt.test/unroll', <<'__');
 Tests for opt.unroll
 
 test('caterwaul.opt.unroll', function () {
@@ -4922,8 +4931,8 @@ test('caterwaul.opt.unroll', function () {
   var iterations = f(eq);
   eq(iterations, 50);
 });
-__389added7daf92aea5679f58cd4b6940
-meta::sdoc('js::modules/caterwaul.parser', <<'__9434f8f34406b5dbef76ea416c6098a3');
+__
+meta::sdoc('js::modules/caterwaul.parser', <<'__');
 Caterwaul parser module | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -5096,8 +5105,8 @@ Loads both the classes and the peg[] macro.
 
   configuration('parser', function () {
     this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
-__9434f8f34406b5dbef76ea416c6098a3
-meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__97627ef6b160d10fdc2de836f65c32d5');
+__
+meta::sdoc('js::modules/caterwaul.parser.test/basic', <<'__');
 Basic parser combinator tests.
 
 test('caterwaul.parser.basic', function () {
@@ -5151,8 +5160,8 @@ test('caterwaul.parser.basic', function () {
     eq(ac('ac')[1].length, 0);
   })(eq);
 });
-__97627ef6b160d10fdc2de836f65c32d5
-meta::sdoc('js::modules/caterwaul.parser.test/c', <<'__4aa86f0e9bb2c74d7d126a17bcf9fa0a');
+__
+meta::sdoc('js::modules/caterwaul.parser.test/c', <<'__');
 Tests for the constant parser.
 
 test('caterwaul.parser.c', function () {
@@ -5254,8 +5263,8 @@ test('caterwaul.parser.c', function () {
     eq(peg[c(fn[s][Number(s.charAt(0))])]('8abcdef'), '8abcdef');
   })(eq);
 });
-__4aa86f0e9bb2c74d7d126a17bcf9fa0a
-meta::sdoc('js::modules/caterwaul.parser.test/dsl', <<'__595f0a43936f994088d95cf2c2504923');
+__
+meta::sdoc('js::modules/caterwaul.parser.test/dsl', <<'__');
 DSL tests for the caterwaul parser.
 
 test('caterwaul.parser.dsl', function () {
@@ -5300,8 +5309,8 @@ test('caterwaul.parser.dsl', function () {
     eq(peg[c('a') % ((c('b') / c('c'))[0] >> fn[xs]['[#{xs.join("")}]']) % c('d') >> fn[xs][xs.join('')]]('abcbbcc'), false);
   })(eq);
 });
-__595f0a43936f994088d95cf2c2504923
-meta::sdoc('js::modules/caterwaul.parser.test/high-complexity', <<'__7205bca9c419ada3007d1ff029796c6b');
+__
+meta::sdoc('js::modules/caterwaul.parser.test/high-complexity', <<'__');
 Observed failure case of exponential-time complexity to parse simple expressions.
 The Figment parser parses strings using the c(/ /, 1) construct. However, its complexity seems to be exponential.
 
@@ -5327,8 +5336,8 @@ test('caterwaul.parser.high-complexity', function () {
     var times2 = [time[figment_lex('foo bar bif\n')], time[figment_lex('foo bar bif baz bok\n')], time[figment_lex('foo bar bif baz bok boo quux hork bork bogus\n')]];
   })(eq);
 });
-__7205bca9c419ada3007d1ff029796c6b
-meta::sdoc('js::modules/caterwaul.parser.test/infinite-loop-failure', <<'__3828d90faa5416f15379fb065f994324');
+__
+meta::sdoc('js::modules/caterwaul.parser.test/infinite-loop-failure', <<'__');
 An observed failure involving infinite looping.
 The original case is in the Figment parser:
 
@@ -5359,8 +5368,8 @@ test('caterwaul.parser.infinite-loop-failure', function () {
     eq(peg[c(/.*/, 1)[1]]('a').join(''), 'a');
   })(eq);
 });
-__3828d90faa5416f15379fb065f994324
-meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__612b755f1543d5784d525d14a8ac6d20');
+__
+meta::sdoc('js::modules/caterwaul.parser.test/lookahead', <<'__');
 Tests for lookahead assertions.
 
 test('caterwaul.parser.lookahead', function () {
@@ -5383,8 +5392,8 @@ test('caterwaul.parser.lookahead', function () {
     eq(ab('a'), false);
   })(eq);
 });
-__612b755f1543d5784d525d14a8ac6d20
-meta::sdoc('js::modules/caterwaul.seq', <<'__5b173fc727700adbc93f88b45ef2f2d0');
+__
+meta::sdoc('js::modules/caterwaul.seq', <<'__');
 Caterwaul JS sequence library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -5700,8 +5709,8 @@ Rather than including individual configurations above, you'll probably just want
   configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
                                                             'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal ' +
                                                             'seq.numeric seq.dsl')});
-__5b173fc727700adbc93f88b45ef2f2d0
-meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__3502609e09551b17c6963c7c4872f50c');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/dsl', <<'__');
 Sequence DSL tests.
 
 test('caterwaul.seq.dsl', function () {
@@ -5789,8 +5798,8 @@ test('caterwaul.seq.dsl', function () {
     eq(s3[2], this);
   })(eq);
 });
-__3502609e09551b17c6963c7c4872f50c
-meta::sdoc('js::modules/caterwaul.seq.test/finite.core', <<'__4c1df949aae430af5eb950a2e943a4a2');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.core', <<'__');
 Finite sequence core method tests.
 
 test('caterwaul.seq.finite.core', function () {
@@ -5807,8 +5816,8 @@ test('caterwaul.seq.finite.core', function () {
     eq(s.size(), 0);
   })(eq);
 });
-__4c1df949aae430af5eb950a2e943a4a2
-meta::sdoc('js::modules/caterwaul.seq.test/finite.filter', <<'__489c5503235513ad2009f842729c3660');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.filter', <<'__');
 Finite sequence filter tests.
 
 test('caterwaul.seq.finite.filter', function () {
@@ -5837,8 +5846,8 @@ test('caterwaul.seq.finite.filter', function () {
     eq(first_three[2], 3);
   })(eq);
 });
-__489c5503235513ad2009f842729c3660
-meta::sdoc('js::modules/caterwaul.seq.test/finite.fold', <<'__debbafd6cf5a0d1a61eeee5ed086c871');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.fold', <<'__');
 Finite sequence folding tests
 
 test('caterwaul.seq.finite.fold', function () {
@@ -5865,8 +5874,8 @@ test('caterwaul.seq.finite.fold', function () {
     eq(zs.foldr(fn[x, y][Math.max(x, y)]), 4);
   })(eq);
 });
-__debbafd6cf5a0d1a61eeee5ed086c871
-meta::sdoc('js::modules/caterwaul.seq.test/finite.map', <<'__8cfe868cf749d594d610870c90e94eb6');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.map', <<'__');
 Finite sequence mapping tests.
 
 test('caterwaul.seq.finite.map', function () {
@@ -5893,8 +5902,8 @@ test('caterwaul.seq.finite.map', function () {
     eq(zs[4], 4);
   })(eq);
 });
-__8cfe868cf749d594d610870c90e94eb6
-meta::sdoc('js::modules/caterwaul.seq.test/finite.object', <<'__a26f106228e9d81ae11f1b9716b414ea');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.object', <<'__');
 Finite sequence object-related tests.
 
 test('caterwaul.seq.finite.object', function () {
@@ -5932,8 +5941,8 @@ test('caterwaul.seq.finite.object', function () {
     eq(o2.other, 'property');
   })(eq);
 });
-__a26f106228e9d81ae11f1b9716b414ea
-meta::sdoc('js::modules/caterwaul.seq.test/finite.quantifiers', <<'__5c9c8f33c5de6cba1f15ca28b149f8b9');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.quantifiers', <<'__');
 Finite sequence quantifier tests.
 
 test('caterwaul.seq.finite.quantifier', function () {
@@ -5953,8 +5962,8 @@ test('caterwaul.seq.finite.quantifier', function () {
     eq(below_100.exists(fn[x][x > 20 && x]), 23);
   })(eq);
 });
-__5c9c8f33c5de6cba1f15ca28b149f8b9
-meta::sdoc('js::modules/caterwaul.seq.test/finite.zip', <<'__684cb7d12778460d4c8ebd5d6cf412cf');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/finite.zip', <<'__');
 Finite sequence zip tests.
 
 test('caterwaul.seq.finite.zip', function () {
@@ -6004,8 +6013,8 @@ test('caterwaul.seq.finite.zip', function () {
     eq(outer[4][1], undefined);
   })(eq);
 });
-__684cb7d12778460d4c8ebd5d6cf412cf
-meta::sdoc('js::modules/caterwaul.seq.test/infinite.transform', <<'__7f20cdcf254854eba26004c2c7ee1750');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/infinite.transform', <<'__');
 Map and filter tests on infinite streams.
 
 test('caterwaul.seq.infinite.transform', function () {
@@ -6036,8 +6045,8 @@ test('caterwaul.seq.infinite.transform', function () {
     eq(big.t().h(), 20004);
   })(eq);
 });
-__7f20cdcf254854eba26004c2c7ee1750
-meta::sdoc('js::modules/caterwaul.seq.test/infinite.traversal', <<'__3d8e3e2452d48433b3b7585b3235faf0');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/infinite.traversal', <<'__');
 Take/drop tests.
 
 test('caterwaul.seq.infinite.traversal', function () {
@@ -6057,8 +6066,8 @@ test('caterwaul.seq.infinite.traversal', function () {
     eq(small[999], 999);
   })(eq);
 });
-__3d8e3e2452d48433b3b7585b3235faf0
-meta::sdoc('js::modules/caterwaul.seq.test/infinite.y', <<'__03fea126b6398edcb55191f34120c1f7');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/infinite.y', <<'__');
 Head/tail method tests.
 
 test('caterwaul.seq.infinite.y', function () {
@@ -6077,8 +6086,8 @@ test('caterwaul.seq.infinite.y', function () {
     eq(naturals.t().t().h(), 2);
   })(eq);
 });
-__03fea126b6398edcb55191f34120c1f7
-meta::sdoc('js::modules/caterwaul.seq.test/numeric', <<'__b0a2d54c0f5713cd919ec25076478def');
+__
+meta::sdoc('js::modules/caterwaul.seq.test/numeric', <<'__');
 Numeric sequence tests.
 
 test('caterwaul.seq.numeric', function () {
@@ -6103,8 +6112,8 @@ test('caterwaul.seq.numeric', function () {
     eq(caterwaul.seq.n(1, 5, 0.5).join(','), '1,1.5,2,2.5,3,3.5,4,4.5');
   })(eq);
 });
-__b0a2d54c0f5713cd919ec25076478def
-meta::sdoc('js::modules/caterwaul.std', <<'__e5420ac27db893070714adaafe33a583');
+__
+meta::sdoc('js::modules/caterwaul.std', <<'__');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -6296,8 +6305,8 @@ Standard configuration.
 This loads all of the production-use extensions.
 
   configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.mb std.se std.ref std.string std.using')});
-__e5420ac27db893070714adaafe33a583
-meta::sdoc('js::modules/caterwaul.std.test/falsy-refs', <<'__ee6542bd537959e722d2ad5d08cdf6f4');
+__
+meta::sdoc('js::modules/caterwaul.std.test/falsy-refs', <<'__');
 Falsy ref tests.
 It's possible that Caterwaul 0.5 and earlier reject falsy references; e.g.
 
@@ -6312,8 +6321,8 @@ test('caterwaul.std.falsy-refs', function () {
     eq(falsy, false);
   })(eq);
 });
-__ee6542bd537959e722d2ad5d08cdf6f4
-meta::sdoc('js::modules/caterwaul.std.test/fn', <<'__7bec921f8fd44a6fbdddf512f28a6226');
+__
+meta::sdoc('js::modules/caterwaul.std.test/fn', <<'__');
 Caterwaul fn, bind, and cond standard library tests
 
 test('caterwaul.std.fn', function () {
@@ -6343,8 +6352,8 @@ test('caterwaul.std.fn', function () {
     eq(5, unless[false], 5);
   }) (eq);
 });
-__7bec921f8fd44a6fbdddf512f28a6226
-meta::sdoc('js::modules/caterwaul.std.test/lvalue', <<'__5c3dc5fb4b8f2015070f760692845285');
+__
+meta::sdoc('js::modules/caterwaul.std.test/lvalue', <<'__');
 Caterwaul lvalue macro tests
 
 test('caterwaul.std.lvalue', function () {
@@ -6368,8 +6377,8 @@ test('caterwaul.std.lvalue', function () {
     eq(l[f(x)(y)(z) = x + y + z] in f('1')('2')('3'), '123');
   }) (eq);
 });
-__5c3dc5fb4b8f2015070f760692845285
-meta::sdoc('js::modules/caterwaul.std.test/macro-definition', <<'__091833e70addeb9353e6c0e38f1c8b45');
+__
+meta::sdoc('js::modules/caterwaul.std.test/macro-definition', <<'__');
 Macro definition tests.
 
 test('caterwaul.std.macro-definition', function () {
@@ -6386,8 +6395,8 @@ test('caterwaul.std.macro-definition', function () {
   eq(c(function () {return fn[x, y][x + y]})()(3, 5), 8);
   eq(c(function () {return l(x = 5) in x + 1})(), 6);
 });
-__091833e70addeb9353e6c0e38f1c8b45
-meta::sdoc('js::modules/caterwaul.std.test/overlapping-macros', <<'__715f3f544b78c2bd3b54fe18c48dd161');
+__
+meta::sdoc('js::modules/caterwaul.std.test/overlapping-macros', <<'__');
 Test for an uncommon but important macro case:
 
 | defmacro[_ + _][fn[x, y][..., when[x.data === 5]]];   // or some such
@@ -6424,8 +6433,8 @@ test('caterwaul.std.overlapping-macros', function () {
     eq(c.count2, 1);
   }) (eq);
 });
-__715f3f544b78c2bd3b54fe18c48dd161
-meta::sdoc('js::modules/caterwaul.std.test/ref', <<'__a72d86ce8554b542f8a08a06a08987f5');
+__
+meta::sdoc('js::modules/caterwaul.std.test/ref', <<'__');
 Caterwaul ref library tests
 
 test('caterwaul.std.ref', function () {
@@ -6459,8 +6468,8 @@ test('caterwaul.std.ref', function () {
   eq(fn.foo, 'bif');
   eq(returned_this, fn);
 });
-__a72d86ce8554b542f8a08a06a08987f5
-meta::sdoc('js::modules/caterwaul.std.test/string', <<'__fb17bd0301f5a5ba0b0461a9944d5e6e');
+__
+meta::sdoc('js::modules/caterwaul.std.test/string', <<'__');
 String interpolation tests.
 
 test('caterwaul.std.string', function () {
@@ -6470,16 +6479,16 @@ test('caterwaul.std.string', function () {
     eq('foo#{10 + 1}#{4 + 5}#{3 + 3}', 'foo1196');
   }) (eq);
 });
-__fb17bd0301f5a5ba0b0461a9944d5e6e
-meta::sdoc('js::precompile', <<'__baf72de08bee45d572234824f4df6e0b');
+__
+meta::sdoc('js::precompile', <<'__');
 Offline precompilation.
 Uses caterwaul's precompile() method.
 
 var code = require('fs').readFileSync(process.argv[2], 'utf8');
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
                             caterwaul.precompile('function () {' + code + '}').toString().replace(/^function\s*\(\w*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
-__baf72de08bee45d572234824f4df6e0b
-meta::sdoc('js::test/after', <<'__fc15f6964f51604d56badbc1d46c94ea');
+__
+meta::sdoc('js::test/after', <<'__');
 Tests for composition via the after() method.
 
 test('after', function () {
@@ -6504,8 +6513,8 @@ test('after', function () {
     eq(c21(qs[x * y]).data, '*');
   })(eq);
 });
-__fc15f6964f51604d56badbc1d46c94ea
-meta::sdoc('js::test/environment', <<'__3b875a9598a9d647dc99d31e953b6c82');
+__
+meta::sdoc('js::test/environment', <<'__');
 Environment compilation test.
 Makes sure that Caterwaul compiles a function within the right environment.
 
@@ -6515,8 +6524,8 @@ test('environment', function () {
   eq(c(function () {return x}, {x: false})(), false);
   eq(c(function () {return x}, {x: 'foo bar bif'})(), 'foo bar bif');
 });
-__3b875a9598a9d647dc99d31e953b6c82
-meta::sdoc('js::test/lex-atom', <<'__07d87be64b62f3ca01c849fa138d66a5');
+__
+meta::sdoc('js::test/lex-atom', <<'__');
 Atom lexing unit tests
 
 test('lex-atom', function () {
@@ -6595,8 +6604,8 @@ test('lex-atom', function () {
   t('[foo]/foo/g', '/ (/ ([ (foo)) (foo)) (g)');
   t('{foo}/foo/g', '/ (/ ({ (foo)) (foo)) (g)');
 });
-__07d87be64b62f3ca01c849fa138d66a5
-meta::sdoc('js::test/lex-end-failure', <<'__dfa47515b5923e12783ebceb398c6994');
+__
+meta::sdoc('js::test/lex-end-failure', <<'__');
 Mysterious 'end()' bug -- caused by a lexer bug that interpreted '.e' as a number in scientific notation
 
 test('lex-end-failure', function () {
@@ -6606,16 +6615,16 @@ test('lex-end-failure', function () {
   eq(p('foo.e()').inspect(), '(() (. (foo) (e)) (<>))');
   eq(p('foo.end()').inspect(), '(() (. (foo) (end)) (<>))');
 });
-__dfa47515b5923e12783ebceb398c6994
-meta::sdoc('js::test/lex-neq-failure', <<'__db5bc6e3197597074912c505be253979');
+__
+meta::sdoc('js::test/lex-neq-failure', <<'__');
 Proper parsing of != and !== (in response to a failure)
 
 test('lex-neq-failure', function () {
   eq(caterwaul.parse('foo[1] !== 5').inspect(), '(!== ([] (foo) (1)) (5))');
   eq(caterwaul.parse('foo[1] != 5').inspect(), '(!= ([] (foo) (1)) (5))');
 });
-__db5bc6e3197597074912c505be253979
-meta::sdoc('js::test/lex-op', <<'__523e2a2a2eff5911d23a76e399e03805');
+__
+meta::sdoc('js::test/lex-op', <<'__');
 Operation lexing tests.
 
 test('lex-op', function () {
@@ -6644,8 +6653,8 @@ test('lex-op', function () {
   s('3.5 /foo/g', '(/ (/ (3.5) (foo)) (g))');
   s('false /foo/g', '(/ (/ (false) (foo)) (g))');
 });
-__523e2a2a2eff5911d23a76e399e03805
-meta::sdoc('js::test/lex-regexp-in-for-failure', <<'__16a2dd041600b860c86d964cd53375d1');
+__
+meta::sdoc('js::test/lex-regexp-in-for-failure', <<'__');
 Observed failure case:
 for (var k in hash) /foo/.test(k) || ...
 
@@ -6663,8 +6672,8 @@ test('lex-regexp-for-in-failure', function () {
   f('with (k) /foo/.test(k) && toString();');
   f('if (k in hash) /foo/.test(k) && bar(); else /foo/.test(k) && bar()');
 });
-__16a2dd041600b860c86d964cd53375d1
-meta::sdoc('js::test/lex-semicolon-failure', <<'__49490aff075a90b745e45ad9bad59b7a');
+__
+meta::sdoc('js::test/lex-semicolon-failure', <<'__');
 test('lex-semicolon-failure', function () {
   var t = function (s, s2) {return eq(caterwaul.parse(s).inspect(), s2)};
 
@@ -6674,8 +6683,8 @@ test('lex-semicolon-failure', function () {
   t('x;/foo/g', '(; (x) (/foo/g))');
   t('/foo/g;/bar/g', '(; (/foo/g) (/bar/g))');
 });
-__49490aff075a90b745e45ad9bad59b7a
-meta::sdoc('js::test/lib/unit', <<'__cdaa8d6652d068c9bcd98aa7cf164c1d');
+__
+meta::sdoc('js::test/lib/unit', <<'__');
 Unit testing library functions
 
 var original_caterwaul = caterwaul.deglobalize();
@@ -6719,8 +6728,8 @@ var test = function (name, f) {
     on_error(name, e);
   }
 };
-__cdaa8d6652d068c9bcd98aa7cf164c1d
-meta::sdoc('js::test/lib/unit.client', <<'__28f25ce7ee14450256238f801d4e6aac');
+__
+meta::sdoc('js::test/lib/unit.client', <<'__');
 Client-side unit testing hooks.
 
 log = function (message) {
@@ -6728,8 +6737,8 @@ log = function (message) {
   d.appendChild(document.createTextNode(message));
   document.getElementById('log').appendChild(d);
 };
-__28f25ce7ee14450256238f801d4e6aac
-meta::sdoc('js::test/parse-arithmetic', <<'__b00daffcaa4ad72898ef2168448d686c');
+__
+meta::sdoc('js::test/parse-arithmetic', <<'__');
 Arithmetic/expression tests for the parser.
 
 test('parse-arithmetic', function () {
@@ -6787,8 +6796,8 @@ test('parse-arithmetic', function () {
   p('foo().bar().bif()', '(() (. (() (. (() (foo) (<>)) (bar)) (<>)) (bif)) (<>))');
   p('foo().bar().bif()()', '(() (() (. (() (. (() (foo) (<>)) (bar)) (<>)) (bif)) (<>)) (<>))');
 });
-__b00daffcaa4ad72898ef2168448d686c
-meta::sdoc('js::test/parse-empty-for-initializer-failure', <<'__bdeca27ccafe549bb65d437bbcda3ec4');
+__
+meta::sdoc('js::test/parse-empty-for-initializer-failure', <<'__');
 Test case for 'for (; foo; bar)' loops (in response to jQuery identity failure)
 
 test('parse-empty-for-initializer-failure', function () {
@@ -6809,8 +6818,8 @@ test('parse-empty-for-initializer-failure', function () {
   i('for (;; ++i){}');
   i('for (;i<l;){}');
 });
-__bdeca27ccafe549bb65d437bbcda3ec4
-meta::sdoc('js::test/parse-function-object-failure', <<'__0212323a45220e742e39079bcf20e575');
+__
+meta::sdoc('js::test/parse-function-object-failure', <<'__');
 Odd failure involving the word 'function' in an object
 
 test('parse-function-object-failure', function () {
@@ -6828,8 +6837,8 @@ test('parse-function-object-failure', function () {
   eq(p('y,x = {function:3,if:4}'), 'y,x={function:3,if:4}');
   eq(p('y,x = {function:3, if:4, do:3, while:6}'), 'y,x={function:3,if:4,do:3,while:6}');
 });
-__0212323a45220e742e39079bcf20e575
-meta::sdoc('js::test/parse-grouping', <<'__04e9e9179773054d5f6a399f6cb1552e');
+__
+meta::sdoc('js::test/parse-grouping', <<'__');
 Grouping construct parsing.
 
 test('parse-grouping', function () {
@@ -6840,8 +6849,8 @@ test('parse-grouping', function () {
   p('([3])', '(( ([ (3)))');
   p('([{3}])', '(( ([ ({ (3))))');
 });
-__04e9e9179773054d5f6a399f6cb1552e
-meta::sdoc('js::test/parse-if-else-failure', <<'__88a76bbf2ea6ea7b069bbdebb487fb5e');
+__
+meta::sdoc('js::test/parse-if-else-failure', <<'__');
 An obscure failure case involving if/else nested inside a blockless for.
 
 test('parse-if-else-failure', function () {
@@ -6857,8 +6866,8 @@ test('parse-if-else-failure', function () {
   eq(f(3), 13);
   eq(f(5), 3);
 });
-__88a76bbf2ea6ea7b069bbdebb487fb5e
-meta::sdoc('js::test/parse-syntax', <<'__e545cf14101093e52bb21468c9517848');
+__
+meta::sdoc('js::test/parse-syntax', <<'__');
 JavaScript syntactic constructs.
 
 test('parse-syntax', function () {
@@ -6899,8 +6908,8 @@ test('parse-syntax', function () {
   p('function foo (bar) {bif} function bar (bif) {baz}', '(i; (function (foo) (( (bar)) ({ (bif))) (function (bar) (( (bif)) ({ (baz))))');
   p('var f = function (x) {return x}', '(var (= (f) (function (( (x)) ({ (return (x))))))');
 });
-__e545cf14101093e52bb21468c9517848
-meta::sdoc('js::test/parse-ternary', <<'__cac941cdd6d24ed2c2d9cb469b11de7f');
+__
+meta::sdoc('js::test/parse-ternary', <<'__');
 Ternary operator tests.
 
 test('parse-ternary', function () {
@@ -6916,8 +6925,8 @@ test('parse-ternary', function () {
 
   s('var x = foo() ? (foo + bar)() : (t + u)()', 'var x=foo()?(foo+bar)():(t+u)()');
 });
-__cac941cdd6d24ed2c2d9cb469b11de7f
-meta::sdoc('js::test/plus-plus-failure', <<'__3ab920bca03680a014abb07604264501');
+__
+meta::sdoc('js::test/plus-plus-failure', <<'__');
 A failure case involving prefix and infix plus.
 
 test('plus-plus-failure', function () {
@@ -6927,8 +6936,8 @@ test('plus-plus-failure', function () {
     eq(y, 10);
   })(eq);
 });
-__3ab920bca03680a014abb07604264501
-meta::sdoc('js::test/replica', <<'__db2a7930c22d8a2dd292fc7927052f8c');
+__
+meta::sdoc('js::test/replica', <<'__');
 Replica interface tests.
 
 test('replica', function () {
@@ -6957,16 +6966,16 @@ test('replica', function () {
   eq(m.macro_patterns.constructor, Array);
   eq(m.macro_expanders.constructor, Array);
 });
-__db2a7930c22d8a2dd292fc7927052f8c
-meta::sdoc('js::test/serialize-semicolons', <<'__5674dc8262e3618cb04d828cb98bd81e');
+__
+meta::sdoc('js::test/serialize-semicolons', <<'__');
 Semicolon serialization test.
 
 test('serialize-semicolons', function () {
   eq(new caterwaul.syntax(';').inspect(), '(;)');
   eq(new caterwaul.syntax(';').serialize(), ';');
 });
-__5674dc8262e3618cb04d828cb98bd81e
-meta::sdoc('js::test/tostring-bootstrap', <<'__ce6e5bffb3680096d95b86d776409ec6');
+__
+meta::sdoc('js::test/tostring-bootstrap', <<'__');
 Serialization via serialize()
 
 test('tostring-bootstrap', function () {
@@ -7073,8 +7082,8 @@ test('tostring-bootstrap', function () {
     this.caterwaul = this.$c = $c;
   });
 });
-__ce6e5bffb3680096d95b86d776409ec6
-meta::sdoc('js::test/tostring-identity', <<'__299941a2e7a8dfb463dfa06056e23a16');
+__
+meta::sdoc('js::test/tostring-identity', <<'__');
 Serialization via serialize()
 
 test('tostring-identity', function () {
@@ -7089,8 +7098,8 @@ test('tostring-identity', function () {
   i(function(x){return function(y) {return x + y}});
   i(function () {var x = 5; return x});
 });
-__299941a2e7a8dfb463dfa06056e23a16
-meta::sdoc('js::test/tostring-jquery', <<'__e81e19bd5b7575c1b844ddd0cf4fd4e8');
+__
+meta::sdoc('js::test/tostring-jquery', <<'__');
 Serialization via serialize()
 
 test('tostring-jquery', function () {
@@ -11518,25 +11527,25 @@ test('tostring-jquery', function () {
  })(window);
   });
 });
-__e81e19bd5b7575c1b844ddd0cf4fd4e8
+__
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
-meta::template('eval', <<'__eb0b1058649eb2d833f348540516b358');
+meta::template('eval', <<'__');
 my $result = eval $_[0];
 terminal::warning("Error during template evaluation: $@") if $@;
 $result;
-__eb0b1058649eb2d833f348540516b358
-meta::template('failing_conditional', <<'__5c593329b434a7044f68cec4b77e8ed9');
+__
+meta::template('failing_conditional', <<'__');
 my ($commands)    = @_;
 my $should_return = $commands =~ / if (.*)$/ && ! eval $1;
 terminal::warning("eval of template condition failed: $@") if $@;
 $should_return;
-__5c593329b434a7044f68cec4b77e8ed9
-meta::template('include', <<'__e0624844a65ae41e0217dd871fc0dbfb');
+__
+meta::template('include', <<'__');
 my ($commands) = @_;
 return '' if template::failing_conditional($commands);
 join "\n", map retrieve($_), split /\s+/, $commands;
-__e0624844a65ae41e0217dd871fc0dbfb
-meta::template('pinclude', <<'__5ba61c3034a4b183881936aec30d2be9');
+__
+meta::template('pinclude', <<'__');
 # Just like the regular include, but makes sure to insert paragraph boundaries
 # (this is required for SDoc to function properly).
 
@@ -11544,7 +11553,7 @@ my ($commands) = @_;
 return '' if template::failing_conditional($commands);
 my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
 "\n\n$text\n\n";
-__5ba61c3034a4b183881936aec30d2be9
+__
 internal::main();
 
 __END__
