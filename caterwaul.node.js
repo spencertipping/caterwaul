@@ -554,9 +554,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //         ...
 //       }
 
-//     The second parameter 'variables' stores a running total of match data. You don't normally provide this; match creates it for you on the toplevel invocation.
+//     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
+//     as a match variable called 'all'; for example: t.match(u).all === u if u matches t.
 
-         match: function (target, variables) {variables || (variables = {});
+         match: function (target, variables) {variables || (variables = {all: target});
                                               if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                          else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                  if (! this[i].match(target[i], variables)) return null;
@@ -589,25 +590,26 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
 //     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
 
-        toString: function ()   {return this.serialize()},
-         inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
+        toString: function ()   {return 'qs[' + this.serialize() + ']'},
+         inspect: function ()   {return this.toString()},
+       structure: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                         (this.r ? ' -> ' + this.r.inspect() : '')},
 
 //     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
        serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
-                                 return               op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
-                                        has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
-                                       has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
-                                          has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
-                                            has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                                               has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
-                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
-                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
-                                                                     op + space + map(syntax_node_tostring, this).join('') :
-                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
+                                 return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
+                          has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+                         has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
+                            has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
+                              has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
+                                 has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
+     has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
+                      has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
+                                                       op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
+                                                       op + space + map(syntax_node_tostring, this).join('') :
+                                  has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
 
     caterwaul_global.method('define_syntax', function (name, ctor) {return this.field(name, extend.apply(this, [ctor, syntax_common].concat(Array.prototype.slice.call(arguments, 2))))}).
                      method('ensure_syntax', function (thing)      {return thing && thing.constructor === String ? this.parse(thing) : thing}).
@@ -953,14 +955,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
 // Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature can prevent
-// precompilation, since the global references may not be serializable.
+// precompilation, since the global references may not be serializable (and they are included in precompiled code).
 
   caterwaul_global.shallow('globals', {}).method('compile',
-    function (tree, environment) {
-      var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
-      for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
-      var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
-      try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
+    function (tree, environment) {var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
+                                  for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
+                                  var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
+                                  try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('caught ' + e + ' while compiling ' + code)}});
 // Generated by SDoc 
 
 
@@ -979,9 +980,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // The context (i.e. 'this') of each event listener is the caterwaul object.
 
   caterwaul_global.variadic('event', function (name) {
-    var listeners = name + '_listeners', broadcast = 'on_' + name;
-    return this.shallow(listeners, []).variadic(name,      function (l) {this.listeners.push(l); return this}).
-                                         method(broadcast, function () {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
+    var listeners = name + '_listeners', new_listener = 'on_' + name;
+    return this.shallow(listeners, []).variadic(new_listener, function (l) {this[listeners].push(l); return this}).
+                                         method(name,         function ()  {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
 // Generated by SDoc 
 
 
@@ -1787,7 +1788,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.field('version', '6a811c7393fc37a9e514e90087d555be').check_version();
+caterwaul.field('version', '94cf373976ebbba3d3fcb9807b07e59a').check_version();
 // Generated by SDoc 
 
 
@@ -1858,7 +1859,7 @@ caterwaul.field('version', '6a811c7393fc37a9e514e90087d555be').check_version();
     this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
          modified_adverb_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
                               '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
-                              '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers');
+                              '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');
 
 // Javascript-specific shorthands.
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
@@ -2212,13 +2213,16 @@ caterwaul.field('version', '6a811c7393fc37a9e514e90087d555be').check_version();
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
   caterwaul.configuration('core.trace', function () {this.after(this.trace)}).shallow('trace', caterwaul.clone().configure(caterwaul.clone('core.js core.words core.quote')(function () {
-    this.event('before_trace', 'after_trace').method('tmacro', this.macro(lhs, expand_traces(rhs)) /given[lhs, rhs]),
+    this.event('before_trace', 'after_trace'),
 
 //   Expression-mode transformations.
 //   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', M[] means 'hook this method call', E[] means 'trace this expression
 //   recursively', and S[] means 'trace this statement recursively'. It's essentially a context-free grammar over tree expressions.
 
-    this.shallow('expression', this.clone(function () {
+//   Note that assignment_operator, binary_operator, and unary_operator don't technically need to be variadic in this case. I've just defined them this way because it's generally what you'd want
+//   to do with unary methods that might reasonably be called repeatedly on different arguments.
+
+    this.shallow('expression', expression.after(trace_directive_expander).configure(function () {
       this.variadic('assignment_operator', this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[_x           = E[_y]]].replace({'=': op})).
                                                 tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[E[_x][E[_y]] = E[_z]]].replace({'=': op})).
                                                 tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[E[_x]._y     = E[_z]]].replace({'=': op})) | given.op).
@@ -2233,7 +2237,8 @@ caterwaul.field('version', '6a811c7393fc37a9e514e90087d555be').check_version();
            tmacro('_x._y',                  'H[E[_x]._y]').                                                             // No tracing for constant attributes
            tmacro('typeof _x',              'H[typeof _x]').                                                            // No tracing for typeof since the value may not exist
            tmacro('delete _x._y',           'H[delete E[_x]._y]').                                                      // Lvalue, so no tracing for the original
-           tmacro('_o._m(_xs)',             'M[E[_o], _m, [E[_xs]]]').                                                  // Use M[] to provide correct binding via apply()
+           tmacro('_o._m(_xs)',             'D[E[_o], _m, [E[_xs]]]').                                                  // Use D[] to indicate direct method binding
+           tmacro('_o[_m](_xs)',            'I[E[_o], E[_m], [E[_xs]]]').                                               // Use I[] to indicate indirect method binding
            tmacro('{_ps}',                  'H[{E[_ps]}]').                                                             // Hook the final object and distribute across k/v pairs (more)
            tmacro('_k: _v',                 '_k: E[_v]').                                                               // Ignore keys (which are constant)
            tmacro('[_xs]',                  'H[[E[_xs]]]').                                                             // Hook the final array and distribute across elements
@@ -2248,69 +2253,94 @@ caterwaul.field('version', '6a811c7393fc37a9e514e90087d555be').check_version();
 //   A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
 //   assignment. Another is the {} construct, which can be either a block or an object literal.
 
-    this.shallow('statement', this.clone(function () {
-      this.tmacro('_x',                                    'E[_x]').
-           tmacro('{_x}',                                  '{S[_x]}').
-           tmacro('_x; _y',                                'S[_x]; S[_y]').
+//   There's some interesting stuff going on with = and commas. The reason is that sometimes you have var definitions, and they contain = and , trees that can't be traced quite the same way that
+//   they are in expressions. For example consider this:
 
-           tmacro('function _f(_args) {_body}',            'function _f(_args) {S[_body]}').
+//   | var x = 5, y = 6;
+
+//   In this case we can't evaluate 'x = 5, y = 6' in expression context; if we did, it would produce H[x = H[5]], H[y = H[6]], and this is not valid Javascript within a var statement. Instead,
+//   we have to produce x = H[5], y = H[6]. The statement-mode comma and equals rules do exactly that. Note that we don't lose anything by doing this because in statement context the result of an
+//   assignment is never used anyway.
+
+    this.shallow('statement', statement.after(trace_directive_expander).configure(function () {
+      this.tmacro('_x',                                    'E[_x]').                         tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
+           tmacro('{_x}',                                  '{S[_x]}').                       tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
+           tmacro('_x; _y',                                'S[_x]; S[_y]').                  tmacro('while (_x) y',                          'while (E[_x]) S[_y]').
+                                                                                             tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
+           tmacro('function _f(_args) {_body}',            'function _f(_args) {S[_body]}'). tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
            tmacro('_x, _y',                                'S[_x], S[_y]').
-           tmacro('_x = _y',                               '_x = E[_y]').
-           tmacro('var _xs',                               'var S[_xs]').
-           tmacro('const _xs',                             'const S[_xs]').
+           tmacro('_x = _y',                               '_x = E[_y]').                    tmacro('try {_x} catch (_e) {_y}',              'try {S[_x]} catch (_e) {S[_y]}').
+           tmacro('var _xs',                               'var S[_xs]').                    tmacro('try {_x} catch (_e) {_y} finally {_z}', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}').
+           tmacro('const _xs',                             'const S[_xs]').                  tmacro('try {_x} finally {_y}',                 'try {S[_x]} finally {S[_y]}').
 
-           tmacro('if (_x) _y',                            'if (E[_x]) S[_y]').
-           tmacro('if (_x) _y; else _z',                   'if (E[_x]) S[_y]; else S[_z]').
-           tmacro('if (_x) {_y} else _z',                  'if (E[_x]) {S[_y]} else S[_z]').
+           tmacro('if (_x) _y',                            'if (E[_x]) S[_y]').              tmacro('return _x',                             'return E[_x]').
+           tmacro('if (_x) _y; else _z',                   'if (E[_x]) S[_y]; else S[_z]').  tmacro('return',                                'return').
+           tmacro('if (_x) {_y} else _z',                  'if (E[_x]) {S[_y]} else S[_z]'). tmacro('throw _x',                              'throw E[_x]').
+                                                                                             tmacro('break _label',                          'break _label').
+           tmacro('switch (_c) {_body}',                   'switch (E[_c]) {S[_body]}').     tmacro('break',                                 'break').
+           tmacro('with (_x) _y',                          'with (E[_x]) S[_y]').            tmacro('continue _label',                       'continue _label').
+                                                                                             tmacro('continue',                              'continue').
+                                                                                             tmacro('_label: _stuff',                        '_label: S[_stuff]')})),
 
-           tmacro('switch (_c) {_body}',                   'switch (E[_c]) {S[_body]}').
-           tmacro('with (_x) _y',                          'with (E[_x]) S[_y]').
+//   Hook generation.
+//   Most of the actual hook generation code is fairly routine for JIT stuff. Where it gets interesting is the macro definitions that cause the code to be traversed. These aren't pre-expanded;
+//   rather, they're converted into gensyms to avoid collisions with the code and then treated as macros. However, macroexpanding these definitions can't be done by the same macroexpander that
+//   generates them. The reason is the existence of patterns like _x -> H[_x] -- this will loop forever, since _x matches H[_x].
 
-           tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
-           tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
-           tmacro('while (_x) y',                          'while (E[_x]) S[_y]').
-           tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
-           tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
+//   Therefore, there's a separate caterwaul function that is preconfigured to handle the hook signals. This one recognizes the gensyms produced during the grammar expansion and creates the
+//   actual hook definitions. This in turn kicks off more grammar expansions and so forth until the only expansions left are terminal ones. At this point the process halts.
 
-           tmacro('try {_x} catch (_e) {_y}',              'try {S[_x]} catch (_e) {S[_y]}').
-           tmacro('try {_x} catch (_e) {_y} finally {_z}', 'try {S[_x]} catch (_e) {S[_y]}').
+    this.shallow('trace_directive_expander', trace_directive_expander.configure(function () {
+      this.method('tmacro', this.macro(convert_trace_directives_in(lhs), rhs) /given[lhs, rhs]).
 
-           tmacro('return _x',                             'return E[_x]').
-           tmacro('return',                                'return').
-           tmacro('throw _x',                              'throw E[_x]').
-           tmacro('break _label',                          'break _label').
-           tmacro('break',                                 'break').
-           tmacro('continue _label',                       'continue _label').
-           tmacro('continue',                              'continue').
-           tmacro('_label: _stuff',                        '_label: S[_stuff]')})),
+           tmacro('H[_x]',                              given.match in expression_hook(match._x)).
+           tmacro('D[_object, _method, [_parameters]]', given.match in direct_method_hook  (qs[_object._method (_parameters)].replace(match), match)).
+           tmacro('I[_object, _method, [_parameters]]', given.match in indirect_method_hook(qs[_object[_method](_parameters)].replace(match), match)).
 
-    where[self                                                 = this,
-          qw(s)                                                = s.split(/\s+/),
+           tmacro('E[_x]',                              given.match in expression(match._x)).
+           tmacro('S[_x]',                              given.match in statement(match._x))})),
 
-          expand_traces_in(tree)                               = 
+//   Entry point.
+//   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
 
-          before_hook(tree)                                    = self.before_trace(tree),
-          after_hook(tree, value)                              = self.after_trace(tree, value) -returning- value,
-          after_method_hook(tree, object, method, parameters)  = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-
-                                                                 self.after_trace(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
+    this.final_macro('_x', statement(match._x) /given.match),
 
-          before_hook_ref                                      = new this.ref(before_hook),
-          after_hook_ref                                       = new this.ref(after_hook),
-          after_method_hook_ref                                = new this.ref(after_method_hook),
+    where[self                                                = this,
+          qw(s)                                               = s.split(/\s+/),
 
-          expression_hook_template                             = qs[_before_hook(_tree, _index), _after_hook(_tree, _index, _expression)].as('('),
-          expression_hook(tree, index)                         = expression_hook_template.replace({_before_hook: before_hook, _after_hook: after_hook, _tree: new self.ref(tree),
-                                                                                                   _index: index.toString(), _expression: tree}),
+          // Tracing setup: caterwaul functions to carry out the trace annotations.
+          trace_directive_aliases                             = {H: this.gensym(), M: this.gensym(), S: this.gensym(), E: this.gensym()} /effect[it[it[k]] = k, over_keys[it]],
+          convert_trace_directives_in(tree)                   = self.ensure_syntax(tree).replace(trace_directive_aliases),
 
-          indirect_method_hook_template                        = qs[_before_hook(_tree, _index), _after_hook(_tree, _index, _object, _method, [_parameters])].as('('),
-          quote_method_name(method)                            = '"#{method.data.replace(/"/g, "\\\"")}"',
+          with_tmacro()                                       = this.method('tmacro', this.final_macro(lhs, convert_trace_directives_in(rhs)) /given[lhs, rhs]),
 
-          method_hook(tree, index, object, method, parameters) = indirect_method_hook_template.replace({_before_hook: this.before_method_hook, _after_hook: this.after_method_hook,
-                                                                                                        _tree: new this.ref(tree), _index: index.toString(), _object: object, _method: method,
-                                                                                                        _parameters: parameters}),
+          statement                                           = this.clone(with_tmacro),
+          expression                                          = this.clone(with_tmacro),
+          trace_directive_expander                            = this.clone(),
 
-          direct_method_hook(tree, index, match)               = method_hook(tree, index, match._object, quote_method_name(match._method), match._parameters),
-          indirect_method_hook(tree, index, match)             = method_hook(tree, index, match._object, match._method, match._parameters)]})));
+          // Hook methods: invoked from inside the generated code on runtime-generated values (though 'tree' is a ref to the syntax tree).
+          before_hook(tree)                                   = self.before_trace(tree),
+          after_hook(tree, value)                             = self.after_trace(tree, value) -returning- value,
+          after_method_hook(tree, object, method, parameters) = self.before_trace(tree[0]) -then- self.after_trace(tree[0], resolved) -then-
+                                                                self.after_trace(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
+
+          before_hook_ref                                     = new this.ref(before_hook),
+          after_hook_ref                                      = new this.ref(after_hook),
+          after_method_hook_ref                               = new this.ref(after_method_hook),
+
+          // Hook generators: called at compile-time to generate trees that refer to the hook methods above.
+          expression_hook_template                            = qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('('),
+          expression_hook(tree)                               = expression_hook_template.replace({_before_hook: before_hook_ref, _after_hook: after_hook_ref, _tree: new self.ref(tree),
+                                                                                                  _expression: tree.as('(')}),
+
+          indirect_method_hook_template                       = qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('('),
+          quote_method_name(method)                           = '"#{method.data.replace(/"/g, "\\\"")}"',
+
+          method_hook(tree, object, method, parameters)       = indirect_method_hook_template.replace({_before_hook: before_hook_ref, _after_hook: after_method_hook_ref,
+                                                                                                       _tree: new self.ref(tree), _object: object, _method: method, _parameters: parameters}),
+
+          direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),
+          indirect_method_hook(tree, match)                   = method_hook(tree, match._object, match._method, match._parameters)]})));
 // Generated by SDoc 
 
 

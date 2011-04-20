@@ -536,9 +536,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //         ...
 //       }
 
-//     The second parameter 'variables' stores a running total of match data. You don't normally provide this; match creates it for you on the toplevel invocation.
+//     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
+//     as a match variable called 'all'; for example: t.match(u).all === u if u matches t.
 
-         match: function (target, variables) {variables || (variables = {});
+         match: function (target, variables) {variables || (variables = {all: target});
                                               if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                          else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                  if (! this[i].match(target[i], variables)) return null;
@@ -571,25 +572,26 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
 //     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
 
-        toString: function ()   {return this.serialize()},
-         inspect: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
+        toString: function ()   {return 'qs[' + this.serialize() + ']'},
+         inspect: function ()   {return this.toString()},
+       structure: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
                                         (this.r ? ' -> ' + this.r.inspect() : '')},
 
 //     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
 //     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
 
        serialize: function (xs) {var op = this.data, space = /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
-                                 return               op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
-                                        has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
-                                       has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
-                                          has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
-                                            has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                                               has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
-                   has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
-                                    has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                                     op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
-                                                                     op + space + map(syntax_node_tostring, this).join('') :
-                                                has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
+                                 return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
+                          has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
+                         has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
+                            has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
+                              has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
+                                 has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
+     has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
+                      has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
+                                                       op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
+                                                       op + space + map(syntax_node_tostring, this).join('') :
+                                  has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
 
     caterwaul_global.method('define_syntax', function (name, ctor) {return this.field(name, extend.apply(this, [ctor, syntax_common].concat(Array.prototype.slice.call(arguments, 2))))}).
                      method('ensure_syntax', function (thing)      {return thing && thing.constructor === String ? this.parse(thing) : thing}).
@@ -935,14 +937,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
 // Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature can prevent
-// precompilation, since the global references may not be serializable.
+// precompilation, since the global references may not be serializable (and they are included in precompiled code).
 
   caterwaul_global.shallow('globals', {}).method('compile',
-    function (tree, environment) {
-      var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
-      for (var k in bindings) if (has(bindings, k)) vars.push(k), values.push(bindings[k]);
-      var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
-      try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('Caught ' + e + ' while compiling ' + code)}});
+    function (tree, environment) {var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
+                                  for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
+                                  var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.serialize() + ')';
+                                  try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error('caught ' + e + ' while compiling ' + code)}});
 // Generated by SDoc 
 
 
@@ -961,9 +962,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // The context (i.e. 'this') of each event listener is the caterwaul object.
 
   caterwaul_global.variadic('event', function (name) {
-    var listeners = name + '_listeners', broadcast = 'on_' + name;
-    return this.shallow(listeners, []).variadic(name,      function (l) {this.listeners.push(l); return this}).
-                                         method(broadcast, function () {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
+    var listeners = name + '_listeners', new_listener = 'on_' + name;
+    return this.shallow(listeners, []).variadic(new_listener, function (l) {this[listeners].push(l); return this}).
+                                         method(name,         function ()  {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
 // Generated by SDoc 
 
 
