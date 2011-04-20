@@ -21,7 +21,7 @@
 
 // Here is the basic transformation applied to the code:
 
-// | some_expression   ->   (before_hook(qs[some_expression]), after_hook(qs[some_expression], some_expression))
+// | some_expression   ->  (before_hook(qs[some_expression]), after_hook(qs[some_expression], some_expression))
 
 // Note that the tracer inserts itself as an after-step in the compilation process. This means that if you have other after-configurations, you should think about whether you want them to operate
 // on the traced or untraced code. If untraced, then you should configure caterwaul with those configurations first:
@@ -43,15 +43,12 @@
 //   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', M[] means 'hook this method call', E[] means 'trace this expression
 //   recursively', and S[] means 'trace this statement recursively'. It's essentially a context-free grammar over tree expressions.
 
-//   Note that assignment_operator, binary_operator, and unary_operator don't technically need to be variadic in this case. I've just defined them this way because it's generally what you'd want
-//   to do with unary methods that might reasonably be called repeatedly on different arguments.
-
     this.shallow('expression', expression.after(trace_directive_expander).configure(function () {
-      this.variadic('assignment_operator', this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[_x           = E[_y]]].replace({'=': op})).
-                                                tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[E[_x][E[_y]] = E[_z]]].replace({'=': op})).
-                                                tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[E[_x]._y     = E[_z]]].replace({'=': op})) | given.op).
-           variadic('binary_operator',     this.tmacro(qs[_x + _y].replace({'+': op}), qs[H[E[_x] + E[_y]]].replace({'+': op}))            | given.op).
-           variadic('unary_operator',      this.tmacro(qs[+_x].replace({'u+': 'u#{op}'}), qs[H[+T[_x]]].replace({'u+': 'u#{op}'}))         | given.op),
+      this.method('assignment_operator', given.op in this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[_x           = E[_y]]].replace({'=': op})).
+                                                          tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[E[_x][E[_y]] = E[_z]]].replace({'=': op})).
+                                                          tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[E[_x]._y     = E[_z]]].replace({'=': op}))).
+           method('binary_operator',     given.op in this.tmacro(qs[_x + _y].replace({'+': op}), qs[H[E[_x] + E[_y]]].replace({'+': op}))).
+           method('unary_operator',      given.op in this.tmacro(qs[+_x].replace({'u+': 'u#{op}'}), qs[H[+T[_x]]].replace({'u+': 'u#{op}'}))),
 
       this.tmacro('_x', 'H[_x]').                                                                                       // Base case: identifier or literal
            tmacro('(_x)', '(E[_x])').                                                                                   // Destructuring of parens
@@ -59,10 +56,11 @@
 
            tmacro('_x, _y',                 'E[_x], E[_y]').                                                            // Preserve commas -- works in an argument list
            tmacro('_x._y',                  'H[E[_x]._y]').                                                             // No tracing for constant attributes
-           tmacro('typeof _x',              'H[typeof _x]').                                                            // No tracing for typeof since the value may not exist
-           tmacro('delete _x._y',           'H[delete E[_x]._y]').                                                      // Lvalue, so no tracing for the original
            tmacro('_o._m(_xs)',             'D[E[_o], _m, [E[_xs]]]').                                                  // Use D[] to indicate direct method binding
            tmacro('_o[_m](_xs)',            'I[E[_o], E[_m], [E[_xs]]]').                                               // Use I[] to indicate indirect method binding
+           tmacro('typeof _x',              'H[typeof _x]').                                                            // No tracing for typeof since the value may not exist
+           tmacro('delete _x._y',           'H[delete E[_x]._y]').                                                      // Lvalue, so no tracing for the original
+           tmacro('new _x(_y)',             'H[new H[_x](E[_y])]').                                                     // Hook the constructor to prevent method-handling from happening
            tmacro('{_ps}',                  'H[{E[_ps]}]').                                                             // Hook the final object and distribute across k/v pairs (more)
            tmacro('_k: _v',                 '_k: E[_v]').                                                               // Ignore keys (which are constant)
            tmacro('[_xs]',                  'H[[E[_xs]]]').                                                             // Hook the final array and distribute across elements
@@ -71,7 +69,7 @@
 
       this.assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),                                 // Use methods above to define these regular macros
       this.binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
-      this.unary_operator(it)      -over- qw('+ - void new')})),
+      this.unary_operator(it)      -over- qw('+ - void')})),
 
 //   Statement-mode transformations.
 //   A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
@@ -87,24 +85,24 @@
 //   assignment is never used anyway.
 
     this.shallow('statement', statement.after(trace_directive_expander).configure(function () {
-      this.tmacro('_x',                                    'E[_x]').                         tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
-           tmacro('{_x}',                                  '{S[_x]}').                       tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
-           tmacro('_x; _y',                                'S[_x]; S[_y]').                  tmacro('while (_x) _y',                         'while (E[_x]) S[_y]').
-                                                                                             tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
-           tmacro('function _f(_args) {_body}',            'function _f(_args) {S[_body]}'). tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
-           tmacro('_x, _y',                                'S[_x], S[_y]').
-           tmacro('_x = _y',                               '_x = E[_y]').                    tmacro('try {_x} catch (_e) {_y}',              'try {S[_x]} catch (_e) {S[_y]}').
-           tmacro('var _xs',                               'var S[_xs]').                    tmacro('try {_x} catch (_e) {_y} finally {_z}', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}').
-           tmacro('const _xs',                             'const S[_xs]').                  tmacro('try {_x} finally {_y}',                 'try {S[_x]} finally {S[_y]}').
+      this.tmacro('_x',                         'E[_x]').                         tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
+           tmacro('{_x}',                       '{S[_x]}').                       tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
+           tmacro('_x; _y',                     'S[_x]; S[_y]').                  tmacro('while (_x) _y',                         'while (E[_x]) S[_y]').
+                                                                                  tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
+           tmacro('function _f(_args) {_body}', 'function _f(_args) {S[_body]}'). tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
+           tmacro('_x, _y',                     'S[_x], S[_y]').
+           tmacro('_x = _y',                    '_x = E[_y]').                    tmacro('try {_x} catch (_e) {_y}',              'try {S[_x]} catch (_e) {S[_y]}').
+           tmacro('var _xs',                    'var S[_xs]').                    tmacro('try {_x} catch (_e) {_y} finally {_z}', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}').
+           tmacro('const _xs',                  'const S[_xs]').                  tmacro('try {_x} finally {_y}',                 'try {S[_x]} finally {S[_y]}').
 
-           tmacro('if (_x) _y',                            'if (E[_x]) S[_y]').              tmacro('return _x',                             'return E[_x]').
-           tmacro('if (_x) _y; else _z',                   'if (E[_x]) S[_y]; else S[_z]').  tmacro('return',                                'return').
-           tmacro('if (_x) {_y} else _z',                  'if (E[_x]) {S[_y]} else S[_z]'). tmacro('throw _x',                              'throw E[_x]').
-                                                                                             tmacro('break _label',                          'break _label').
-           tmacro('switch (_c) {_body}',                   'switch (E[_c]) {S[_body]}').     tmacro('break',                                 'break').
-           tmacro('with (_x) _y',                          'with (E[_x]) S[_y]').            tmacro('continue _label',                       'continue _label').
-                                                                                             tmacro('continue',                              'continue').
-                                                                                             tmacro('_label: _stuff',                        '_label: S[_stuff]')})),
+           tmacro('if (_x) _y',                 'if (E[_x]) S[_y]').              tmacro('return _x',                             'return E[_x]').
+           tmacro('if (_x) _y; else _z',        'if (E[_x]) S[_y]; else S[_z]').  tmacro('return',                                'return').
+           tmacro('if (_x) {_y} else _z',       'if (E[_x]) {S[_y]} else S[_z]'). tmacro('throw _x',                              'throw E[_x]').
+                                                                                  tmacro('break _label',                          'break _label').
+           tmacro('switch (_c) {_body}',        'switch (E[_c]) {S[_body]}').     tmacro('break',                                 'break').
+           tmacro('with (_x) _y',               'with (E[_x]) S[_y]').            tmacro('continue _label',                       'continue _label').
+                                                                                  tmacro('continue',                              'continue').
+                                                                                  tmacro('_label: _stuff',                        '_label: S[_stuff]')})),
 
 //   Hook generation.
 //   Most of the actual hook generation code is fairly routine for JIT stuff. Where it gets interesting is the macro definitions that cause the code to be traversed. These aren't pre-expanded;
