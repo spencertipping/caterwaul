@@ -415,32 +415,33 @@
     this.event('before_trace', 'after_trace'),
 
 //   Expression-mode transformations.
-//   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', M[] means 'hook this method call', E[] means 'trace this expression
-//   recursively', and S[] means 'trace this statement recursively'. It's essentially a context-free grammar over tree expressions.
+//   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', D[] means 'hook this direct method call', I[] means 'hook this indirect
+//   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
 
     this.shallow('expression', expression.after(trace_directive_expander).configure(function () {
-      this.method('assignment_operator', given.op in this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[_x           = E[_y]]].replace({'=': op})).
-                                                          tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[E[_x][E[_y]] = E[_z]]].replace({'=': op})).
-                                                          tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[E[_x]._y     = E[_z]]].replace({'=': op}))).
-           method('binary_operator',     given.op in this.tmacro(qs[_x + _y].replace({'+': op}), qs[H[E[_x] + E[_y]]].replace({'+': op}))).
-           method('unary_operator',      given.op in this.tmacro(qs[+_x].replace({'u+': 'u#{op}'}), qs[H[+T[_x]]].replace({'u+': 'u#{op}'}))),
+      this.method('assignment_operator', given.op in this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[all, _x           = E[_y]]].replace({'=': op})).
+                                                          tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[all, E[_x][E[_y]] = E[_z]]].replace({'=': op})).
+                                                          tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[all, E[_x]._y     = E[_z]]].replace({'=': op}))).
+           method('binary_operator',     given.op in this.tmacro(qs[_x + _y].replace({'+': op}), qs[H[all, E[_x] + E[_y]]].replace({'+': op}))).
+           method('unary_operator',      given.op in this.tmacro(qs[+_x].replace({'u+': 'u#{op}'}), qs[H[all, +T[_x]]].replace({'u+': 'u#{op}'}))),
 
-      this.tmacro('_x', 'H[_x]').                                                                                       // Base case: identifier or literal
+      this.tmacro('_x', 'H[_x, _x]').                                                                                   // Base case: identifier or literal
            tmacro('(_x)', '(E[_x])').                                                                                   // Destructuring of parens
-           tmacro('++_x', 'H[++_x]').tmacro('--_x', 'H[--_x]').tmacro('_x++', 'H[_x++]').tmacro('_x--', 'H[_x--]').     // Increment/decrement (can't trace original value)
+           tmacro('++_x', 'H[all, ++_x]').tmacro('--_x', 'H[all, --_x]').
+           tmacro('_x++', 'H[all, _x++]').tmacro('_x--', 'H[all, _x--]').                                               // Increment/decrement (can't trace original value)
 
            tmacro('_x, _y',                 'E[_x], E[_y]').                                                            // Preserve commas -- works in an argument list
-           tmacro('_x._y',                  'H[E[_x]._y]').                                                             // No tracing for constant attributes
-           tmacro('_o._m(_xs)',             'D[E[_o], _m, [E[_xs]]]').                                                  // Use D[] to indicate direct method binding
-           tmacro('_o[_m](_xs)',            'I[E[_o], E[_m], [E[_xs]]]').                                               // Use I[] to indicate indirect method binding
-           tmacro('typeof _x',              'H[typeof _x]').                                                            // No tracing for typeof since the value may not exist
-           tmacro('delete _x._y',           'H[delete E[_x]._y]').                                                      // Lvalue, so no tracing for the original
-           tmacro('new _x(_y)',             'H[new H[_x](E[_y])]').                                                     // Hook the constructor to prevent method-handling from happening
-           tmacro('{_ps}',                  'H[{E[_ps]}]').                                                             // Hook the final object and distribute across k/v pairs (more)
+           tmacro('_x._y',                  'H[all, E[_x]._y]').                                                        // No tracing for constant attributes
+           tmacro('_o._m(_xs)',             'D[all, E[_o], _m, [E[_xs]]]').                                             // Use D[] to indicate direct method binding
+           tmacro('_o[_m](_xs)',            'I[all, E[_o], E[_m], [E[_xs]]]').                                          // Use I[] to indicate indirect method binding
+           tmacro('typeof _x',              'H[all, typeof _x]').                                                       // No tracing for typeof since the value may not exist
+           tmacro('delete _x._y',           'H[all, delete E[_x]._y]').                                                 // Lvalue, so no tracing for the original
+           tmacro('new _x(_y)',             'H[all, new H[_x](E[_y])]').                                                // Hook the constructor to prevent method-handling from happening
+           tmacro('{_ps}',                  'H[all, {E[_ps]}]').                                                        // Hook the final object and distribute across k/v pairs (more)
            tmacro('_k: _v',                 '_k: E[_v]').                                                               // Ignore keys (which are constant)
-           tmacro('[_xs]',                  'H[[E[_xs]]]').                                                             // Hook the final array and distribute across elements
-           tmacro('_x ? _y : _z',           'H[E[_x] ? E[_y] : E[_z]]').
-           tmacro('function (_xs) {_body}', 'H[function (_xs) {S[_body]}]'),                                            // Trace body in statement mode rather than expression mode
+           tmacro('[_xs]',                  'H[all, [E[_xs]]]').                                                        // Hook the final array and distribute across elements
+           tmacro('_x ? _y : _z',           'H[all, E[_x] ? E[_y] : E[_z]]').
+           tmacro('function (_xs) {_body}', 'H[all, function (_xs) {S[_body]}]'),                                       // Trace body in statement mode rather than expression mode
 
       this.assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),                                 // Use methods above to define these regular macros
       this.binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
@@ -490,12 +491,12 @@
     this.shallow('trace_directive_expander', trace_directive_expander.configure(function () {
       this.method('tmacro', this.macro(convert_trace_directives_in(lhs), rhs) /given[lhs, rhs]).
 
-           tmacro('H[_x]',                              given.match in expression_hook(match._x)).
-           tmacro('D[_object, _method, [_parameters]]', given.match in direct_method_hook  (qs[_object._method (_parameters)].replace(match), match)).
-           tmacro('I[_object, _method, [_parameters]]', given.match in indirect_method_hook(qs[_object[_method](_parameters)].replace(match), match)).
+           tmacro('H[_tree, _x]',                              given.match in expression_hook(match._tree, match._x)).
+           tmacro('D[_tree, _object, _method, [_parameters]]', given.match in direct_method_hook  (match._tree, match)).
+           tmacro('I[_tree, _object, _method, [_parameters]]', given.match in indirect_method_hook(match._tree, match)).
 
-           tmacro('E[_x]',                              given.match in expression(match._x)).
-           tmacro('S[_x]',                              given.match in statement(match._x))})),
+           tmacro('E[_x]',                                     given.match in expression(match._x)).
+           tmacro('S[_x]',                                     given.match in statement(match._x))})),
 
 //   Entry point.
 //   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
@@ -506,7 +507,7 @@
           qw(s)                                               = s.split(/\s+/),
 
           // Tracing setup: caterwaul functions to carry out the trace annotations.
-          trace_directive_aliases                             = {H: this.gensym(), M: this.gensym(), S: this.gensym(), E: this.gensym()} /effect[o[o[it]] = it, over_keys[o], where[o = it]],
+          trace_directive_aliases                             = {} /effect[o[it] = this.gensym(), over[qw('I D H S E')], where[o = it]] /effect[o[o[it]] = it, over_keys[o], where[o = it]],
           convert_trace_directives_in(tree)                   = self.ensure_syntax(tree).replace(trace_directive_aliases),
 
           with_tmacro()                                       = this.method('tmacro', this.final_macro(lhs, convert_trace_directives_in(rhs)) /given[lhs, rhs]),
@@ -527,7 +528,7 @@
 
           // Hook generators: called at compile-time to generate trees that refer to the hook methods above.
           expression_hook_template                            = qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('('),
-          expression_hook(tree)                               = expression_hook_template.replace({_before_hook: before_hook_ref, _after_hook: after_hook_ref, _tree: new self.ref(tree),
+          expression_hook(original, tree)                     = expression_hook_template.replace({_before_hook: before_hook_ref, _after_hook: after_hook_ref, _tree: new self.ref(original),
                                                                                                   _expression: tree.as('(')}),
 
           indirect_method_hook_template                       = qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('('),
