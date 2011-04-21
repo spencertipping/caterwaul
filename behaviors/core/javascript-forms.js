@@ -33,7 +33,7 @@
 
     this.macro('_string', function (match) {
       var s = match._string.data, q = s.charAt(0);
-      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;
+      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
 
       for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
         if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;

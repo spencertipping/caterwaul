@@ -1,13 +1,18 @@
+// Caterwaul precompiler | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
 // Precompilation logic.
 // Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 // serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-  caterwaul_global.field('precompiled_internal_table', {}).
-                  method('precompiled_internal', function (f) {var k = gensym(); this.precompiled_internal_table[k] = f; return k}).
+  caterwaul.tconfigure('core.js core.words core.quote', function () {
+    bind[original = this.init] in
+    this.method('init_not_precompiled', original).
+         method('init', function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)});
 
-                  method('is_precompiled', function (f) {return f.constructor === String && this.precompiled_internal_table[f]}).
-
-                  method('precompile', (function () {
+    this.field('precompiled_internal_table', {}).method('precompiled_internal', function (f) {var k = this.gensym(); this.precompiled_internal_table[k] = f; return k}).
+        method('is_precompiled', function (f) {return f.constructor === String && this.precompiled_internal_table[f]}).
+        method('precompile', (function () {
 
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -76,6 +81,9 @@
 //   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
 //   above).
 
+    return bind[references = trace_execution(this, f)] in this.compile(perform_substitution(references, references.annotated)), given.f,
+    where[
+
 //   Tracing function destinations.
 //   This is more subtle than you might think. First, we need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul is a clone of the regular
 //   one, but has hooks that track calls to compile(). It also installs these hooks on any clones of itself, which means that the clone() method is overridden as well.
@@ -91,18 +99,19 @@
 //   can't track it). Finally, the function will be compiled within some environment. This is where we go through the compilation bindings, serializing each one with the function. We then wrap
 //   this in an immediately-invoked anonymous function (to create a new scope and to simulate the one created by compile()), and this becomes the output.
 
-    var nontrivial_function_pattern         = caterwaul_global.parse('function (_args) {_body}'),
-        trivial_function_pattern            = caterwaul_global.parse('function () {_body}'),
-        nontrivial_function_gensym_template = caterwaul_global.parse('function (_args, _gensym) {_body}'),
-        trivial_function_gensym_template    = caterwaul_global.parse('function (_gensym) {_body}'),
+        nontrivial_function_pattern         = qs[function (_args) {_body}],
+        trivial_function_pattern            = qs[function ()      {_body}],
+        nontrivial_function_gensym_template = qs[function (_args, _gensym) {_body}],
+        trivial_function_gensym_template    = qs[function (_gensym)        {_body}],
 
-        mark_nontrivial_function_macro = function (references) {return function (match) {
-                                           var s      = gensym(),
-                                               result = nontrivial_function_gensym_template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)});
-                                           return references[s] = {tree: result}, result}},
+        mark_nontrivial_function_macro(references)(match) = bind[s        = caterwaul.gensym(),
+                                                                 new_body = annotate_functions_in(match._body, references),
+                                                                 result   = nontrivial_function_gensym_template.replace({_args: match._args, _gensym: s, _body: new_body})] in
+                                                            (references[s] = {tree: result}) -returning- result,
+
 
         mark_trivial_function_macro    = function (references) {return function (match) {
-                                           var s = gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(match._body, references)});
+                                           var s = caterwaul.gensym(), result = trivial_function_gensym_template.replace({_gensym: s, _body: annotate_functions_in(match._body, references)});
                                            return references[s] = {tree: result}, result}},
 
 //   Macroexpansion for function origins.
@@ -113,7 +122,7 @@
 //   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
 //   more generic case.
 
-    annotate_functions_in = function (tree, references) {return caterwaul_global.macro_expand_naive(tree,
+    annotate_functions_in = function (tree, references) {return caterwaul.macro_expand_naive(tree,
                                                                   [trivial_function_pattern,                nontrivial_function_pattern],
                                                                   [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)], null)},
 
@@ -131,14 +140,14 @@
 //   the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
 //   source, replacing the un-compiled functions with compiled ones.
 
-    nontrivial_gensym_detection_pattern = caterwaul_global.parse('function (_args, _gensym) {_body}'),
-    trivial_gensym_detection_pattern    = caterwaul_global.parse('function (_gensym) {_body}'),
+    nontrivial_gensym_detection_pattern = caterwaul.parse('function (_args, _gensym) {_body}'),
+    trivial_gensym_detection_pattern    = caterwaul.parse('function (_gensym) {_body}'),
 
     wrapped_compile = function (original, references) {return function (tree, environment) {
                         var matches = nontrivial_gensym_detection_pattern.match(tree) || trivial_gensym_detection_pattern.match(tree), k = matches && matches._gensym.data;
 
                         if (matches && references[k]) if (references[k].compiled) throw new Error('detected multiple compilations of ' + references[k].tree.serialize());
-                                                      else                        references[k].compiled = tree, references[k].environment = merge({}, this.globals, environment);
+                                                      else                        references[k].compiled = tree, references[k].environment = caterwaul.merge({}, this.globals, environment);
                         return original.call(this, tree, environment)}},
 
 //   Generating compiled functions.
@@ -149,19 +158,19 @@
 //     inform caterwaul that a function is going to be compiled ahead-of-time, and all caterwaul functions will bypass the compilation step automatically. To do this, we use the dangerous
 //     precompiled_internal() method, which returns a placeholder.
 
-      already_compiled_template = caterwaul_global.parse('caterwaul.precompiled_internal(_x)'),
+      already_compiled_template = caterwaul.parse('caterwaul.precompiled_internal(_x)'),
       signal_already_compiled = function (tree) {return already_compiled_template.replace({_x: tree})},
 
 //     Syntax ref serialization.
 //     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
 //     along with the compiled function, to simulate the closure capture performed by the compile() function.
 
-      closure_template          = caterwaul_global.parse('(function () {_vars; return (_value)})()'),
-      closure_variable_template = caterwaul_global.parse('var _var = _value'),
-      closure_null_template     = caterwaul_global.parse('null'),
+      closure_template          = caterwaul.parse('(function () {_vars; return (_value)})()'),
+      closure_variable_template = caterwaul.parse('var _var = _value'),
+      closure_null_template     = caterwaul.parse('null'),
 
-      syntax_ref_template       = caterwaul_global.parse('caterwaul.parse(_string)'),
-      caterwaul_ref_template    = caterwaul_global.parse('caterwaul.clone(_string)'),
+      syntax_ref_template       = caterwaul.parse('caterwaul.parse(_string)'),
+      caterwaul_ref_template    = caterwaul.parse('caterwaul.clone(_string)'),
 
       syntax_ref_string         = function (ref) {return '\'' + ref.serialize().replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\''},
       caterwaul_ref_string      = function (has) {var ks = []; for (var k in has) own.call(has, k) && ks.push(k); return '\'' + ks.join(' ') + '\''},
@@ -174,12 +183,12 @@
 //     Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the standard library apparently depends on it somehow.
 
       serialize_ref             = function (value, name, seen) {
-                                        if (! value)                                       return '' + value;
-                                   else if (value.constructor === caterwaul_global.syntax) return seen[value.id()] || (seen[value.id()] = name,
-                                                                                             syntax_ref_template.replace({_string: syntax_ref_string(value)}));
-                                   else if (value.is_caterwaul === is_caterwaul)           return seen[value.id()] || (seen[value.id()] = name,
-                                                                                             caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
-                                   else                                                    throw new Error('syntax ref value is not serializable: ' + value)},
+                                        if (! value)                                return '' + value;
+                                   else if (value.constructor === caterwaul.syntax) return seen[value.id()] || (seen[value.id()] = name,
+                                                                                      syntax_ref_template.replace({_string: syntax_ref_string(value)}));
+                                   else if (value.is_caterwaul === is_caterwaul)    return seen[value.id()] || (seen[value.id()] = name,
+                                                                                      caterwaul_ref_template.replace({_string: caterwaul_ref_string(value.has)}));
+                                   else                                             throw new Error('syntax ref value is not serializable: ' + value)},
 
 //     Variable table generation.
 //     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
@@ -191,7 +200,7 @@
                                     tree.reach(function (n) {if (n && n.binds_a_value) names.push(n.data), values.push(serialize_ref(n.value, n.data, seen))});
 
                                     for (var vars = [], i = 0, l = names.length; i < l; ++i) vars.push(closure_variable_template.replace({_var: names[i], _value: values[i]}));
-                                    return names.length ? new caterwaul_global.syntax(';', vars) : closure_null_template},
+                                    return names.length ? new caterwaul.syntax(';', vars) : closure_null_template},
 
 //     Closure state generation.
 //     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
@@ -207,7 +216,7 @@
                                                                                   return ref && ref.compiled && precompiled_function(ref.compiled, ref.environment)}},
 
     perform_substitution        = function (references, tree) {var expander = substitute_precompiled(references);
-                                                               return caterwaul_global.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                               return caterwaul.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
                                                                                                                 [expander,                         expander], null)},
 
 //   Tracing.
@@ -217,9 +226,7 @@
 //   Note that I'm assigning an extra property into references. It doesn't matter because no gensym will ever collide with it and we never enumerate the properties.
 
     annotated_caterwaul         = function (caterwaul, references) {return caterwaul.clone().method('compile', wrapped_compile(caterwaul.compile, references))},
-    trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(caterwaul_global.parse(f), references);
+    trace_execution             = function (caterwaul, f) {var references = {}, annotated = references.annotated = annotate_functions_in(caterwaul.parse(f), references);
                                                            caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})();
-                                                           return references};
-
-    return function (f) {var references = trace_execution(this, f); return this.compile(perform_substitution(references, references.annotated))}})());
+                                                           return references}]})())});
 // Generated by SDoc 
