@@ -3,36 +3,44 @@
 
 // Introduction.
 // A recurring pattern in previous versions of caterwaul was to clone the global caterwaul function and set it up as a DSL processor by defining a macro that manually dictated tree traversal
-// semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve this
+// semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve the
 // problem by implementing a grammar-like structure for tree traversal.
 
-//   Sequence DSL example.
-//   Caterwaul 0.4 introduced the seq[] macro, which enabled most Javascript operators to be reinterpreted as sequence methods. Implementing this transform was fairly gnarly; each macro needed to
-//   specify whether it would expand its left/right sides, and such rules could be only one layer deep. Many of the macros looked like this (converted to caterwaul 1.0 notation):
+//   Use cases.
+//   One fairly obvious use case is code tracing. When we trace some code, we need to keep track of whether it should be interpreted in sequence or expression context. Although there are only two
+//   states here, it still is too complex for a single-layer macroexpander to handle gracefully; so we create two separate caterwaul functions that delegate control to one another. We then create
+//   a set of annotations to indicate which state or states should be chosen next. For example, here are some expansions from the tracing behavior:
 
-//   | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
-//     _xs *~[_body]  ->  qs[_xs.map(_body, given[_, _i])].replace({_xs: match._xs, _body: macroexpand(match._body)) /given.match
+//   | E[_x = _y]  ->  H[_x = E[_y]]
+//     S[_x = _y]  ->  _x = E[_y]
 
-//   A more useful approach is to define semantic tags for different parse states and to use those tags to expand various regions of code. For example:
+//   It's straightforward enough to define macros this way; all that needs to be done is to mark the initial state and put state information into the macro patterns. The hard part is making sure
+//   that the markers don't interfere with the existing syntax. This requires that all of the markers be replaced by gensyms before the macroexpansion happens.
 
-//   | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
-//     _xs *~[_body]  ->  _xs.map(seq[_body], given[_, _i])
+//   Gensym anonymizing.
+//   Replacing symbols in macro patterns is trivial with the replace() method. The only hard part is performing this same substitution on the macroexpansions. (In fact, this is impossible to do
+//   transparently given Turing-complete macros.) In order to work around this, strings are automatically expanded (because it's easy to do), but functions must call translate_state_markers() on
+//   any patterns they intend to use. This call must happen before substituting syntax into the patterns (!) because otherwise translate_state_markers() may rewrite code that happens to contain
+//   markers, thus reintroducing the collision problem that all of this renaming is intended to avoid.
 
-//   Here the seq[] tag is used to indicate expansion by the named 'seq' transformer.
+// Usage.
+// This behavior actually just gives you a couple of new methods, but ultimately you're still working with a normal caterwaul function. The methods it adds (that will presumably make your life
+// simpler) are:
 
-//   Alternation.
-//   You can create alternatives to specify what happens if one macroexpander fails to match a tree. Like a packrat grammar, the first matching alternative is taken with no backtracking. This is
-//   done by specifying alternatives in an array:
+// | 1. state_marker(): a variadic function that marks certain words as identifying state. For example: caterwaul.state_marker('foo', 'bar', 'bif'). You need to call this before you call
+//      tmacro(), as state markers are eagerly resolved.
+//   2. tmacro(): equivalent to macro(), but translates the state markers in the pattern and expansion prior to defining the macro. If the expression is a function, then no state marker
+//      translation is performed either up front or later on, so you'll need to make sure this happens inside the expander function if you want further states to be triggered.
+//   3. translate_state_markers(): returns a translated copy of a syntax tree. This basically just involves calling replace().
 
-//   | _node._class -> ['dom_node[_node].addClass(_class)', 'html[_node]._class']
+  caterwaul.tconfigure('core.words core.js core.quote', function () {
+    this.shallow('state_markers', {}).shallow('state_markers_inverse', {}).
+        variadic('state_marker', given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]).
 
-//   The actual mechanism here uses a truth check against the output of the caterwaul function's macroexpand_single() method, which returns a falsy value if no macros matched or the
-//   macroexpansion failed to transform anything. (Presumably macros that match would elect to transform the syntax tree somehow.)
+          method('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers)).
+          method('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse)).
 
-//   Default behaviors.
-//   A significant advantage of using a structured approach to tree-parsing is that you can define the default behavior for non-matching cases. For many operator-overloading macros we want to
-//   leave non-matching cases alone but continue diving through the syntax tree. This is done internally by using 'map' with a function:
-
-//   | seq = caterwaul.grammar();
-//     seq.on(null, seq);
+          right_variadic_binary('tmacro', given[pattern, expansion] in this.macro(new_pattern, new_expansion)
+                                            -where[new_pattern   = this.translate_state_markers(pattern),
+                                                   new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)])});
 // Generated by SDoc 

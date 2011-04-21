@@ -234,9 +234,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       }
 
 //     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
-//     as a match variable called 'all'; for example: t.match(u).all === u if u matches t.
+//     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
-         match: function (target, variables) {variables || (variables = {all: target});
+         match: function (target, variables) {variables || (variables = {_: target});
                                               if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                          else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                  if (! this[i].match(target[i], variables)) return null;

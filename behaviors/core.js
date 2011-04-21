@@ -233,38 +233,46 @@
 
 // Introduction.
 // A recurring pattern in previous versions of caterwaul was to clone the global caterwaul function and set it up as a DSL processor by defining a macro that manually dictated tree traversal
-// semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve this
+// semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve the
 // problem by implementing a grammar-like structure for tree traversal.
 
-//   Sequence DSL example.
-//   Caterwaul 0.4 introduced the seq[] macro, which enabled most Javascript operators to be reinterpreted as sequence methods. Implementing this transform was fairly gnarly; each macro needed to
-//   specify whether it would expand its left/right sides, and such rules could be only one layer deep. Many of the macros looked like this (converted to caterwaul 1.0 notation):
+//   Use cases.
+//   One fairly obvious use case is code tracing. When we trace some code, we need to keep track of whether it should be interpreted in sequence or expression context. Although there are only two
+//   states here, it still is too complex for a single-layer macroexpander to handle gracefully; so we create two separate caterwaul functions that delegate control to one another. We then create
+//   a set of annotations to indicate which state or states should be chosen next. For example, here are some expansions from the tracing behavior:
 
-//   | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
-//     _xs *~[_body]  ->  qs[_xs.map(_body, given[_, _i])].replace({_xs: match._xs, _body: macroexpand(match._body)) /given.match
+//   | E[_x = _y]  ->  H[_x = E[_y]]
+//     S[_x = _y]  ->  _x = E[_y]
 
-//   A more useful approach is to define semantic tags for different parse states and to use those tags to expand various regions of code. For example:
+//   It's straightforward enough to define macros this way; all that needs to be done is to mark the initial state and put state information into the macro patterns. The hard part is making sure
+//   that the markers don't interfere with the existing syntax. This requires that all of the markers be replaced by gensyms before the macroexpansion happens.
 
-//   | _xs *[_body]   ->  _xs.map(_body, given[_, _i])
-//     _xs *~[_body]  ->  _xs.map(seq[_body], given[_, _i])
+//   Gensym anonymizing.
+//   Replacing symbols in macro patterns is trivial with the replace() method. The only hard part is performing this same substitution on the macroexpansions. (In fact, this is impossible to do
+//   transparently given Turing-complete macros.) In order to work around this, strings are automatically expanded (because it's easy to do), but functions must call translate_state_markers() on
+//   any patterns they intend to use. This call must happen before substituting syntax into the patterns (!) because otherwise translate_state_markers() may rewrite code that happens to contain
+//   markers, thus reintroducing the collision problem that all of this renaming is intended to avoid.
 
-//   Here the seq[] tag is used to indicate expansion by the named 'seq' transformer.
+// Usage.
+// This behavior actually just gives you a couple of new methods, but ultimately you're still working with a normal caterwaul function. The methods it adds (that will presumably make your life
+// simpler) are:
 
-//   Alternation.
-//   You can create alternatives to specify what happens if one macroexpander fails to match a tree. Like a packrat grammar, the first matching alternative is taken with no backtracking. This is
-//   done by specifying alternatives in an array:
+// | 1. state_marker(): a variadic function that marks certain words as identifying state. For example: caterwaul.state_marker('foo', 'bar', 'bif'). You need to call this before you call
+//      tmacro(), as state markers are eagerly resolved.
+//   2. tmacro(): equivalent to macro(), but translates the state markers in the pattern and expansion prior to defining the macro. If the expression is a function, then no state marker
+//      translation is performed either up front or later on, so you'll need to make sure this happens inside the expander function if you want further states to be triggered.
+//   3. translate_state_markers(): returns a translated copy of a syntax tree. This basically just involves calling replace().
 
-//   | _node._class -> ['dom_node[_node].addClass(_class)', 'html[_node]._class']
+  caterwaul.tconfigure('core.words core.js core.quote', function () {
+    this.shallow('state_markers', {}).shallow('state_markers_inverse', {}).
+        variadic('state_marker', given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]).
 
-//   The actual mechanism here uses a truth check against the output of the caterwaul function's macroexpand_single() method, which returns a falsy value if no macros matched or the
-//   macroexpansion failed to transform anything. (Presumably macros that match would elect to transform the syntax tree somehow.)
+          method('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers)).
+          method('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse)).
 
-//   Default behaviors.
-//   A significant advantage of using a structured approach to tree-parsing is that you can define the default behavior for non-matching cases. For many operator-overloading macros we want to
-//   leave non-matching cases alone but continue diving through the syntax tree. This is done internally by using 'map' with a function:
-
-//   | seq = caterwaul.grammar();
-//     seq.on(null, seq);
+          right_variadic_binary('tmacro', given[pattern, expansion] in this.macro(new_pattern, new_expansion)
+                                            -where[new_pattern   = this.translate_state_markers(pattern),
+                                                   new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)])});
 // Generated by SDoc 
 
 
@@ -633,41 +641,54 @@
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-  caterwaul.tconfiguration('core.js core.words core.quote', 'core.trace', function () {
+  caterwaul.shallow('trace', caterwaul.clone().tconfigure('core.js core.words core.quote', function () {
+
+//   Setup.
+//   This just involves creating the events and setting up the state markers.
+
+    this.event('before_trace', 'after_trace'),
+    this.state_marker(it) -over- qw('E S H D I'),
 
 //   Expression-mode transformations.
 //   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', D[] means 'hook this direct method call', I[] means 'hook this indirect
 //   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
 
-    this.shallow('trace_expression', this.global().clone(with_tmacro).configure(function () {
-      this.method('assignment_operator', given.op in this.tmacro(qs[_x     = _y].replace({'=': op}), qs[H[all, _x           = E[_y]]].replace({'=': op})).
-                                                          tmacro(qs[_x[_y] = _z].replace({'=': op}), qs[H[all, E[_x][E[_y]] = E[_z]]].replace({'=': op})).
-                                                          tmacro(qs[_x._y  = _z].replace({'=': op}), qs[H[all, E[_x]._y     = E[_z]]].replace({'=': op}))).
-           method('binary_operator',     given.op in this.tmacro(qs[_x + _y].replace({'+': op}), qs[H[all, E[_x] + E[_y]]].replace({'+': op}))).
-           method('unary_operator',      given.op in this.tmacro(qs[+_x].replace({'u+': 'u#{op}'}), qs[H[all, +T[_x]]].replace({'u+': 'u#{op}'}))),
+    this.method('assignment_operator', given.op in this.tmacro(qs[E[_x     = _y]].replace({'=': op}), qs[H[_, _x           = E[_y]]].replace({'=': op})).
+                                                        tmacro(qs[E[_x[_y] = _z]].replace({'=': op}), qs[H[_, E[_x][E[_y]] = E[_z]]].replace({'=': op})).
+                                                        tmacro(qs[E[_x._y  = _z]].replace({'=': op}), qs[H[_, E[_x]._y     = E[_z]]].replace({'=': op}))).
+         method('binary_operator',     given.op in this.tmacro(qs[E[_x + _y]].replace({'+': op}), qs[H[_, E[_x] + E[_y]]].replace({'+': op}))).
+         method('unary_operator',      given.op in this.tmacro(qs[E[+_x]].replace({'u+': 'u#{op}'}), qs[H[_, +T[_x]]].replace({'u+': 'u#{op}'}))),
 
-      this.tmacro('_x', 'H[_x, _x]').                                                                                   // Base case: identifier or literal
-           tmacro('(_x)', '(E[_x])').                                                                                   // Destructuring of parens
-           tmacro('++_x', 'H[all, ++_x]').tmacro('--_x', 'H[all, --_x]').
-           tmacro('_x++', 'H[all, _x++]').tmacro('_x--', 'H[all, _x--]').                                               // Increment/decrement (can't trace original value)
+    this.tmacro('E[]',   'null').                                                                                       // Base case: oops, descended into nullary something
+         tmacro('E[_x]', 'H[_, _x]'),                                                                                   // Base case: identifier or literal
 
-           tmacro('_x, _y',                 'E[_x], E[_y]').                                                            // Preserve commas -- works in an argument list
-           tmacro('_x._y',                  'H[all, E[_x]._y]').                                                        // No tracing for constant attributes
-           tmacro('_o._m(_xs)',             'D[all, E[_o], _m, [E[_xs]]]').                                             // Use D[] to indicate direct method binding
-           tmacro('_o[_m](_xs)',            'I[all, E[_o], E[_m], [E[_xs]]]').                                          // Use I[] to indicate indirect method binding
-           tmacro('typeof _x',              'H[all, typeof _x]').                                                       // No tracing for typeof since the value may not exist
-           tmacro('void _x',                'H[all, void E[_x]]').                                                      // Normal tracing
-           tmacro('delete _x._y',           'H[all, delete E[_x]._y]').                                                 // Lvalue, so no tracing for the original
-           tmacro('new _x(_y)',             'H[all, new H[_x](E[_y])]').                                                // Hook the constructor to prevent method-handling from happening
-           tmacro('{_ps}',                  'H[all, {E[_ps]}]').                                                        // Hook the final object and distribute across k/v pairs (more)
-           tmacro('_k: _v',                 '_k: E[_v]').                                                               // Ignore keys (which are constant)
-           tmacro('[_xs]',                  'H[all, [E[_xs]]]').                                                        // Hook the final array and distribute across elements
-           tmacro('_x ? _y : _z',           'H[all, E[_x] ? E[_y] : E[_z]]').
-           tmacro('function (_xs) {_body}', 'H[all, function (_xs) {S[_body]}]'),                                       // Trace body in statement mode rather than expression mode
+    this.assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),                                   // Use methods above to define these regular macros
+    this.binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
+    this.unary_operator(it)      -over- qw('+ - ! ~'),
 
-      this.assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),                                 // Use methods above to define these regular macros
-      this.binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
-      this.unary_operator(it)      -over- qw('+ - ! ~')})),
+    this.tmacro('E[(_x)]', '(E[_x])').                                                                                  // Destructuring of parens
+         tmacro('E[++_x]', 'H[_, ++_x]').tmacro('E[--_x]', 'H[_, --_x]').
+         tmacro('E[_x++]', 'H[_, _x++]').tmacro('E[_x--]', 'H[_, _x--]').                                               // Increment/decrement (can't trace original value)
+
+         tmacro('E[_x, _y]',                 'E[_x], E[_y]').                                                           // Preserve commas -- works in an argument list
+         tmacro('E[_x._y]',                  'H[_, E[_x]._y]').                                                         // No tracing for constant attributes
+         tmacro('E[_f()]',                   'H[_, E[_f]()]').                                                          // Nullary function call won't be handled by binary ()
+
+         tmacro('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]').                                              // Use D[] to indicate direct method binding
+         tmacro('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]').                                           // Use I[] to indicate indirect method binding
+         tmacro('E[_o._m()]',                'D[_, E[_o], _m, []').                                                     // Duplicate for nullary method calls
+         tmacro('E[_o[_m]()]',               'I[_, E[_o], E[_m], []').
+
+         tmacro('E[typeof _x]',              'H[_, typeof _x]').                                                        // No tracing for typeof since the value may not exist
+         tmacro('E[void _x]',                'H[_, void E[_x]]').                                                       // Normal tracing
+         tmacro('E[delete _x._y]',           'H[_, delete E[_x]._y]').                                                  // Lvalue, so no tracing for the original
+         tmacro('E[new _x(_y)]',             'H[_, new H[_x](E[_y])]').                                                 // Hook the constructor to prevent method-handling from happening
+         tmacro('E[{_ps}]',                  'H[_, {E[_ps]}]').                                                         // Hook the final object and distribute across k/v pairs (more)
+         tmacro('E[_k: _v]',                 '_k: E[_v]').                                                              // Ignore keys (which are constant)
+         tmacro('E[[_xs]]',                  'H[_, [E[_xs]]]').                                                         // Hook the final array and distribute across elements
+         tmacro('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]').
+         tmacro('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]').                                        // Trace body in statement mode rather than expression mode
+         tmacro('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]'),                                        // Handle nullary case
 
 //   Statement-mode transformations.
 //   A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
@@ -682,107 +703,68 @@
 //   we have to produce x = H[5], y = H[6]. The statement-mode comma and equals rules do exactly that. Note that we don't lose anything by doing this because in statement context the result of an
 //   assignment is never used anyway.
 
-    this.shallow('trace_statement', this.global().clone(with_tmacro).configure(function () {
-      this.tmacro('_x',                         'E[_x]').                         tmacro('for (_x) _y',                           'for (S[_x]) S[_y]').
-           tmacro('{_x}',                       '{S[_x]}').                       tmacro('for (_x; _y; _z) _body',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
-           tmacro('_x; _y',                     'S[_x]; S[_y]').                  tmacro('while (_x) _y',                         'while (E[_x]) S[_y]').
-                                                                                  tmacro('do _x; while (_y)',                     'do S[_x]; while (E[_y])').
-           tmacro('function _f(_args) {_body}', 'function _f(_args) {S[_body]}'). tmacro('do {_x} while (_y)',                    'do {S[_x]} while (E[_y])').
-           tmacro('_x, _y',                     'S[_x], S[_y]').
-           tmacro('_x = _y',                    '_x = E[_y]').                    tmacro('try {_x} catch (_e) {_y}',              'try {S[_x]} catch (_e) {S[_y]}').
-           tmacro('var _xs',                    'var S[_xs]').                    tmacro('try {_x} catch (_e) {_y} finally {_z}', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}').
-           tmacro('const _xs',                  'const S[_xs]').                  tmacro('try {_x} finally {_y}',                 'try {S[_x]} finally {S[_y]}').
-
-           tmacro('if (_x) _y',                 'if (E[_x]) S[_y]').              tmacro('return _x',                             'return E[_x]').
-           tmacro('if (_x) _y; else _z',        'if (E[_x]) S[_y]; else S[_z]').  tmacro('return',                                'return').
-           tmacro('if (_x) {_y} else _z',       'if (E[_x]) {S[_y]} else S[_z]'). tmacro('throw _x',                              'throw E[_x]').
-                                                                                  tmacro('break _label',                          'break _label').
-           tmacro('switch (_c) {_body}',        'switch (E[_c]) {S[_body]}').     tmacro('break',                                 'break').
-           tmacro('with (_x) _y',               'with (E[_x]) S[_y]').            tmacro('continue _label',                       'continue _label').
-                                                                                  tmacro('continue',                              'continue').
-                                                                                  tmacro('_label: _stuff',                        '_label: S[_stuff]')})),
+    this.tmacro('S[_x]',                         'E[_x]').                         tmacro('S[for (_x) _y]',                           'for (S[_x]) S[_y]').
+         tmacro('S[{_x}]',                       '{S[_x]}').                       tmacro('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]').
+         tmacro('S[_x; _y]',                     'S[_x]; S[_y]').                  tmacro('S[while (_x) _y]',                         'while (E[_x]) S[_y]').
+                                                                                   tmacro('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])').
+         tmacro('S[function _f(_args) {_body}]', 'function _f(_args) {S[_body]}'). tmacro('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])').
+         tmacro('S[function _f()      {_body}]', 'function _f()      {S[_body]}').
+         tmacro('S[_x, _y]',                     'S[_x], S[_y]').                  tmacro('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}').
+         tmacro('S[_x = _y]',                    '_x = E[_y]').                    tmacro('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}').
+         tmacro('S[var _xs]',                    'var S[_xs]').                    tmacro('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}').
+         tmacro('S[const _xs]',                  'const S[_xs]').
+                                                                                   tmacro('S[return _x]',                             'return E[_x]').
+         tmacro('S[if (_x) _y]',                 'if (E[_x]) S[_y]').              tmacro('S[return]',                                'return').
+         tmacro('S[if (_x) _y; else _z]',        'if (E[_x]) S[_y]; else S[_z]').  tmacro('S[throw _x]',                              'throw E[_x]').
+         tmacro('S[if (_x) {_y} else _z]',       'if (E[_x]) {S[_y]} else S[_z]'). tmacro('S[break _label]',                          'break _label').
+                                                                                   tmacro('S[break]',                                 'break').
+         tmacro('S[switch (_c) {_body}]',        'switch (E[_c]) {S[_body]}').     tmacro('S[continue _label]',                       'continue _label').
+         tmacro('S[with (_x) _y]',               'with (E[_x]) S[_y]').            tmacro('S[continue]',                              'continue').
+                                                                                   tmacro('S[_label: _stuff]',                        '_label: S[_stuff]'),
 
 //   Hook generation.
-//   Most of the actual hook generation code is fairly routine for JIT stuff. Where it gets interesting is the macro definitions that cause the code to be traversed. These aren't pre-expanded;
-//   rather, they're converted into gensyms to avoid collisions with the code and then treated as macros. However, macroexpanding these definitions can't be done by the same macroexpander that
-//   generates them. The reason is the existence of patterns like _x -> H[_x] -- this will loop forever, since _x matches H[_x].
+//   Most of the actual hook generation code is fairly routine for JIT stuff. The patterns here don't actually expand into other state marker patterns; H, D, and I are all terminal. The [1]
+//   subscript is a hack. We want to grab the un-annotated tree, but all of the patterns have state markers on them. So we subscript by [1] to get the child of that state annotation.
 
-//   Therefore, there's a separate caterwaul function that is preconfigured to handle the hook signals. This one recognizes the gensyms produced during the grammar expansion and creates the
-//   actual hook definitions. This in turn kicks off more grammar expansions and so forth until the only expansions left are terminal ones. At this point the process halts.
-
-//   Note that these macros actually receive two copies of the tree that they transform. One of them is the original tree prior to annotation, and the other is the annotated original (i.e. with
-//   S[] and E[] markers). The reason for this separation is that we don't want to pass an annotated tree into the before_trace and after_trace hooks, since the user may want to print them and
-//   won't want a bunch of weird gensyms in their code. So we stash a copy of the original. This doesn't increase memory usage much at all because of aliasing.
-
-    this.shallow('trace_directive_expander', this.global().clone().configure(function () {
-      this.event('before_trace', 'after_trace'),
-
-      this.method('tmacro', this.macro(convert_trace_directives_in(lhs), rhs) /given[lhs, rhs]).
-
-           tmacro('H[_tree, _x]',                              given.match in this.expression_hook     (match._tree, match._x)).
-           tmacro('D[_tree, _object, _method, [_parameters]]', given.match in this.direct_method_hook  (match._tree, match)).
-           tmacro('I[_tree, _object, _method, [_parameters]]', given.match in this.indirect_method_hook(match._tree, match)).
-
-           tmacro('E[_x]',                                     given.match in this.expression(match._x)).
-           tmacro('S[_x]',                                     given.match in this.statement(match._x)),
+    this.tmacro('H[_tree, _x]',                              given.match in this.expression_hook     (match._tree[1], match._x)).
+         tmacro('D[_tree, _object, _method, [_parameters]]', given.match in this.direct_method_hook  (match._tree[1], match)).
+         tmacro('I[_tree, _object, _method, [_parameters]]', given.match in this.indirect_method_hook(match._tree[1], match)),
 
 //     Code generation.
 //     These methods perform the tracing. Originally they were lexical closures over one another, but this failed due to cloning. The structure here is that the before_hook, after_hook, and
-//     after_method_hook methods are called from inside the traced code through syntax refs that point to them. 
+//     after_method_hook methods are called from inside the traced code through syntax refs that point to them.
 
-      this.method('before_hook',          given[tree]                             in this.before_trace(tree)).
-           method('after_hook',           given[tree, value]                      in this.after_trace(tree, value) -returning- value).
-           method('after_method_hook',    given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
-                                                                                     this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]).
+      this.method('before_hook',                   given[tree]                             in this.before_trace(tree)).
+           method('after_hook',                    given[tree, value]                      in this.after_trace(tree, value) -returning- value).
+           method('after_method_hook',             given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
+                                                                                              this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]).
 
-           once('before_hook_ref',        given.nothing in new this.ref(this.before_hook)).
-           once('after_hook_ref',         given.nothing in new this.ref(this.after_hook)).
-           once('after_method_hook_ref',  given.nothing in new this.ref(this.after_method_hook)).
+           once  ('before_hook_ref',               given.nothing in new this.ref(this.before_hook)).
+           once  ('after_hook_ref',                given.nothing in new this.ref(this.after_hook)).
+           once  ('after_method_hook_ref',         given.nothing in new this.ref(this.after_method_hook)).
 
-           method('expression_hook',      given[original, tree] in
-                                          expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(), _tree: new this.ref(original),
-                                                                            _expression: tree.as('(')})).
+           method('quote_method_name',             given.method in '"#{method.data.replace(/"/g, "\\\"")}"').
 
-           method('method_hook',          given[tree, object, method, parameters] in
-                                          indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(), _tree: new this.ref(tree),
-                                                                                 _object: object, _method: method, _parameters: parameters})).
+           field ('expression_hook_template',      qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('(')).
+           field ('indirect_method_hook_template', qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('(')).
 
-           method('direct_method_hook',   this.method_hook(tree, match._object, quote_method_name(match._method), match._parameters) -given[tree, match]).
-           method('indirect_method_hook', this.method_hook(tree, match._object, match._method,                    match._parameters) -given[tree, match])})),
+           method('expression_hook',               given[original, tree] in
+                                                   this.expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(),
+                                                                                          _tree: new this.ref(original), _expression: tree.as('(')})).
+
+           method('method_hook',                   given[tree, object, method, parameters] in
+                                                   this.indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(),
+                                                                                               _tree: new this.ref(tree), _object: object, _method: method, _parameters: parameters})).
+
+           method('direct_method_hook',            this.method_hook(tree, match._object, this.quote_method_name(match._method), match._parameters) -given[tree, match]).
+           method('indirect_method_hook',          this.method_hook(tree, match._object, match._method,                         match._parameters) -given[tree, match]),
 
 //   Entry point.
-//   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly. Also, we hook up the listeners from the trace
-//   expander to trigger events on the trace caterwaul. This is important, since the code-generated events don't trace directly to this caterwaul function. We also transmit bake requests in case
-//   the user wants to improve macroexpansion speed. (Though I imagine ref serialization will be the biggest performance hit.)
+//   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
 
-    this.event('before_trace', 'after_trace'),
-    this.trace_directive_expander.on_before_trace(this.before_trace),
-    this.trace_directive_expander.on_after_trace (this.after_trace),
+    this.before(this.global().clone().final_macro('_x', this.translate_state_markers('S[_x]'))),
 
-    this.trace_directive_expander.field('statement', this.trace_statement),
-    this.trace_directive_expander.field('expression', this.trace_expression),
-
-    this.trace_statement.after (this.trace_directive_expander),
-    this.trace_expression.after(this.trace_directive_expander),
-
-    this.on_bake(this.trace_expression.bake() -then- this.trace_statement.bake() -then- this.trace_directive_expander.bake() -given.nothing),
-
-    this.after(this.trace_statement),
-
-//   Support functions.
-//   These are allowed to close over 'this' in some way because the things they rely on are independent of caterwaul's state. (For example, they might use gensym(), but nobody cares which
-//   caterwaul function that came from.)
-
-    where[qw(s)                             = s.split(/\s+/),
-
-          trace_directive_aliases           = {} /effect[o[it] = this.gensym(), over[qw('I D H S E')], where[o = it]] /effect[o[o[it]] = it, over_keys[o], where[o = it]],
-          convert_trace_directives_in(tree) = caterwaul.ensure_syntax(tree).replace(trace_directive_aliases),
-
-          with_tmacro()                     = this.method('tmacro', this.final_macro(lhs, convert_trace_directives_in(rhs)) -given[lhs, rhs]),
-
-          expression_hook_template          = qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('('),
-          indirect_method_hook_template     = qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('('),
-          quote_method_name(method)         = '"#{method.data.replace(/"/g, "\\\"")}"']});
+    where[qw(s) = s.split(/\s+/)]}));
 // Generated by SDoc 
 
 
