@@ -23,9 +23,8 @@
 
 //   Finally, the 'caterwaul' property of any caterwaul function will refer to the caterwaul function. This makes the node.js API more systematic.
 
-  caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = gensym())}).
-                    field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
-           self_reference('caterwaul').
+  caterwaul_global.method('global', function () {return caterwaul_global}).self_reference('caterwaul').
+                    field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).once('id', gensym).
 
                    method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).field('merge', merge).
                    method('check_version', function () {if (original_global && this.version === original_global.version) this.deglobalize(); return this}).

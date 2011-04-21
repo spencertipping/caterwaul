@@ -95,6 +95,8 @@
        method('namespace',  function (s) {return this[s] || this.shallow(s, {})[s]}).
        method('alias',      function (from, to) {return this.method(to, function () {return this[from].apply(this, arguments)})}).
 
+       method('once',       function (name, f) {var k = gensym(); return this.method(name, function () {return this[k] || (this[k] = f.apply(this, arguments))})}).
+
        method('clone',      function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
        method('tconfigure', function (cs, f) {return this.configure(this.clone(cs)(f))}).
        method('configure',  function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)

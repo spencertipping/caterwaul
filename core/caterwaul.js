@@ -178,6 +178,8 @@
        method('namespace',  function (s) {return this[s] || this.shallow(s, {})[s]}).
        method('alias',      function (from, to) {return this.method(to, function () {return this[from].apply(this, arguments)})}).
 
+       method('once',       function (name, f) {var k = gensym(); return this.method(name, function () {return this[k] || (this[k] = f.apply(this, arguments))})}).
+
        method('clone',      function () {return arguments.length ? this.clone().configure.apply(null, arguments) : copy_of(this)}).
        method('tconfigure', function (cs, f) {return this.configure(this.clone(cs)(f))}).
        method('configure',  function () {for (var i = 0, l = arguments.length, _; _ = arguments[i], i < l; ++i)
@@ -216,9 +218,8 @@
 
 //   Finally, the 'caterwaul' property of any caterwaul function will refer to the caterwaul function. This makes the node.js API more systematic.
 
-  caterwaul_global.method('global', function () {return caterwaul_global}).method('id', function () {return this._id || (this._id = gensym())}).
-                    field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).
-           self_reference('caterwaul').
+  caterwaul_global.method('global', function () {return caterwaul_global}).self_reference('caterwaul').
+                    field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).once('id', gensym).
 
                    method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).field('merge', merge).
                    method('check_version', function () {if (original_global && this.version === original_global.version) this.deglobalize(); return this}).

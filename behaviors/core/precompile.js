@@ -158,7 +158,7 @@
 //     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
 //     along with the compiled function, to simulate the closure capture performed by the compile() function.
 
-      closure_template                     = caterwaul.parse('(function () {_vars; return (_value)})()'),
+      closure_template                     = caterwaul.parse('(function () {_vars; return (_value)}).call(this)'),
       closure_variable_template            = caterwaul.parse('var _var = _value'),
       closure_null_template                = caterwaul.parse('null'),
 
