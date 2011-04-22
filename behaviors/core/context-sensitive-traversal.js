@@ -32,6 +32,7 @@
 //   2. tmacro(): equivalent to macro(), but translates the state markers in the pattern and expansion prior to defining the macro. If the expression is a function, then no state marker
 //      translation is performed either up front or later on, so you'll need to make sure this happens inside the expander function if you want further states to be triggered.
 //   3. translate_state_markers(): returns a translated copy of a syntax tree. This basically just involves calling replace().
+//   4. initial_state(): takes the name of the initial state and adds a before() transform to wrap the syntax. For instance, if you say initial_state('S'), then you'll get S[x] for an input of x.
 
   caterwaul.tconfigure('core.words core.js core.quote', function () {
     this.shallow('state_markers', {}).shallow('state_markers_inverse', {}).
@@ -39,6 +40,8 @@
 
           method('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers)).
           method('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse)).
+
+          method('initial_state', given.name in this.before(this.global().clone().final_macro('_x', this.translate_state_markers('#{name}[_x]')))).
 
           right_variadic_binary('tmacro', given[pattern, expansion] in this.macro(new_pattern, new_expansion)
                                             -where[new_pattern   = this.translate_state_markers(pattern),

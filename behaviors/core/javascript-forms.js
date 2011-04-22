@@ -10,7 +10,7 @@
 // These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
 // having to use grouping operators.
 
-    this.modifier_form('it in _expression', 'it[_expression]', '_expression |it', '_expression -it', '_expression /it').
+    this.modifier_form('it in _expression', 'it[_expression]', '_expression |it', '_expression -it', '_expression /it', '_expression.it').
          parameterized_modifier_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
                                      '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
                                      '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');

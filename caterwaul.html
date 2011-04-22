@@ -343,7 +343,7 @@ meta::configuration('dependencies', <<'__');
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
 __
 meta::data('author', 'Spencer Tipping');
-meta::data('current-continuation', 'unit testing library (then tests for caterwaul)');
+meta::data('current-continuation', 'class library');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
 meta::data('libraries', <<'__');
@@ -1926,13 +1926,14 @@ These operate on caterwaul in some way, but don't necessarily have an effect on 
 
 - pinclude pp::js::behaviors/core/bake
 - pinclude pp::js::behaviors/core/context-sensitive-traversal
+- pinclude pp::js::behaviors/core/precompile
 
 Libraries.
-These apply more advanced syntactic transforms to the code and can depend on the words defined above.
+These apply more advanced syntactic transforms to the code and can depend on everything above.
 
+- pinclude pp::js::behaviors/core/module
 - pinclude pp::js::behaviors/core/inversion
-- pinclude pp::js::behaviors/core/precompile
-- pinclude pp::js::behaviors/core/unit
+- pinclude pp::js::behaviors/core/test
 - pinclude pp::js::behaviors/core/trace
 __
 meta::sdoc('js::behaviors/core/bake', <<'__');
@@ -2314,6 +2315,7 @@ simpler) are:
   2. tmacro(): equivalent to macro(), but translates the state markers in the pattern and expansion prior to defining the macro. If the expression is a function, then no state marker
      translation is performed either up front or later on, so you'll need to make sure this happens inside the expander function if you want further states to be triggered.
   3. translate_state_markers(): returns a translated copy of a syntax tree. This basically just involves calling replace().
+  4. initial_state(): takes the name of the initial state and adds a before() transform to wrap the syntax. For instance, if you say initial_state('S'), then you'll get S[x] for an input of x.
 
   caterwaul.tconfigure('core.words core.js core.quote', function () {
     this.shallow('state_markers', {}).shallow('state_markers_inverse', {}).
@@ -2321,6 +2323,8 @@ simpler) are:
 
           method('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers)).
           method('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse)).
+
+          method('initial_state', given.name in this.before(this.global().clone().final_macro('_x', this.translate_state_markers('#{name}[_x]')))).
 
           right_variadic_binary('tmacro', given[pattern, expansion] in this.macro(new_pattern, new_expansion)
                                             -where[new_pattern   = this.translate_state_markers(pattern),
@@ -2461,6 +2465,62 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
 
     this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
+__
+meta::sdoc('js::behaviors/core/module', <<'__');
+Module framework | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Caterwaul often uses classes, but Javascript doesn't specify much in the way of object-oriented development. (No complaints from me about this by the way.) This behavior is an attempt to
+provide a standard basis for caterwaul's extension modules.
+
+  Implementing multiple inheritance.
+  Constructor functions contain links to their parents. When one of the parents is updated, its children lazily (!) pull updates from it and recompile their prototypes. This means that the
+  prototype chain is in fact flat; all updating is done in a 'soft' way:
+
+  | var c1 = caterwaul.module();
+    var c2 = caterwaul.module(c1);
+    c1.method('say', given.x in console.log(x));
+    c2.prototype.say                    // undefined
+    c2().say('hi');                     // logs 'hi'
+    c2.prototype.say                    // [function]
+
+  If you want to immediately pull updates, you can use the compile() method:
+
+  | c2.prototype.say                    // undefined
+    c2.compile().prototype.say          // [function]
+
+  There's a very important reason that updates are lazy. If they were eager, then the parent class would have to keep track of its children. But in an environment where classes can be
+  generated from functions, this would create a space leak. So back-linking is the only thing that makes sense in this case.
+
+  Dynamic extension.
+  Sometimes you want to assign a module's behavior to an object that already exists. This can't be done within the prototype system, but it's simple enough to use manual attribute assignment
+  to do it (which is what happens here internally). Here's an example:
+
+  | var i1 = c1(document.createElement('div'));
+    i1.say('hi')                        // logs 'hi'
+
+  In this case, c1 sees the object passed in and knows to extend it with members from its prototype. i1 won't really be a c1 as far as instanceof is concerned, but we don't have much choice
+  about that considering that we're working around Javascript's object model.
+
+  If you want to have accurate runtime type information about things, you can use the 'object' class:
+
+  | var i1 = caterwaul.object(document.createElement('div'), c1);
+    i1.is_a(c1)                 // -> c1
+    i1.is_a(HTMLDivElement)     // -> HTMLDivElement
+    i1.is_a(Object)             // -> Object
+    i1.is_a(c2)                 // -> false
+    i1.constructor              // -> HTMLDivElement (hopefully)
+    i1.object_parents()         // -> [caterwaul.object, (maybe others), c1]
+    i1.object_mode()            // -> 'instance' (if the object hadn't come from dynamic extension then this would be 'prototype')
+    i1.object_compile()         // -> updates from parent classes, returns i1
+
+  This class contains methods that keep track of where the object came from and how to rebuild it if one of the base classes changes. It doesn't come with every new module you create, but
+  you'll probably need it if you intend to build usable classes.
+
+  Collision security.
+  Caterwaul's module system uses a gensym attribute to store all private class data, so accidental collisions with existing properties are very unlikely to happen. The only downside is that
+  property lookups take marginally longer to complete.
 __
 meta::sdoc('js::behaviors/core/precompile', <<'__');
 Caterwaul precompiler | Spencer Tipping
@@ -2751,12 +2811,10 @@ Assertions.
 The 'should' word is implemented by a modifier macro that creates an instance of caterwaul.test.should_wrapper. 
 
   caterwaul.tconfiguration('core.js core.words', 'core.test', function () {
-    this.shallow('
 
 
     this.event ('test_defined', 'test_passed', 'test_failed'),
-    this.method('test', given[name, f] in this.test_transform(f) -effect[this.merge(it, this.test_methods)] -effect[this.test_defined(name, it)]).
-        shallow('test_transform', this.global().clone('
+    this.method('test', given[name, f] in this.test_transform(f) -effect[this.merge(it, this.test_methods)] -effect[this.test_defined(name, it)])});
 __
 meta::sdoc('js::behaviors/core/trace', <<'__');
 Cod etrace behavior | Spencer Tipping
@@ -2919,7 +2977,7 @@ or (2) caching of the object. In this case I've written a special function to ha
   Entry point.
   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
 
-    this.before(this.global().clone().final_macro('_x', this.translate_state_markers('S[_x]'))),
+    this.initial_state('S'),
 
     where[qw(s) = s.split(/\s+/)]}));
 __
