@@ -78,8 +78,6 @@
                       method('macroexpand',        function (t) {return this.ensure_syntax(t).rmap(this.macroexpand_single)}).
                       method('macroexpand_single', function (t) {return this.macro_expand_naive(t, this.macro_patterns, this.macro_expanders)}).
 
-                     on_bake(function () {this.method('macroexpand_single', this.create_baked_macroexpander(this.macro_patterns, this.macro_expanders))}).
-
                       method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
                       method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
                                                                                  expander.constructor === this.syntax ? function (match) {return expander.replace(match)} :
