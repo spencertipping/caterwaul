@@ -552,20 +552,18 @@ around_hook('load-state', @_, sub {
   verify()});
 __
 meta::function('load-time', <<'__');
-render();
-
 sub load {
   my ($runtime, $file) = @_;
   terminal::info("$runtime: loading $file");
     bench(sub {sh("$runtime $file > /dev/null 2>&1")})}
 
-load 'gjs', 'caterwaul.core.js';
-load 'gjs', 'caterwaul.js';
-load 'gjs', 'caterwaul.pre.js';
+load 'gjs', 'build/caterwaul.core.js';
+load 'gjs', 'build/caterwaul.js';
+load 'gjs', 'build/caterwaul.pre.js';
 
-load 'node', 'caterwaul.core.js';
-load 'node', 'caterwaul.js';
-load 'node', 'caterwaul.pre.js';
+load 'node', 'build/caterwaul.core.js';
+load 'node', 'build/caterwaul.js';
+load 'node', 'build/caterwaul.pre.js';
 __
 meta::function('loc', <<'__');
 # Counts SLOC, whitespace, and total LOC in the codebase.
@@ -1024,11 +1022,11 @@ __
 meta::hook('after-render::base-files', <<'__');
 file::write(attribute($_) . '.js', retrieve("pp::$_"), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(behaviors|core)\//, sort keys %data;
 
-file::write('caterwaul.js',      retrieve('pp::js::caterwaul'));
-file::write('caterwaul.core.js', retrieve('pp::js::caterwaul.core'));
-file::write('caterwaul.node.js', retrieve('pp::js::caterwaul.node'));
+file::write('build/caterwaul.js',      retrieve('pp::js::caterwaul'),      mkpath => 1);
+file::write('build/caterwaul.core.js', retrieve('pp::js::caterwaul.core'), mkpath => 1);
+file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'), mkpath => 1);
 
-precompile($_) for qw|caterwaul.js caterwaul.core.js behaviors/core.js|;
+precompile($_) for qw|build/caterwaul.js build/caterwaul.core.js behaviors/core.js|;
 __
 meta::hook('after-render::notes', <<'__');
 # Render each note into an SDoc file.
