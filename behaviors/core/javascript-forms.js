@@ -6,14 +6,14 @@
 
   caterwaul.configuration('core.js', function () {
 
-// Adjective and adverb forms.
+// Modifier forms.
 // These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
 // having to use grouping operators.
 
-    this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
-         modified_adverb_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
-                              '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
-                              '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');
+    this.modifier_form('it in _expression', 'it[_expression]', '_expression |it', '_expression -it', '_expression /it').
+         parameterized_modifier_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
+                                     '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
+                                     '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');
 
 // Javascript-specific shorthands.
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.

@@ -343,7 +343,7 @@ meta::configuration('dependencies', <<'__');
 #montenegro.server.js: http://spencertipping.com/montenegro/montenegro.server.js
 __
 meta::data('author', 'Spencer Tipping');
-meta::data('current-continuation', 'baking');
+meta::data('current-continuation', 'unit tests');
 meta::data('default-action', 'shell');
 meta::data('edit::no-save', '1');
 meta::data('libraries', <<'__');
@@ -1909,8 +1909,7 @@ Licensed under the terms of the MIT source code license
 Core meta-behaviors.
 These provide methods required by other behaviors to be defined.
 
-- pinclude pp::js::behaviors/core/adverb
-- pinclude pp::js::behaviors/core/adjective
+- pinclude pp::js::behaviors/core/grammar
 
 Language specializations.
 These provide configurations that specialize caterwaul to operate well with a given programming language. This is relevant because not all languages compile to Javascript the same way, and
@@ -1937,30 +1936,6 @@ These apply more advanced syntactic transforms to the code and can depend on the
 - pinclude pp::js::behaviors/core/precompile
 - pinclude pp::js::behaviors/core/unit
 - pinclude pp::js::behaviors/core/trace
-__
-meta::sdoc('js::behaviors/core/adjective', <<'__');
-Adjective macro forms | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-Unlike adverbs, adjectives generally wrap a value as opposed to modifying a verb. It's a subtle distinction, but adjectives are often more noticeable (they come before the noun in English),
-and they can have a very direct impact on the context of the values they modify. A regular adjective takes no parameters other than the thing it's modifying, whereas a modified adjective takes
-an extra modifier parameter. For example:
-
-| caterwaul.adjective('qs', function (tree) {return new this.ref(tree)});       // No modifiers, since qs[] requires no extra information
-  caterwaul.modified_adjective('mapped_through', '(_modifiers)(_expression)');  // We need to know what to map it through
-
-  caterwaul.macro_form('adjective', 'modified_adjective', function (name, def, form) {this.macro(form.replace({it: name}), def)});
-__
-meta::sdoc('js::behaviors/core/adverb', <<'__');
-Adverb macro forms | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-Many macros in caterwaul function as adverbs from a linguistic point of view. Adverbs in English modify a process, but generally the process is more relevant than the adverb so we talk about
-it first. (Hence sentences such as 'go there if you need to' -- here 'if you need to' is the adverb, and it comes after the rest.)
-
-  caterwaul.macro_form('adverb', 'modified_adverb', function (name, def, form) {this.macro(form.replace({it: name}), def)});
 __
 meta::sdoc('js::behaviors/core/bake', <<'__');
 Dynamic caterwaul optimization | Spencer Tipping
@@ -2353,6 +2328,16 @@ simpler) are:
                                             -where[new_pattern   = this.translate_state_markers(pattern),
                                                    new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)])});
 __
+meta::sdoc('js::behaviors/core/grammar', <<'__');
+Grammatical construct definitions | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+The only kind of grammar Caterwaul knows about out of the box is the 'modifier', which applies to some expression and transforms it somehow. The exact syntax that triggers such a binding are
+determined by the macro patterns defined in language-specific configurations. sdoc::js::behaviors/core/javascript-forms is one such configuration.
+
+  caterwaul.macro_form('modifier', 'parameterized_modifier', function (name, def, form) {this.macro(form.replace({it: name}), def)});
+__
 meta::sdoc('js::behaviors/core/inversion', <<'__');
 Inversion behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2426,14 +2411,14 @@ This module creates macro forms optimized for hand-coded Javascript. They won't 
 
   caterwaul.configuration('core.js', function () {
 
-Adjective and adverb forms.
+Modifier forms.
 These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
 having to use grouping operators.
 
-    this.adjective_form('it[_expression]', '_expression |it', '_expression /it').
-         modified_adverb_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
-                              '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
-                              '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');
+    this.modifier_form('it in _expression', 'it[_expression]', '_expression |it', '_expression -it', '_expression /it').
+         parameterized_modifier_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
+                                     '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
+                                     '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');
 
 Javascript-specific shorthands.
 Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
@@ -2732,8 +2717,8 @@ language port you're using. For the native JS port, it will be enabled in these 
 
 Also available is qse[], which pre-expands the syntax tree before returning it.
 
-  caterwaul.configuration('core.quote', function () {this.adjective('qs', function (match) {return new this.ref(match._expression)}).
-                                                          adjective('qse', function (match) {return new this.ref(this.macroexpand(match._expression))})});
+  caterwaul.configuration('core.quote', function () {this.modifier('qs',  function (match) {return new this.ref(match._expression)}).
+                                                          modifier('qse', function (match) {return new this.ref(this.macroexpand(match._expression))})});
 __
 meta::sdoc('js::behaviors/core/trace', <<'__');
 Cod etrace behavior | Spencer Tipping
@@ -2905,7 +2890,7 @@ Unit testing behavior | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-This behavior provides adjectives and adverbs useful for unit testing. It also makes use of the implicit pattern (a way to propagate settings through a lexical scope).
+This behavior provides adjectives and adverbs useful for unit testing.
 __
 meta::sdoc('js::behaviors/core/words', <<'__');
 Common adjectives and adverbs | Spencer Tipping
@@ -2932,8 +2917,8 @@ These all impact scope or references somehow -- in other words, they create vari
     var f = x + 1 |given[x];
     var f = x + 1 |given.x;
 
-    this.modified_adverb('given',  'from',  'fn', '(function (_modifiers) {return _expression})').
-         modified_adverb('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
+    this.parameterized_modifier('given',  'from',  'fn', '(function (_modifiers) {return _expression})').
+         parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))');
 
   Side-effecting.
   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -2942,8 +2927,8 @@ These all impact scope or references somehow -- in other words, they create vari
   | hash(k, v) = {} /effect[it[k] = v];
     compose(f, g)(x) = g(x) -then- f(it);
 
-    this.modified_adverb('effect', 'se',              '(function (it) {return (_modifiers), it}).call(this, (_expression))').
-         modified_adverb('then',   're', 'returning', '(function (it) {return (_modifiers)}).call(this, (_expression))');
+    this.parameterized_modifier('effect', 'se',              '(function (it) {return (_modifiers), it}).call(this, (_expression))').
+         parameterized_modifier('then',   're', 'returning', '(function (it) {return (_modifiers)}).call(this, (_expression))');
 
   Scoping.
   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -2952,7 +2937,7 @@ These all impact scope or references somehow -- in other words, they create vari
     alert(x), where[x = 10]
     bind[f(x) = x + 1] in alert(f(10))
 
-    this.modified_adverb('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)');
+    this.parameterized_modifier('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)');
 
 Control flow modifiers.
 These impact how something gets evaluated.
@@ -2963,9 +2948,9 @@ These impact how something gets evaluated.
 
   | x = x /otherwise.y + z;
 
-    this.modified_adverb('when',      '((_modifiers) && (_expression))').
-         modified_adverb('unless',    '(! (_modifiers) && (_expression))').
-         modified_adverb('otherwise', '((_expression) || (_modifiers))');
+    this.parameterized_modifier('when',      '((_modifiers) && (_expression))').
+         parameterized_modifier('unless',    '(! (_modifiers) && (_expression))').
+         parameterized_modifier('otherwise', '((_expression) || (_modifiers))');
 
   Collection-based loops.
   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
@@ -2974,15 +2959,15 @@ These impact how something gets evaluated.
     console.log(it), over_keys[{foo: 'bar'}]    // logs foo
     console.log(it), over_values[{foo: 'bar'}]  // logs bar
 
-    this.modified_adverb('over',        this.with_gensyms(
+    this.parameterized_modifier('over',        this.with_gensyms(
            '(function () {for (var gensym_xs = (_modifiers), gensym_result = [], gensym_i = 0, gensym_l = gensym_xs.length, it; gensym_i < gensym_l; ++gensym_i) ' +
                          '  it = gensym_xs[gensym_i], gensym_result.push(_expression); return gensym_result}).call(this)')).
 
-         modified_adverb('over_keys',   this.with_gensyms(
+         parameterized_modifier('over_keys',   this.with_gensyms(
            '(function () {var gensym_x = (_modifiers), gensym_result = []; ' +
                          'for (var it in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, it) && gensym_result.push(_expression); return gensym_result}).call(this)')).
 
-         modified_adverb('over_values', this.with_gensyms(
+         parameterized_modifier('over_values', this.with_gensyms(
            '(function () {var gensym_x = (_modifiers), gensym_result = [], it; ' +
                          'for (var gensym_k in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, gensym_k) && (it = gensym_x[gensym_k], gensym_result.push(_expression));' +
                          'return gensym_result}).call(this)'));
@@ -2992,7 +2977,7 @@ These impact how something gets evaluated.
 
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    this.modified_adverb('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
+    this.parameterized_modifier('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
 __
 meta::sdoc('js::caterwaul', <<'__');
 Caterwaul JS | Spencer Tipping
