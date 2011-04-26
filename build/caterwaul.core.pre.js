@@ -175,21 +175,6 @@ caterwaul_global.method('macro_expand_naive',function (t,macros,expanders){var s
 return t.rmap(function (n){for (var i=macros.length-1,match,replacement;
 i>=0;
  --i)if ((match=macros[i].match(n))&&(replacement=expanders[i].call(self,match)))return replacement})});
-caterwaul_global.method('macro_form',function (){for (var i=0,l=arguments.length-1;
-i<l;
- ++i)this.define_macro_form(arguments[i],arguments[l]);
-return this}).method('define_macro_form',function (name,define){var names=name+'s',form=name+'_form',forms=name+'_forms',define_name='define_'+name;
-return this.shallow(names,[]).method(name,function (){for (var fs=this[forms],def=this[define_name],i=0,l=arguments.length-1,definition=this.ensure_expander(arguments[l]),lj=fs.length;
-i<l;
- ++i){for (var name=arguments[i],j=0;
-j<lj;
- ++j)def.call(this,name,definition,fs[j]);
-this[names].push({name:name,definition:definition})}return this}).shallow(forms,[]).method(form,function (){for (var xs=this[names],def=this[define_name],i=0,l=arguments.length,lj=xs.length;
-i<l;
- ++i){for (var form=this.ensure_syntax(arguments[i]),j=0;
-j<lj;
- ++j)def.call(this,xs[j].name,xs[j].definition,form);
-this[forms].push(form)}return this}).method(define_name,function (){return define.apply(this,arguments),this})});
 caterwaul_global.method('define_list',function (name,list_name){return this.shallow(list_name||(list_name=name+'s'),[]).method(name,function (){return arguments.length?this.shallow(list_name,this[list_name].concat(Array.prototype.slice.call(arguments))):this[list_name]})}).define_list('before','before_functions').define_list('after','after_functions').method('apply_before_functions',function (x){for (var xs=this.before_functions,i=0,l=xs.length;
 i<l;
  ++i)x=xs[i].call(this,x);
@@ -203,4 +188,4 @@ result=f.constructor===this.syntax?this.macroexpand(result):this.compile(this(th
 result=f.constructor===this.syntax?this.apply_after_functions(result):result;
 return result});
 return caterwaul_global});
-caterwaul.field('version','a371a3be49e184e16ae723427de6927a').check_version();
+caterwaul.field('version','89b94640f11aa86122d15cfc51d9259e').check_version();
