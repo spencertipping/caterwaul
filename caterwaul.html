@@ -1027,6 +1027,9 @@ file::write('build/caterwaul.core.js', retrieve('pp::js::caterwaul.core'), mkpat
 file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'), mkpath => 1);
 
 precompile($_) for qw|build/caterwaul.js build/caterwaul.core.js behaviors/core.js|;
+
+mkdir 'build/behaviors';
+rename 'behaviors/core.pre.js', 'build/behaviors/core.pre.js';
 __
 meta::hook('after-render::notes', <<'__');
 # Render each note into an SDoc file.
@@ -1622,7 +1625,11 @@ I'm not 100% sure how to do the failover for pattern matching because it require
 
   Ultimately the problem is that Javascript doesn't have a way to represent parameter-based multiple dispatch. So pattern matching is something that gets superimposed at the last minute.
 __
-meta::note('q', 'Nothing on the queue for now. Just getting the 1.0 release working.');
+meta::note('q', <<'__');
+Object system.
+It's time that caterwaul provides and uses an object system. The compiler-cloning stuff from previous releases was nicely ad-hoc, but polymorphism is a significant advantage and it's worth
+leveraging if possible. Also, caterwaul is growing beyond its original design into a self-supporting runtime; to fill this role it's going to need some nice libraries and metaprogrammable OO.
+__
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
 parent::/home/spencertipping/bin/object  39d8676c3913ed1d5b258342feebdd37
