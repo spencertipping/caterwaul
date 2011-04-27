@@ -188,4 +188,4 @@ result=f.constructor===this.syntax?this.macroexpand(result):this.compile(this(th
 result=f.constructor===this.syntax?this.apply_after_functions(result):result;
 return result});
 return caterwaul_global});
-caterwaul.field('version','89b94640f11aa86122d15cfc51d9259e').check_version();
+caterwaul.field('version','3a045f5e619cfbcc408bbc0a51bc0734').check_version();
