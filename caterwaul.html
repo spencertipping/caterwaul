@@ -1630,6 +1630,18 @@ Object system.
 It's time that caterwaul provides and uses an object system. The compiler-cloning stuff from previous releases was nicely ad-hoc, but polymorphism is a significant advantage and it's worth
 leveraging if possible. Also, caterwaul is growing beyond its original design into a self-supporting runtime; to fill this role it's going to need some nice libraries and metaprogrammable OO.
 __
+meta::note('wrappers', <<'__');
+Dealing with Javascript suckage.
+Javascript's builtin types are a mess. There isn't a reasonable hierarchy for things that are ordered (though < is magic enough to work properly most of the time), arrays aren't really
+extensible, objects are a disaster, etc. Part of this is due to the crossover between the method table and the key-value pairing present on all references. But in any case, it would be really
+nice to have a better interface for these things.
+
+Tempting as it is to rebuild all of these types using real data structures, caterwaul isn't trying to solve that problem. So caterwaul internally and externally uses regular old Javascript
+types whenever practical. (A notable exception is the global caterwaul function, which is an instance of itself under the caterwaul object system. But it produces and accepts standard
+Javascript arrays and objects in general.)
+
+It should be very easy to wrap standard data types however. So caterwaul provides a series of monads 
+__
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
 parent::/home/spencertipping/bin/object  39d8676c3913ed1d5b258342feebdd37
@@ -3482,6 +3494,10 @@ provide a standard basis for caterwaul's internal and external modules.
   Two roles for classes.
   The goal of caterwaul classes is to provide a useful abstraction for building constructor functions. But in addition to setting up the prototype and managing the existence of constructors,
   classes are also able to extend existing objects without owning their prototypes.
+
+  Prototypes are flattened automatically. This divorces the object model from Javascript's single-inheritance prototype chain and reduces method lookup times. (Also, it doesn't impose much of
+  a performance overhead provided that class updates are relatively rare.) Note that a single instance doesn't generally inherit from multiple classes, but a class might have several parents.
+  For instance, if A < B and A < C, then you can still create a prototype instance of A. A.parents() will return [B, C].
 __
 meta::sdoc('js::core/caterwaul.parser', <<'__');
 Parsing.
