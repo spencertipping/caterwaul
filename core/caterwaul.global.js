@@ -26,6 +26,8 @@
   caterwaul_global.method('global', function () {return caterwaul_global}).self_reference('caterwaul').
                     field('is_caterwaul', is_caterwaul).field('initializer', initializer).field('unique', unique).field('gensym', gensym).field('genint', genint).once('id', gensym).
 
+                    field('module', module).
+
                    method('toString', function () {return '[caterwaul instance ' + this.id() + ']'}).field('merge', merge).
                    method('check_version', function () {if (original_global && this.version === original_global.version) this.deglobalize(); return this}).
 
