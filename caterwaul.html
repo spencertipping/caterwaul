@@ -1630,11 +1630,7 @@ I'm not 100% sure how to do the failover for pattern matching because it require
 
   Ultimately the problem is that Javascript doesn't have a way to represent parameter-based multiple dispatch. So pattern matching is something that gets superimposed at the last minute.
 __
-meta::note('q', <<'__');
-Object system.
-It's time that caterwaul provides and uses an object system. The compiler-cloning stuff from previous releases was nicely ad-hoc, but polymorphism is a significant advantage and it's worth
-leveraging if possible. Also, caterwaul is growing beyond its original design into a self-supporting runtime; to fill this role it's going to need some nice libraries and metaprogrammable OO.
-__
+meta::note('q', 'Object system is now implemented, so at this point the priority is to get stuff working with it.');
 meta::note('wrappers', <<'__');
 Dealing with Javascript suckage.
 Javascript's builtin types are a mess. There isn't a reasonable hierarchy for things that are ordered (though < is magic enough to work properly most of the time), arrays aren't really
@@ -3182,53 +3178,10 @@ running on.
 __
 meta::sdoc('js::core/caterwaul.configuration', <<'__');
 Configurations.
-Caterwaul is stateful in some ways, most particularly with macro definitions and compiler options. To prevent you from having to modify the global caterwaul() function, I've enabled
-replication. This works by giving you access to copies of caterwaul() (and copies of those copies, if you so choose) that you can customize independently. So, for example:
+Caterwaul prior to version 1.0 relied on an ad-hoc cloning/configuration system tailored for the use of managing multiple customized compiler instances. Version 1.0 changes this a little bit.
+Instead of cloning compilers, we now instantiate the core 'caterwaul' class:
 
-| var copy = caterwaul.clone().macro('foo', 'bar');
-  copy(function () {
-    var bar = 6;
-    return foo;
-  })();                 // returns 6
-
-Related to this is a configure() method that modifies and returns the original function:
-
-| caterwaul.configure(function () {
-    // Global configuration using 'this'
-  });
-
-  Metaprogramming.
-  Most classes don't support special accessors, but caterwaul needs them in order to be able to support cloning. For example, some attributes are referenced directly; that is, if g =
-  f.clone(), then g.x === f.x. However, often we'll want to detach the clone's attributes; this is the case whenever an attribute is mutable. To do this we'll define a new class method called
-  'attr_clone' (aliased as 'attr_cloned'), which signifies that one or more data fields are to be cloned rather than referenced.
-
-  Cloning.
-  Most object-oriented systems aren't really set up to clone stuff the way we're doing it here. The key is to set up a recursive class -- that is, the caterwaul function is an instance of
-  itself, so clones are just new instances of the caterwaul function. This is legal because inheritance is lazy instead of strict. Here, the 'cloneable' variable refers to the metaclass of
-  cloneable classes, which inherits from itself and therefore is an instance of itself. (It's confusing.)
-
-    var cloneable = module().inherit_from_self().attr('attribute_roles').
-                       def('clone_attribute',           function (x) {return x.clone()}).
-                       def('reference_attribute',       function (x) {return x}).
-
-                       def('initialize',                function ()  {this.attribute_roles({attribute_roles: this.clone_attribute})}).
-                       def('attr_clone', 'attr_cloned', function ()  {for (var r = this.attribute_roles(), i = 0, l = arguments.length; i < l; ++i) r[arguments[i]] = this.clone_attribute;
-                                                                      return this.attr.apply(this, arguments)}).
-
-                       def('cloned_instance_data',      function ()  {var naive_clone = merge({}, this.instance_data(this)), attribute_roles = this.attribute_roles();
-                                                                      for (var k in naive_clone) if (naive_clone.hasOwnProperty(k) && attribute_roles.hasOwnProperty(k))
-                                                                        naive_clone[k] = attribute_roles[k].call(this, naive_clone[k]);
-                                                                      return naive_clone}).
-
-                       def('create_clone',              function ()  {var clone = this.extend(this.create()); clone[this.instance_data_key()] = this.cloned_instance_data(); return clone}).
-                   rebuild()(),
-
-  Configurable subclass/clone.
-  This is where we add in the configuration-specific stuff. Particularly, it helps to manage a collection of possibly-applied idempotent configurations and organize them by name. It also
-  provides convenient wrapper methods to enable those configurations.
-
-    configurable = cloneable().inherit_from_self().attr_cloned('configurations', 'active_configurations').
-                         def('configuration', function (name, f) {
+| var f = caterwaul('core')(function () {...});
 __
 meta::sdoc('js::core/caterwaul.events', <<'__');
 Event listening API.
@@ -3463,7 +3416,7 @@ provide a standard basis for caterwaul's internal and external modules.
   If you're familiar with my questionably-named github.com/spencertipping/js-typeclasses project, behaviors correspond to typeclasses. They're called 'modules' here to appeal to Ruby parlance,
   even though they're actually a bit different.
 
-    var calls_init = function () {var f = function () {return f.init.apply(this, arguments)}; return f},
+    var calls_init = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
         module     = calls_init();
 
   Module bootstrapping.
@@ -3592,7 +3545,7 @@ provide a standard basis for caterwaul's internal and external modules.
       def('attr_null',              function (name, f) {return this.method(name, function () {return this.instance_data[name] || f.apply(this, arguments)})});
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return this.instance_data[name] || (this.instance_data[name] = f.apply(this, arguments))})})});
 
-    module.extend(module).attr('extension_stages').attr_lazy('methods', function () {return {}}).
+    module.extend(module).attr('extension_stages').attr_lazy('methods',           function () {return {}}).
                                                    attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
                                                    attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
 
