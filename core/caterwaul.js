@@ -85,12 +85,6 @@
 //   a performance overhead provided that class updates are relatively rare.) Note that a single instance doesn't generally inherit from multiple classes, but a class might have several parents.
 //   For instance, if A < B and A < C, then you can still create a prototype instance of A. A.parents() will return [B, C].
 
-//   Behavior of instanceof.
-//   Instanceof and .constructor will behave the way you'd expect: for any class C, C().constructor === C and C() instanceof C. The only interesting thing here is that you don't normally use
-//   'new' when instantiating things in caterwaul's object system. Instead, you just call the function normally and it will handle the new invocation under the covers. The reason for this is that
-//   constructor invocations can't be proxied; it's much more convenient to proxy a standard function call. It also disambiguates the role of the function as a class; whether or not you use 'new'
-//   it will do roughly the same thing. (Though you should never use 'new', as this could change at some point.)
-
 //   Storing instance data.
 //   I really like the way Ruby handles instance data; that is, it's private to the instance and methods are always used to access it. This library behaves similarly; by convention all instance
 //   state is stored in an attribute called instance_data, which is a hash.
@@ -119,13 +113,25 @@
 //     The primary purpose of a module is to extend an object. To this end, a module specifies one or more named extenders, each of which is run on the object to be extended. These are
 //     responsible for handling different types of initializations that the module might want to perform. (Providing methods for the object is only one of many possibilities.)
 
-      se(this.extenders = {}, function () {this.methods   = function (object) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) object[k] = ms[k]}});
-      se(this.methods   = {}, function () {this.methods   = function ()       {return this.instance_data.methods};
-                                           this.extenders = function ()       {return this.instance_data.extenders};
-                                           this.extend    = function (object) {var es = this.extenders(); for (var k in es) if (es.hasOwnProperty(k)) es[k].call(this, object)}})});
+//     Note that extending an object overrides any methods that are already defined and doesn't back up the original values. If you don't want this behavior then you'll need to write a new method
+//     similar to extend_methods and replace extend() to call that one instead.
+
+      se(this.methods = {}, function () {this.extend_methods       = function (o) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) o[k] = ms[k]; return o};
+                                         this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
+
+                                         this.extension_stages = function ()  {return this.instance_data.extension_stages};
+                                         this.methods          = function ()  {return this.instance_data.methods};
+                                         this.extend           = function (o) {for (var es = this.extension_stages(), i = 0, l = es.length; i < l; ++i) this[es[i]].apply(this, arguments);
+                                                                               return o}})});
 
 //     At this point our module is sufficiently functional to extend itself:
 
+    module.extend_methods       = module.instance_data.methods.extend_methods;
+    module.extend_instance_data = module.instance_data.methods.extend_instance_data;
+    module.methods              = module.instance_data.methods.methods;
+    module.extension_stages     = module.instance_data.methods.extension_stages;
+
+    module.instance_data.extension_stages = ['extend_methods', 'extend_instance_data'];
     module.instance_data.methods.extend.call(module, module);
 
 //   Module methods.
@@ -196,29 +202,78 @@
 //     bizarre, but it has to do with the restriction that Javascript doesn't allow constructor argument forwarding (since constructors have no equivalent of the .apply() method). So the expected
 //     case is that you'll use the constructor function as a regular function, not as a constructor.
 
-      se(module.methods(), function () {this.compile = function (construct) {var t = this, f = se(function (args) {if (this.constructor === f) construct.apply(f, args);
-                                                                                                                   else                        return new f(arguments)},
-                                                                                                  function () {t.extend(this.prototype)}); return f}});
+//     The 'compile' function takes an optional function to use as the constructor for new instances. If you invoke the function produced by compile() as a regular function (not as a
+//     constructor), then the function you passed into compile() will be called for each new instance. This is important to use, since the instance_data field of the new object will be a
+//     prototype member, not a direct member -- lots of stuff will break if this isn't changed.
+
+      se(module.methods(), function () {this.compile = function (construct) {var f = function (args) {if (this.constructor === f) construct && construct.apply(this, args);
+                                                                                                      else                        return new f(arguments)};
+                                                                             this.extend(f.prototype); return f}});
 
 //     Circularity.
 //     At this point our module basically works, so we can add it to itself again to get the functionality built above. I'm also using it to create the modules for instance_eval and class_eval
 //     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
 
       module.extend(module);
-      module.default_class_eval_def    = module.extend({});
-      module.default_instance_eval_def = module.extend({});
+      se(module.default_class_eval_def    = module.extend({}), function () {this.instance_data.extension_stages = module.instance_data.extension_stages});
+      se(module.default_instance_eval_def = module.extend({}), function () {this.instance_data.extension_stages = module.instance_data.extension_stages});
 
 //   Common design patterns.
 //   From here we add methods to make 'module' easier to use.
 
     module.class_eval(function (def) {
-      def('accessor_for', function (name) {return function (x) {if (arguments.length) return this.instance_data[name] = x, this;
-                                                                else                  return this.instance_data[name]}});
+      def('attr', 'attrs', function ()     {for (var i = 0, l = arguments.length; i < l; ++i) this.method(arguments[i], this.accessor_for(arguments[i])); return this});
+      def('accessor_for',  function (name) {return function (x) {if (arguments.length) return this.instance_data[name] = x, this;
+                                                                 else                  return this.instance_data[name]}});
 
-      def('attr', function () {
-        
-      });
-    });
+      def('attr_null',              function (name, f) {return this.method(name, function () {return this.instance_data[name] || f.apply(this, arguments)})});
+      def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return this.instance_data[name] || (this.instance_data[name] = f.apply(this, arguments))})})});
+
+    module.extend(module).attr('extension_stages').attr_lazy('methods', function () {return {}}).
+                                                   attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
+                                                   attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
+
+//   Instantiation.
+//   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
+//   extended and used as the instance. So, for example:
+
+//   | my_module.instance_eval(function (def) {
+//       def('create_instance', function () {return function () {return 10}});
+//       def('foo', function () {return 'bar'});
+//     });
+//     my_module.create()          // -> [function]
+//     my_module.create()()        // -> 10
+//     my_module.create().foo()    // -> 'bar'
+
+    module.class_eval(function (def) {def('create', 'init', function () {return this.extend(this.create_instance && this.create_instance.apply(this, arguments) || {})})}).
+        instance_eval(function (def) {def('create_instance', calls_init)});
+
+//   Constructor invocation.
+//   If a module provides an initialize() method, this will be called on the instance when the module is added to that instance. This behavior is governed by the extend_initialize() method on
+//   modules. (Though since it's an extensible behavior, extend() might not end up calling it if you've got a custom setup.)
+
+    module.class_eval(function (def) {def('extend_initialize', function (o) {var i = this.methods().initialize; i && i.apply(o, Array.prototype.slice.call(arguments, 1)); return o});
+                                      def('initialize',        function ()  {this.extension_stages(['extend_methods', 'extend_instance_data', 'extend_parents', 'extend_initialize'])})});
+
+//   Inheritance.
+//   Each module has a list of parents that it uses during extension. Because a module might inherit from itself the implementation knows how to avoid infinite-looping from cyclical inheritance
+//   structures. This is done by using the 'identity' method.
+
+//   The 'extend' method is redefined to include parent extension. By default parent extension happens first, then method extension, then instance data creation, then invocation of the
+//   'initialize' method if it exists.
+
+    module.attr_lazy('identity', gensym).attr_lazy('parents', function () {return []}).class_eval(function (def) {
+      def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
+      def('extend_parents', function (o, seen) {
+        seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});
+
+//   Constructing the final 'module' object.
+//   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
+//   explicitly invoke its constructor on itself for this to work.
+
+    module.extend(module).methods().initialize.call(module), module.extend(module);
+    module.extend(module.default_instance_eval_def);
+    module.extend(module.default_class_eval_def);
 // Generated by SDoc 
 
 
