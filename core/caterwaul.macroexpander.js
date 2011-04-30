@@ -14,8 +14,6 @@
 
 // Inside the macroexpander 'this' is bound to the instance of caterwaul that is performing macroexpansion.
 
-  (function () {
-
 //   Pitfalls of macroexpansion.
 //   Macroexpansion as described here can encode a lambda-calculus. The whole point of having macros is to make them capable, so I can't complain about that. But there are limits to how far I'm
 //   willing to go down the pattern-matching path. Let's suppose the existence of the let-macro, for instance:
@@ -69,23 +67,51 @@
 //   Under the hood the macro() method ultimately uses final_macro(), but wraps your macroexpander in a function that knows how to re-expand output. All re-expansion is done by the compiler that
 //   is macroexpanding in the first place.
 
-    caterwaul_global.shallow('macro_patterns',  []).
-                     shallow('macro_expanders', []).
+    caterwaul_global.attr_lazy('macro_patterns',  function () {return []}).
+                     attr_lazy('macro_expanders', function () {return []}).class_eval(function (def) {
 
-                      method('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
-                                                             return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})}).
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
 
-                      method('macroexpand',        function (t) {return this.ensure_syntax(t).rmap(this.macroexpand_single)}).
-                      method('macroexpand_single', function (t) {return this.macro_expand_naive(t, this.macro_patterns, this.macro_expanders)}).
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
+                                                                                  return this.final_macro(pattern, function () {
+                                                                                    var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
-                      method('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}}).
-                      method('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
-                                                                                 expander.constructor === this.syntax ? function (match) {return expander.replace(match)} :
-                                                                                 expander.constructor === Function    ? expander : fail('unknown macroexpander format: ' + expander)}).
-       right_variadic_binary('final_macro',
-         function (pattern, expander) {return this.macro_patterns.push(this.ensure_syntax(pattern)), this.macro_expanders.push(this.ensure_expander(expander)), this}).
+    caterwaul_global.instance_eval(function (def) {
+      def('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
+                                          return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})});
 
-       right_variadic_binary('macro',
-         function (pattern, expander) {expander = this.ensure_expander(expander);
-                                       return this.final_macro(pattern, function () {var t = expander.apply(this, arguments); return t && this.macroexpand(t)})})})();
+      def('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}});
+      def('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
+                                                              expander.constructor === this.syntax ? function (match) {return expander.replace(match)} :
+                                                              expander.constructor === Function    ? expander : fail('unknown macroexpander format: ' + expander)})
+
+//   Naive macroexpander implementation.
+//   This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. The 0.7.x series
+//   used an optimizing half-precompiled macroexpander, but because the compilation overhead was prohitibitive version 1.0 uses the naive macroexpander and full offline precompilation for
+//   performance-sensitive code.
+
+//   Expansion.
+//   Uses the straightforward brute-force algorithm to go through the source tree and expand macros. At first I tried to use indexes, but found that I couldn't think of a particularly good way to
+//   avoid double-expansion -- that is, problems like qs[qs[foo]] -- the outer must be expanded without the inner one. Most indexing strategies would not reliably (or if reliably, not profitably)
+//   index the tree in such a way as to encode containment. Perhaps at some point I'll find a faster macroexpander, especially if this one proves to be slow. At this point macroexpansion is by
+//   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
+//   practice it's generally not quite so bad.)
+
+//   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
+
+//   Note that as of version 0.5, macroexpansion proceeds backwards. This means that the /last/ matching macro is used, not the first. It's an important feature, as it lets you write new macros
+//   to override previous definitions. This ultimately lets you define sub-caterwaul functions for DSLs, and each can define a default case by matching on qs[_] (thus preventing access to other
+//   macro definitions that may exist).
+
+//   As of caterwaul 1.0 we delegate pattern matching to the tree implementation rather than having a static function to do it. The expected behavior is that x.match(y) returns null or another
+//   falsy value if y doesn't match the pattern x, and it returns an object containing wildcard data if y does match x. Wildcards begin with an underscore; for example:
+
+//   | qs[_a + _b].match(qs[3 + x])        // -> {_a: 3, _b: x}
+//     qs[_a + _b].match(qs[3 / x])        // -> null
+
+    def('macroexpand', function (t) {var self = this, macros = this.macro_patterns(), expanders = this.macro_expanders();
+                                     return caterwaul_global.ensure_syntax(t).rmap(function (n) {
+                                       for (var i = macros.length - 1, match, replacement; i >= 0; --i)
+                                         if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})})});
 // Generated by SDoc 
