@@ -2,7 +2,7 @@
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 // nodes. At the end of folding there is only one child per paren-group.
 
-  (function () {
+  caterwaul_global.instance_eval(function (def) {
 
 //   Doubly-linked paren-group lists.
 //   When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
@@ -47,34 +47,33 @@
 //   the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
 //   (i.e. no parent pointer).
 
-    var syntax_node_inspect = function (x) {return x ? x.inspect() : '(<>)'},  syntax_node_tostring = function (x) {return x ? x.serialize ? x.serialize() : x.toString() : ''},
-
 //   Syntax node functions.
 //   These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
 //   turns out to be an issue.
 
-    syntax_common = {
+    def('syntax_common', module().class_eval(function (def) {
 
 //     Mutability.
 //     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
 
-       _replace: function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
-      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this))},
-        _append: function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this))},
-       _sibling: function (n) {return n.p = this.p, (this.r = n).l = this},                                                            _fold_lr: function () {return this._fold_l()._fold_r()},
-          _wrap: function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},  _fold_rr: function () {return this._fold_r()._fold_r()},
-        _unlink: function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
+      def('_replace',  function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this});  def('_append_to', function (n) {return n && n._append(this), this});
+      def('_reparent', function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this});  def('_fold_l', function (n) {return this._append(this.l && this.l._unlink(this))});
+      def('_append',   function (n) {return (this[this.length++] = n) && (n.p = this), this});        def('_fold_r', function (n) {return this._append(this.r && this.r._unlink(this))});
+      def('_sibling',  function (n) {return n.p = this.p, (this.r = n).l = this});                    def('_fold_lr', function () {return this._fold_l()._fold_r()});
+                                                                                                      def('_fold_rr', function () {return this._fold_r()._fold_r()});
+      def('_wrap',     function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)});
+      def('_unlink',   function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)});
 
 //     These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
 
-            pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x, this},
+      def('pop', function () {return --this.length, this});  def('push', function (x) {return this[this.length++] = x, this});
 
 //     Identification.
 //     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
 //     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
 //     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-      id: function () {var id = genint(); return (this.id = function () {return id})()},
+      def('id', function () {var id = gensym(); return (this.id = function () {return id})()});
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -97,30 +96,26 @@
 
 //     | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
 
-//     There is a map() variant called nmap() (and a corresponding rnmap()) that lets you insert falsy nodes into the syntax tree. This is used by replace(), which lets you replace named nodes
-//     with falsy things if you want them to go away. (The exact behavior is that falsy nodes are not added to the syntax tree at all, rather than remaining in their original state.)
+      def('each',  function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this});
+      def('map',   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n});
 
-      each: function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
-       map: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length;    i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
-      nmap: function (f) {for (var n = new this.constructor(this), i = 0, l = this.length, r; i < l; ++i) (r = f(this[i], i)) && n.push(r); return n},
-     reach: function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this},
-      rmap: function (f) {var r = f(this); return ! r || r === this ? this. map(function (n) {return n && n. rmap(f)}) :      r.data === undefined ? new this.constructor(r) : r},
-     rnmap: function (f) {var r = f(this); return        r === this ? this.nmap(function (n) {return n && n.rnmap(f)}) : r && r.data === undefined ? new this.constructor(r) : r},
+      def('reach', function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this});
+      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n. rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
 
-     clone: function () {return this.rmap(function () {return false})},
+      def('clone', function () {return this.rmap(function () {return false})});
 
-   collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-   replace: function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
-                                                           var replacement = rs[n.data];
-                                                           return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
-                                                                                                                      replacement})},
+      def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
+      def('replace', function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                                    var replacement = rs[n.data];
+                                                                    return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                               replacement})});
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
 
-      repopulated_with: function (xs)   {return new this.constructor(this.data, xs)},
-                change: function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
-        compose_single: function (i, f) {return this.change(i, f(this[i]))},
+      def('repopulated_with', function (xs)   {return new this.constructor(this.data, xs)});
+      def('change',           function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})});
+      def('compose_single',   function (i, f) {return this.change(i, f(this[i]))});
 
 //     General-purpose traversal.
 //     This is a SAX-style traversal model, useful for analytical or scope-oriented tree traversal. You specify a callback function that is invoked in pre-post-order on the tree (you get events
@@ -131,7 +126,7 @@
 //     I used to have a method to perform scope-annotated traversal, but I removed it for two reasons. First, I had no use for it (and no tests, so I had no reason to believe that it worked).
 //     Second, Caterwaul is too low-level to need such a method. That would be more appropriate for an analysis extension.
 
-      traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this},
+      def('traverse', function (f) {f({entering: this}); f({exiting: this.each(function (n) {n && n.traverse(f)})}); return this});
 
 //     Structural transformation.
 //     Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
@@ -163,21 +158,21 @@
 //     The unflatten() method performs the inverse transformation. It doesn't delete a converted unary operator in the tree case, but if called on a node with more than two children it will nest
 //     according to associativity.
 
-      flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
-                                                     se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
-                                                     se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
-                                                                                                    for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+      def('flatten',   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                           se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                           se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                          for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))});
 
-      unflatten: function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
-                                 if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
-                                 else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))},
+      def('unflatten', function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
+                                       if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
+                                       else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))});
 
 //     Wrapping.
 //     Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
 //     when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
 //     in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
 
-      as: function (d) {return this.data === d ? this : new this.constructor(d).push(this)},
+      def('as', function (d) {return this.data === d ? this : new this.constructor(d).push(this)});
 
 //     Type detection and retrieval.
 //     These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
@@ -189,6 +184,7 @@
 //     Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
 //     than a string comparison. The ASCII value for underscore is 95.
 
+      merge(this.methods(), {
                is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
               is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
@@ -203,13 +199,13 @@
           left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
                 is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
          has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
-           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0] && this[0].is_dereference()},
+           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
 
             is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
 is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
        is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
-                 accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)},
+                 accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}});
 
 //     Value construction.
 //     Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
@@ -220,7 +216,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     (ref nodes do this on the prototype), indicating that their value should be read from the 'value' property. (This allows other uses of a 'value' property while making it unambiguous
 //     whether a particular node intends to bind something.)
 
-      bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result},
+      def('bindings', function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result});
 
 //     Matching.
 //     Any syntax tree can act as a matching pattern to destructure another one. It's often much more fun to do things this way than it is to try to pick it apart by hand. For example, suppose
@@ -236,11 +232,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
 //     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
-         match: function (target, variables) {variables || (variables = {_: target});
-                                              if (this.is_wildcard())                                          return variables[this.data] = target, variables;
-                                         else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
-                                                                                                                 if (! this[i].match(target[i], variables)) return null;
-                                                                                                               return variables}},
+      def('match', function (target, variables) {variables || (variables = {_: target});
+                                                 if (this.is_wildcard())                                          return variables[this.data] = target, variables;
+                                            else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
+                                                                                                                    if (! this[i].match(target[i], variables)) return null;
+                                                                                                                  return variables}});
 
 //     Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
@@ -260,59 +256,76 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
 //     algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
 
- ends_with_block: function () {var block = this[parse_r_until_block[this.data]];
-                               return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+      def('ends_with_block', function () {var block = this[parse_r_until_block[this.data]];
+                                          return this.data === '{' || has(parse_r_until_block, this.data) &&
+                                                 (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()});
 
 //     There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 //     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
 
-//     Update for Caterawul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
+//     Update for Caterwaul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
 //     postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
 
-        toString: function ()   {return 'qs[' + this.serialize() + ']'},
-         inspect: function ()   {return this.toString()},
-       structure: function ()   {return (this.l ? '(left) <- ' : '') + '(' + this.data + (this.length ? ' ' + map(syntax_node_inspect, this).join(' ') : '') + ')' +
-                                        (this.r ? ' -> ' + this.r.inspect() : '')},
+//     Update for caterwaul 1.0: The serialize() method is now aggressively optimized for common cases. It also uses a flattened array-based concatenation strategy rather than the deeply nested
+//     approach from before.
 
-//     An improvement that could be made to serialize() is to use one big array that is then join()ed for serialization, rather than appending all of these little strings. Based on the
-//     benchmarking I've done, the compilation phase is fairly zippy; but if it ever ends up being a problem then I'll look into optimizations like this.
+//     Optimized serialization cases.
+//     We can tell a lot about how to serialize a node based on just a few properties. For example, if the node has zero length then its serialization is simply its data. This is the leaf case,
+//     which is likely to be half of the total number of nodes in the whole syntax tree. If a node has length 1, then we assume a prefix operator unless we identify it as postfix. Otherwise we
+//     break it down by the kind of operator that it is.
 
-       serialize: function (xs) {var op = this.data, space = op && /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
-                                 return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
-                          has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
-                         has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
-                            has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
-                              has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                                 has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
-     has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
-                      has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                       op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
-                                                       op + space + map(syntax_node_tostring, this).join('') :
-                                  has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
+//     Nodes might be flattened, so we can't assume any upper bound on the arity regardless of what kind of operator it is. Realistically you shouldn't hand flattened nodes over to the compile()
+//     function, but it isn't the end of the world if you do.
 
-    caterwaul_global.method('define_syntax', function (name, ctor) {return this.field(name, extend.apply(this, [ctor, syntax_common].concat(Array.prototype.slice.call(arguments, 2))))}).
-                     method('ensure_syntax', function (thing)      {return thing && thing.constructor === String ? this.parse(thing) : thing}).
-                      field('syntax_common', syntax_common).
+      def('toString',  function ()   {var xs = []; this.serialize(xs); return xs.join('')});
+      def('serialize', function (xs) {var l = this.length, d = this.data, semi = ';\n';
+                                      switch (l) {case 0: if (has(parse_r_optional, d)) return xs.push(d.replace(/^u/, ''));
+                                                     else                               return xs.push(d);
+
+                                                  case 1: if (has(parse_r,  d) || has(parse_r_optional, d)) return xs.push(d.replace(/^u/, '')), this[0].serialize(xs);
+                                                     else if (has(parse_lr, d))                             return xs.push(d);
+                                                     else if (has(parse_group, d))                          return xs.push(d), this[0].serialize(xs), xs.push(parse_group[d]);
+                                                     else                                                   return this[0].serialize(xs), xs.push(d);
+
+                                                  case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), xs.push(d.charAt(0)), this[1].serialize(xs), xs.push(d.charAt(1));
+                                                     else if (has(parse_r_until_block, d)) return xs.push(d), this[0].serialize(xs), this[1].serialize(xs);
+                                                     else                                  return this[0].serialize(xs), xs.push(d), this[1].serialize(xs);
+
+                                                 default: if (has(parse_ternary, d))       return this[0].serialize(xs), xs.push(d), this[1].serialize(xs), xs.push(':'), this[2].serialize(xs);
+                                                     else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
+                                                                                             (xs.push(d), this[0].serialize(xs), this[1].serialize(xs), xs.push(semi), this[2].serialize(xs)) :
+                                                                                             (xs.push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
+                                                     else                                  return this.unflatten().serialize(xs)}})}));
+
+//   Syntax promotion.
+//   Sometimes you want to accept a string rather than a fully constructed syntax node, but your function is designed to work with syntax nodes. If this is the case then you want to use the
+//   ensure_syntax() method, which takes either a string or a syntax node and returns a syntax node.
+
+    def('ensure_syntax', function (thing) {return thing && thing.constructor === String ? this.parse(thing) : thing});
 
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
 
-//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)})()    // -> 4
+//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)}))()    // -> 4
 
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    define_syntax('ref', function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                           else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}).
+    def('ref_module', module(this.syntax_common).class_eval(function (def) {def('length',        0);
+                                                                            def('binds_a_value', true)}));
+
+    def('ref', this.ref_module.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                                         else                                   {this.value = value;       this.data = gensym()}}));
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    define_syntax('syntax', function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                             else {this.data = data && data.toString(); this.length = 0;
-                                               for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                 for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                   this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}})})();
+    def('syntax_module', module(this.syntax_common));
+    def('syntax', this.syntax_module.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                              else {this.data = data && data.toString(); this.length = 0;
+                                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                                  for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                                    this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}))});
 // Generated by SDoc 

@@ -3106,7 +3106,6 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 
 - pinclude pp::js::core/caterwaul.utilities
 - pinclude pp::js::core/caterwaul.module
-- pinclude pp::js::core/caterwaul.configuration
 - pinclude pp::js::core/caterwaul.global
 
 - pinclude pp::js::core/caterwaul.variadic
@@ -3176,7 +3175,24 @@ running on.
     method('apply_before_functions', function (x) {for (var xs = this.before_functions, i = 0, l = xs.length; i < l; ++i) x = xs[i].call(this, x); return x}).
     method('apply_after_functions',  function (x) {for (var xs = this.after_functions,  i = 0, l = xs.length; i < l; ++i) x = xs[i].call(this, x); return x});
 __
-meta::sdoc('js::core/caterwaul.configuration', <<'__');
+meta::sdoc('js::core/caterwaul.configuration', '');
+meta::sdoc('js::core/caterwaul.events', <<'__');
+Event listening API.
+Caterwaul can create pairs of listener/broadcast interfaces for events. For example, suppose we wanted to provide a facility for macros to issue compile-time warnings; one way to do this would
+be to create a 'warning' event and allow interested parties to listen for it. Here's how that might look:
+
+| caterwaul.event('warning');   // Sets up the interface
+  caterwaul.on_warning(function (w) {console.log('Warning: ' + w)});    // Adds a listener
+  caterwaul.warning('this is a test');                                  // Triggers all listeners with the given parameter
+
+The context (i.e. 'this') of each event listener is the caterwaul object.
+
+  caterwaul_global.variadic('event', function (name) {
+    var listeners = name + '_listeners', new_listener = 'on_' + name;
+    return this.shallow(listeners, []).variadic(new_listener, function (l) {this[listeners].push(l); return this}).
+                                         method(name,         function ()  {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
+__
+meta::sdoc('js::core/caterwaul.global', <<'__');
 Configurations.
 Caterwaul prior to version 1.0 relied on an ad-hoc cloning/configuration system tailored for the use of managing multiple customized compiler instances. Version 1.0 changes this a little bit.
 Instead of cloning compilers, we now instantiate the core 'caterwaul' class:
@@ -3203,31 +3219,14 @@ new model is certainly more straightforward from a traditional object-oriented p
       if (c.constructor === String) {var active = this.active_configurations();
                                      return active[c] || (active[c] = this.apply_configuration(this.configurations()[c] || fail('nonexistent configuration ' + c)) || this)}
       else return c.call(this), this})});
-__
-meta::sdoc('js::core/caterwaul.events', <<'__');
-Event listening API.
-Caterwaul can create pairs of listener/broadcast interfaces for events. For example, suppose we wanted to provide a facility for macros to issue compile-time warnings; one way to do this would
-be to create a 'warning' event and allow interested parties to listen for it. Here's how that might look:
 
-| caterwaul.event('warning');   // Sets up the interface
-  caterwaul.on_warning(function (w) {console.log('Warning: ' + w)});    // Adds a listener
-  caterwaul.warning('this is a test');                                  // Triggers all listeners with the given parameter
+  Global management.
+  Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
+  caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
+  available only on the global caterwaul() function.
 
-The context (i.e. 'this') of each event listener is the caterwaul object.
-
-  caterwaul_global.variadic('event', function (name) {
-    var listeners = name + '_listeners', new_listener = 'on_' + name;
-    return this.shallow(listeners, []).variadic(new_listener, function (l) {this[listeners].push(l); return this}).
-                                         method(name,         function ()  {for (var ls = this[listeners], i = 0, l = ls.length; i < l; ++i) ls[i].apply(this, arguments); return this})});
-__
-meta::sdoc('js::core/caterwaul.global', <<'__');
-Global management.
-Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
-caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
-available only on the global caterwaul() function.
-
-  var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
-      caterwaul_global = caterwaul = module.extend(calls_init());
+    var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+        caterwaul_global = caterwaul = module.extend(calls_init());
 
   Static utilities.
   These are available on the caterwaul global.
@@ -3249,8 +3248,8 @@ available only on the global caterwaul() function.
     <script src='some-caterwaul-extension.js'></script>
     <script src='my-script.js'></script>
 
-  Often you'll want to precompile the whole bundle, since caterwaul.js includes behaviors that aren't necessarily precompiled. To do this, it's tempting to precompile the whole bundle of
-  caterwaul, the extensions, and your code. Without version checking, however, the traces would be lost and nothing would happen.
+  Often you'll want to precompile the whole bundle, since caterwaul.js includes behaviors that aren't necessarily precompiled and you might get better minification. To do this, it's tempting
+  to precompile the whole bundle of caterwaul, the extensions, and your code. Without version checking, however, the traces would be lost and nothing would happen.
 
     caterwaul_global.attr('version').instance_eval(function (def) {
       def('check_version', function () {if (original_global && this.version() === original_global.version()) this.deglobalize(); return this});
@@ -4157,7 +4156,7 @@ nodes. At the end of folding there is only one child per paren-group.
 is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
        is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
-                 accepts: function (e) {return parse_accepts[this.data] && this.accepts[parse.data] === (e.data || e)}});
+                 accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}});
 
     Value construction.
     Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
@@ -4230,56 +4229,56 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     function, but it isn't the end of the world if you do.
 
       def('toString',  function ()   {var xs = []; this.serialize(xs); return xs.join('')});
-      def('serialize', function (xs) {var l = this.length, d = this.data;
+      def('serialize', function (xs) {var l = this.length, d = this.data, semi = ';\n';
                                       switch (l) {case 0: if (has(parse_r_optional, d)) return xs.push(d.replace(/^u/, ''));
                                                      else                               return xs.push(d);
 
-                                                  case 1: if (has(parse_r,  d))    return xs.push(d.replace(/^u/, '')), this[0].serialize(xs);
-                                                     else if (has(parse_lr, d))    return xs.push(d);
-                                                     else if (has(parse_group, d)) return xs.push(d), this[0].serialize(xs), xs.push(parse_group[d]);
-                                                     else                          return this[0].serialize(xs), xs.push(d);
+                                                  case 1: if (has(parse_r,  d) || has(parse_r_optional, d)) return xs.push(d.replace(/^u/, '')), this[0].serialize(xs);
+                                                     else if (has(parse_lr, d))                             return xs.push(d);
+                                                     else if (has(parse_group, d))                          return xs.push(d), this[0].serialize(xs), xs.push(parse_group[d]);
+                                                     else                                                   return this[0].serialize(xs), xs.push(d);
 
-                                                  case 2: if (has(parse_invocation, d)) return this[0].serialize(xs), xs.push(d.charAt(0)), this[1].serialize(xs), xs.push(d.charAt(1));
-                                                      
+                                                  case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), xs.push(d.charAt(0)), this[1].serialize(xs), xs.push(d.charAt(1));
+                                                     else if (has(parse_r_until_block, d)) return xs.push(d), this[0].serialize(xs), this[1].serialize(xs);
+                                                     else                                  return this[0].serialize(xs), xs.push(d), this[1].serialize(xs);
 
-      def('toString', 'serialize', 'inspect', function (xs) {var op = this.data, space = op && /\w/.test(op.charAt(op.length - 1)) ? ' ' : '';
-                             return op === ';' ? this.length ? map(syntax_node_tostring, this).join(';\n') : ';' :
-                      has(parse_invisible, op) ? map(syntax_node_tostring, this).join(space) :
-                     has(parse_invocation, op) ? map(syntax_node_tostring, [this[0], op.charAt(0), this[1], op.charAt(1)]).join(space) :
-                        has(parse_ternary, op) ? map(syntax_node_tostring, [this[0], op, this[1], parse_group[op], this[2]]).join(space) :
-                          has(parse_group, op) ? op + map(syntax_node_tostring, this).join(space) + parse_group[op] :
-                             has(parse_lr, op) ? this.length ? map(syntax_node_tostring, this).join(space + op + space) : op :
- has(parse_r, op) || has(parse_r_optional, op) ? op.replace(/^u/, ' ') + space + (this[0] ? this[0].serialize() : '') :
-                  has(parse_r_until_block, op) ? has(parse_accepts, op) && this[1] && this[2] && parse_accepts[op] === this[2].data && ! this[1].ends_with_block() ?
-                                                   op + space + map(syntax_node_tostring, [this[0], this[1], ';\n', this[2]]).join('') :
-                                                   op + space + map(syntax_node_tostring, this).join('') :
-                              has(parse_l, op) ? (this[0] ? this[0].serialize() : '') + space + op : op}};
+                                                 default: if (has(parse_ternary, d))       return this[0].serialize(xs), xs.push(d), this[1].serialize(xs), xs.push(':'), this[2].serialize(xs);
+                                                     else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
+                                                                                             (xs.push(d), this[0].serialize(xs), this[1].serialize(xs), xs.push(semi), this[2].serialize(xs)) :
+                                                                                             (xs.push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
+                                                     else                                  return this.unflatten().serialize(xs)}})}));
 
-    caterwaul_global.method('define_syntax', function (name, ctor) {return this.field(name, extend.apply(this, [ctor, syntax_common].concat(Array.prototype.slice.call(arguments, 2))))}).
-                     method('ensure_syntax', function (thing)      {return thing && thing.constructor === String ? this.parse(thing) : thing}).
-                      field('syntax_common', syntax_common).
+  Syntax promotion.
+  Sometimes you want to accept a string rather than a fully constructed syntax node, but your function is designed to work with syntax nodes. If this is the case then you want to use the
+  ensure_syntax() method, which takes either a string or a syntax node and returns a syntax node.
+
+    def('ensure_syntax', function (thing) {return thing && thing.constructor === String ? this.parse(thing) : thing});
 
   References.
   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
 
-  | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)})()    // -> 4
+  | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)}))()    // -> 4
 
   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    define_syntax('ref', function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                           else                                   {this.value = value;       this.data = gensym()}}, {length: 0, binds_a_value: true}).
+    def('ref_module', module(this.syntax_common).class_eval(function (def) {def('length',        0);
+                                                                            def('binds_a_value', true)}));
+
+    def('ref', this.ref_module.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                                         else                                   {this.value = value;       this.data = gensym()}}));
 
   Syntax node constructor.
   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
   to be used.
 
-    define_syntax('syntax', function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                             else {this.data = data && data.toString(); this.length = 0;
-                                               for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                 for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                   this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}})})();
+    def('syntax_module', module(this.syntax_common));
+    def('syntax', this.syntax_module.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                              else {this.data = data && data.toString(); this.length = 0;
+                                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                                  for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                                    this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}))});
 __
 meta::sdoc('js::core/caterwaul.utilities', <<'__');
 Utility methods.

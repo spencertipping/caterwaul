@@ -25,7 +25,7 @@
 //   If you're familiar with my questionably-named github.com/spencertipping/js-typeclasses project, behaviors correspond to typeclasses. They're called 'modules' here to appeal to Ruby parlance,
 //   even though they're actually a bit different.
 
-    var calls_init = function () {var f = function () {return f.init.apply(this, arguments)}; return f},
+    var calls_init = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
         module     = calls_init();
 
 //   Module bootstrapping.
@@ -151,10 +151,10 @@
       def('accessor_for',  function (name) {return function (x) {if (arguments.length) return this.instance_data[name] = x, this;
                                                                  else                  return this.instance_data[name]}});
 
-      def('attr_null',              function (name, f) {return this.method(name, function () {return this.instance_data[name] || f.apply(this, arguments)})});
-      def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return this.instance_data[name] || (this.instance_data[name] = f.apply(this, arguments))})})});
-
-    module.extend(module).attr('extension_stages').attr_lazy('methods', function () {return {}}).
+      def('attr_null',              function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] : f.apply(this, arguments)})});
+      def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
+                                                                                                                                  (this.instance_data[name] = f.apply(this, arguments))})})});
+    module.extend(module).attr('extension_stages').attr_lazy('methods',           function () {return {}}).
                                                    attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
                                                    attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
 

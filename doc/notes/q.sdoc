@@ -1,3 +1,1 @@
-Object system.
-It's time that caterwaul provides and uses an object system. The compiler-cloning stuff from previous releases was nicely ad-hoc, but polymorphism is a significant advantage and it's worth
-leveraging if possible. Also, caterwaul is growing beyond its original design into a self-supporting runtime; to fill this role it's going to need some nice libraries and metaprogrammable OO.
+Object system is now implemented, so at this point the priority is to get stuff working with it.
