@@ -727,6 +727,7 @@ meta::function('repl-configuration', <<'__');
 node(['id::var unique = function () {return 1};', 'pp::js::core/caterwaul.utilities', 'pp::js::core/caterwaul.module', 'pp::js::core/caterwaul.configuration',
       'id::require("repl").start("caterwaul> ").context.module = module']);
 __
+meta::function('repl-core', 'node([\'pp::js::caterwaul.core\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('repl-module', 'node([\'id::var unique = function () {return 1};\', \'pp::js::core/caterwaul.utilities\', \'pp::js::core/caterwaul.module\', \'id::require("repl").start("caterwaul> ").context.module = module\']);');
 meta::function('replc', 'node([\'pp::js::core/caterwaul\', \'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul\']);');
 meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
@@ -2736,7 +2737,7 @@ Licensed under the terms of the MIT source code license
 
 - pinclude pp::js::core/caterwaul
 
-- eval "caterwaul.field('version', '" . fast_hash(retrieve('pp::js::core/caterwaul')) . "').check_version();"
+- eval "caterwaul.version('" . fast_hash(retrieve('pp::js::core/caterwaul')) . "').check_version();"
 __
 meta::sdoc('js::caterwaul.node', <<'__');
 CommonJS-compatible Caterwaul build | Spencer Tipping
@@ -2860,7 +2861,7 @@ new model is certainly more straightforward from a traditional object-oriented p
   Instance methods.
   These will be available on every caterwaul compiler function.
 
-    caterwaul_global.attr_lazy('id', gensym).class_eval(function (def) {def('toString', function () {return '[caterwaul instance ' + this.id() + ']'});
+    caterwaul_global.attr_lazy('id', gensym).class_eval(function (def) {def('toString', function () {return '[caterwaul instance ' + this.id() + ']'})});
 
   Version management and reinitialization.
   There's an interesting case that comes up when loading a global caterwaul. If we detect that the caterwaul we just loaded has the same version as the one that's already there, we revert back
@@ -2874,7 +2875,8 @@ new model is certainly more straightforward from a traditional object-oriented p
   Often you'll want to precompile the whole bundle, since caterwaul.js includes behaviors that aren't necessarily precompiled and you might get better minification. To do this, it's tempting
   to precompile the whole bundle of caterwaul, the extensions, and your code. Without version checking, however, the traces would be lost and nothing would happen.
 
-    caterwaul_global.attr('version').instance_eval(function (def) {
+    module().attr('version').extend(caterwaul_global);
+    caterwaul_global.instance_eval(function (def) {
       def('check_version', function () {if (original_global && this.version() === original_global.version()) this.deglobalize(); return this});
       def('reinitialize',  function (transform, erase_configurations) {var c = (transform || function (x) {return x})(this.initializer), result = c(c, this.unique).deglobalize();
                                                                        erase_configurations || (result.instance_data.configurations = this.configurations()); return result})});
@@ -2911,7 +2913,7 @@ and we add the 'init' method in the class_eval section below.
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
   caterwaul_global.class_eval(function (def) {
-    def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)}).
+    def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
     def('init_not_precompiled', function (f, environment) {
       var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
           result = f.constructor === caterwaul_global.syntax ? this.macroexpand(result) : caterwaul_global.compile(this(caterwaul_global.decompile(result)), environment);
@@ -3250,8 +3252,7 @@ much faster as well. Instead of guessing and backtracking as a recursive-descent
 example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
 we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
-  caterwaul_global.alias('parse', 'decompile').
-                  method('parse', (function () {
+  caterwaul_global.instance_eval(function (def) {
 
   Syntax folding.
   The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
@@ -3301,7 +3302,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
 
   The input to the parse function can be anything whose toString() produces valid Javascript code.
 
-      return function (input) {
+    def('parse', function (input) {
 
     Lex variables.
     s, obviously, is the string being lexed. mark indicates the position of the stream, while i is used for lookahead. The difference is later read into a token and pushed onto the result. c
@@ -3535,7 +3536,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
     Prevent a space leak by clearing out all of the 'p' pointers.
 
         for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
-        return head}})());
+        return head})});
 __
 meta::sdoc('js::core/caterwaul.parser-data', <<'__');
 Shared parser data.

@@ -21,7 +21,7 @@
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
   caterwaul_global.class_eval(function (def) {
-    def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)}).
+    def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
     def('init_not_precompiled', function (f, environment) {
       var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
           result = f.constructor === caterwaul_global.syntax ? this.macroexpand(result) : caterwaul_global.compile(this(caterwaul_global.decompile(result)), environment);

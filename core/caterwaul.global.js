@@ -42,7 +42,7 @@
 //   Instance methods.
 //   These will be available on every caterwaul compiler function.
 
-    caterwaul_global.attr_lazy('id', gensym).class_eval(function (def) {def('toString', function () {return '[caterwaul instance ' + this.id() + ']'});
+    caterwaul_global.attr_lazy('id', gensym).class_eval(function (def) {def('toString', function () {return '[caterwaul instance ' + this.id() + ']'})});
 
 //   Version management and reinitialization.
 //   There's an interesting case that comes up when loading a global caterwaul. If we detect that the caterwaul we just loaded has the same version as the one that's already there, we revert back
@@ -56,7 +56,8 @@
 //   Often you'll want to precompile the whole bundle, since caterwaul.js includes behaviors that aren't necessarily precompiled and you might get better minification. To do this, it's tempting
 //   to precompile the whole bundle of caterwaul, the extensions, and your code. Without version checking, however, the traces would be lost and nothing would happen.
 
-    caterwaul_global.attr('version').instance_eval(function (def) {
+    module().attr('version').extend(caterwaul_global);
+    caterwaul_global.instance_eval(function (def) {
       def('check_version', function () {if (original_global && this.version() === original_global.version()) this.deglobalize(); return this});
       def('reinitialize',  function (transform, erase_configurations) {var c = (transform || function (x) {return x})(this.initializer), result = c(c, this.unique).deglobalize();
                                                                        erase_configurations || (result.instance_data.configurations = this.configurations()); return result})});
