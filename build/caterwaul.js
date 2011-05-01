@@ -205,17 +205,19 @@
 //     faster. To quickly convert a module to a constructor function, you can use the 'compile' method. This will take a snapshot of the module state and give you a constructor to generate those
 //     objects. (Note that it doesn't behave quite like you might expect; constructors defined on the module won't be called on instances created by the constructor function.)
 
-//     If you use the constructor function as an actual constructor, you're expected to pass it an array or arguments object rather than n separate parameters. The reason for this is a bit
-//     bizarre, but it has to do with the restriction that Javascript doesn't allow constructor argument forwarding (since constructors have no equivalent of the .apply() method). So the expected
-//     case is that you'll use the constructor function as a regular function, not as a constructor.
+//     Another method, 'generator', builds a function that is a constructor but doesn't behave like one. If you use the constructor function as an actual constructor, you're expected to pass it
+//     an array or arguments object rather than n separate parameters. The reason for this is a bit bizarre, but it has to do with the restriction that Javascript doesn't allow constructor
+//     argument forwarding (since constructors have no equivalent of the .apply() method). So the expected case is that you'll use the constructor function as a regular function, not as a
+//     constructor.
 
 //     The 'compile' function takes an optional function to use as the constructor for new instances. If you invoke the function produced by compile() as a regular function (not as a
 //     constructor), then the function you passed into compile() will be called for each new instance. This is important to use, since the instance_data field of the new object will be a
 //     prototype member, not a direct member -- lots of stuff will break if this isn't changed.
 
-      se(module.methods(), function () {this.compile = function (construct) {var f = function (args) {if (this.constructor === f) construct && construct.apply(this, args);
-                                                                                                      else                        return new f(arguments)};
-                                                                             this.extend(f.prototype); return f}});
+      se(module.methods(), function () {this.compile   = function (construct) {var f = function () {construct && construct.apply(this, arguments)}; this.extend(f.prototype); return f};
+                                        this.generator = function (construct) {var f = function (args) {if (this.constructor === f) construct && construct.apply(this, args);
+                                                                                                        else                        return new f(arguments)};
+                                                                               this.extend(f.prototype); return f}});
 
 //     Circularity.
 //     At this point our module basically works, so we can add it to itself again to get the functionality built above. I'm also using it to create the modules for instance_eval and class_eval
@@ -523,7 +525,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
       def('replace', function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
                                                                     var replacement = rs[n.data];
-                                                                    return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                    return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
                                                                                                                                replacement})});
 
 //     Alteration.
@@ -722,13 +724,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
 
-//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)}))()    // -> 4
+//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: caterwaul.ref(3)}))()    // -> 4
 
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    def('ref_module', module(this.syntax_common).class_eval(function (def) {def('length',        0);
-                                                                            def('binds_a_value', true)}));
+    def('ref_module', module().include(this.syntax_common).class_eval(function (def) {def('length',        0);
+                                                                                      def('binds_a_value', true)}));
 
     def('ref', this.ref_module.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
                                                          else                                   {this.value = value;       this.data = gensym()}}));
@@ -738,7 +740,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    def('syntax_module', module(this.syntax_common));
+    def('syntax_module', module().include(this.syntax_common));
     def('syntax', this.syntax_module.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
                                                               else {this.data = data && data.toString(); this.length = 0;
                                                                 for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
@@ -1162,7 +1164,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       def('expander_from_string', function (expander) {var tree = this.parse(expander); return function (match) {return tree.replace(match)}});
       def('ensure_expander',      function (expander) {return expander.constructor === String      ? this.expander_from_string(expander) :
                                                               expander.constructor === this.syntax ? function (match) {return expander.replace(match)} :
-                                                              expander.constructor === Function    ? expander : fail('unknown macroexpander format: ' + expander)})
+                                                              expander.constructor === Function    ? expander : fail('unknown macroexpander format: ' + expander)})});
 
 //   Naive macroexpander implementation.
 //   This is the macroexpander used in Caterwaul 0.6.x and prior. It offers reasonable performance when there are few macros, but for high-macro cases it becomes prohibitive. The 0.7.x series
@@ -1188,10 +1190,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   | qs[_a + _b].match(qs[3 + x])        // -> {_a: 3, _b: x}
 //     qs[_a + _b].match(qs[3 / x])        // -> null
 
-    def('macroexpand', function (t) {var self = this, macros = this.macro_patterns(), expanders = this.macro_expanders();
-                                     return caterwaul_global.ensure_syntax(t).rmap(function (n) {
-                                       for (var i = macros.length - 1, match, replacement; i >= 0; --i)
-                                         if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})})});
+    caterwaul_global.class_eval(function (def) {
+      def('macroexpand', function (t) {var self = this, macros = this.macro_patterns(), expanders = this.macro_expanders();
+                                       return caterwaul_global.ensure_syntax(t).rmap(function (n) {
+                                         for (var i = macros.length - 1, match, replacement; i >= 0; --i)
+                                           if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})})});
 // Generated by SDoc 
 
 
@@ -1234,7 +1237,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // This is the main entry point of caterwaul when you use it as a function. As of version 0.6.4, the init() property is polymorphic in semantics as well as structure. There are two cases:
 
 // | 1. You invoke caterwaul on a syntax node. In this case only macroexpansion is performed.
-//   2. You invoke caterwaul on anything else. In this case the object is decompiled, macroexpanded, and then compiled.
+//   2. You invoke caterwaul on anything else. In this case the object is parsed, macroexpanded, and then compiled.
 
 // This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
 // context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
@@ -1256,7 +1259,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
     def('init_not_precompiled', function (f, environment) {
       var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
-          result = f.constructor === caterwaul_global.syntax ? this.macroexpand(result) : caterwaul_global.compile(this(caterwaul_global.decompile(result)), environment);
+          result = f.constructor === caterwaul_global.syntax ? this.macroexpand(result) : caterwaul_global.compile(this(caterwaul_global.parse(result)), environment);
             return f.constructor === caterwaul_global.syntax ? this.apply_after_functions(result) : result})});
 // Generated by SDoc 
 
@@ -1269,7 +1272,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('5e1d353d8d3c1657a4023c0b07071d22').check_version();
+caterwaul.version('0620a5996c2dfbf1a714a2558e5a3082').check_version();
 // Generated by SDoc 
 
 

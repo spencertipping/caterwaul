@@ -107,7 +107,7 @@
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
       def('replace', function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
                                                                     var replacement = rs[n.data];
-                                                                    return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                    return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
                                                                                                                                replacement})});
 
 //     Alteration.
@@ -306,13 +306,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
 
-//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: new caterwaul.ref(3)}))()    // -> 4
+//   | caterwaul.compile(qs[fn_[_ + 1]].replace({_: caterwaul.ref(3)}))()    // -> 4
 
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    def('ref_module', module(this.syntax_common).class_eval(function (def) {def('length',        0);
-                                                                            def('binds_a_value', true)}));
+    def('ref_module', module().include(this.syntax_common).class_eval(function (def) {def('length',        0);
+                                                                                      def('binds_a_value', true)}));
 
     def('ref', this.ref_module.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
                                                          else                                   {this.value = value;       this.data = gensym()}}));
@@ -322,7 +322,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    def('syntax_module', module(this.syntax_common));
+    def('syntax_module', module().include(this.syntax_common));
     def('syntax', this.syntax_module.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
                                                               else {this.data = data && data.toString(); this.length = 0;
                                                                 for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
