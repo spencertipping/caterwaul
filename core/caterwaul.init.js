@@ -15,6 +15,7 @@
 
   caterwaul_global.instance_eval(function (def) {
     def('create_instance', calls_init);
+    def('initialize', function () {this.configure.apply(this, arguments)});
 
     def('precompiled_internal_table', {});
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});

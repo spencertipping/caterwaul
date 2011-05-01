@@ -194,6 +194,12 @@
       def('extend_parents', function (o, seen) {
         seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});
 
+//   Self evaluation.
+//   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
+//   module with the anonymous one. Note that this operates on the instance_eval level, not the class_eval level; instances of your module will be unaffected by self_evaling things.
+
+    module.class_eval(function (def) {def('self_eval', function (f) {return module().class_eval(f).extend(this)})});
+
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
 //   explicitly invoke its constructor on itself for this to work.

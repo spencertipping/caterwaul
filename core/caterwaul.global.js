@@ -8,30 +8,47 @@
 // The global 'caterwaul' function takes configurations and returns compilers. This breaks the original symmetry that existed between the global caterwaul function and instances of it, but the
 // new model is certainly more straightforward from a traditional object-oriented perspective.
 
-  var configurable = module().class_eval(function (def) {
-    this.attr_lazy('configurations',        Object).
-         attr_lazy('active_configurations', Object);
-
-    def('configuration', function (name, f) {this.configurations()[name] = f; return this});
-    def('configure',     function ()        {for (var cs = this.individual_configurations(arguments), i = 0, l = cs.length; i < l; ++i) this.apply_configuration(cs[i]); return this});
-
-    def('individual_configurations', function (xs) {
-      for (var result = [], i = 0, l = xs.length, x; i < l; ++i) if ((x = xs[i]) instanceof Array) result.push.apply(result, this.individual_configurations(x));
-                                                                 else                              result.push(x);
-      return result});
-
-    def('apply_configuration', function (c) {
-      if (c.constructor === String) {var active = this.active_configurations();
-                                     return active[c] || (active[c] = this.apply_configuration(this.configurations()[c] || fail('nonexistent configuration ' + c)) || this)}
-      else return c.call(this), this})});
-
-//   Global management.
+//   Global caterwaul variable.
 //   Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 //   caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
 //   available only on the global caterwaul() function.
 
     var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
         caterwaul_global = caterwaul = module.extend(calls_init());
+
+    caterwaul_global.self_eval(function (def) {
+      this.attr_lazy('configurations', Object);
+
+      def('configuration',             function (name, f) {this.configurations()[name] = f; return this});
+      def('individual_configurations', function (xs) {
+        for (var result = [], i = 0, l = xs.length, x; i < l; ++i) if ((x = xs[i]) instanceof Array) result.push.apply(result, this.individual_configurations(x));
+                                                              else if (x.constructor === String)     result.push.apply(result, qw(x));
+                                                              else                                   result.push(x);
+        return result})});
+
+    caterwaul_global.class_eval(function (def) {
+      this.attr_lazy('active_configurations', Object);
+
+      def('configure', function () {
+        for (var cs = this.global.individual_configurations(Array.prototype.slice.call(arguments)), i = 0, l = cs.length; i < l; ++i) this.apply_configuration(cs[i]);
+        return this});
+
+      def('apply_configuration', function (c) {
+        if (c.constructor === String) {var active = this.active_configurations();
+                                       return active[c] || (active[c] = this.apply_configuration(this.global.configurations()[c] || fail('nonexistent configuration ' + c)) || this)}
+        else return c.call(this), this})});
+
+//   Reference to the global.
+//   This gives you a way to get to the global caterwaul function even if it's been deglobalized.
+
+    caterwaul_global.class_eval(function (def) {def('global', caterwaul_global)});
+
+//   Transformed configurations.
+//   The old caterwaul supported two methods, tconfigure() and tconfiguration(), that combined configuration and compilation into one step. It was a great feature, so I'm definitely not leaving
+//   it out of version 1.0.
+
+    caterwaul_global.instance_eval(function (def) {def('tconfiguration', function (cs, name, f, e) {return this.configuration(name, this(cs)(f, e))})});
+    caterwaul_global.class_eval   (function (def) {def('tconfigure',     function (cs, f, e)       {return this.configure(this(cs)(f, e))})});
 
 //   Static utilities.
 //   These are available on the caterwaul global.

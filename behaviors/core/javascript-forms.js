@@ -41,17 +41,17 @@
       if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
 
       for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
-        if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
-                         else                            brace_depth += c === '{';
-        else             if ((c = s.charAt(i)) === '#')  got_hash = true;
-                         else if (c === '{' && got_hash) pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
-                         else                            got_hash = false;
+        if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
+                    else                                brace_depth += c === '{';
+   else                  if ((c = s.charAt(i)) === '#') got_hash = true;
+                    else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
+                    else                                got_hash = false;
 
       pieces.push(s.substring(start, l));
 
-      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) if (i & 1) pieces[i] = this.parse(pieces[i].replace(escaped, q)).as('(');
-                                                                                            else       pieces[i] = new this.syntax(q + pieces[i] + q);
-      return new this.syntax('+', pieces).unflatten().as('(')});
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this.parse(pieces[i].replace(escaped, q)).as('(') :
+                                                                                                                new this.global.syntax(q + pieces[i] + q);
+      return new this.global.syntax('+', pieces).unflatten().as('(')});
 
 //   Destructuring function creation.
 //   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the

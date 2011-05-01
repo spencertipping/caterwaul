@@ -276,6 +276,12 @@
       def('extend_parents', function (o, seen) {
         seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});
 
+//   Self evaluation.
+//   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
+//   module with the anonymous one. Note that this operates on the instance_eval level, not the class_eval level; instances of your module will be unaffected by self_evaling things.
+
+    module.class_eval(function (def) {def('self_eval', function (f) {return module().class_eval(f).extend(this)})});
+
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
 //   explicitly invoke its constructor on itself for this to work.
@@ -299,30 +305,47 @@
 // The global 'caterwaul' function takes configurations and returns compilers. This breaks the original symmetry that existed between the global caterwaul function and instances of it, but the
 // new model is certainly more straightforward from a traditional object-oriented perspective.
 
-  var configurable = module().class_eval(function (def) {
-    this.attr_lazy('configurations',        Object).
-         attr_lazy('active_configurations', Object);
-
-    def('configuration', function (name, f) {this.configurations()[name] = f; return this});
-    def('configure',     function ()        {for (var cs = this.individual_configurations(arguments), i = 0, l = cs.length; i < l; ++i) this.apply_configuration(cs[i]); return this});
-
-    def('individual_configurations', function (xs) {
-      for (var result = [], i = 0, l = xs.length, x; i < l; ++i) if ((x = xs[i]) instanceof Array) result.push.apply(result, this.individual_configurations(x));
-                                                                 else                              result.push(x);
-      return result});
-
-    def('apply_configuration', function (c) {
-      if (c.constructor === String) {var active = this.active_configurations();
-                                     return active[c] || (active[c] = this.apply_configuration(this.configurations()[c] || fail('nonexistent configuration ' + c)) || this)}
-      else return c.call(this), this})});
-
-//   Global management.
+//   Global caterwaul variable.
 //   Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
 //   caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
 //   available only on the global caterwaul() function.
 
     var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
         caterwaul_global = caterwaul = module.extend(calls_init());
+
+    caterwaul_global.self_eval(function (def) {
+      this.attr_lazy('configurations', Object);
+
+      def('configuration',             function (name, f) {this.configurations()[name] = f; return this});
+      def('individual_configurations', function (xs) {
+        for (var result = [], i = 0, l = xs.length, x; i < l; ++i) if ((x = xs[i]) instanceof Array) result.push.apply(result, this.individual_configurations(x));
+                                                              else if (x.constructor === String)     result.push.apply(result, qw(x));
+                                                              else                                   result.push(x);
+        return result})});
+
+    caterwaul_global.class_eval(function (def) {
+      this.attr_lazy('active_configurations', Object);
+
+      def('configure', function () {
+        for (var cs = this.global.individual_configurations(Array.prototype.slice.call(arguments)), i = 0, l = cs.length; i < l; ++i) this.apply_configuration(cs[i]);
+        return this});
+
+      def('apply_configuration', function (c) {
+        if (c.constructor === String) {var active = this.active_configurations();
+                                       return active[c] || (active[c] = this.apply_configuration(this.global.configurations()[c] || fail('nonexistent configuration ' + c)) || this)}
+        else return c.call(this), this})});
+
+//   Reference to the global.
+//   This gives you a way to get to the global caterwaul function even if it's been deglobalized.
+
+    caterwaul_global.class_eval(function (def) {def('global', caterwaul_global)});
+
+//   Transformed configurations.
+//   The old caterwaul supported two methods, tconfigure() and tconfiguration(), that combined configuration and compilation into one step. It was a great feature, so I'm definitely not leaving
+//   it out of version 1.0.
+
+    caterwaul_global.instance_eval(function (def) {def('tconfiguration', function (cs, name, f, e) {return this.configuration(name, this(cs)(f, e))})});
+    caterwaul_global.class_eval   (function (def) {def('tconfigure',     function (cs, f, e)       {return this.configure(this(cs)(f, e))})});
 
 //   Static utilities.
 //   These are available on the caterwaul global.
@@ -711,6 +734,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
                                                   case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
                                                      else if (has(parse_r_until_block, d)) return push(d), this[0].serialize(xs), this[1].serialize(xs);
+                                                     else if (has(parse_invisible, d))     return this[0].serialize(xs), this[1].serialize(xs);
                                                      else                                  return this[0].serialize(xs), push(d), this[1].serialize(xs);
 
                                                  default: if (has(parse_ternary, d))       return this[0].serialize(xs), push(d), this[1].serialize(xs), push(':'), this[2].serialize(xs);
@@ -1254,6 +1278,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   caterwaul_global.instance_eval(function (def) {
     def('create_instance', calls_init);
+    def('initialize', function () {this.configure.apply(this, arguments)});
 
     def('precompiled_internal_table', {});
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
@@ -1276,7 +1301,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
+caterwaul.version('7a74e65742fb5301dbc56a4fc7806347').check_version();
 // Generated by SDoc 
 
 
@@ -1298,24 +1323,23 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
 // Macro forms.
 // Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
 // it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. For examples of this,
-// see sdoc::js::behaviors/core/adverb (for a macro form definition), sdoc::js::behaviors/core/words (for macro definitions), and sdoc::js::behaviors/core/javascript-forms (for form definitions).
+// see sdoc::js::behaviors/core/grammar (for a macro form definition), sdoc::js::behaviors/core/words (for macro definitions), and sdoc::js::behaviors/core/javascript-forms (for form
+// definitions).
 
 //   Defining a macro form.
 //   You can define a new macro form using caterwaul's macro_form() method. This takes the name of the form to define and a function that accepts a name, definition, and form and performs the
 //   actual macro definition. For example, this is how you might define adverbs as described above:
 
-//   | caterwaul.macro_form('adverb', function (name, definition, form) {
-//       this.rmacro(form.replace({_adverb: name}), definition);
+//   | my_caterwaul.macro_form('adverb', function (name, definition, form) {
+//       this.macro(form.replace({_adverb: name}), definition);
 //     });
 
-//   The function you give it will be invoked for each new adverb or adverb form. This function is also bound as a method called 'define_adverb'.
-
   caterwaul.class_eval(function (def) {
-    def('macro_form',        function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) this.define_macro_form(arguments[i], arguments[l]); return this}).
+    def('macro_form',        function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) this.define_macro_form(arguments[i], arguments[l]); return this});
     def('define_macro_form', function (name, define) {
       var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
 
-      return module().class_eval(function (def) {
+      return this.self_eval(function (def) {
         this.attr_lazy(names, Array);
         def(name, function () {
           for (var fs = this[forms], def = this[define_name], i = 0, l = arguments.length - 1, definition = this.ensure_expander(arguments[l]), lj = fs.length; i < l; ++i) {
@@ -1324,13 +1348,13 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
           return this});
 
         this.attr_lazy(forms, Array);
-        shallow(forms, []).method(form, function () {
+        def(form, function () {
           for (var xs = this[names], def = this[define_name], i = 0, l = arguments.length, lj = xs.length; i < l; ++i) {
             for (var form = this.ensure_syntax(arguments[i]), j = 0; j < lj; ++j) def.call(this, xs[j].name, xs[j].definition, form);
             this[forms].push(form)}
-          return this}).
+          return this});
 
-         method(define_name, function () {return define.apply(this, arguments), this})});
+        def(define_name, function () {return define.apply(this, arguments), this})})})});
 // Generated by SDoc 
 
 
@@ -1344,7 +1368,8 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
 // The only kind of grammar Caterwaul knows about out of the box is the 'modifier', which applies to some expression and transforms it somehow. The exact syntax that triggers such a binding are
 // determined by the macro patterns defined in language-specific configurations. sdoc::js::behaviors/core/javascript-forms is one such configuration.
 
-  caterwaul.macro_form('modifier', 'parameterized_modifier', function (name, def, form) {this.macro(form.replace({it: name}), def)});
+  caterwaul.configuration('core.grammar', function () {
+    this.macro_form('modifier', 'parameterized_modifier', function (name, def, form) {this.macro(this.global.ensure_syntax(form).replace({it: name}), def)})});
 // Generated by SDoc 
 
 
@@ -1399,17 +1424,17 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
       if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
 
       for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
-        if (brace_depth) if ((c = s.charAt(i)) === '}')  --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
-                         else                            brace_depth += c === '{';
-        else             if ((c = s.charAt(i)) === '#')  got_hash = true;
-                         else if (c === '{' && got_hash) pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
-                         else                            got_hash = false;
+        if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
+                    else                                brace_depth += c === '{';
+   else                  if ((c = s.charAt(i)) === '#') got_hash = true;
+                    else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
+                    else                                got_hash = false;
 
       pieces.push(s.substring(start, l));
 
-      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) if (i & 1) pieces[i] = this.parse(pieces[i].replace(escaped, q)).as('(');
-                                                                                            else       pieces[i] = new this.syntax(q + pieces[i] + q);
-      return new this.syntax('+', pieces).unflatten().as('(')});
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this.parse(pieces[i].replace(escaped, q)).as('(') :
+                                                                                                                new this.global.syntax(q + pieces[i] + q);
+      return new this.global.syntax('+', pieces).unflatten().as('(')});
 
 //   Destructuring function creation.
 //   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
@@ -1577,18 +1602,21 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
 //   3. translate_state_markers(): returns a translated copy of a syntax tree. This basically just involves calling replace().
 //   4. initial_state(): takes the name of the initial state and adds a before() transform to wrap the syntax. For instance, if you say initial_state('S'), then you'll get S[x] for an input of x.
 
-  caterwaul.tconfigure('core.words core.js core.quote', function () {
-    this.shallow('state_markers', {}).shallow('state_markers_inverse', {}).
-        variadic('state_marker', given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]).
+  caterwaul.tconfiguration('core.words core.js core.quote', 'core.traversal', function () {
+    this.self_eval(function (def) {
+      this.attr_lazy('state_markers', Object).
+           attr_lazy('state_markers_inverse', Object);
 
-          method('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers)).
-          method('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse)).
+      def('state_marker', this.global.variadic(given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]));
 
-          method('initial_state', given.name in this.before(this.global().clone().final_macro('_x', this.translate_state_markers('#{name}[_x]')))).
+      def('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers));
+      def('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse));
 
-          right_variadic_binary('tmacro', given[pattern, expansion] in this.macro(new_pattern, new_expansion)
-                                            -where[new_pattern   = this.translate_state_markers(pattern),
-                                                   new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)])});
+      def('initial_state', given.name in this.before(this.global().final_macro('_x', this.translate_state_markers('#{name}[_x]'))));
+
+      def('tmacro', this.global.right_variadic_binary(given[pattern, expansion] in this.macro(new_pattern, new_expansion)
+                                                        -where[new_pattern   = this.translate_state_markers(pattern),
+                                                               new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)]))})});
 // Generated by SDoc 
 
 
@@ -1602,7 +1630,7 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
 // Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 // serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-  caterwaul.tconfigure('core.js core.words core.quote', function () {
+  caterwaul.instance_eval(caterwaul('core.js core.words core.quote')(function (def) {
 
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -1672,7 +1700,7 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
 //   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
 //   above).
 
-    this.method('precompile', this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)] -given.f),
+    def('precompile', this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)] -given.f),
     where[
 
 //   Tracing function destinations.
@@ -1832,7 +1860,7 @@ caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
     annotated_caterwaul(caterwaul, references) = caterwaul.clone().method('compile', wrapped_compile(caterwaul.compile, references)),
     trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
                                                  -effect- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})()
-                                                 -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]});
+                                                 -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]}));
 // Generated by SDoc 
 
 
