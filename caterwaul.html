@@ -476,7 +476,9 @@ my @attributes           = select_keys(%$options, '--criteria' => join('|', @cri
 
 $pattern = qr/$pattern/;
 
-my @m_attributes, @m_line_numbers, @m_lines;
+my @m_attributes;
+my @m_line_numbers;
+my @m_lines;
 
 for my $k (@attributes) {
   next unless length $k;
@@ -485,9 +487,9 @@ for my $k (@attributes) {
     next unless $lines[$_] =~ $pattern;
     push @m_attributes,   $k;
     push @m_line_numbers, $_ + 1;
-    push @m_lines,        $lines[$_] // ''}} 
+    push @m_lines,        '' . ($lines[$_] // '')}}
 
-if ($$options{'-c'}) {
+unless ($$options{'-C'}) {
   s/($pattern)/\033[1;31m\1\033[0;0m/g for @m_lines;
   s/^/\033[1;34m/o for @m_attributes;
   s/^/\033[1;32m/o && s/$/\033[0;0m/o for @m_line_numbers}
@@ -950,7 +952,7 @@ meta::function('update-from', <<'__');
 
 # Note that this assumes you trust the remote script. If you don't, then you shouldn't update from it.
 
-around_hook('before-update-from-invocation', separate_options(@_), sub {
+around_hook('update-from-invocation', separate_options(@_), sub {
   my ($options, @targets) = @_;
   my %parent_id_cache = cache('parent-identification');
   my %already_seen;
@@ -1266,9 +1268,9 @@ __
 meta::internal_function('parent_ordering', <<'__');
 # Topsorts the parents by dependency chain. The simplest way to do this is to
 # transitively compute the number of parents referred to by each parent.
-# You can pass in a list of parents if you want; otherwise it uses all of them.
 
-my @parents = @_ ? @_ : grep /^parent::/, keys %data;
+my @parents = @_;
+my %all_parents = map {$_ => 1} @parents;
 
 my %parents_of = map {
   my $t = $_;
@@ -1286,7 +1288,7 @@ $parent_count = sub {
 
 my %inverses;
 push @{$inverses{$parent_count->($_)} ||= []}, $_ for @parents;
-map @{$inverses{$_}}, sort keys %inverses;
+grep exists $all_parents{$_}, map @{$inverses{$_}}, sort keys %inverses;
 __
 meta::internal_function('retrieve', <<'__');
 my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
@@ -1640,7 +1642,7 @@ It should be very easy to wrap standard data types however. So caterwaul provide
 __
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  39d8676c3913ed1d5b258342feebdd37
+parent::/home/spencertipping/bin/object  4e114ee5933f8a10ce856c55da4aea34
 __
 meta::parent('/home/spencertipping/bin/node-base', <<'__');
 function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
@@ -1651,8 +1653,8 @@ function::run-forever                                       76175932a2d2692fc802
 internal_function::dep                                      bad9b934374b176318ed2295b63130bc
 message_color::test                                         14e993fdf2c62df353613c243dc9053b
 meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
-parent::/home/spencertipping/bin/repository                 e2128b9a66621e93cea524db75999da6
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  8fb85ffdc70741762d75aa253faa59d3
+parent::/home/spencertipping/bin/repository                 3e7c06920f556c7ca97aa67b18470f03
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  d13d5c65b3faaef717d55f9a59e6e842
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
@@ -1672,7 +1674,7 @@ function::edit                          c31d73791820a10ec910af043f67d4eb
 function::enable                        37af2d2e603e2455be227ae3c5a42c3a
 function::export                        388e0cc60507443cb1c0cc3e2658cfef
 function::extern                        6a9fa8c2a8a4eaae9fe8d38e402145e4
-function::grep                          f2f28b81f4bcf4cf9fbe9e27bc9447b0
+function::grep                          3ad630ca30f1abae3cf28ef6293f0e00
 function::hash                          7a903f90f2c8ed27af7e030f407d9f7b
 function::hook                          d74d8e2b611342af6a0897e0bd62e6e6
 function::hooks                         230122bdc8929884e45b2f78a7743e2e
@@ -1701,7 +1703,7 @@ function::state                         119111f84c3e32a5536838ac84bc6f10
 function::touch                         819878bc64df094d3323c7050f2c3e97
 function::unlock                        8fc9bd69f3466f0b54ee2c6965f68cea
 function::update                        4de1a6a4085836590a3b1ef997f9d5ea
-function::update-from                   d86a78c26adf0414eedbceec62affb8e
+function::update-from                   beead29d50b0b204bc9a8dc6f07d0003
 function::usage                         b36ead828ad566c8e3919f3b40fb99e6
 function::verify                        d31b85fffd464ddf516d2afeb63dcbde
 internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
@@ -1725,7 +1727,7 @@ internal_function::invoke_editor_on     1448132d5294a4b8390b4a684d8a78f9
 internal_function::is_locked            42c3c89625863a31105d1df49a2a762f
 internal_function::namespace            93213d60cafb9627e0736b48cd1f0760
 internal_function::parent_attributes    480776f176ab728c6b7450287be5782a
-internal_function::parent_ordering      61a829bfd725b367836b5342d26efce1
+internal_function::parent_ordering      87bee77390de5b9e9c6e07f9af9eb70a
 internal_function::retrieve             0b6f4342009684fdfa259f45ac75ae37
 internal_function::retrieve_with_hooks  5186a0343624789d08d1cc2084550f3d
 internal_function::select_keys          1cd075b241905d9ab3199e680e86dced
@@ -1763,14 +1765,14 @@ __
 meta::parent('/home/spencertipping/bin/repository', <<'__');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  c44adb2efa4be1b7f7a14bd6fd8b2b57
+parent::/home/spencertipping/bin/configuration  4217fa0ccd97c9eecfbb342e8f740271
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  39d8676c3913ed1d5b258342feebdd37
+parent::/home/spencertipping/bin/object  4e114ee5933f8a10ce856c55da4aea34
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
@@ -1779,7 +1781,7 @@ meta::parent('notes', <<'__');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    39d8676c3913ed1d5b258342feebdd37
+parent::object    4e114ee5933f8a10ce856c55da4aea34
 __
 meta::parent('object', <<'__');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
@@ -1799,7 +1801,7 @@ function::edit                          c31d73791820a10ec910af043f67d4eb
 function::enable                        37af2d2e603e2455be227ae3c5a42c3a
 function::export                        388e0cc60507443cb1c0cc3e2658cfef
 function::extern                        6a9fa8c2a8a4eaae9fe8d38e402145e4
-function::grep                          f2f28b81f4bcf4cf9fbe9e27bc9447b0
+function::grep                          3ad630ca30f1abae3cf28ef6293f0e00
 function::hash                          7a903f90f2c8ed27af7e030f407d9f7b
 function::hook                          d74d8e2b611342af6a0897e0bd62e6e6
 function::hooks                         230122bdc8929884e45b2f78a7743e2e
@@ -1828,7 +1830,7 @@ function::state                         119111f84c3e32a5536838ac84bc6f10
 function::touch                         819878bc64df094d3323c7050f2c3e97
 function::unlock                        8fc9bd69f3466f0b54ee2c6965f68cea
 function::update                        4de1a6a4085836590a3b1ef997f9d5ea
-function::update-from                   d86a78c26adf0414eedbceec62affb8e
+function::update-from                   beead29d50b0b204bc9a8dc6f07d0003
 function::usage                         b36ead828ad566c8e3919f3b40fb99e6
 function::verify                        d31b85fffd464ddf516d2afeb63dcbde
 internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
@@ -1852,7 +1854,7 @@ internal_function::invoke_editor_on     1448132d5294a4b8390b4a684d8a78f9
 internal_function::is_locked            42c3c89625863a31105d1df49a2a762f
 internal_function::namespace            93213d60cafb9627e0736b48cd1f0760
 internal_function::parent_attributes    480776f176ab728c6b7450287be5782a
-internal_function::parent_ordering      61a829bfd725b367836b5342d26efce1
+internal_function::parent_ordering      87bee77390de5b9e9c6e07f9af9eb70a
 internal_function::retrieve             0b6f4342009684fdfa259f45ac75ae37
 internal_function::retrieve_with_hooks  5186a0343624789d08d1cc2084550f3d
 internal_function::select_keys          1cd075b241905d9ab3199e680e86dced
@@ -1890,7 +1892,7 @@ __
 meta::parent('preprocessor', <<'__');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 39d8676c3913ed1d5b258342feebdd37
+parent::object                 4e114ee5933f8a10ce856c55da4aea34
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
@@ -2931,13 +2933,14 @@ and we add the 'init' method in the class_eval section below.
 
   caterwaul_global.instance_eval(function (def) {
     def('create_instance', calls_init);
-    def('initialize', function () {this.configure.apply(this, arguments)});
 
     def('precompiled_internal_table', {});
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
   caterwaul_global.class_eval(function (def) {
+    def('initialize',           function ()               {this.configure.apply(this, arguments)});
+
     def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
     def('init_not_precompiled', function (f, environment) {
       var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
@@ -3017,10 +3020,10 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
     caterwaul_global.attr_lazy('macro_patterns',  Array).
                      attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
-      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
-                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.global.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.global.ensure_expander(expander)), this}));
 
-      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.global.ensure_expander(expander);
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
@@ -3110,19 +3113,15 @@ provide a standard basis for caterwaul's internal and external modules.
       se(this.methods = {}, function () {this.extend_methods       = function (o) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) o[k] = ms[k]; return o};
                                          this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
 
-                                         this.extension_stages = function ()  {return this.instance_data.extension_stages};
-                                         this.methods          = function ()  {return this.instance_data.methods};
-                                         this.extend           = function (o) {for (var es = this.extension_stages(), i = 0, l = es.length; i < l; ++i) this[es[i]].apply(this, arguments);
-                                                                               return o}})});
+                                         this.methods = function ()  {return this.instance_data.methods};
+                                         this.extend  = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
 
     At this point our module is sufficiently functional to extend itself:
 
     module.extend_methods       = module.instance_data.methods.extend_methods;
     module.extend_instance_data = module.instance_data.methods.extend_instance_data;
     module.methods              = module.instance_data.methods.methods;
-    module.extension_stages     = module.instance_data.methods.extension_stages;
 
-    module.instance_data.extension_stages = ['extend_methods', 'extend_instance_data'];
     module.instance_data.methods.extend.call(module, module);
 
   Module methods.
@@ -3208,8 +3207,8 @@ provide a standard basis for caterwaul's internal and external modules.
     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
 
       module.extend(module);
-      se(module.default_class_eval_def    = module.extend({}), function () {this.instance_data.extension_stages = module.instance_data.extension_stages});
-      se(module.default_instance_eval_def = module.extend({}), function () {this.instance_data.extension_stages = module.instance_data.extension_stages});
+      module.default_class_eval_def    = module.extend({});
+      module.default_instance_eval_def = module.extend({});
 
   Common design patterns.
   From here we add methods to make 'module' easier to use.
@@ -3222,9 +3221,9 @@ provide a standard basis for caterwaul's internal and external modules.
       def('attr_null',              function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] : f.apply(this, arguments)})});
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
-    module.extend(module).attr('extension_stages').attr_lazy('methods',           Object).
-                                                   attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
-                                                   attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
+
+    module.extend(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
+                                                       attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
 
   Instantiation.
   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
@@ -3238,27 +3237,21 @@ provide a standard basis for caterwaul's internal and external modules.
     my_module.create()()        // -> 10
     my_module.create().foo()    // -> 'bar'
 
-    module.class_eval(function (def) {def('create', 'init', function () {return this.extend(this.create_instance && this.create_instance.apply(this, arguments) || {})})}).
+  Arguments passed into 'create' are forwarded both to 'create_instance' and the resulting instance's 'initialize' method.
+
+    module.class_eval(function (def) {def('create', 'init', function () {var instance = this.extend(this.create_instance && this.create_instance.apply(this, arguments) || {});
+                                                                         return instance.initialize && instance.initialize.apply(instance, arguments), instance})}).
+
         instance_eval(function (def) {def('create_instance', calls_init)});
-
-  Constructor invocation.
-  If a module provides an initialize() method, this will be called on the instance when the module is added to that instance. This behavior is governed by the extend_initialize() method on
-  modules. (Though since it's an extensible behavior, extend() might not end up calling it if you've got a custom setup.)
-
-    module.class_eval(function (def) {def('extend_initialize', function (o) {var i = this.methods().initialize; i && i.apply(o, Array.prototype.slice.call(arguments, 1)); return o});
-                                      def('initialize',        function ()  {this.extension_stages(['extend_methods', 'extend_instance_data', 'extend_parents', 'extend_initialize'])})});
 
   Inheritance.
   Each module has a list of parents that it uses during extension. Because a module might inherit from itself the implementation knows how to avoid infinite-looping from cyclical inheritance
   structures. This is done by using the 'identity' method.
 
-  The 'extend' method is redefined to include parent extension. By default parent extension happens first, then method extension, then instance data creation, then invocation of the
-  'initialize' method if it exists.
-
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
-        seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});
+        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend(o, s)); return o})});
 
   Self evaluation.
   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
@@ -3266,11 +3259,16 @@ provide a standard basis for caterwaul's internal and external modules.
 
     module.class_eval(function (def) {def('self_eval', function (f) {return module().class_eval(f).extend(this)})});
 
+  New extend method.
+  This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
+
+    module.class_eval(function (def) {def('extend', function (o, seen) {return this.extend_methods(o), this.extend_instance_data(o), this.extend_parents(o, seen), o})});
+
   Constructing the final 'module' object.
   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
   explicitly invoke its constructor on itself for this to work.
 
-    module.extend(module).methods().initialize.call(module), module.extend(module);
+    module.extend(module);
     module.extend(module.default_instance_eval_def);
     module.extend(module.default_class_eval_def);
 __
@@ -3724,10 +3722,10 @@ nodes. At the end of folding there is only one child per paren-group.
       def('clone', function () {return this.rmap(function () {return false})});
 
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
-      def('replace', function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
-                                                                    var replacement = rs[n.data];
-                                                                    return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
-                                                                                                                               replacement})});
+      def('replace', function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                                   var replacement = rs[n.data];
+                                                                   return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                              replacement})});
 
     Alteration.
     These functions let you make "changes" to a node by returning a modified copy.

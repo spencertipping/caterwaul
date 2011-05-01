@@ -105,10 +105,10 @@
       def('clone', function () {return this.rmap(function () {return false})});
 
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
-      def('replace', function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
-                                                                    var replacement = rs[n.data];
-                                                                    return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
-                                                                                                                               replacement})});
+      def('replace', function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                                   var replacement = rs[n.data];
+                                                                   return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                              replacement})});
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.

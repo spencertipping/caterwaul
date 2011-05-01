@@ -15,13 +15,14 @@
 
   caterwaul_global.instance_eval(function (def) {
     def('create_instance', calls_init);
-    def('initialize', function () {this.configure.apply(this, arguments)});
 
     def('precompiled_internal_table', {});
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
   caterwaul_global.class_eval(function (def) {
+    def('initialize',           function ()               {this.configure.apply(this, arguments)});
+
     def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
     def('init_not_precompiled', function (f, environment) {
       var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;

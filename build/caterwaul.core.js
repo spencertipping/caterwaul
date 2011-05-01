@@ -118,19 +118,15 @@
       se(this.methods = {}, function () {this.extend_methods       = function (o) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) o[k] = ms[k]; return o};
                                          this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
 
-                                         this.extension_stages = function ()  {return this.instance_data.extension_stages};
-                                         this.methods          = function ()  {return this.instance_data.methods};
-                                         this.extend           = function (o) {for (var es = this.extension_stages(), i = 0, l = es.length; i < l; ++i) this[es[i]].apply(this, arguments);
-                                                                               return o}})});
+                                         this.methods = function ()  {return this.instance_data.methods};
+                                         this.extend  = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
 
 //     At this point our module is sufficiently functional to extend itself:
 
     module.extend_methods       = module.instance_data.methods.extend_methods;
     module.extend_instance_data = module.instance_data.methods.extend_instance_data;
     module.methods              = module.instance_data.methods.methods;
-    module.extension_stages     = module.instance_data.methods.extension_stages;
 
-    module.instance_data.extension_stages = ['extend_methods', 'extend_instance_data'];
     module.instance_data.methods.extend.call(module, module);
 
 //   Module methods.
@@ -216,8 +212,8 @@
 //     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
 
       module.extend(module);
-      se(module.default_class_eval_def    = module.extend({}), function () {this.instance_data.extension_stages = module.instance_data.extension_stages});
-      se(module.default_instance_eval_def = module.extend({}), function () {this.instance_data.extension_stages = module.instance_data.extension_stages});
+      module.default_class_eval_def    = module.extend({});
+      module.default_instance_eval_def = module.extend({});
 
 //   Common design patterns.
 //   From here we add methods to make 'module' easier to use.
@@ -230,9 +226,9 @@
       def('attr_null',              function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] : f.apply(this, arguments)})});
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
-    module.extend(module).attr('extension_stages').attr_lazy('methods',           Object).
-                                                   attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
-                                                   attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
+
+    module.extend(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
+                                                       attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
 
 //   Instantiation.
 //   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
@@ -246,27 +242,21 @@
 //     my_module.create()()        // -> 10
 //     my_module.create().foo()    // -> 'bar'
 
-    module.class_eval(function (def) {def('create', 'init', function () {return this.extend(this.create_instance && this.create_instance.apply(this, arguments) || {})})}).
+//   Arguments passed into 'create' are forwarded both to 'create_instance' and the resulting instance's 'initialize' method.
+
+    module.class_eval(function (def) {def('create', 'init', function () {var instance = this.extend(this.create_instance && this.create_instance.apply(this, arguments) || {});
+                                                                         return instance.initialize && instance.initialize.apply(instance, arguments), instance})}).
+
         instance_eval(function (def) {def('create_instance', calls_init)});
-
-//   Constructor invocation.
-//   If a module provides an initialize() method, this will be called on the instance when the module is added to that instance. This behavior is governed by the extend_initialize() method on
-//   modules. (Though since it's an extensible behavior, extend() might not end up calling it if you've got a custom setup.)
-
-    module.class_eval(function (def) {def('extend_initialize', function (o) {var i = this.methods().initialize; i && i.apply(o, Array.prototype.slice.call(arguments, 1)); return o});
-                                      def('initialize',        function ()  {this.extension_stages(['extend_methods', 'extend_instance_data', 'extend_parents', 'extend_initialize'])})});
 
 //   Inheritance.
 //   Each module has a list of parents that it uses during extension. Because a module might inherit from itself the implementation knows how to avoid infinite-looping from cyclical inheritance
 //   structures. This is done by using the 'identity' method.
 
-//   The 'extend' method is redefined to include parent extension. By default parent extension happens first, then method extension, then instance data creation, then invocation of the
-//   'initialize' method if it exists.
-
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
-        seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});
+        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend(o, s)); return o})});
 
 //   Self evaluation.
 //   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
@@ -274,11 +264,16 @@
 
     module.class_eval(function (def) {def('self_eval', function (f) {return module().class_eval(f).extend(this)})});
 
+//   New extend method.
+//   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
+
+    module.class_eval(function (def) {def('extend', function (o, seen) {return this.extend_methods(o), this.extend_instance_data(o), this.extend_parents(o, seen), o})});
+
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
 //   explicitly invoke its constructor on itself for this to work.
 
-    module.extend(module).methods().initialize.call(module), module.extend(module);
+    module.extend(module);
     module.extend(module.default_instance_eval_def);
     module.extend(module.default_class_eval_def);
 // Generated by SDoc 
@@ -538,10 +533,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       def('clone', function () {return this.rmap(function () {return false})});
 
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
-      def('replace', function (rs) {return this.rnmap(function (n) {if (! own.call(rs, n.data)) return n;
-                                                                    var replacement = rs[n.data];
-                                                                    return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
-                                                                                                                               replacement})});
+      def('replace', function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
+                                                                   var replacement = rs[n.data];
+                                                                   return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                                                                              replacement})});
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
@@ -1170,10 +1165,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     caterwaul_global.attr_lazy('macro_patterns',  Array).
                      attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
-      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
-                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.global.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.global.ensure_expander(expander)), this}));
 
-      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.global.ensure_expander(expander);
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
@@ -1270,13 +1265,14 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   caterwaul_global.instance_eval(function (def) {
     def('create_instance', calls_init);
-    def('initialize', function () {this.configure.apply(this, arguments)});
 
     def('precompiled_internal_table', {});
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
   caterwaul_global.class_eval(function (def) {
+    def('initialize',           function ()               {this.configure.apply(this, arguments)});
+
     def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
     def('init_not_precompiled', function (f, environment) {
       var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
@@ -1293,5 +1289,5 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('7a74e65742fb5301dbc56a4fc7806347').check_version();
+caterwaul.version('28a3c5c8d488e59cdd1ea71ccecbbd6c').check_version();
 // Generated by SDoc 

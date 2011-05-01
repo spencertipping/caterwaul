@@ -70,10 +70,10 @@
     caterwaul_global.attr_lazy('macro_patterns',  Array).
                      attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
-      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
-                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.global.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.global.ensure_expander(expander)), this}));
 
-      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.global.ensure_expander(expander);
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
