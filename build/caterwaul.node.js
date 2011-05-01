@@ -243,7 +243,7 @@
       def('attr_null',              function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] : f.apply(this, arguments)})});
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
-    module.extend(module).attr('extension_stages').attr_lazy('methods',           function () {return {}}).
+    module.extend(module).attr('extension_stages').attr_lazy('methods',           Object).
                                                    attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
                                                    attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
 
@@ -276,7 +276,7 @@
 //   The 'extend' method is redefined to include parent extension. By default parent extension happens first, then method extension, then instance data creation, then invocation of the
 //   'initialize' method if it exists.
 
-    module.attr_lazy('identity', gensym).attr_lazy('parents', function () {return []}).class_eval(function (def) {
+    module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
         seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});
@@ -305,8 +305,8 @@
 // new model is certainly more straightforward from a traditional object-oriented perspective.
 
   var configurable = module().class_eval(function (def) {
-    this.attr_lazy('configurations',        function () {return {}}).
-         attr_lazy('active_configurations', function () {return {}});
+    this.attr_lazy('configurations',        Object).
+         attr_lazy('active_configurations', Object);
 
     def('configuration', function (name, f) {this.configurations()[name] = f; return this});
     def('configure',     function ()        {for (var cs = this.individual_configurations(arguments), i = 0, l = cs.length; i < l; ++i) this.apply_configuration(cs[i]); return this});
@@ -706,6 +706,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                             else                                                                           xs.push(x)};
 
                                       switch (l) {case 0: if (has(parse_r_optional, d)) return push(d.replace(/^u/, ''));
+                                                     else if (has(parse_group, d))      return push(d), push(parse_group[d]);
                                                      else                               return push(d);
 
                                                   case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return push(d.replace(/^u/, '')), this[0].serialize(xs);
@@ -927,7 +928,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
         t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], head = head ? head.p : parent, parent = null) :
                        (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(new_node(new syntax_node(t))), head = null) : push(new_node(new syntax_node(t))),
-                        has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));
+                        has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
 
 //       Regexp flag special cases.
 //       Normally a () group wraps an expression, so a following / would indicate division. The only exception to this is when we have a block construct; in this case, the next token appears in
@@ -969,14 +970,14 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
 //     array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
 
-        for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)  
+        for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)
           for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data; node = _[j], data = node && node.data, forward ? j < lj : j >= 0; j += inc)
 
 //       Binary node behavior.
 //       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
 //       Operators in this class are considered to be 'fold_lr'; that is, they fold first their left sibling, then their right.
 
-            if (has(parse_lr, data)) node._fold_lr();
+            if (has(parse_lr, data))  node._fold_lr();
 
 //       Ambiguous parse groups.
 //       As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that way
@@ -1002,7 +1003,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding, we do a quick swap of the first two
 //       to set the ordering straight.
 
-       else if (has(parse_ternary, data)) {node._fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
+       else if (has(parse_ternary, data))  {node._fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
 
 //       Grab-until-block behavior.
 //       Not quite as simple as it sounds. This is used for constructs such as 'if', 'function', etc. Each of these constructs takes the form '<construct> [identifier] () {}', but they can also
@@ -1040,21 +1041,21 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     associativity; in general, you can't make assumptions about the exact layout of semicolon nodes. Fortunately semicolon is associative, so it doesn't matter in practice. And just in case,
 //     these nodes are 'i;' rather than ';', meaning 'inferred semicolon' -- that way it's clear that they aren't original. (They also won't appear when you call toString() on the syntax tree.)
 
-        for (var i = all_nodes.length - 1, _; _ = all_nodes[i], i >= 0; --i)  _.r && _._wrap(new syntax_node('i;')).p._fold_r();
+        for (var i = all_nodes.length - 1, _; i >= 0; --i)  (_ = all_nodes[i]).r && _._wrap(new_node(new syntax_node('i;'))).p._fold_r();
 
 //     Fourth step.
 //     Flatten out all of the invocation nodes. As explained earlier, they are nested such that the useful data on the right is two levels down. We need to grab the grouping construct on the
 //     right-hand side and remove it so that only the invocation or dereference node exists. During the parse phase we built an index of all of these invocation nodes, so we can iterate through
 //     just those now. I'm preserving the 'p' pointers, though they're probably not useful beyond here.
 
-        for (var i = 0, l = invocation_nodes.length, _, child; _ = invocation_nodes[i], i < l; ++i) (child = _[1] = _[1][0]) && (child.p = _);
+        for (var i = 0, l = invocation_nodes.length, _, child; i < l; ++i)  (child = (_ = invocation_nodes[i])[1] = _[1][0] || new_node(new syntax_node(''))) && (child.p = _);
 
         while (head.p) head = head.p;
 
 //     Fifth step.
-//     Prevent a space leak by clearing out all of the 'p' pointers.
+//     Prevent a space leak by clearing out all of the 'p', 'l', and 'r' pointers.
 
-        for (var i = all_nodes.length - 1; i >= 0; --i)  delete all_nodes[i].p;
+        for (var i = all_nodes.length - 1, _; i >= 0; --i)  delete (_ = all_nodes[i]).p, delete _.l, delete _.r;
         return head})});
 // Generated by SDoc 
 
@@ -1074,7 +1075,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
 // non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
 
-  caterwaul_global.attr_lazy('globals', function () {return {}}).instance_eval(function (def) {
+  caterwaul_global.attr_lazy('globals', Object).instance_eval(function (def) {
     def('compile', function (tree, environment) {var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
                                                  for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
                                                  var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.toString() + ')';
@@ -1155,8 +1156,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Under the hood the macro() method ultimately uses final_macro(), but wraps your macroexpander in a function that knows how to re-expand output. All re-expansion is done by the compiler that
 //   is macroexpanding in the first place.
 
-    caterwaul_global.attr_lazy('macro_patterns',  function () {return []}).
-                     attr_lazy('macro_expanders', function () {return []}).class_eval(function (def) {
+    caterwaul_global.attr_lazy('macro_patterns',  Array).
+                     attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
       def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
                                                                                          this.macro_expanders().push(this.ensure_expander(expander)), this}));
@@ -1226,8 +1227,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // running on.
 
   caterwaul_global.class_eval(function (def) {
-    this.attr_lazy('before_functions', function () {return []}).
-         attr_lazy('after_functions',  function () {return []});
+    this.attr_lazy('before_functions', Array).
+         attr_lazy('after_functions',  Array);
 
     def('before', function () {return arguments.length ? this.before_functions(this.before_functions.concat(Array.prototype.slice.call(arguments))) : this.before_functions()});
     def('after',  function () {return arguments.length ? this. after_functions(this. after_functions.concat(Array.prototype.slice.call(arguments))) : this. after_functions()});
@@ -1280,7 +1281,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('5c39e46e4f84d08a228e77bb7a62ebe8').check_version();
+caterwaul.version('a712a5293647fad8032da006995ba774').check_version();
 // Generated by SDoc 
 
 
@@ -1314,24 +1315,27 @@ caterwaul.version('5c39e46e4f84d08a228e77bb7a62ebe8').check_version();
 
 //   The function you give it will be invoked for each new adverb or adverb form. This function is also bound as a method called 'define_adverb'.
 
-  caterwaul.method('macro_form', function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) this.define_macro_form(arguments[i], arguments[l]); return this}).
-            method('define_macro_form', function (name, define) {
-              var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
+  caterwaul.class_eval(function (def) {
+    def('macro_form',        function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) this.define_macro_form(arguments[i], arguments[l]); return this}).
+    def('define_macro_form', function (name, define) {
+      var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
 
-              return this.
-                shallow(names, []).method(name, function () {
-                  for (var fs = this[forms], def = this[define_name], i = 0, l = arguments.length - 1, definition = this.ensure_expander(arguments[l]), lj = fs.length; i < l; ++i) {
-                    for (var name = arguments[i], j = 0; j < lj; ++j) def.call(this, name, definition, fs[j]);
-                    this[names].push({name: name, definition: definition})}
-                  return this}).
+      return module().class_eval(function (def) {
+        this.attr_lazy(names, Array);
+        def(name, function () {
+          for (var fs = this[forms], def = this[define_name], i = 0, l = arguments.length - 1, definition = this.ensure_expander(arguments[l]), lj = fs.length; i < l; ++i) {
+            for (var name = arguments[i], j = 0; j < lj; ++j) def.call(this, name, definition, fs[j]);
+            this[names].push({name: name, definition: definition})}
+          return this});
 
-                shallow(forms, []).method(form, function () {
-                  for (var xs = this[names], def = this[define_name], i = 0, l = arguments.length, lj = xs.length; i < l; ++i) {
-                    for (var form = this.ensure_syntax(arguments[i]), j = 0; j < lj; ++j) def.call(this, xs[j].name, xs[j].definition, form);
-                    this[forms].push(form)}
-                  return this}).
+        this.attr_lazy(forms, Array);
+        shallow(forms, []).method(form, function () {
+          for (var xs = this[names], def = this[define_name], i = 0, l = arguments.length, lj = xs.length; i < l; ++i) {
+            for (var form = this.ensure_syntax(arguments[i]), j = 0; j < lj; ++j) def.call(this, xs[j].name, xs[j].definition, form);
+            this[forms].push(form)}
+          return this}).
 
-                 method(define_name, function () {return define.apply(this, arguments), this})});
+         method(define_name, function () {return define.apply(this, arguments), this})});
 // Generated by SDoc 
 
 

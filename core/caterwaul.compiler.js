@@ -10,7 +10,7 @@
 // Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
 // non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
 
-  caterwaul_global.attr_lazy('globals', function () {return {}}).instance_eval(function (def) {
+  caterwaul_global.attr_lazy('globals', Object).instance_eval(function (def) {
     def('compile', function (tree, environment) {var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
                                                  for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
                                                  var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.toString() + ')';

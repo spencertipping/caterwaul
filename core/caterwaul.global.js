@@ -9,8 +9,8 @@
 // new model is certainly more straightforward from a traditional object-oriented perspective.
 
   var configurable = module().class_eval(function (def) {
-    this.attr_lazy('configurations',        function () {return {}}).
-         attr_lazy('active_configurations', function () {return {}});
+    this.attr_lazy('configurations',        Object).
+         attr_lazy('active_configurations', Object);
 
     def('configuration', function (name, f) {this.configurations()[name] = f; return this});
     def('configure',     function ()        {for (var cs = this.individual_configurations(arguments), i = 0, l = cs.length; i < l; ++i) this.apply_configuration(cs[i]); return this});

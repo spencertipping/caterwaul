@@ -15,8 +15,8 @@
 // running on.
 
   caterwaul_global.class_eval(function (def) {
-    this.attr_lazy('before_functions', function () {return []}).
-         attr_lazy('after_functions',  function () {return []});
+    this.attr_lazy('before_functions', Array).
+         attr_lazy('after_functions',  Array);
 
     def('before', function () {return arguments.length ? this.before_functions(this.before_functions.concat(Array.prototype.slice.call(arguments))) : this.before_functions()});
     def('after',  function () {return arguments.length ? this. after_functions(this. after_functions.concat(Array.prototype.slice.call(arguments))) : this. after_functions()});

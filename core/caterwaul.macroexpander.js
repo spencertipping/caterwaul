@@ -67,8 +67,8 @@
 //   Under the hood the macro() method ultimately uses final_macro(), but wraps your macroexpander in a function that knows how to re-expand output. All re-expansion is done by the compiler that
 //   is macroexpanding in the first place.
 
-    caterwaul_global.attr_lazy('macro_patterns',  function () {return []}).
-                     attr_lazy('macro_expanders', function () {return []}).class_eval(function (def) {
+    caterwaul_global.attr_lazy('macro_patterns',  Array).
+                     attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
       def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
                                                                                          this.macro_expanders().push(this.ensure_expander(expander)), this}));

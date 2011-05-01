@@ -156,7 +156,7 @@
       def('attr_null',              function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] : f.apply(this, arguments)})});
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
-    module.extend(module).attr('extension_stages').attr_lazy('methods',           function () {return {}}).
+    module.extend(module).attr('extension_stages').attr_lazy('methods',           Object).
                                                    attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
                                                    attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
 
@@ -189,7 +189,7 @@
 //   The 'extend' method is redefined to include parent extension. By default parent extension happens first, then method extension, then instance data creation, then invocation of the
 //   'initialize' method if it exists.
 
-    module.attr_lazy('identity', gensym).attr_lazy('parents', function () {return []}).class_eval(function (def) {
+    module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
         seen || (seen = {}); for (var ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) seen[id = (p = ps[i]).identity()] || (seen[id] = true, p.extend(o, seen)); return o})});

@@ -283,6 +283,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                             else                                                                           xs.push(x)};
 
                                       switch (l) {case 0: if (has(parse_r_optional, d)) return push(d.replace(/^u/, ''));
+                                                     else if (has(parse_group, d))      return push(d), push(parse_group[d]);
                                                      else                               return push(d);
 
                                                   case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return push(d.replace(/^u/, '')), this[0].serialize(xs);
