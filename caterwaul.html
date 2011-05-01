@@ -1995,16 +1995,16 @@ simpler) are:
       this.attr_lazy('state_markers', Object).
            attr_lazy('state_markers_inverse', Object);
 
-      def('state_marker', this.global.variadic(given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]));
+      def('state_marker', this.variadic(given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]));
 
       def('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers));
       def('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse));
 
       def('initial_state', given.name in this.before(this.global().final_macro('_x', this.translate_state_markers('#{name}[_x]'))));
 
-      def('tmacro', this.global.right_variadic_binary(given[pattern, expansion] in this.macro(new_pattern, new_expansion)
-                                                        -where[new_pattern   = this.translate_state_markers(pattern),
-                                                               new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)]))})});
+      def('tmacro', this.right_variadic_binary(given[pattern, expansion] in this.macro(new_pattern, new_expansion)
+                                                 -where[new_pattern   = this.translate_state_markers(pattern),
+                                                        new_expansion = expansion.constructor === Function ? expansion : this.translate_state_markers(expansion)]))})});
 __
 meta::sdoc('js::behaviors/core/grammar', <<'__');
 Grammatical construct definitions | Spencer Tipping
@@ -2015,7 +2015,7 @@ The only kind of grammar Caterwaul knows about out of the box is the 'modifier',
 determined by the macro patterns defined in language-specific configurations. sdoc::js::behaviors/core/javascript-forms is one such configuration.
 
   caterwaul.configuration('core.grammar', function () {
-    this.macro_form('modifier', 'parameterized_modifier', function (name, def, form) {this.macro(this.global.ensure_syntax(form).replace({it: name}), def)})});
+    this.macro_form('modifier', 'parameterized_modifier', function (name, def, form) {this.macro(this.ensure_syntax(form).replace({it: name}), def)})});
 __
 meta::sdoc('js::behaviors/core/inversion', <<'__');
 Inversion behavior | Spencer Tipping
@@ -2094,7 +2094,8 @@ Modifier forms.
 These are designed to be fairly unusual in normal Javascript code (since we don't want collisions), but easy to type. Multiple precedence levels are provided to make it easier to avoid
 having to use grouping operators.
 
-    this.modifier_form('it in _expression', 'it[_expression]', '_expression |it', '_expression -it', '_expression /it', '_expression.it').
+    this.configure('core.grammar').
+         modifier_form('it in _expression', 'it[_expression]', '_expression |it', '_expression -it', '_expression /it', '_expression.it').
          parameterized_modifier_form('it[_modifiers][_expression]', 'it[_modifiers] in _expression', 'it._modifiers[_expression]', 'it._modifiers in _expression',
                                      '_expression, it[_modifiers]', '_expression |it[_modifiers]', '_expression /it[_modifiers]', '_expression -it[_modifiers', '_expression -it- _modifiers',
                                      '_expression, it._modifiers',  '_expression |it._modifiers',  '_expression /it._modifiers',  '_expression -it._modifiers', '_expression <it> _modifiers');
@@ -2134,8 +2135,8 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
       pieces.push(s.substring(start, l));
 
       for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this.parse(pieces[i].replace(escaped, q)).as('(') :
-                                                                                                                new this.global.syntax(q + pieces[i] + q);
-      return new this.global.syntax('+', pieces).unflatten().as('(')});
+                                                                                                                new this.syntax(q + pieces[i] + q);
+      return new this.syntax('+', pieces).unflatten().as('(')});
 
   Destructuring function creation.
   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
@@ -2144,7 +2145,10 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
     this.macro('_left(_args) = _right', '_left = (function (_args) {return _right})')});
 __
 meta::sdoc('js::behaviors/core/macro-forms', <<'__');
-Macro forms.
+Systematic macro form meta-definitions | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
 Before version 1.0 most caterwaul macros were defined ad-hoc; as such the standard library felt chaotic and irregular. Caterwaul 1.0 introduces macro-patterns, which are abstractions to make
 it easier to define regular and predictable syntax macros. Starting with caterwaul 1.0, many macros are defined in terms of their meaning rather than their appearance. For examples of this,
 see sdoc::js::behaviors/core/grammar (for a macro form definition), sdoc::js::behaviors/core/words (for macro definitions), and sdoc::js::behaviors/core/javascript-forms (for form
@@ -2152,33 +2156,26 @@ definitions).
 
   Defining a macro form.
   You can define a new macro form using caterwaul's macro_form() method. This takes the name of the form to define and a function that accepts a name, definition, and form and performs the
-  actual macro definition. For example, this is how you might define adverbs as described above:
+  actual macro definition. For example:
 
   | my_caterwaul.macro_form('adverb', function (name, definition, form) {
       this.macro(form.replace({_adverb: name}), definition);
     });
 
   caterwaul.class_eval(function (def) {
-    def('macro_form',        function () {for (var i = 0, l = arguments.length - 1; i < l; ++i) this.define_macro_form(arguments[i], arguments[l]); return this});
-    def('define_macro_form', function (name, define) {
-      var names = name + 's', form = name + '_form', forms = name + '_forms', define_name = 'define_' + name;
+    def('macro_form', this.right_variadic_binary(function (name, define) {
+      var names = name + 's', form = name + '_form', forms = name + '_forms', v = this.variadic, rvb = this.right_variadic_binary;
 
-      return this.self_eval(function (def) {
+      this.self_eval(function (def) {
         this.attr_lazy(names, Array);
-        def(name, function () {
-          for (var fs = this[forms], def = this[define_name], i = 0, l = arguments.length - 1, definition = this.ensure_expander(arguments[l]), lj = fs.length; i < l; ++i) {
-            for (var name = arguments[i], j = 0; j < lj; ++j) def.call(this, name, definition, fs[j]);
-            this[names].push({name: name, definition: definition})}
-          return this});
+        def(name, rvb(function (name, expander) {
+          for (var fs = this[forms](), definition = this.ensure_expander(expander), i = 0, l = fs.length; i < l; ++i) define.call(this, name, definition, fs[i]);
+          this[names]().push({name: name, definition: definition})}));
 
         this.attr_lazy(forms, Array);
-        def(form, function () {
-          for (var xs = this[names], def = this[define_name], i = 0, l = arguments.length, lj = xs.length; i < l; ++i) {
-            for (var form = this.ensure_syntax(arguments[i]), j = 0; j < lj; ++j) def.call(this, xs[j].name, xs[j].definition, form);
-            this[forms].push(form)}
-          return this});
-
-        def(define_name, function () {return define.apply(this, arguments), this})})})});
+        def(form, v(function (form) {
+          for (var xs = this[names](), form = this.ensure_syntax(form), i = 0, l = xs.length; i < l; ++i) define.call(this, xs[i].name, xs[i].definition, form);
+          this[forms]().push(form)}))})}))});
 __
 meta::sdoc('js::behaviors/core/precompile', <<'__');
 Caterwaul precompiler | Spencer Tipping
@@ -2262,8 +2259,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     where[
 
   Tracing function destinations.
-  This is more subtle than you might think. First, we need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul is a clone of the regular
-  one, but has hooks that track calls to compile(). It also installs these hooks on any clones of itself, which means that the clone() method is overridden as well.
+  This is more subtle than you might think. We need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul function delegates
+  macroexpansion to the original one but lets us know when anything is compiled.
 
   When a parse() call happens, we'll have a reference to the function being parsed. We can identify which function it came from (in the original syntax tree that is) by marking each of the
   initial functions with a unique gensym on the end of the parameter list:
@@ -2287,8 +2284,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     trivial_gensym_detection_pattern    = trivial_function_gensym_template,
 
     annotate_macro_generator(template)(references)(match) = result -effect[references[s] = {tree: result}]
-                                                                   -where[s        = caterwaul.gensym(),
-                                                                          result   = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
+                                                                   -where[s      = caterwaul.gensym(),
+                                                                          result = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
 
     mark_nontrivial_function_macro = annotate_macro_generator(nontrivial_function_gensym_template),
     mark_trivial_function_macro    = annotate_macro_generator(trivial_function_gensym_template),
@@ -2301,8 +2298,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
   more generic case.
 
-    annotate_functions_in(tree, references) = caterwaul.macro_expand_naive(tree, [trivial_function_pattern,                nontrivial_function_pattern],
-                                                                                 [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)]),
+    annotate_functions_in(tree, references) = caterwaul.macroexpand(tree, [trivial_function_pattern,                nontrivial_function_pattern],
+                                                                          [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)]),
 
   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -2364,7 +2361,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
                                                               qs[new caterwaul.syntax(_name, _children)].replace({_name: escape_string(value.data), _children: children})
                                                                 -where[children = new caterwaul.syntax(',', serialize_syntax(it) -over.value).unflatten()],
 
-      serialize_caterwaul(value)       = qs[caterwaul.clone(_string)].replace({_string: caterwaul_ref_string(value.has)}),
+      serialize_caterwaul(value)       = qs[caterwaul(_string)].replace({_string: caterwaul_ref_string(value.active_configurations())}),
 
       serialize_ref(value, name, seen) = ! value                                       ? '#{value}' :
                                          value.constructor  === caterwaul.syntax       ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
@@ -2395,8 +2392,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
 
     substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when[ref && ref.compiled] -where[ref = references[match._gensym.data]],
 
-    perform_substitution(references, tree)    = caterwaul.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                   [expander,                         expander])
+    perform_substitution(references, tree)    = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                            [expander,                         expander])
                                                 -where[expander = substitute_precompiled(references)],
 
     Gensym removal.
@@ -2407,15 +2404,15 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
 
       remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when[ref && ref.tree] -where[ref = references[match._gensym.data]],
 
-      remove_gensyms(references, tree)             = caterwaul.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                        [expander,                         expander])
+      remove_gensyms(references, tree)             = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                                 [expander,                         expander])
                                                      -where[expander = remove_referenced_gensyms(references)],
 
   Tracing.
   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
-  builds references for us. Because compile() is registered as a method, clones will inherit it automatically.
+  builds references for us.
 
-    annotated_caterwaul(caterwaul, references) = caterwaul.clone().method('compile', wrapped_compile(caterwaul.compile, references)),
+    annotated_caterwaul(caterwaul, references) = caterwaul.method('compile', wrapped_compile(caterwaul.compile, references)),
     trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
                                                  -effect- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})()
                                                  -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]}));
@@ -2514,7 +2511,8 @@ If Javascript were any kind of sane language this module would be trivial to imp
 statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-  caterwaul.shallow('trace', caterwaul.clone().tconfigure('core.js core.words core.quote', function () {
+  caterwaul.self_eval(function (def) {
+    this.attr_lazy('trace', function () {return this.global().tconfigure('core.js core.words core.quote', function () {
 
   Setup.
   This just involves creating the events and setting up the state markers.
@@ -2607,37 +2605,37 @@ or (2) caching of the object. In this case I've written a special function to ha
     These methods perform the tracing. Originally they were lexical closures over one another, but this failed due to cloning. The structure here is that the before_hook, after_hook, and
     after_method_hook methods are called from inside the traced code through syntax refs that point to them.
 
-      this.method('before_hook',                   given[tree]                             in this.before_trace(tree)).
-           method('after_hook',                    given[tree, value]                      in this.after_trace(tree, value) -returning- value).
-           method('after_method_hook',             given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
-                                                                                              this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]).
+      this.self_eval(function (def) {
+        def('before_hook',                      given[tree]                             in this.before_trace(tree));
+        def('after_hook',                       given[tree, value]                      in this.after_trace(tree, value) -returning- value);
+        def('after_method_hook',                given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
+                                                                                           this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]);
 
-           once  ('before_hook_ref',               given.nothing in new this.ref(this.before_hook)).
-           once  ('after_hook_ref',                given.nothing in new this.ref(this.after_hook)).
-           once  ('after_method_hook_ref',         given.nothing in new this.ref(this.after_method_hook)).
+        this.attr_lazy('before_hook_ref',       given.nothing in new this.ref(this.before_hook));
+        this.attr_lazy('after_hook_ref',        given.nothing in new this.ref(this.after_hook));
+        this.attr_lazy('after_method_hook_ref', given.nothing in new this.ref(this.after_method_hook));
 
-           method('quote_method_name',             given.method in '"#{method.data.replace(/"/g, "\\\"")}"').
+        def('quote_method_name',                given.method in '"#{method.data.replace(/"/g, "\\\"")}"');
 
-           field ('expression_hook_template',      qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('(')).
-           field ('indirect_method_hook_template', qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('(')).
+        def('expression_hook_template',         qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('('));
+        def('indirect_method_hook_template',    qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('('));
 
-           method('expression_hook',               given[original, tree] in
-                                                   this.expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(),
-                                                                                          _tree: new this.ref(original), _expression: tree.as('(')})).
+        def('expression_hook',                  given[original, tree] in this.expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(),
+                                                                                                                _tree: new this.ref(original), _expression: tree.as('(')}));
 
-           method('method_hook',                   given[tree, object, method, parameters] in
-                                                   this.indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(),
-                                                                                               _tree: new this.ref(tree), _object: object, _method: method, _parameters: parameters})).
+        def('method_hook',                      given[tree, object, method, parameters] in
+                                                  this.indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(),
+                                                                                              _tree: new this.ref(tree), _object: object, _method: method, _parameters: parameters}));
 
-           method('direct_method_hook',            this.method_hook(tree, match._object, this.quote_method_name(match._method), match._parameters) -given[tree, match]).
-           method('indirect_method_hook',          this.method_hook(tree, match._object, match._method,                         match._parameters) -given[tree, match]),
+        def('direct_method_hook',               this.method_hook(tree, match._object, this.quote_method_name(match._method), match._parameters) -given[tree, match]);
+        def('indirect_method_hook',             this.method_hook(tree, match._object, match._method,                         match._parameters) -given[tree, match])}),
 
   Entry point.
   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
 
     this.initial_state('S'),
 
-    where[qw(s) = s.split(/\s+/)]}));
+    where[qw(s) = s.split(/\s+/)]})})});
 __
 meta::sdoc('js::behaviors/core/words', <<'__');
 Common adjectives and adverbs | Spencer Tipping
@@ -2655,6 +2653,8 @@ In this case, given[] is registered as a postfix binary adverb. Any postfix bina
 
 Scoping and referencing.
 These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
+
+  this.configure('core.grammar');
 
   Function words.
   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
@@ -2724,7 +2724,8 @@ These impact how something gets evaluated.
 
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    this.parameterized_modifier('until', this.with_gensyms('(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
+    this.parameterized_modifier('until', this.with_gensyms(
+           '(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
 __
 meta::sdoc('js::caterwaul', <<'__');
 Caterwaul JS | Spencer Tipping
@@ -2938,14 +2939,24 @@ and we add the 'init' method in the class_eval section below.
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
-  caterwaul_global.class_eval(function (def) {
-    def('initialize',           function ()               {this.configure.apply(this, arguments)});
+  Method duplication.
+  Some static methods exist on the global caterwaul function. However, individual caterwaul compilers rarely refer to them. Rather, they inherit the global methods as individual methods to
+  allow for customization. So, for instance, you could do this:
 
-    def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
-    def('init_not_precompiled', function (f, environment) {
-      var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
-          result = f.constructor === caterwaul_global.syntax ? this.macroexpand(result) : caterwaul_global.compile(this(caterwaul_global.parse(result)), environment);
-            return f.constructor === caterwaul_global.syntax ? this.apply_after_functions(result) : result})});
+  | var my_caterwaul = caterwaul();
+    my_caterwaul.compile = function (tree, environment) {console.log(tree.toString())};
+    my_caterwaul('3 + 4')       // logs '3+4'
+
+  The mechanism by which this happens is self-inheritance. See sdoc::js::core/caterwaul.module for more information about how this works.
+
+    caterwaul_global.class_eval(function (def) {
+      this.include(this);
+
+      def('initialize',           function ()               {this.configure.apply(this, arguments)});
+
+      def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
+      def('init_not_precompiled', function (f, environment) {return f.constructor === caterwaul_global.syntax ? this.apply_after_functions(this.macroexpand(this.apply_before_functions(f))) :
+                                                                                                                this.compile(this(this.parse(f)))})});
 __
 meta::sdoc('js::core/caterwaul.macroexpander', <<'__');
 Macroexpansion.
@@ -3020,10 +3031,10 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
     caterwaul_global.attr_lazy('macro_patterns',  Array).
                      attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
-      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.global.ensure_syntax(pattern)),
-                                                                                         this.macro_expanders().push(this.global.ensure_expander(expander)), this}));
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
 
-      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.global.ensure_expander(expander);
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
@@ -3048,7 +3059,8 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
   practice it's generally not quite so bad.)
 
-  Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
+  Note! This function by default does not re-macroexpand the output of macros defined with final_macro. That is handled at a higher level by Caterwaul's macro definition facility (see the
+  'macro' method).
 
   Note that as of version 0.5, macroexpansion proceeds backwards. This means that the /last/ matching macro is used, not the first. It's an important feature, as it lets you write new macros
   to override previous definitions. This ultimately lets you define sub-caterwaul functions for DSLs, and each can define a default case by matching on qs[_] (thus preventing access to other
@@ -3060,11 +3072,12 @@ means that it may become arbitrarily optimized. (See sdoc::js::core/caterwaul.ma
   | qs[_a + _b].match(qs[3 + x])        // -> {_a: 3, _b: x}
     qs[_a + _b].match(qs[3 / x])        // -> null
 
-    caterwaul_global.class_eval(function (def) {
-      def('macroexpand', function (t) {var self = this, macros = this.macro_patterns(), expanders = this.macro_expanders();
-                                       return caterwaul_global.ensure_syntax(t).rmap(function (n) {
-                                         for (var i = macros.length - 1, match, replacement; i >= 0; --i)
-                                           if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})})});
+    caterwaul_global.instance_eval(function (def) {
+      def('macroexpand', function (t, patterns, expanders, context) {return this.ensure_syntax(t).rmap(function (n) {
+                                                                       for (var i = patterns.length - 1, match, replacement; i >= 0; --i)
+                                                                         if ((match = patterns[i].match(n)) && (replacement = expanders[i].call(context, match))) return replacement})})});
+
+    caterwaul_global.class_eval(function (def) {def('macroexpand', function (t) {return this.global.macroexpand(t, this.macro_patterns(), this.macro_expanders(), this)})});
 __
 meta::sdoc('js::core/caterwaul.module', <<'__');
 Caterwaul object system.
@@ -3113,8 +3126,8 @@ provide a standard basis for caterwaul's internal and external modules.
       se(this.methods = {}, function () {this.extend_methods       = function (o) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) o[k] = ms[k]; return o};
                                          this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
 
-                                         this.methods = function ()  {return this.instance_data.methods};
-                                         this.extend  = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
+                                         this.methods       =               function ()  {return this.instance_data.methods};
+                                         this.extend_single = this.extend = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
 
     At this point our module is sufficiently functional to extend itself:
 
@@ -3122,7 +3135,7 @@ provide a standard basis for caterwaul's internal and external modules.
     module.extend_instance_data = module.instance_data.methods.extend_instance_data;
     module.methods              = module.instance_data.methods.methods;
 
-    module.instance_data.methods.extend.call(module, module);
+    module.instance_data.methods.extend_single.call(module, module);
 
   Module methods.
   These are instance methods on 'module' (which will be an instance of itself) and any modules you get by instantiating it. They're used to define class methods, instance methods, and compile
@@ -3206,9 +3219,9 @@ provide a standard basis for caterwaul's internal and external modules.
     At this point our module basically works, so we can add it to itself again to get the functionality built above. I'm also using it to create the modules for instance_eval and class_eval
     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
 
-      module.extend(module);
-      module.default_class_eval_def    = module.extend({});
-      module.default_instance_eval_def = module.extend({});
+      module.extend_single(module);
+      module.default_class_eval_def    = module.extend_single({});
+      module.default_instance_eval_def = module.extend_single({});
 
   Common design patterns.
   From here we add methods to make 'module' easier to use.
@@ -3222,8 +3235,8 @@ provide a standard basis for caterwaul's internal and external modules.
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
 
-    module.extend(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
-                                                       attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
+    module.extend_single(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
+                                                              attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend_single(module);
 
   Instantiation.
   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
@@ -3251,7 +3264,8 @@ provide a standard basis for caterwaul's internal and external modules.
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
-        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend(o, s)); return o})});
+        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) (p = ps[i]).extend_single(o), s[id = p.identity()] || (s[id] = true, p.extend_parents(o, s));
+        return o})});
 
   Self evaluation.
   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
@@ -3262,7 +3276,7 @@ provide a standard basis for caterwaul's internal and external modules.
   New extend method.
   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
 
-    module.class_eval(function (def) {def('extend', function (o, seen) {return this.extend_methods(o), this.extend_instance_data(o), this.extend_parents(o, seen), o})});
+    module.class_eval(function (def) {def('extend', function (o) {return this.extend_single(o), this.extend_parents(o), o})});
 
   Constructing the final 'module' object.
   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
@@ -3717,14 +3731,14 @@ nodes. At the end of folding there is only one child per paren-group.
       def('map',   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n});
 
       def('reach', function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this});
-      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n. rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
+      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
 
       def('clone', function () {return this.rmap(function () {return false})});
 
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
       def('replace', function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
                                                                    var replacement = rs[n.data];
-                                                                   return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                   return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
                                                                                                                               replacement})});
 
     Alteration.
@@ -3780,9 +3794,9 @@ nodes. At the end of folding there is only one child per paren-group.
                                                            se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
                                                                                                           for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))});
 
-      def('unflatten', function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
-                                       if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
-                                       else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))});
+      def('unflatten', function  () {var t = this, right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), function (n) {
+                                       if (right) for (var i = 0, l = t.length - 1; i  < l; ++i) n = n.push(t[i]).push(i < l - 2 ? new t.constructor(t.data) : t[i])[1];
+                                       else       for (var i = t.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new t.constructor(t.data) : t[0]).push(t[i])[0]})});
 
     Wrapping.
     Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
@@ -3849,7 +3863,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
-      def('match', function (target, variables) {variables || (variables = {_: target});
+      def('match', function (target, variables) {target = caterwaul_global.ensure_syntax(target);
+                                                 variables || (variables = {_: target});
                                                  if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                             else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                     if (! this[i].match(target[i], variables)) return null;

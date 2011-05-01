@@ -79,8 +79,8 @@
     where[
 
 //   Tracing function destinations.
-//   This is more subtle than you might think. First, we need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul is a clone of the regular
-//   one, but has hooks that track calls to compile(). It also installs these hooks on any clones of itself, which means that the clone() method is overridden as well.
+//   This is more subtle than you might think. We need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul function delegates
+//   macroexpansion to the original one but lets us know when anything is compiled.
 
 //   When a parse() call happens, we'll have a reference to the function being parsed. We can identify which function it came from (in the original syntax tree that is) by marking each of the
 //   initial functions with a unique gensym on the end of the parameter list:
@@ -104,8 +104,8 @@
     trivial_gensym_detection_pattern    = trivial_function_gensym_template,
 
     annotate_macro_generator(template)(references)(match) = result -effect[references[s] = {tree: result}]
-                                                                   -where[s        = caterwaul.gensym(),
-                                                                          result   = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
+                                                                   -where[s      = caterwaul.gensym(),
+                                                                          result = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
 
     mark_nontrivial_function_macro = annotate_macro_generator(nontrivial_function_gensym_template),
     mark_trivial_function_macro    = annotate_macro_generator(trivial_function_gensym_template),
@@ -118,8 +118,8 @@
 //   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
 //   more generic case.
 
-    annotate_functions_in(tree, references) = caterwaul.macro_expand_naive(tree, [trivial_function_pattern,                nontrivial_function_pattern],
-                                                                                 [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)]),
+    annotate_functions_in(tree, references) = caterwaul.macroexpand(tree, [trivial_function_pattern,                nontrivial_function_pattern],
+                                                                          [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)]),
 
 //   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -181,7 +181,7 @@
                                                               qs[new caterwaul.syntax(_name, _children)].replace({_name: escape_string(value.data), _children: children})
                                                                 -where[children = new caterwaul.syntax(',', serialize_syntax(it) -over.value).unflatten()],
 
-      serialize_caterwaul(value)       = qs[caterwaul.clone(_string)].replace({_string: caterwaul_ref_string(value.has)}),
+      serialize_caterwaul(value)       = qs[caterwaul(_string)].replace({_string: caterwaul_ref_string(value.active_configurations())}),
 
       serialize_ref(value, name, seen) = ! value                                       ? '#{value}' :
                                          value.constructor  === caterwaul.syntax       ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
@@ -212,8 +212,8 @@
 
     substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when[ref && ref.compiled] -where[ref = references[match._gensym.data]],
 
-    perform_substitution(references, tree)    = caterwaul.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                   [expander,                         expander])
+    perform_substitution(references, tree)    = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                            [expander,                         expander])
                                                 -where[expander = substitute_precompiled(references)],
 
 //     Gensym removal.
@@ -224,15 +224,15 @@
 
       remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when[ref && ref.tree] -where[ref = references[match._gensym.data]],
 
-      remove_gensyms(references, tree)             = caterwaul.macro_expand_naive(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                        [expander,                         expander])
+      remove_gensyms(references, tree)             = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                                 [expander,                         expander])
                                                      -where[expander = remove_referenced_gensyms(references)],
 
 //   Tracing.
 //   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
-//   builds references for us. Because compile() is registered as a method, clones will inherit it automatically.
+//   builds references for us.
 
-    annotated_caterwaul(caterwaul, references) = caterwaul.clone().method('compile', wrapped_compile(caterwaul.compile, references)),
+    annotated_caterwaul(caterwaul, references) = caterwaul.method('compile', wrapped_compile(caterwaul.compile, references)),
     trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
                                                  -effect- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})()
                                                  -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]}));

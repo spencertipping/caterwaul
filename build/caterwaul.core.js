@@ -118,8 +118,8 @@
       se(this.methods = {}, function () {this.extend_methods       = function (o) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) o[k] = ms[k]; return o};
                                          this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
 
-                                         this.methods = function ()  {return this.instance_data.methods};
-                                         this.extend  = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
+                                         this.methods       =               function ()  {return this.instance_data.methods};
+                                         this.extend_single = this.extend = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
 
 //     At this point our module is sufficiently functional to extend itself:
 
@@ -127,7 +127,7 @@
     module.extend_instance_data = module.instance_data.methods.extend_instance_data;
     module.methods              = module.instance_data.methods.methods;
 
-    module.instance_data.methods.extend.call(module, module);
+    module.instance_data.methods.extend_single.call(module, module);
 
 //   Module methods.
 //   These are instance methods on 'module' (which will be an instance of itself) and any modules you get by instantiating it. They're used to define class methods, instance methods, and compile
@@ -211,9 +211,9 @@
 //     At this point our module basically works, so we can add it to itself again to get the functionality built above. I'm also using it to create the modules for instance_eval and class_eval
 //     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
 
-      module.extend(module);
-      module.default_class_eval_def    = module.extend({});
-      module.default_instance_eval_def = module.extend({});
+      module.extend_single(module);
+      module.default_class_eval_def    = module.extend_single({});
+      module.default_instance_eval_def = module.extend_single({});
 
 //   Common design patterns.
 //   From here we add methods to make 'module' easier to use.
@@ -227,8 +227,8 @@
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
 
-    module.extend(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
-                                                       attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
+    module.extend_single(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
+                                                              attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend_single(module);
 
 //   Instantiation.
 //   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
@@ -256,7 +256,8 @@
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
-        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend(o, s)); return o})});
+        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) (p = ps[i]).extend_single(o), s[id = p.identity()] || (s[id] = true, p.extend_parents(o, s));
+        return o})});
 
 //   Self evaluation.
 //   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
@@ -267,7 +268,7 @@
 //   New extend method.
 //   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
 
-    module.class_eval(function (def) {def('extend', function (o, seen) {return this.extend_methods(o), this.extend_instance_data(o), this.extend_parents(o, seen), o})});
+    module.class_eval(function (def) {def('extend', function (o) {return this.extend_single(o), this.extend_parents(o), o})});
 
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
@@ -528,14 +529,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       def('map',   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n});
 
       def('reach', function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this});
-      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n. rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
+      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
 
       def('clone', function () {return this.rmap(function () {return false})});
 
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
       def('replace', function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
                                                                    var replacement = rs[n.data];
-                                                                   return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                   return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
                                                                                                                               replacement})});
 
 //     Alteration.
@@ -591,9 +592,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                                                            se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
                                                                                                           for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))});
 
-      def('unflatten', function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
-                                       if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
-                                       else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))});
+      def('unflatten', function  () {var t = this, right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), function (n) {
+                                       if (right) for (var i = 0, l = t.length - 1; i  < l; ++i) n = n.push(t[i]).push(i < l - 2 ? new t.constructor(t.data) : t[i])[1];
+                                       else       for (var i = t.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new t.constructor(t.data) : t[0]).push(t[i])[0]})});
 
 //     Wrapping.
 //     Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
@@ -660,7 +661,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
 //     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
-      def('match', function (target, variables) {variables || (variables = {_: target});
+      def('match', function (target, variables) {target = caterwaul_global.ensure_syntax(target);
+                                                 variables || (variables = {_: target});
                                                  if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                             else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                     if (! this[i].match(target[i], variables)) return null;
@@ -1165,10 +1167,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     caterwaul_global.attr_lazy('macro_patterns',  Array).
                      attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
-      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.global.ensure_syntax(pattern)),
-                                                                                         this.macro_expanders().push(this.global.ensure_expander(expander)), this}));
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
 
-      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.global.ensure_expander(expander);
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
@@ -1193,7 +1195,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   far the most complex part of this system, at O(nki) where n is the number of parse tree nodes, k is the number of macros, and i is the number of nodes in the macro pattern tree. (Though in
 //   practice it's generally not quite so bad.)
 
-//   Note! This function by default does not re-macroexpand the output of macros. That is handled at a higher level by Caterwaul's macro definition facility (see the 'rmacro' method).
+//   Note! This function by default does not re-macroexpand the output of macros defined with final_macro. That is handled at a higher level by Caterwaul's macro definition facility (see the
+//   'macro' method).
 
 //   Note that as of version 0.5, macroexpansion proceeds backwards. This means that the /last/ matching macro is used, not the first. It's an important feature, as it lets you write new macros
 //   to override previous definitions. This ultimately lets you define sub-caterwaul functions for DSLs, and each can define a default case by matching on qs[_] (thus preventing access to other
@@ -1205,11 +1208,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   | qs[_a + _b].match(qs[3 + x])        // -> {_a: 3, _b: x}
 //     qs[_a + _b].match(qs[3 / x])        // -> null
 
-    caterwaul_global.class_eval(function (def) {
-      def('macroexpand', function (t) {var self = this, macros = this.macro_patterns(), expanders = this.macro_expanders();
-                                       return caterwaul_global.ensure_syntax(t).rmap(function (n) {
-                                         for (var i = macros.length - 1, match, replacement; i >= 0; --i)
-                                           if ((match = macros[i].match(n)) && (replacement = expanders[i].call(self, match))) return replacement})})});
+    caterwaul_global.instance_eval(function (def) {
+      def('macroexpand', function (t, patterns, expanders, context) {return this.ensure_syntax(t).rmap(function (n) {
+                                                                       for (var i = patterns.length - 1, match, replacement; i >= 0; --i)
+                                                                         if ((match = patterns[i].match(n)) && (replacement = expanders[i].call(context, match))) return replacement})})});
+
+    caterwaul_global.class_eval(function (def) {def('macroexpand', function (t) {return this.global.macroexpand(t, this.macro_patterns(), this.macro_expanders(), this)})});
 // Generated by SDoc 
 
 
@@ -1270,14 +1274,24 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
     def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
 
-  caterwaul_global.class_eval(function (def) {
-    def('initialize',           function ()               {this.configure.apply(this, arguments)});
+//   Method duplication.
+//   Some static methods exist on the global caterwaul function. However, individual caterwaul compilers rarely refer to them. Rather, they inherit the global methods as individual methods to
+//   allow for customization. So, for instance, you could do this:
 
-    def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
-    def('init_not_precompiled', function (f, environment) {
-      var result = f.constructor === caterwaul_global.syntax ? this.apply_before_functions(f) : f;
-          result = f.constructor === caterwaul_global.syntax ? this.macroexpand(result) : caterwaul_global.compile(this(caterwaul_global.parse(result)), environment);
-            return f.constructor === caterwaul_global.syntax ? this.apply_after_functions(result) : result})});
+//   | var my_caterwaul = caterwaul();
+//     my_caterwaul.compile = function (tree, environment) {console.log(tree.toString())};
+//     my_caterwaul('3 + 4')       // logs '3+4'
+
+//   The mechanism by which this happens is self-inheritance. See sdoc::js::core/caterwaul.module for more information about how this works.
+
+    caterwaul_global.class_eval(function (def) {
+      this.include(this);
+
+      def('initialize',           function ()               {this.configure.apply(this, arguments)});
+
+      def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
+      def('init_not_precompiled', function (f, environment) {return f.constructor === caterwaul_global.syntax ? this.apply_after_functions(this.macroexpand(this.apply_before_functions(f))) :
+                                                                                                                this.compile(this(this.parse(f)))})});
 // Generated by SDoc 
 
 
@@ -1289,5 +1303,5 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('28a3c5c8d488e59cdd1ea71ccecbbd6c').check_version();
+caterwaul.version('7a4e9593e3c4e2aa747bfeb89f754030').check_version();
 // Generated by SDoc 

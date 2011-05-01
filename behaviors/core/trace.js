@@ -37,7 +37,8 @@
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-  caterwaul.shallow('trace', caterwaul.clone().tconfigure('core.js core.words core.quote', function () {
+  caterwaul.self_eval(function (def) {
+    this.attr_lazy('trace', function () {return this.global().tconfigure('core.js core.words core.quote', function () {
 
 //   Setup.
 //   This just involves creating the events and setting up the state markers.
@@ -130,35 +131,35 @@
 //     These methods perform the tracing. Originally they were lexical closures over one another, but this failed due to cloning. The structure here is that the before_hook, after_hook, and
 //     after_method_hook methods are called from inside the traced code through syntax refs that point to them.
 
-      this.method('before_hook',                   given[tree]                             in this.before_trace(tree)).
-           method('after_hook',                    given[tree, value]                      in this.after_trace(tree, value) -returning- value).
-           method('after_method_hook',             given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
-                                                                                              this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]).
+      this.self_eval(function (def) {
+        def('before_hook',                      given[tree]                             in this.before_trace(tree));
+        def('after_hook',                       given[tree, value]                      in this.after_trace(tree, value) -returning- value);
+        def('after_method_hook',                given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
+                                                                                           this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]);
 
-           once  ('before_hook_ref',               given.nothing in new this.ref(this.before_hook)).
-           once  ('after_hook_ref',                given.nothing in new this.ref(this.after_hook)).
-           once  ('after_method_hook_ref',         given.nothing in new this.ref(this.after_method_hook)).
+        this.attr_lazy('before_hook_ref',       given.nothing in new this.ref(this.before_hook));
+        this.attr_lazy('after_hook_ref',        given.nothing in new this.ref(this.after_hook));
+        this.attr_lazy('after_method_hook_ref', given.nothing in new this.ref(this.after_method_hook));
 
-           method('quote_method_name',             given.method in '"#{method.data.replace(/"/g, "\\\"")}"').
+        def('quote_method_name',                given.method in '"#{method.data.replace(/"/g, "\\\"")}"');
 
-           field ('expression_hook_template',      qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('(')).
-           field ('indirect_method_hook_template', qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('(')).
+        def('expression_hook_template',         qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('('));
+        def('indirect_method_hook_template',    qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('('));
 
-           method('expression_hook',               given[original, tree] in
-                                                   this.expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(),
-                                                                                          _tree: new this.ref(original), _expression: tree.as('(')})).
+        def('expression_hook',                  given[original, tree] in this.expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(),
+                                                                                                                _tree: new this.ref(original), _expression: tree.as('(')}));
 
-           method('method_hook',                   given[tree, object, method, parameters] in
-                                                   this.indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(),
-                                                                                               _tree: new this.ref(tree), _object: object, _method: method, _parameters: parameters})).
+        def('method_hook',                      given[tree, object, method, parameters] in
+                                                  this.indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(),
+                                                                                              _tree: new this.ref(tree), _object: object, _method: method, _parameters: parameters}));
 
-           method('direct_method_hook',            this.method_hook(tree, match._object, this.quote_method_name(match._method), match._parameters) -given[tree, match]).
-           method('indirect_method_hook',          this.method_hook(tree, match._object, match._method,                         match._parameters) -given[tree, match]),
+        def('direct_method_hook',               this.method_hook(tree, match._object, this.quote_method_name(match._method), match._parameters) -given[tree, match]);
+        def('indirect_method_hook',             this.method_hook(tree, match._object, match._method,                         match._parameters) -given[tree, match])}),
 
 //   Entry point.
 //   This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
 
     this.initial_state('S'),
 
-    where[qw(s) = s.split(/\s+/)]}));
+    where[qw(s) = s.split(/\s+/)]})})});
 // Generated by SDoc 

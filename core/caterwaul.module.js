@@ -44,8 +44,8 @@
       se(this.methods = {}, function () {this.extend_methods       = function (o) {var ms = this.methods(); for (var k in ms) if (ms.hasOwnProperty(k)) o[k] = ms[k]; return o};
                                          this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
 
-                                         this.methods = function ()  {return this.instance_data.methods};
-                                         this.extend  = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
+                                         this.methods       =               function ()  {return this.instance_data.methods};
+                                         this.extend_single = this.extend = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
 
 //     At this point our module is sufficiently functional to extend itself:
 
@@ -53,7 +53,7 @@
     module.extend_instance_data = module.instance_data.methods.extend_instance_data;
     module.methods              = module.instance_data.methods.methods;
 
-    module.instance_data.methods.extend.call(module, module);
+    module.instance_data.methods.extend_single.call(module, module);
 
 //   Module methods.
 //   These are instance methods on 'module' (which will be an instance of itself) and any modules you get by instantiating it. They're used to define class methods, instance methods, and compile
@@ -137,9 +137,9 @@
 //     At this point our module basically works, so we can add it to itself again to get the functionality built above. I'm also using it to create the modules for instance_eval and class_eval
 //     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
 
-      module.extend(module);
-      module.default_class_eval_def    = module.extend({});
-      module.default_instance_eval_def = module.extend({});
+      module.extend_single(module);
+      module.default_class_eval_def    = module.extend_single({});
+      module.default_instance_eval_def = module.extend_single({});
 
 //   Common design patterns.
 //   From here we add methods to make 'module' easier to use.
@@ -153,8 +153,8 @@
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
 
-    module.extend(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
-                                                       attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend(module);
+    module.extend_single(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
+                                                              attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend_single(module);
 
 //   Instantiation.
 //   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
@@ -182,7 +182,8 @@
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
       def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
-        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend(o, s)); return o})});
+        for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) (p = ps[i]).extend_single(o), s[id = p.identity()] || (s[id] = true, p.extend_parents(o, s));
+        return o})});
 
 //   Self evaluation.
 //   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
@@ -193,7 +194,7 @@
 //   New extend method.
 //   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
 
-    module.class_eval(function (def) {def('extend', function (o, seen) {return this.extend_methods(o), this.extend_instance_data(o), this.extend_parents(o, seen), o})});
+    module.class_eval(function (def) {def('extend', function (o) {return this.extend_single(o), this.extend_parents(o), o})});
 
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to

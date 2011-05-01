@@ -100,14 +100,14 @@
       def('map',   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n});
 
       def('reach', function (f) {f(this); this.each(function (n) {n && n.reach(f)}); return this});
-      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n. rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
+      def('rmap',  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n && n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r});
 
       def('clone', function () {return this.rmap(function () {return false})});
 
       def('collect', function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns});
       def('replace', function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
                                                                    var replacement = rs[n.data];
-                                                                   return replacement && replacement.constructor === String ? n.constructor(replacement, Array.prototype.slice.call(n)) :
+                                                                   return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
                                                                                                                               replacement})});
 
 //     Alteration.
@@ -163,9 +163,9 @@
                                                            se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
                                                                                                           for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))});
 
-      def('unflatten', function  () {var right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), bind(function (n) {
-                                       if (right) for (var i = 0, l = this.length - 1; i  < l; ++i) n = n.push(this[i]).push(i < l - 2 ? new this.constructor(this.data) : this[i])[1];
-                                       else       for (var i = this.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new this.constructor(this.data) : this[0]).push(this[i])[0]}, this))});
+      def('unflatten', function  () {var t = this, right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), function (n) {
+                                       if (right) for (var i = 0, l = t.length - 1; i  < l; ++i) n = n.push(t[i]).push(i < l - 2 ? new t.constructor(t.data) : t[i])[1];
+                                       else       for (var i = t.length - 1;        i >= 1; --i) n = n.push(i > 1 ? new t.constructor(t.data) : t[0]).push(t[i])[0]})});
 
 //     Wrapping.
 //     Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
@@ -232,7 +232,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
 //     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
-      def('match', function (target, variables) {variables || (variables = {_: target});
+      def('match', function (target, variables) {target = caterwaul_global.ensure_syntax(target);
+                                                 variables || (variables = {_: target});
                                                  if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                             else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                     if (! this[i].match(target[i], variables)) return null;
