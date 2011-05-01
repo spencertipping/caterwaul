@@ -700,24 +700,27 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Nodes might be flattened, so we can't assume any upper bound on the arity regardless of what kind of operator it is. Realistically you shouldn't hand flattened nodes over to the compile()
 //     function, but it isn't the end of the world if you do.
 
-      def('toString',  function ()   {var xs = []; this.serialize(xs); return xs.join('')});
-      def('serialize', function (xs) {var l = this.length, d = this.data, semi = ';\n';
-                                      switch (l) {case 0: if (has(parse_r_optional, d)) return xs.push(d.replace(/^u/, ''));
-                                                     else                               return xs.push(d);
+      def('toString',  function ()   {var xs = ['']; this.serialize(xs); return xs.join('')});
+      def('serialize', function (xs) {var l = this.length, d = this.data, semi = ';\n',
+                                       push = function (x) {if (lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)]) xs.push(' ', x);
+                                                            else                                                                           xs.push(x)};
 
-                                                  case 1: if (has(parse_r,  d) || has(parse_r_optional, d)) return xs.push(d.replace(/^u/, '')), this[0].serialize(xs);
-                                                     else if (has(parse_lr, d))                             return xs.push(d);
-                                                     else if (has(parse_group, d))                          return xs.push(d), this[0].serialize(xs), xs.push(parse_group[d]);
-                                                     else                                                   return this[0].serialize(xs), xs.push(d);
+                                      switch (l) {case 0: if (has(parse_r_optional, d)) return push(d.replace(/^u/, ''));
+                                                     else                               return push(d);
 
-                                                  case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), xs.push(d.charAt(0)), this[1].serialize(xs), xs.push(d.charAt(1));
-                                                     else if (has(parse_r_until_block, d)) return xs.push(d), this[0].serialize(xs), this[1].serialize(xs);
-                                                     else                                  return this[0].serialize(xs), xs.push(d), this[1].serialize(xs);
+                                                  case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return push(d.replace(/^u/, '')), this[0].serialize(xs);
+                                                     else if (has(parse_group, d))                         return push(d), this[0].serialize(xs), push(parse_group[d]);
+                                                     else if (has(parse_lr, d))                            return push('/* unary ' + d + ' node */'), this[0].serialize(xs);
+                                                     else                                                  return this[0].serialize(xs), push(d);
 
-                                                 default: if (has(parse_ternary, d))       return this[0].serialize(xs), xs.push(d), this[1].serialize(xs), xs.push(':'), this[2].serialize(xs);
+                                                  case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
+                                                     else if (has(parse_r_until_block, d)) return push(d), this[0].serialize(xs), this[1].serialize(xs);
+                                                     else                                  return this[0].serialize(xs), push(d), this[1].serialize(xs);
+
+                                                 default: if (has(parse_ternary, d))       return this[0].serialize(xs), push(d), this[1].serialize(xs), push(':'), this[2].serialize(xs);
                                                      else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
-                                                                                             (xs.push(d), this[0].serialize(xs), this[1].serialize(xs), xs.push(semi), this[2].serialize(xs)) :
-                                                                                             (xs.push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
+                                                                                             (push(d), this[0].serialize(xs), this[1].serialize(xs), push(semi), this[2].serialize(xs)) :
+                                                                                             (push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
                                                      else                                  return this.unflatten().serialize(xs)}})}));
 
 //   Syntax promotion.
@@ -1277,7 +1280,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('0620a5996c2dfbf1a714a2558e5a3082').check_version();
+caterwaul.version('5c39e46e4f84d08a228e77bb7a62ebe8').check_version();
 // Generated by SDoc 
 
 
