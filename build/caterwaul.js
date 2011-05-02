@@ -170,25 +170,6 @@
       se(module.methods(), function () {this.method = function () {for (var ms = this.methods(), i = 0, l = arguments.length - 1, f = arguments[l]; i < l; ++i) ms[arguments[i]] = f;
                                                                    return this}});
 
-//     Constructor creation.
-//     Most of the time in OOP we'll be working with actual constructors rather than this behavior stuff, if for no other reason than the fact that Javascript's prototype inheritance is much
-//     faster. To quickly convert a module to a constructor function, you can use the 'compile' method. This will take a snapshot of the module state and give you a constructor to generate those
-//     objects. (Note that it doesn't behave quite like you might expect; constructors defined on the module won't be called on instances created by the constructor function.)
-
-//     Another method, 'generator', builds a function that is a constructor but doesn't behave like one. If you use the constructor function as an actual constructor, you're expected to pass it
-//     an array or arguments object rather than n separate parameters. The reason for this is a bit bizarre, but it has to do with the restriction that Javascript doesn't allow constructor
-//     argument forwarding (since constructors have no equivalent of the .apply() method). So the expected case is that you'll use the constructor function as a regular function, not as a
-//     constructor.
-
-//     The 'compile' function takes an optional function to use as the constructor for new instances. If you invoke the function produced by compile() as a regular function (not as a
-//     constructor), then the function you passed into compile() will be called for each new instance. This is important to use, since the instance_data field of the new object will be a
-//     prototype member, not a direct member -- lots of stuff will break if this isn't changed.
-
-      se(module.methods(), function () {this.compile   = function (construct) {var f = function () {construct && construct.apply(this, arguments)}; this.extend(f.prototype); return f};
-                                        this.generator = function (construct) {var f = function (args) {if (this.constructor === f) construct && construct.apply(this, args);
-                                                                                                        else                        return new f(arguments)};
-                                                                               this.extend(f.prototype); return f}});
-
 //     Circularity.
 //     At this point our module basically works, so we can add it to itself again to get the functionality built above.
 
@@ -233,7 +214,7 @@
 //   structures. This is done by using the 'identity' method.
 
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
-      def('include', function () {var ps = this.parents(); for (var i = 0, l = arguments.length; i < l; ++i) ps.push.apply(ps, arguments); return this});
+      def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
         for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend_parents(o, s)), p.extend_single(o);
         return o})});
@@ -242,6 +223,15 @@
 //   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
 
     module.class_eval(function (def) {def('extend', function (o) {return this.extend_parents(o), this.extend_single(o), o})});
+
+//   Constructor creation.
+//   Most of the time in OOP we'll be working with actual constructors rather than this behavior stuff, if for no other reason than the fact that Javascript's prototype inheritance is much
+//   faster. To quickly convert a module to a constructor function, you can use the 'compile' method. This will take a snapshot of the module state and give you a constructor to generate those
+//   objects. The constructor forwards to initialize() just like it normally would.
+
+    module.class_eval(function (def) {def('compile', function () {var f = function () {this.instance_data = {}; this.initialize && this.initialize.apply(this, arguments)};
+                                                                  this.extend(f.prototype); delete f.prototype.instance_data;
+                                                                  return f})});
 
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
@@ -272,14 +262,16 @@
     var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
         caterwaul_global = caterwaul = module.extend(calls_init());
 
+    caterwaul_global.self_eval(function (def) {def('default_eval', function (f) {var m = module().class_eval(f); return m.extend(this.include(m))})});
+
     caterwaul_global.self_eval(function (def) {
       this.attr_lazy('configurations', Object);
 
       def('configuration',             function (name, f) {this.configurations()[name] = f; return this});
       def('individual_configurations', function (xs) {
-        for (var result = [], i = 0, l = xs.length, x; i < l; ++i) if ((x = xs[i]) instanceof Array) result.push.apply(result, this.individual_configurations(x));
-                                                              else if (x.constructor === String)     result.push.apply(result, qw(x));
-                                                              else                                   result.push(x);
+        for (var result = [], i = 0, l = xs.length, x; i < l; ++i) if ((x = xs[i]) instanceof Array)             result.push.apply(result, this.individual_configurations(x));
+                                                              else if (x.constructor === String && /\s/.test(x)) result.push.apply(result, qw(x));
+                                                              else                                               result.push(x);
         return result})});
 
     caterwaul_global.class_eval(function (def) {
@@ -339,7 +331,7 @@
 //   A lot of the time we'll want some kind of variadic behavior for methods. These meta-methods define such behavior. There are a few templates that occur commonly in the caterwaul source, and
 //   you can define your own meta-methods to handle other possibilities.
 
-    caterwaul_global.self_eval(function (def) {
+    caterwaul_global.default_eval(function (def) {
       def('variadic',              function (f) {return function () {for (var i = 0, l = arguments.length;                       i < l; ++i) f.call(this, arguments[i]);    return this}});
       def('right_variadic_binary', function (f) {return function () {for (var i = 0, l = arguments.length - 1, x = arguments[l]; i < l; ++i) f.call(this, arguments[i], x); return this}})});
 // Generated by SDoc 
@@ -402,7 +394,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 // nodes. At the end of folding there is only one child per paren-group.
 
-  caterwaul_global.self_eval(function (def) {
+  caterwaul_global.default_eval(function (def) {
 
 //   Doubly-linked paren-group lists.
 //   When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
@@ -719,23 +711,28 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    se(module().include(syntax_common).class_eval(function (def) {def('length', 0); def('binds_a_value', true)}), function () {
-      def('ref_module', this);
-      def('ref',        this.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                                       else                                   {this.value = value;       this.data = gensym()}}))});
+    var ref_module = module().include(syntax_common).class_eval(function (def) {
+      def('initialize', function (value) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
+                                          else                                   this.value = value,       this.data = gensym()});
+      def('length', 0);
+      def('binds_a_value', true)});
+
+    def('ref_module', ref_module);
+    def('ref',        ref_module.compile());
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    se(module().include(syntax_common), function () {
-      def('syntax_module', this);
-      def('syntax',        this.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                                         else {this.data = data && data.toString(); this.length = 0;
-                                                           for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                             for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                               this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}}))})});
+    var syntax_module = module().include(syntax_common).class_eval(function (def) {
+      def('initialize', function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                         else {this.data = data && data.toString(); this.length = 0;
+                                           for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                             for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                               this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}})});
+    def('syntax_module', syntax_module);
+    def('syntax',        syntax_module.compile())});
 // Generated by SDoc 
 
 
@@ -753,7 +750,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
 // we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
-  caterwaul_global.self_eval(function (def) {
+  caterwaul_global.default_eval(function (def) {
 
 //   Syntax folding.
 //   The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
@@ -822,7 +819,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
         var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
             grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [],
             new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)},
-            syntax_node = caterwaul_global.syntax;
+            syntax_node = this.syntax;
 
 //     Main lex loop.
 //     This loop takes care of reading all of the tokens in the input stream. At the end, we'll have a linked node structure with paren groups. At the beginning, we set the mark to the current
@@ -1056,11 +1053,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
 // non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
 
-  caterwaul_global.attr_lazy('globals', Object).self_eval(function (def) {
+  caterwaul_global.attr_lazy('globals', Object).default_eval(function (def) {
     def('compile', function (tree, environment) {var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
                                                  for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
+
                                                  var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.toString() + ')';
-                                                 try {return (new Function(s, code)).call(bindings['this'], bindings)} catch (e) {throw new Error(e + ' while compiling ' + code)}})});
+                                                 try       {return (new Function(s, code)).call(bindings['this'], bindings)}
+                                                 catch (e) {throw new Error(e + ' while compiling ' + code)}})});
 // Generated by SDoc 
 
 
@@ -1140,10 +1139,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     caterwaul_global.attr_lazy('macro_patterns',  Array).
                      attr_lazy('macro_expanders', Array).class_eval(function (def) {
 
-      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.ensure_syntax(pattern)),
-                                                                                         this.macro_expanders().push(this.ensure_expander(expander)), this}));
+      def('final_macro', this.right_variadic_binary(function (pattern, expander) {return this.macro_patterns().push(this.global.ensure_syntax(pattern)),
+                                                                                         this.macro_expanders().push(this.global.ensure_expander(expander)), this}));
 
-      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.ensure_expander(expander);
+      def('macro',       this.right_variadic_binary(function (pattern, expander) {expander = this.global.ensure_expander(expander);
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
@@ -1253,19 +1252,16 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   | var my_caterwaul = caterwaul();
 //     my_caterwaul.compile = function (tree, environment) {console.log(tree.toString())};
-//     my_caterwaul('3 + 4')       // logs '3+4'
-
-//   The mechanism by which this happens is self-inheritance. See sdoc::js::core/caterwaul.module for more information about how this works.
+//     my_caterwaul('3 + 4')       // logs '3+4', returns undefined
 
     caterwaul_global.include(module);
-    caterwaul_global.include(caterwaul_global);
 
     caterwaul_global.class_eval(function (def) {
       def('initialize',           function ()               {this.configure.apply(this, arguments)});
 
       def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
-      def('init_not_precompiled', function (f, environment) {return f.constructor === caterwaul_global.syntax ? this.apply_after_functions(this.macroexpand(this.apply_before_functions(f))) :
-                                                                                                                this.compile(this(this.parse(f)))})});
+      def('init_not_precompiled', function (f, environment) {return f.constructor === this.syntax ? this.apply_after_functions(this.macroexpand(this.apply_before_functions(f))) :
+                                                                                                    this.compile(this(this.parse(f)))})});
 // Generated by SDoc 
 
 
@@ -1277,7 +1273,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
+caterwaul.version('9eac6538035a60ed8fa06e9f36df6dad').check_version();
 // Generated by SDoc 
 
 
@@ -1320,12 +1316,12 @@ caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
       this.self_eval(function (def) {
         this.attr_lazy(names, Array);
         def(name, rvb(function (name, expander) {
-          for (var fs = this[forms](), definition = this.ensure_expander(expander), i = 0, l = fs.length; i < l; ++i) define.call(this, name, definition, fs[i]);
+          for (var fs = this[forms](), definition = this.global.ensure_expander(expander), i = 0, l = fs.length; i < l; ++i) define.call(this, name, definition, fs[i]);
           this[names]().push({name: name, definition: definition})}));
 
         this.attr_lazy(forms, Array);
         def(form, v(function (form) {
-          for (var xs = this[names](), form = this.ensure_syntax(form), i = 0, l = xs.length; i < l; ++i) define.call(this, xs[i].name, xs[i].definition, form);
+          for (var xs = this[names](), form = this.global.ensure_syntax(form), i = 0, l = xs.length; i < l; ++i) define.call(this, xs[i].name, xs[i].definition, form);
           this[forms]().push(form)}))})}))});
 // Generated by SDoc 
 
@@ -1512,15 +1508,15 @@ caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
 //     console.log(it), over_keys[{foo: 'bar'}]    // logs foo
 //     console.log(it), over_values[{foo: 'bar'}]  // logs bar
 
-    this.parameterized_modifier('over',        this.with_gensyms(
+    this.parameterized_modifier('over',        this.global.with_gensyms(
            '(function () {for (var gensym_xs = (_modifiers), gensym_result = [], gensym_i = 0, gensym_l = gensym_xs.length, it; gensym_i < gensym_l; ++gensym_i) ' +
                          '  it = gensym_xs[gensym_i], gensym_result.push(_expression); return gensym_result}).call(this)')).
 
-         parameterized_modifier('over_keys',   this.with_gensyms(
+         parameterized_modifier('over_keys',   this.global.with_gensyms(
            '(function () {var gensym_x = (_modifiers), gensym_result = []; ' +
                          'for (var it in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, it) && gensym_result.push(_expression); return gensym_result}).call(this)')).
 
-         parameterized_modifier('over_values', this.with_gensyms(
+         parameterized_modifier('over_values', this.global.with_gensyms(
            '(function () {var gensym_x = (_modifiers), gensym_result = [], it; ' +
                          'for (var gensym_k in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, gensym_k) && (it = gensym_x[gensym_k], gensym_result.push(_expression));' +
                          'return gensym_result}).call(this)'));
@@ -1530,7 +1526,7 @@ caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
 
 //   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    this.parameterized_modifier('until', this.with_gensyms(
+    this.parameterized_modifier('until', this.global.with_gensyms(
            '(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))});
 // Generated by SDoc 
 
@@ -1585,8 +1581,8 @@ caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
 
       def('state_marker', this.variadic(given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]));
 
-      def('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers));
-      def('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse));
+      def('translate_state_markers',         given.t in this.global.ensure_syntax(t).replace(this.state_markers));
+      def('translate_state_markers_inverse', given.t in this.global.ensure_syntax(t).replace(this.state_markers_inverse));
 
       def('initial_state', given.name in this.before(this.global().final_macro('_x', this.translate_state_markers('#{name}[_x]'))));
 
@@ -1847,11 +1843,6 @@ caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
 
 
 
-
-
-
-
-
 // Inversion behavior | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
@@ -2001,8 +1992,7 @@ caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-  caterwaul.self_eval(function (def) {
-    this.attr_lazy('trace', function () {return this.global().tconfigure('core.js core.words core.quote', function () {
+  caterwaul.tconfiguration('core.js core.words core.quote core.traversal', 'trace', function () {
 
 //   Setup.
 //   This just involves creating the events and setting up the state markers.

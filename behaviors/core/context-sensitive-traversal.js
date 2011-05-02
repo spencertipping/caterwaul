@@ -41,8 +41,8 @@
 
       def('state_marker', this.variadic(given.m in this -effect[this.state_markers[this.state_markers_inverse[s] = m] = s] -where[s = this.gensym()]));
 
-      def('translate_state_markers',         given.t in this.ensure_syntax(t).replace(this.state_markers));
-      def('translate_state_markers_inverse', given.t in this.ensure_syntax(t).replace(this.state_markers_inverse));
+      def('translate_state_markers',         given.t in this.global.ensure_syntax(t).replace(this.state_markers));
+      def('translate_state_markers_inverse', given.t in this.global.ensure_syntax(t).replace(this.state_markers_inverse));
 
       def('initial_state', given.name in this.before(this.global().final_macro('_x', this.translate_state_markers('#{name}[_x]'))));
 

@@ -37,8 +37,7 @@
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-  caterwaul.self_eval(function (def) {
-    this.attr_lazy('trace', function () {return this.global().tconfigure('core.js core.words core.quote', function () {
+  caterwaul.tconfiguration('core.js core.words core.quote core.traversal', 'trace', function () {
 
 //   Setup.
 //   This just involves creating the events and setting up the state markers.

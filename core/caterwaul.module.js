@@ -88,25 +88,6 @@
       se(module.methods(), function () {this.method = function () {for (var ms = this.methods(), i = 0, l = arguments.length - 1, f = arguments[l]; i < l; ++i) ms[arguments[i]] = f;
                                                                    return this}});
 
-//     Constructor creation.
-//     Most of the time in OOP we'll be working with actual constructors rather than this behavior stuff, if for no other reason than the fact that Javascript's prototype inheritance is much
-//     faster. To quickly convert a module to a constructor function, you can use the 'compile' method. This will take a snapshot of the module state and give you a constructor to generate those
-//     objects. (Note that it doesn't behave quite like you might expect; constructors defined on the module won't be called on instances created by the constructor function.)
-
-//     Another method, 'generator', builds a function that is a constructor but doesn't behave like one. If you use the constructor function as an actual constructor, you're expected to pass it
-//     an array or arguments object rather than n separate parameters. The reason for this is a bit bizarre, but it has to do with the restriction that Javascript doesn't allow constructor
-//     argument forwarding (since constructors have no equivalent of the .apply() method). So the expected case is that you'll use the constructor function as a regular function, not as a
-//     constructor.
-
-//     The 'compile' function takes an optional function to use as the constructor for new instances. If you invoke the function produced by compile() as a regular function (not as a
-//     constructor), then the function you passed into compile() will be called for each new instance. This is important to use, since the instance_data field of the new object will be a
-//     prototype member, not a direct member -- lots of stuff will break if this isn't changed.
-
-      se(module.methods(), function () {this.compile   = function (construct) {var f = function () {construct && construct.apply(this, arguments)}; this.extend(f.prototype); return f};
-                                        this.generator = function (construct) {var f = function (args) {if (this.constructor === f) construct && construct.apply(this, args);
-                                                                                                        else                        return new f(arguments)};
-                                                                               this.extend(f.prototype); return f}});
-
 //     Circularity.
 //     At this point our module basically works, so we can add it to itself again to get the functionality built above.
 
@@ -151,7 +132,7 @@
 //   structures. This is done by using the 'identity' method.
 
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
-      def('include', function () {var ps = this.parents(); for (var i = 0, l = arguments.length; i < l; ++i) ps.push.apply(ps, arguments); return this});
+      def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
         for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend_parents(o, s)), p.extend_single(o);
         return o})});
@@ -160,6 +141,15 @@
 //   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
 
     module.class_eval(function (def) {def('extend', function (o) {return this.extend_parents(o), this.extend_single(o), o})});
+
+//   Constructor creation.
+//   Most of the time in OOP we'll be working with actual constructors rather than this behavior stuff, if for no other reason than the fact that Javascript's prototype inheritance is much
+//   faster. To quickly convert a module to a constructor function, you can use the 'compile' method. This will take a snapshot of the module state and give you a constructor to generate those
+//   objects. The constructor forwards to initialize() just like it normally would.
+
+    module.class_eval(function (def) {def('compile', function () {var f = function () {this.instance_data = {}; this.initialize && this.initialize.apply(this, arguments)};
+                                                                  this.extend(f.prototype); delete f.prototype.instance_data;
+                                                                  return f})});
 
 //   Constructing the final 'module' object.
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
