@@ -5,7 +5,7 @@
 // Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 // serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-  caterwaul.instance_eval(caterwaul('core.js core.words core.quote')(function (def) {
+  caterwaul.self_eval(caterwaul('core.js core.words core.quote')(function (def) {
 
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the

@@ -77,7 +77,7 @@
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
-    caterwaul_global.instance_eval(function (def) {
+    caterwaul_global.self_eval(function (def) {
       def('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
                                           return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})});
 
@@ -111,7 +111,7 @@
 //   | qs[_a + _b].match(qs[3 + x])        // -> {_a: 3, _b: x}
 //     qs[_a + _b].match(qs[3 / x])        // -> null
 
-    caterwaul_global.instance_eval(function (def) {
+    caterwaul_global.self_eval(function (def) {
       def('macroexpand', function (t, patterns, expanders, context) {return this.ensure_syntax(t).rmap(function (n) {
                                                                        for (var i = patterns.length - 1, match, replacement; i >= 0; --i)
                                                                          if ((match = patterns[i].match(n)) && (replacement = expanders[i].call(context, match))) return replacement})})});

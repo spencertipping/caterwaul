@@ -2,7 +2,7 @@
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 // nodes. At the end of folding there is only one child per paren-group.
 
-  caterwaul_global.instance_eval(function (def) {
+  caterwaul_global.self_eval(function (def) {
 
 //   Doubly-linked paren-group lists.
 //   When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
@@ -51,7 +51,7 @@
 //   These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
 //   turns out to be an issue.
 
-    def('syntax_common', module().class_eval(function (def) {
+    var syntax_common = module().class_eval(function (def) {
 
 //     Mutability.
 //     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
@@ -301,7 +301,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                      else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
                                                                                              (push(d), this[0].serialize(xs), this[1].serialize(xs), push(semi), this[2].serialize(xs)) :
                                                                                              (push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
-                                                     else                                  return this.unflatten().serialize(xs)}})}));
+                                                     else                                  return this.unflatten().serialize(xs)}})});
+
+    def('syntax_common', syntax_common);
 
 //   Syntax promotion.
 //   Sometimes you want to accept a string rather than a fully constructed syntax node, but your function is designed to work with syntax nodes. If this is the case then you want to use the
@@ -317,21 +319,21 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    def('ref_module', module().include(this.syntax_common).class_eval(function (def) {def('length',        0);
-                                                                                      def('binds_a_value', true)}));
-
-    def('ref', this.ref_module.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                                         else                                   {this.value = value;       this.data = gensym()}}));
+    se(module().include(syntax_common).class_eval(function (def) {def('length', 0); def('binds_a_value', true)}), function () {
+      def('ref_module', this);
+      def('ref',        this.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                                       else                                   {this.value = value;       this.data = gensym()}}))});
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    def('syntax_module', module().include(this.syntax_common));
-    def('syntax', this.syntax_module.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                                              else {this.data = data && data.toString(); this.length = 0;
-                                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                                  for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                                    this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}))});
+    se(module().include(syntax_common), function () {
+      def('syntax_module', this);
+      def('syntax',        this.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                         else {this.data = data && data.toString(); this.length = 0;
+                                                           for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                             for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                               this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}}))})});
 // Generated by SDoc 

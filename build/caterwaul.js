@@ -127,7 +127,7 @@
                                          this.extend_instance_data = function (o) {o.instance_data || (o.instance_data = {}); return o};
 
                                          this.methods       =               function ()  {return this.instance_data.methods};
-                                         this.extend_single = this.extend = function (o) {return this.extend_methods(o), this.extend_instance_data(o)}})});
+                                         this.extend_single = this.extend = function (o) {return this.extend_methods(o), this.extend_instance_data(o), o}})});
 
 //     At this point our module is sufficiently functional to extend itself:
 
@@ -135,43 +135,11 @@
     module.extend_instance_data = module.instance_data.methods.extend_instance_data;
     module.methods              = module.instance_data.methods.methods;
 
-    module.instance_data.methods.extend_single.call(module, module);
+    module.instance_data.methods.extend.call(module, module);
 
 //   Module methods.
 //   These are instance methods on 'module' (which will be an instance of itself) and any modules you get by instantiating it. They're used to define class methods, instance methods, and compile
 //   a constructor function from the module. There are also functions to perform inheritance and mixing in.
-
-//     Instance evaluation.
-//     Just like in Ruby, 'module' and its instances provide an instance_eval function. (Unlike in Ruby, this method isn't present on all objects.) It expects a function that can accept a 'def'
-//     parameter, which is aliased to a bound form of a variadic method definition function. 'def' is extended with the module's 'instance_eval_def' module. For example:
-
-//     | my_module.instance_eval(function (def) {
-//         def('foo', function () {return 'bar'});
-//         def('bar', 'bif', function () {return 'baz'});
-//       });
-//       my_module.foo()           // -> 'bar'
-//       my_module.bar()           // -> 'baz'
-//       my_module.bif()           // -> 'baz'
-
-//     To extend 'def' for the purposes of instance_eval:
-
-//     | my_module.instance_eval_def().class_eval(function (def) {
-//         def('bork', function (name, f) {
-//           this.method(name, f);         // 'this' refers to the module
-//         });
-//       });
-
-//     Now this will work:
-
-//     | my_module.instance_eval(function (def) {
-//         def.bork('hi', function () {
-//           return 'this is a method';
-//         });
-//       });
-
-      se(module.methods(), function () {this.create_instance_eval_def = function ()  {var t = this; return this.instance_eval_def().extend(function (name, value) {return t[name] = value, t})};
-                                        this.instance_eval_def        = function ()  {return this.instance_data.instance_eval_def || module.default_instance_eval_def};
-                                        this.instance_eval            = function (f) {return f.call(this, this.create_instance_eval_def()) || this}});
 
 //     Class evaluation.
 //     Also swiped from Ruby is the class_eval method, which you'll probably use much more often. For example:
@@ -183,11 +151,17 @@
 //       });
 //       new (my_module.compile())().foo()         // -> 'bar'
 
-//     Like instance_eval, class_eval has a corresponding (but separate) 'def' behavior module.
+//     Class_eval has a corresponding 'def' behavior module. This allows you to create methods on the 'def' function.
 
       se(module.methods(), function () {this.create_class_eval_def = function ()  {var t = this; return this.class_eval_def().extend(function () {return t.method.apply(t, arguments)})};
                                         this.class_eval_def        = function ()  {return this.instance_data.class_eval_def || module.default_class_eval_def};
                                         this.class_eval            = function (f) {return f.call(this, this.create_class_eval_def()) || this}});
+
+//     Self evaluation.
+//     This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
+//     module with the anonymous one. Note that this operates on the instance_eval level, not the class_eval level; instances of your module will be unaffected by self_evaling things.
+
+      se(module.methods(), function () {this.self_eval = function (f) {return module.extend({}).class_eval(f).extend(this)}});
 
 //     Method creation.
 //     The most common thing we'll want to do with a module is add methods to it. The lowest-level way to do this is to use the .method() method, which lets you define a method under one or more
@@ -216,12 +190,10 @@
                                                                                this.extend(f.prototype); return f}});
 
 //     Circularity.
-//     At this point our module basically works, so we can add it to itself again to get the functionality built above. I'm also using it to create the modules for instance_eval and class_eval
-//     'def' functions, which are from this point forward upgraded independently of the 'module' module itself. (Don't worry if this is confusing.)
+//     At this point our module basically works, so we can add it to itself again to get the functionality built above.
 
-      module.extend_single(module);
-      module.default_class_eval_def    = module.extend_single({});
-      module.default_instance_eval_def = module.extend_single({});
+      module.extend(module);
+      module.default_class_eval_def = module.extend({});
 
 //   Common design patterns.
 //   From here we add methods to make 'module' easier to use.
@@ -235,14 +207,13 @@
       def('attr_once', 'attr_lazy', function (name, f) {return this.method(name, function () {return name in this.instance_data ? this.instance_data[name] :
                                                                                                                                   (this.instance_data[name] = f.apply(this, arguments))})})});
 
-    module.extend_single(module).attr_lazy('methods', Object).attr_null('instance_eval_def', function () {return module.default_instance_eval_def}).
-                                                              attr_null('class_eval_def',    function () {return module.default_class_eval_def}).extend_single(module);
+    module.extend(module).attr_lazy('methods', Object).attr_null('class_eval_def', function () {return module.default_class_eval_def}).extend(module);
 
 //   Instantiation.
 //   Modules can provide an instance constructor called 'create_instance'. This will be called automatically when you invoke the 'create' method, and the object returned by 'create_instance' is
 //   extended and used as the instance. So, for example:
 
-//   | my_module.instance_eval(function (def) {
+//   | my_module.self_eval(function (def) {
 //       def('create_instance', function () {return function () {return 10}});
 //       def('foo', function () {return 'bar'});
 //     });
@@ -255,23 +226,17 @@
     module.class_eval(function (def) {def('create', 'init', function () {var instance = this.extend(this.create_instance && this.create_instance.apply(this, arguments) || {});
                                                                          return instance.initialize && instance.initialize.apply(instance, arguments), instance})}).
 
-        instance_eval(function (def) {def('create_instance', calls_init)});
+            self_eval(function (def) {def('create_instance', calls_init)});
 
 //   Inheritance.
 //   Each module has a list of parents that it uses during extension. Because a module might inherit from itself the implementation knows how to avoid infinite-looping from cyclical inheritance
 //   structures. This is done by using the 'identity' method.
 
     module.attr_lazy('identity', gensym).attr_lazy('parents', Array).class_eval(function (def) {
-      def('include', function () {var ps = this.parents(); ps.push.apply(ps, arguments); return this});
+      def('include', function () {var ps = this.parents(); for (var i = 0, l = arguments.length; i < l; ++i) ps.push.apply(ps, arguments); return this});
       def('extend_parents', function (o, seen) {
         for (var s = seen || {}, ps = this.parents(), i = 0, l = ps.length, p, id; i < l; ++i) s[id = (p = ps[i]).identity()] || (s[id] = true, p.extend_parents(o, s)), p.extend_single(o);
         return o})});
-
-//   Self evaluation.
-//   This lets you use module-level metaprogramming against a single instance. The idea is to create an anonymous module, class_eval() it with the given function, and then extend the current
-//   module with the anonymous one. Note that this operates on the instance_eval level, not the class_eval level; instances of your module will be unaffected by self_evaling things.
-
-    module.class_eval(function (def) {def('self_eval', function (f) {return module().class_eval(f).extend(this)})});
 
 //   New extend method.
 //   This is the finished implementation of extend(). It knows about methods, inheritance, and instance data.
@@ -282,9 +247,7 @@
 //   Now all we have to do is extend 'module' with itself and make sure its constructor ends up being invoked. Because its instance data doesn't have the full list of extension stages, we have to
 //   explicitly invoke its constructor on itself for this to work.
 
-    module.extend(module);
-    module.extend(module.default_instance_eval_def);
-    module.extend(module.default_class_eval_def);
+    module.extend(module).extend(module.default_class_eval_def);
 // Generated by SDoc 
 
 
@@ -340,14 +303,14 @@
 //   The old caterwaul supported two methods, tconfigure() and tconfiguration(), that combined configuration and compilation into one step. It was a great feature, so I'm definitely not leaving
 //   it out of version 1.0.
 
-    caterwaul_global.instance_eval(function (def) {def('tconfiguration', function (cs, name, f, e) {return this.configuration(name, this(cs)(f, e))})});
-    caterwaul_global.class_eval   (function (def) {def('tconfigure',     function (cs, f, e)       {return this.configure(this(cs)(f, e))})});
+    caterwaul_global.self_eval (function (def) {def('tconfiguration', function (cs, name, f, e) {return this.configuration(name, this(cs)(f, e))})});
+    caterwaul_global.class_eval(function (def) {def('tconfigure',     function (cs, f, e)       {return this.configure(this(cs)(f, e))})});
 
 //   Static utilities.
 //   These are available on the caterwaul global.
 
-    caterwaul_global.instance_eval(function (def) {def('deglobalize', function () {caterwaul = original_global; return caterwaul_global});
-                                                   def('module', module); def('gensym', gensym); def('initializer', initializer); def('unique', unique)});
+    caterwaul_global.self_eval(function (def) {def('deglobalize', function () {caterwaul = original_global; return caterwaul_global});
+                                               def('module', module); def('gensym', gensym); def('initializer', initializer); def('unique', unique)});
 
 //   Instance methods.
 //   These will be available on every caterwaul compiler function.
@@ -367,7 +330,7 @@
 //   to precompile the whole bundle of caterwaul, the extensions, and your code. Without version checking, however, the traces would be lost and nothing would happen.
 
     module().attr('version').extend(caterwaul_global);
-    caterwaul_global.instance_eval(function (def) {
+    caterwaul_global.self_eval(function (def) {
       def('check_version', function () {if (original_global && this.version() === original_global.version()) this.deglobalize(); return this});
       def('reinitialize',  function (transform, erase_configurations) {var c = (transform || function (x) {return x})(this.initializer), result = c(c, this.unique).deglobalize();
                                                                        erase_configurations || (result.instance_data.configurations = this.configurations()); return result})});
@@ -376,7 +339,7 @@
 //   A lot of the time we'll want some kind of variadic behavior for methods. These meta-methods define such behavior. There are a few templates that occur commonly in the caterwaul source, and
 //   you can define your own meta-methods to handle other possibilities.
 
-    caterwaul_global.instance_eval(function (def) {
+    caterwaul_global.self_eval(function (def) {
       def('variadic',              function (f) {return function () {for (var i = 0, l = arguments.length;                       i < l; ++i) f.call(this, arguments[i]);    return this}});
       def('right_variadic_binary', function (f) {return function () {for (var i = 0, l = arguments.length - 1, x = arguments[l]; i < l; ++i) f.call(this, arguments[i], x); return this}})});
 // Generated by SDoc 
@@ -439,7 +402,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
 // nodes. At the end of folding there is only one child per paren-group.
 
-  caterwaul_global.instance_eval(function (def) {
+  caterwaul_global.self_eval(function (def) {
 
 //   Doubly-linked paren-group lists.
 //   When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
@@ -488,7 +451,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
 //   turns out to be an issue.
 
-    def('syntax_common', module().class_eval(function (def) {
+    var syntax_common = module().class_eval(function (def) {
 
 //     Mutability.
 //     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
@@ -738,7 +701,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                      else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
                                                                                              (push(d), this[0].serialize(xs), this[1].serialize(xs), push(semi), this[2].serialize(xs)) :
                                                                                              (push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
-                                                     else                                  return this.unflatten().serialize(xs)}})}));
+                                                     else                                  return this.unflatten().serialize(xs)}})});
+
+    def('syntax_common', syntax_common);
 
 //   Syntax promotion.
 //   Sometimes you want to accept a string rather than a fully constructed syntax node, but your function is designed to work with syntax nodes. If this is the case then you want to use the
@@ -754,23 +719,23 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    def('ref_module', module().include(this.syntax_common).class_eval(function (def) {def('length',        0);
-                                                                                      def('binds_a_value', true)}));
-
-    def('ref', this.ref_module.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
-                                                         else                                   {this.value = value;       this.data = gensym()}}));
+    se(module().include(syntax_common).class_eval(function (def) {def('length', 0); def('binds_a_value', true)}), function () {
+      def('ref_module', this);
+      def('ref',        this.compile(function (value) {if (value instanceof this.constructor) {this.value = value.value; this.data = value.data}
+                                                       else                                   {this.value = value;       this.data = gensym()}}))});
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    def('syntax_module', module().include(this.syntax_common));
-    def('syntax', this.syntax_module.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                                              else {this.data = data && data.toString(); this.length = 0;
-                                                                for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                                  for (var j = 0, lj = _.length, it, itc; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                                    this._append((itc = it.constructor) === String || itc === Number || itc === Boolean ? new this.constructor(it) : it)}}))});
+    se(module().include(syntax_common), function () {
+      def('syntax_module', this);
+      def('syntax',        this.compile(function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                         else {this.data = data && data.toString(); this.length = 0;
+                                                           for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                             for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                               this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}}))})});
 // Generated by SDoc 
 
 
@@ -788,7 +753,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
 // we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
 
-  caterwaul_global.instance_eval(function (def) {
+  caterwaul_global.self_eval(function (def) {
 
 //   Syntax folding.
 //   The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
@@ -1091,7 +1056,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
 // non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
 
-  caterwaul_global.attr_lazy('globals', Object).instance_eval(function (def) {
+  caterwaul_global.attr_lazy('globals', Object).self_eval(function (def) {
     def('compile', function (tree, environment) {var vars = [], values = [], bindings = merge({}, this.globals, environment || {}, tree.bindings()), s = gensym();
                                                  for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
                                                  var code = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';') + ';return(' + tree.toString() + ')';
@@ -1182,7 +1147,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                                   return this.final_macro(pattern, function () {
                                                                                     var t = expander.apply(this, arguments); return t && this.macroexpand(t)})}))});
 
-    caterwaul_global.instance_eval(function (def) {
+    caterwaul_global.self_eval(function (def) {
       def('with_gensyms', function (t) {var gensyms = {}; return this.ensure_syntax(t).rmap(function (n) {
                                           return /^gensym/.test(n.data) && new this.constructor(gensyms[n.data] || (gensyms[n.data] = gensym()), this)})});
 
@@ -1216,7 +1181,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   | qs[_a + _b].match(qs[3 + x])        // -> {_a: 3, _b: x}
 //     qs[_a + _b].match(qs[3 / x])        // -> null
 
-    caterwaul_global.instance_eval(function (def) {
+    caterwaul_global.self_eval(function (def) {
       def('macroexpand', function (t, patterns, expanders, context) {return this.ensure_syntax(t).rmap(function (n) {
                                                                        for (var i = patterns.length - 1, match, replacement; i >= 0; --i)
                                                                          if ((match = patterns[i].match(n)) && (replacement = expanders[i].call(context, match))) return replacement})})});
@@ -1275,7 +1240,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Somewhat unrelated to the rest of this stuff is the 'create_instance' definition on caterwaul_global. This tells the caterwaul module to create instances that call their own 'init' methods,
 // and we add the 'init' method in the class_eval section below.
 
-  caterwaul_global.instance_eval(function (def) {
+  caterwaul_global.self_eval(function (def) {
     def('create_instance', calls_init);
 
     def('precompiled_internal_table', {});
@@ -1292,9 +1257,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //   The mechanism by which this happens is self-inheritance. See sdoc::js::core/caterwaul.module for more information about how this works.
 
-    caterwaul_global.class_eval(function (def) {
-      this.include(this);
+    caterwaul_global.include(module);
+    caterwaul_global.include(caterwaul_global);
 
+    caterwaul_global.class_eval(function (def) {
       def('initialize',           function ()               {this.configure.apply(this, arguments)});
 
       def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
@@ -1311,7 +1277,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('3cafc73a1a38f5a50ee8740635b74612').check_version();
+caterwaul.version('5d167df1690dddede7bd9dec95263322').check_version();
 // Generated by SDoc 
 
 
@@ -1640,7 +1606,7 @@ caterwaul.version('3cafc73a1a38f5a50ee8740635b74612').check_version();
 // Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 // serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-  caterwaul.instance_eval(caterwaul('core.js core.words core.quote')(function (def) {
+  caterwaul.self_eval(caterwaul('core.js core.words core.quote')(function (def) {
 
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the

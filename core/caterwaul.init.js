@@ -13,7 +13,7 @@
 // Somewhat unrelated to the rest of this stuff is the 'create_instance' definition on caterwaul_global. This tells the caterwaul module to create instances that call their own 'init' methods,
 // and we add the 'init' method in the class_eval section below.
 
-  caterwaul_global.instance_eval(function (def) {
+  caterwaul_global.self_eval(function (def) {
     def('create_instance', calls_init);
 
     def('precompiled_internal_table', {});
@@ -30,9 +30,10 @@
 
 //   The mechanism by which this happens is self-inheritance. See sdoc::js::core/caterwaul.module for more information about how this works.
 
-    caterwaul_global.class_eval(function (def) {
-      this.include(this);
+    caterwaul_global.include(module);
+    caterwaul_global.include(caterwaul_global);
 
+    caterwaul_global.class_eval(function (def) {
       def('initialize',           function ()               {this.configure.apply(this, arguments)});
 
       def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
