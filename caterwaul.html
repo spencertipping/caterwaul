@@ -1037,29 +1037,6 @@ meta::hook('after-render::notes', <<'__');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
 __
-meta::hook('after-render::test-page', <<'__');
-# Builds test/index.html
-my $scripts = join "\n", map "<script src='../$_'></script>", grep s/^sdoc::js::(.*test\/(?!lib\/).*)$/\1.js/, sort keys %data;
-
-file::write('test/index.html', <<EOF);
-<!doctype html>
-<html>
-<head>
-<title>Caterwaul unit tests</title>
-<script src="../caterwaul.all.js"></script>
-<script src="lib/unit.js"></script>
-<script src="lib/unit.client.js"></script>
-<style>
-body {font-family: monospace}
-</style>
-</head>
-<body>
-<div id='log'></div>
-$scripts
-</body>
-</html>
-EOF
-__
 meta::internal_function('around_hook', <<'__');
 # around_hook('hookname', @args, sub {
 #   stuff;
