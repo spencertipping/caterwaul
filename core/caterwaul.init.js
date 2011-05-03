@@ -1,39 +1,40 @@
 // Init method.
-// This is the main entry point of caterwaul when you use it as a function. As of version 0.6.4, the init() property is polymorphic in semantics as well as structure. There are two cases:
+// There are two init methods worth thinking about. One is the global caterwaul's init method, which takes a driver function and returns a compiler. The other is the compiler's init method, which
+// takes a string, function, or syntax tree and returns a value or syntax tree.
 
-// | 1. You invoke caterwaul on a syntax node. In this case only macroexpansion is performed.
-//   2. You invoke caterwaul on anything else. In this case the object is parsed, macroexpanded, and then compiled.
+  caterwaul_global.init = function (f) {var result = function () {return result.init.apply(this, arguments)};
+                                        return caterwaul_global.setup_state(result, {driver_function: f})};
 
-// This pattern is then closed under intent; that is, caterwaul functions compose both in the context of function -> function compilers (though composition here isn't advisable), and in the
-// context of tree -> tree compilers (macroexpansion). Having such an arrangement is important for before() and after() to work properly.
+//   Compiler instance methods/attributes.
+//   These are installed on each generated compiler function. You can change some of them if you know what you're doing (for instance, you can create a compiler for a different programming
+//   language by changing the 'parse' function to handle different input). Unlike caterwaul < 1.0 there is no support for cloning a compiler function. However, you can compose things nicely by
+//   doing stuff like this:
 
-// Even though the caterwaul core doesn't support precompilation, I've built in mechanisms here to support it. The reason is that the precompiler will begin referencing the
-// internal_precompiled() function possibly before it is loaded, and in that situation the function needs to be ready.
+//   | var my_caterwaul    = caterwaul(function (code) {...});
+//     var other_caterwaul = caterwaul(my_caterwaul);
+//     other_caterwaul.parse = function (x) {...};
 
-// Somewhat unrelated to the rest of this stuff is the 'create_instance' definition on caterwaul_global. This tells the caterwaul module to create instances that call their own 'init' methods,
-// and we add the 'init' method in the class_eval section below.
+//   In this example, other_caterwaul delegates its macroexpansion to my_caterwaul, but it uses a custom parse function. (You could also customize the compile function, though generally there
+//   isn't a good reason to.)
 
-  caterwaul_global.self_eval(function (def) {
-    def('create_instance', calls_init);
+//   I'm (ab)using the constructor property here. I'd like to convey the idea that functions produced by caterwaul() are instances of caterwaul, even though Javascript won't see it that way.
 
-    def('precompiled_internal_table', {});
-    def('precompiled_internal', function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k});
-    def('is_precompiled',       function (f) {return f.constructor === String && this.precompiled_internal_table[f]})});
+    caterwaul_global.instance_methods = {
+      constructor:          caterwaul_global,
+      parse:                caterwaul_global.parse,
+      compile:              caterwaul_global.compile,
+      syntax:               caterwaul_global.syntax,
+      ref:                  caterwaul_global.ref,
 
-//   Method duplication.
-//   Some static methods exist on the global caterwaul function. However, individual caterwaul compilers rarely refer to them. Rather, they inherit the global methods as individual methods to
-//   allow for customization. So, for instance, you could do this:
+      ensure_syntax:        function (thing) {return thing && thing.constructor === String ? this.parse(thing) : thing},
 
-//   | var my_caterwaul = caterwaul();
-//     my_caterwaul.compile = function (tree, environment) {console.log(tree.toString())};
-//     my_caterwaul('3 + 4')       // logs '3+4', returns undefined
+      id:                   function () {return this._id || (this._id = gensym())},
+      toString:             function () {return '[caterwaul insatnce ' + this.id() + ']'},
 
-    caterwaul_global.include(module);
+      init:                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)},
+      init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.driver_function.call(this, f) : this.compile(this(this.parse(f)))}};
 
-    caterwaul_global.class_eval(function (def) {
-      def('initialize',           function ()               {this.configure.apply(this, arguments)});
-
-      def('init',                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)});
-      def('init_not_precompiled', function (f, environment) {return f.constructor === this.syntax ? this.apply_after_functions(this.macroexpand(this.apply_before_functions(f))) :
-                                                                                                    this.compile(this(this.parse(f)))})});
+    caterwaul_global.setup_state = function (compiler, driver_function) {
+      return merge(compiler, caterwaul_global.instance_methods, {driver_function: driver_function}, {macros: [],
+                                                                                              bound_symbols: {}})};
 // Generated by SDoc 
