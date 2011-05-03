@@ -3086,9 +3086,10 @@ The macro needs to first identify things of the form '_something /log' and trans
                                                       (x = arguments[i]) instanceof Array ? macros.push.apply(macros, x) : macros.push(x);
 
                                                     var context = {caterwaul: this, macros: macros, expand: function (tree) {
-                                                      for (var new_tree = null, i = macros.length - 1; i >= 0; --i) if (new_tree = macros[i].call(context, tree)) return new_tree}};
+                                                      return tree.rmap(function (node) {
+                                                        for (var new_node = null, i = macros.length - 1; i >= 0; --i) if (new_node = macros[i].call(context, node)) return new_node})}};
 
-                                                    return tree.rmap(context.expand)};
+                                                    return context.expand(this.ensure_syntax(tree))};
 __
 meta::sdoc('js::core/caterwaul.parser', <<'__');
 Parsing.
