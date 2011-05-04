@@ -3200,54 +3200,56 @@ or (2) caching of the object. In this case I've written a special function to ha
 caterwaul.js.base(function ($) {
   $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
 
-    -where [trace_caterwaul = $() -effect[it.macros = $.flatten(trace_macros)],
-            trace(tree)     = trace_caterwaul.macroexpand(tree),
+  -where [trace_caterwaul = $() -effect [it.macros = $.flatten(trace_macros)],
+          trace(tree)     = trace_caterwaul.macroexpand(tree)]
 
   Expression-mode transformations.
   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', D[] means 'hook this direct method call', I[] means 'hook this indirect
   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
 
-    -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
-            rule(p, e)        = $.macro(anon(p), anon(e)),
+  -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
+          rule(p, e)        = $.macro(anon(p), anon(e)),
 
-            expression_macros = [rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
-                                 rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier or literal
+          expression_macros = [rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
+                               rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier or literal
 
-                                 assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),
-                                 binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
-                                 unary_operator(it)      -over- qw('+ - ! ~'),
+                               assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),
+                               binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
+                               unary_operator(it)      -over- qw('+ - ! ~'),
 
-                                 rule('E[(_x)]', '(E[_x])'),                                                            // Destructuring of parens
-                                 rule('E[++_x]', 'H[_, ++_x]'), rule('E[--_x]', 'H[_, --_x]'),                          // Increment/decrement (can't trace original value)
-                                 rule('E[_x++]', 'H[_, _x++]'), rule('E[_x--]', 'H[_, _x--]'),
+                               rule('E[(_x)]', '(E[_x])'),                                                            // Destructuring of parens
+                               rule('E[++_x]', 'H[_, ++_x]'), rule('E[--_x]', 'H[_, --_x]'),                          // Increment/decrement (can't trace original value)
+                               rule('E[_x++]', 'H[_, _x++]'), rule('E[_x--]', 'H[_, _x--]'),
 
-                                 rule('E[_x, _y]',                 'E[_x], E[_y]'),                                     // Preserve commas -- works in an argument list
-                                 rule('E[_x._y]',                  'H[_, E[_x]._y]'),                                   // No tracing for constant attributes
-                                 rule('E[_f()]',                   'H[_, E[_f]()]'),                                    // Nullary function call won't be handled by binary ()
+                               rule('E[_x, _y]',                 'E[_x], E[_y]'),                                     // Preserve commas -- works in an argument list
+                               rule('E[_x._y]',                  'H[_, E[_x]._y]'),                                   // No tracing for constant attributes
+                               rule('E[_f()]',                   'H[_, E[_f]()]'),                                    // Nullary function call won't be handled by binary ()
 
-                                 rule('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]'),                        // Use D[] to indicate direct method binding
-                                 rule('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]'),                     // Use I[] to indicate indirect method binding
-                                 rule('E[_o._m()]',                'D[_, E[_o], _m, []'),                               // Duplicate for nullary method calls
-                                 rule('E[_o[_m]()]',               'I[_, E[_o], E[_m], []'),
+                               rule('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]'),                        // Use D[] to indicate direct method binding
+                               rule('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]'),                     // Use I[] to indicate indirect method binding
+                               rule('E[_o._m()]',                'D[_, E[_o], _m, []'),                               // Duplicate for nullary method calls
+                               rule('E[_o[_m]()]',               'I[_, E[_o], E[_m], []'),
 
-                                 rule('E[typeof _x]',              'H[_, typeof _x]'),                                  // No tracing for typeof since the value may not exist
-                                 rule('E[void _x]',                'H[_, void E[_x]]'),                                 // Normal tracing
-                                 rule('E[delete _x._y]',           'H[_, delete E[_x]._y]'),                            // Lvalue, so no tracing for the original
-                                 rule('E[new _x(_y)]',             'H[_, new H[_x](E[_y])]'),                           // Hook the constructor to prevent method-handling from happening
-                                 rule('E[{_ps}]',                  'H[_, {E[_ps]}]'),                                   // Hook the final object and distribute across k/v pairs (more)
-                                 rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
-                                 rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
-                                 rule('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]'),
-                                 rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]'),                  // Trace body in statement mode rather than expression mode
-                                 rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]')]                  // Handle nullary case
+                               rule('E[typeof _x]',              'H[_, typeof _x]'),                                  // No tracing for typeof since the value may not exist
+                               rule('E[void _x]',                'H[_, void E[_x]]'),                                 // Normal tracing
+                               rule('E[delete _x._y]',           'H[_, delete E[_x]._y]'),                            // Lvalue, so no tracing for the original
+                               rule('E[new _x(_y)]',             'H[_, new H[_x](E[_y])]'),                           // Hook the constructor to prevent method-handling from happening
+                               rule('E[{_ps}]',                  'H[_, {E[_ps]}]'),                                   // Hook the final object and distribute across k/v pairs (more)
+                               rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
+                               rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
+                               rule('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]'),
+                               rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]'),                  // Trace body in statement mode rather than expression mode
+                               rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]')]                  // Handle nullary case
 
-                                -where[assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
-                                                                  rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
-                                                                  rule('E[_x._y  = _z]', 'H[_, E[_x]._y     = E[_z]]')] -where[t(x)       = anon(x).replace({'=': op}),
+                              -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
+                                                                 rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
+                                                                 rule('E[_x._y  = _z]', 'H[_, E[_x]._y     = E[_z]]')] -where [t(x)       = anon(x).replace({'=': op}),
                                                                                                                                rule(x, y) = $.macro(t(x), t(y))],
 
-                                       binary_operator(op)     = $.macro(anon('E[_x + _y]').replace({'+': op}),    anon('H[_, E[_x] + E[_y]]').replace({'+': op})),
-                                       unary_operator(op)      = $.macro(anon('E[+_x]').replace({'u+': 'u#{op}'}), anon('H[_, +E[_x]]').replace({'u+': 'u#{op}'}))],
+                                      binary_operator(op)     = $.macro(anon('E[_x + _y]').replace({'+': op}),    anon('H[_, E[_x] + E[_y]]').replace({'+': op})),
+                                      unary_operator(op)      = $.macro(anon('E[+_x]').replace({'u+': 'u#{op}'}), anon('H[_, +E[_x]]').replace({'u+': 'u#{op}'})),
+
+                                      qw(s)                   = s.split(/\s+/)],
 
   Statement-mode transformations.
   A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
@@ -3262,67 +3264,55 @@ caterwaul.js.base(function ($) {
   we have to produce x = H[5], y = H[6]. The statement-mode comma and equals rules do exactly that. Note that we don't lose anything by doing this because in statement context the result of an
   assignment is never used anyway.
 
-            statement_macros = [rule('S[_x]',              'E[_x]'),              rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
-                                rule('S[{_x}]',            '{S[_x]}'),            rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
-                                rule('S[_x; _y]',          'S[_x]; S[_y]'),       rule('S[while (_x) _y]',                         'while (E[_x]) S[_y]'),
-                                                                                  rule('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])'),
-                                rule('S[_x, _y]',          'S[_x], S[_y]'),       rule('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])'),
-                                rule('S[_x = _y]',         '_x = E[_y]'),
-                                rule('S[var _xs]',         'var S[_xs]'),         rule('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}'),
-                                rule('S[const _xs]',       'const S[_xs]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
-                                                                                  rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
-                                rule('S[return _x]',       'return E[_x]'),       rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
-                                rule('S[return]',          'return'),             rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
-                                rule('S[throw _x]',        'throw E[_x]'),
-                                rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
-                                rule('S[break]',           'break'),              rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
-                                rule('S[continue _label]', 'continue _label'),    rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
-                                rule('S[continue]',        'continue'),           rule('S[switch (_c) {_body}]',                   'switch (E[_c]) {S[_body]}'),
-                                rule('S[_label: _stuff]',  '_label: S[_stuff]'),  rule('S[with (_x) _y]',                          'with (E[_x]) S[_y]')],
+          statement_macros = [rule('S[_x]',              'E[_x]'),              rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
+                              rule('S[{_x}]',            '{S[_x]}'),            rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
+                              rule('S[_x; _y]',          'S[_x]; S[_y]'),       rule('S[while (_x) _y]',                         'while (E[_x]) S[_y]'),
+                                                                                rule('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])'),
+                              rule('S[_x, _y]',          'S[_x], S[_y]'),       rule('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])'),
+                              rule('S[_x = _y]',         '_x = E[_y]'),
+                              rule('S[var _xs]',         'var S[_xs]'),         rule('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}'),
+                              rule('S[const _xs]',       'const S[_xs]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
+                                                                                rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
+                              rule('S[return _x]',       'return E[_x]'),       rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
+                              rule('S[return]',          'return'),             rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
+                              rule('S[throw _x]',        'throw E[_x]'),
+                              rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
+                              rule('S[break]',           'break'),              rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
+                              rule('S[continue _label]', 'continue _label'),    rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
+                              rule('S[continue]',        'continue'),           rule('S[switch (_c) {_body}]',                   'switch (E[_c]) {S[_body]}'),
+                              rule('S[_label: _stuff]',  '_label: S[_stuff]'),  rule('S[with (_x) _y]',                          'with (E[_x]) S[_y]')],
 
   Hook generation.
   Most of the actual hook generation code is fairly routine for JIT stuff. The patterns here don't actually expand into other state marker patterns; H, D, and I are all terminal. The [1]
   subscript is a hack. We want to grab the un-annotated tree, but all of the patterns have state markers on them. So we subscript by [1] to get the child of that state annotation.
 
-    this.tmacro('H[_tree, _x]',                              given.match in this.expression_hook     (match._tree[1], match._x)).
-         tmacro('D[_tree, _object, _method, [_parameters]]', given.match in this.direct_method_hook  (match._tree[1], match)).
-         tmacro('I[_tree, _object, _method, [_parameters]]', given.match in this.indirect_method_hook(match._tree[1], match)),
+          hook_macros      = [rule('H[_tree, _x]',                              expression_hook     (match._tree[1], match._x) -given.match),
+                              rule('D[_tree, _object, _method, [_parameters]]', direct_method_hook  (match._tree[1], match)    -given.match),
+                              rule('I[_tree, _object, _method, [_parameters]]', indirect_method_hook(match._tree[1], match)    -given.match)]
 
-    Code generation.
-    These methods perform the tracing. Originally they were lexical closures over one another, but this failed due to cloning. The structure here is that the before_hook, after_hook, and
-    after_method_hook methods are called from inside the traced code through syntax refs that point to them.
+                      -where [before_hook(tree)                                   = before(tree)       /when.before,
+                              after_hook(tree, value)                             = after(tree, value) /when.after -returning- tree,
+                              after_method_hook(tree, object, method, parameters) = before_hook(tree[0]) -then- after_hook(tree[0], resolved) -then-
+                                                                                    after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
 
-      this.self_eval(function (def) {
-        def('before_hook',                      given[tree]                             in this.before_trace(tree));
-        def('after_hook',                       given[tree, value]                      in this.after_trace(tree, value) -returning- value);
-        def('after_method_hook',                given[tree, object, method, parameters] in this.before_trace(tree[0]) -then- this.after_trace(tree[0], resolved) -then-
-                                                                                           this.after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]]);
+                              before_hook_ref                                     = new $.ref(before_hook),
+                              after_hook_ref                                      = new $.ref(after_hook),
+                              after_method_hook_ref                               = new $.ref(after_method_hook),
 
-        this.attr_lazy('before_hook_ref',       given.nothing in new this.ref(this.before_hook));
-        this.attr_lazy('after_hook_ref',        given.nothing in new this.ref(this.after_hook));
-        this.attr_lazy('after_method_hook_ref', given.nothing in new this.ref(this.after_method_hook));
+                              quote_method_name(s)                                = '"#{method.data.replace(/"/g, "\\\"")}"',
 
-        def('quote_method_name',                given.method in '"#{method.data.replace(/"/g, "\\\"")}"');
+                              expression_hook_template                            = $.parse('(_before(_tree), _after(_tree, _expression))'),
+                              indirect_method_hook_template                       = $.parse('(_before(_tree), _after(_tree, _object, _method, [_parameters]))'),
 
-        def('expression_hook_template',         qs[_before_hook(_tree), _after_hook(_tree, _expression)].as('('));
-        def('indirect_method_hook_template',    qs[_before_hook(_tree), _after_hook(_tree, _object, _method, [_parameters])].as('('));
+                              expression_hook(original, tree)                     = expression_hook_template.replace({_before: before_hook_ref, _after: after_hook_ref,
+                                                                                                                      _tree: new $.ref(original), _expression: tree.as('(')}),
 
-        def('expression_hook',                  given[original, tree] in this.expression_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_hook_ref(),
-                                                                                                                _tree: new this.ref(original), _expression: tree.as('(')}));
+                              method_hook(tree, object, method, parameters)       = indirect_method_hook_template.replace({_before: before_hook_ref, _after: after_method_hook_ref,
+                                                                                                                           _tree: new $.ref(original), _object: object, _method: method,
+                                                                                                                           _parameters: parameters}),
 
-        def('method_hook',                      given[tree, object, method, parameters] in
-                                                  this.indirect_method_hook_template.replace({_before_hook: this.before_hook_ref(), _after_hook: this.after_method_hook_ref(),
-                                                                                              _tree: new this.ref(tree), _object: object, _method: method, _parameters: parameters}));
-
-        def('direct_method_hook',               this.method_hook(tree, match._object, this.quote_method_name(match._method), match._parameters) -given[tree, match]);
-        def('indirect_method_hook',             this.method_hook(tree, match._object, match._method,                         match._parameters) -given[tree, match])}),
-
-  Entry point.
-  This is where we the trace function starts. We assume statement context, which is required for eval-style functionality to work correctly.
-
-    this.initial_state('S'),
-
-    where[qw(s) = s.split(/\s+/)]
+                              direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),
+                              indirect_method_hook(tree, match)                   = method_hook(tree, match._object, match._method,                    match._parameters)]]})(caterwaul);
 __
 meta::sdoc('js::extensions/std', <<'__');
 Caterwaul standard library | Spencer Tipping
@@ -3636,6 +3626,9 @@ These impact how something gets evaluated.
     language.parameterized_modifier('when',      '((_modifiers) && (_expression))'),
     language.parameterized_modifier('unless',    '(! (_modifiers) && (_expression))'),
     language.parameterized_modifier('otherwise', '((_expression) || (_modifiers))'),
+
+    language.parameterized_modifier('when_defined',   '((_modifiers) != null && (_expression))'),
+    language.parameterized_modifier('unless_defined', '((_modifiers) == null && (_expression))'),
 
   Collection-based loops.
   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.

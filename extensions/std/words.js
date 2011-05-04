@@ -66,6 +66,9 @@
     language.parameterized_modifier('unless',    '(! (_modifiers) && (_expression))'),
     language.parameterized_modifier('otherwise', '((_expression) || (_modifiers))'),
 
+    language.parameterized_modifier('when_defined',   '((_modifiers) != null && (_expression))'),
+    language.parameterized_modifier('unless_defined', '((_modifiers) == null && (_expression))'),
+
 //   Collection-based loops.
 //   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
 
