@@ -32,6 +32,9 @@
 
     merge(caterwaul_global, {
       merge:                 merge,
+      map:                   map,
+      rmap:                  rmap,
+      flatten:               flatten,
       gensym:                gensym,
       unique:                unique,
       initializer:           initializer,
