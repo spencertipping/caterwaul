@@ -1,4 +1,4 @@
-// Caterwaul with all modules (precompiled) | Spencer Tipping
+// Caterwaul with all modules | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
 
@@ -1693,564 +1693,1028 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
 
 
-caterwaul.configuration('std.qs',(function (qs_template,qse_template,literal_template,gensym_2_gnathyfw_azshho){return function (gensym_2_gnathyfw_azshhp){this.macro(qs_template,function (tree,gensym_2_gnathyfw_azshhq){return new this.ref(tree)}).macro(qse_template,function (tree,gensym_2_gnathyfw_azshhr){return new this.ref(this.macroexpand(tree))}).macro(literal_template,function (tree,gensym_2_gnathyfw_azshhs){return tree})}})(caterwaul.parse('qs[_]'),caterwaul.parse('qse[_]'),caterwaul.parse('literal[_]'))).tconfiguration('std.qs','std.qg',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshif=caterwaul.parse('qg[_]');
-return (function (gensym_2_gnathyfw_azshht){this.rmacro(gensym_2_gnathyfw_azshif,function (expression,gensym_2_gnathyfw_azshhu){return expression.as('(')})})})())).tconfiguration('std.qs std.qg','std.fn',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshih=caterwaul.parse('fn[_][_]');
-var gensym_2_gnathyfw_azshii=caterwaul.parse('qg[function (vars,gensym_2_gnathyfw_azshhx){return expression}]');
-var gensym_2_gnathyfw_azshij=caterwaul.parse('fn_[_]');
-var gensym_2_gnathyfw_azshik=caterwaul.parse('qg[function (gensym_2_gnathyfw_azshhz){return expression}]');
-var gensym_2_gnathyfw_azshil=caterwaul.parse('fb[_][_]');
-var gensym_2_gnathyfw_azshim=caterwaul.parse('fn[_t][fn_[fn[vars][e].apply(_t,arguments)]](this)');
-var gensym_2_gnathyfw_azshin=caterwaul.parse('fb_[_]');
-var gensym_2_gnathyfw_azshio=caterwaul.parse('fn[_t][fn_[fn_[e].apply(_t,arguments)]](this)');
-var gensym_2_gnathyfw_azship=caterwaul.parse('fc[_][_]');
-var gensym_2_gnathyfw_azshiq=caterwaul.parse('(fn[vars][body,undefined])');
-var gensym_2_gnathyfw_azshir=caterwaul.parse('fc_[_]');
-var gensym_2_gnathyfw_azshis=caterwaul.parse('(fn[vars][body,undefined])');
-return (function (gensym_2_gnathyfw_azshhv){this.configure('std.qg').rmacro(gensym_2_gnathyfw_azshih,function (vars,expression,gensym_2_gnathyfw_azshhw){return gensym_2_gnathyfw_azshii.replace({vars:vars,expression:expression})}).rmacro(gensym_2_gnathyfw_azshij,function (expression,gensym_2_gnathyfw_azshhy){return gensym_2_gnathyfw_azshik.replace({expression:expression})}).rmacro(gensym_2_gnathyfw_azshil,function (vars,expression,gensym_2_gnathyfw_azshi0){return gensym_2_gnathyfw_azshim.replace({_t:this.gensym(),vars:vars,e:expression})}).rmacro(gensym_2_gnathyfw_azshin,function (expression,gensym_2_gnathyfw_azshi1){return gensym_2_gnathyfw_azshio.replace({_t:this.gensym(),e:expression})}).rmacro(gensym_2_gnathyfw_azship,function (vars,body,gensym_2_gnathyfw_azshi2){return gensym_2_gnathyfw_azshiq.replace({vars:vars,body:body})}).rmacro(gensym_2_gnathyfw_azshir,function (body,gensym_2_gnathyfw_azshi3){return gensym_2_gnathyfw_azshis.replace({body:body})})})})())).tconfiguration('std.qs std.qg std.fn','std.obj',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshiu=caterwaul.parse('_/mb/_');
-var gensym_2_gnathyfw_azshiv=caterwaul.parse('((function (_o,gensym_2_gnathyfw_azshhx){return _o.m&&(function (gensym_2_gnathyfw_azshhz){return _o.m.apply(_o,arguments)})}))(o)');
-var gensym_2_gnathyfw_azshiw=caterwaul.parse('_/mb[_]');
-var gensym_2_gnathyfw_azshix=caterwaul.parse('((function (_o,_m,gensym_2_gnathyfw_azshhx){return _o[_m]&&(function (gensym_2_gnathyfw_azshhz){return _o[_m].apply(_o,arguments)})}))(o,m)');
-var gensym_2_gnathyfw_azshiy=caterwaul.parse('_/se._[_]');
-var gensym_2_gnathyfw_azshiz=caterwaul.parse('((function (n,gensym_2_gnathyfw_azshhx){return b,n})).call(this,v)');
-var gensym_2_gnathyfw_azshj0=caterwaul.parse('_/se[_]');
-var gensym_2_gnathyfw_azshj1=caterwaul.parse('v/se._[b]');
-var gensym_2_gnathyfw_azshj2=caterwaul.parse('_/re._[_]');
-var gensym_2_gnathyfw_azshj3=caterwaul.parse('((function (n,gensym_2_gnathyfw_azshhx){return b})).call(this,v)');
-var gensym_2_gnathyfw_azshj4=caterwaul.parse('_/re[_]');
-var gensym_2_gnathyfw_azshj5=caterwaul.parse('v/re._[b]');
-return (function (gensym_2_gnathyfw_azshi4){this.configure('std.qg std.fn').rmacro(gensym_2_gnathyfw_azshiu,(function (object,method,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshiv.replace({_o:this.gensym(),o:object,m:method})})).rmacro(gensym_2_gnathyfw_azshiw,(function (object,method,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshix.replace({_o:this.gensym(),_m:this.gensym(),o:object,m:method})})).rmacro(gensym_2_gnathyfw_azshiy,(function (v,n,b,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshiz.replace({b:b,n:n,v:v})})).rmacro(gensym_2_gnathyfw_azshj0,(function (v,b,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshj1.replace({b:b,v:v})})).rmacro(gensym_2_gnathyfw_azshj2,(function (v,n,b,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshj3.replace({b:b,n:n,v:v})})).rmacro(gensym_2_gnathyfw_azshj4,(function (v,b,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshj5.replace({b:b,v:v})}))})})())).tconfiguration('std.qs std.qg std.fn','std.bind',caterwaul.precompiled_internal((function (){var let_in=caterwaul.parse('let[_] in _');
-var let_brackets=caterwaul.parse('let[_][_]');
-var lets_in=caterwaul.parse('let*[_] in _');
-var lets_brackets=caterwaul.parse('let*[_][_]');
-var gensym_2_gnathyfw_azshja=caterwaul.parse('qg[function (gensym_2_gnathyfw_azshi6){var vars;\nreturn expression}].call(this)');
-var gensym_2_gnathyfw_azshjc=caterwaul.parse('qg[function (vars,gensym_2_gnathyfw_azshi7){return e}].call(this,values)');
-var gensym_2_gnathyfw_azshjd=caterwaul.parse('l[_] in _');
-var gensym_2_gnathyfw_azshje=caterwaul.parse('l[_][_]');
-var gensym_2_gnathyfw_azshjf=caterwaul.parse('_,where[_]');
-var gensym_2_gnathyfw_azshjg=caterwaul.parse('l*[_] in _');
-var gensym_2_gnathyfw_azshjh=caterwaul.parse('l*[_][_]');
-var gensym_2_gnathyfw_azshji=caterwaul.parse('_,where*[_]');
-return (function (gensym_2_gnathyfw_azshi5){this.configure('std.qg');
-var lf=(function (gensym_2_gnathyfw_azshj7,gensym_2_gnathyfw_azshhx){return (function (gensym_2_gnathyfw_azshhz){return (function (form,gensym_2_gnathyfw_azshhx){return this.rmacro(form,l_expander)}).apply(gensym_2_gnathyfw_azshj7,arguments)})})(this),lsf=(function (gensym_2_gnathyfw_azshj8,gensym_2_gnathyfw_azshhx){return (function (gensym_2_gnathyfw_azshhz){return (function (form,gensym_2_gnathyfw_azshhx){return this.rmacro(form,l_star_expander)}).apply(gensym_2_gnathyfw_azshj8,arguments)})})(this),l_star_expander=(function (gensym_2_gnathyfw_azshj9,gensym_2_gnathyfw_azshhx){return (function (gensym_2_gnathyfw_azshhz){return (function (vars,expression,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshja.replace({vars:this.macroexpand(vars),expression:expression})}).apply(gensym_2_gnathyfw_azshj9,arguments)})})(this),l_expander=(function (gensym_2_gnathyfw_azshjb,gensym_2_gnathyfw_azshhx){return (function (gensym_2_gnathyfw_azshhz){return (function (vars,expression,gensym_2_gnathyfw_azshhx){return vars=this.macroexpand(vars).flatten(','),gensym_2_gnathyfw_azshjc.replace({vars:vars.map((function (n,gensym_2_gnathyfw_azshhx){return n[0]})).unflatten(),e:expression,values:vars.map((function (n,gensym_2_gnathyfw_azshhx){return n[1]})).unflatten()})}).apply(gensym_2_gnathyfw_azshjb,arguments)})})(this);
-lf(gensym_2_gnathyfw_azshjd),lf(gensym_2_gnathyfw_azshje),lf(let_in),lf(let_brackets).rmacro(gensym_2_gnathyfw_azshjf,(function (expression,vars,gensym_2_gnathyfw_azshhx){return l_expander(vars,expression)}));
-lsf(gensym_2_gnathyfw_azshjg),lsf(gensym_2_gnathyfw_azshjh),lsf(lets_in),lsf(lets_brackets).rmacro(gensym_2_gnathyfw_azshji,(function (expression,vars,gensym_2_gnathyfw_azshhx){return l_star_expander(vars,expression)}))})})()),{let_in:caterwaul.parse('let [_] in _'),let_brackets:caterwaul.parse('let [_][_]'),lets_in:caterwaul.parse('let*[_] in _'),lets_brackets:caterwaul.parse('let*[_][_]')}).tconfiguration('std.qs std.qg std.fn','std.lvalue',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshjk=caterwaul.parse('_(_)=_');
-var gensym_2_gnathyfw_azshjl=caterwaul.parse('base=qg[function (params,gensym_2_gnathyfw_azshi9){return value}]');
-return (function (gensym_2_gnathyfw_azshi8){this.rmacro(gensym_2_gnathyfw_azshjk,(function (base,params,value,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshjl.replace({base:base,params:params,value:value})}))})})())).tconfiguration('std.qs std.qg std.fn','std.cond',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshjn=caterwaul.parse('_,when[_]');
-var gensym_2_gnathyfw_azshjo=caterwaul.parse('qg[l]&&qg[r]');
-var gensym_2_gnathyfw_azshjp=caterwaul.parse('_,unless[_]');
-var gensym_2_gnathyfw_azshjq=caterwaul.parse(' !qg[l]&&qg[r]');
-return (function (gensym_2_gnathyfw_azshia){this.configure('std.qg').rmacro(gensym_2_gnathyfw_azshjn,(function (expr,cond,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshjo.replace({l:cond,r:expr})})).rmacro(gensym_2_gnathyfw_azshjp,(function (expr,cond,gensym_2_gnathyfw_azshhx){return gensym_2_gnathyfw_azshjq.replace({l:cond,r:expr})}))})})())).tconfiguration('std.qs std.qg std.fn','std.ref',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshjs=caterwaul.parse('caterwaul');
-return (function (gensym_2_gnathyfw_azshib){this.macro(gensym_2_gnathyfw_azshjs,(function (gensym_2_gnathyfw_azshhz){return new this.ref(this)}))})})())).tconfiguration('std.qs std.fn std.bind','std.string',caterwaul.precompiled_internal((function (){var gensym_2_gnathyfw_azshju=caterwaul.parse('_');
-return (function (gensym_2_gnathyfw_azshic){this.rmacro(gensym_2_gnathyfw_azshju,(function (string,gensym_2_gnathyfw_azshhx){return string.is_string()&&/#\{[^\}]+\}/.test(string.data)&&(function (gensym_2_gnathyfw_azshi6){var q=string.data.charAt(0),s=string.as_escaped_string(),eq=new RegExp('\\\\'+q,'g'),strings=s.split(/#\{[^\}]+\}/),xs=[],result=new this.syntax('+');
-return s.replace(/#\{([^\}]+)\}/g,(function (_,s,gensym_2_gnathyfw_azshhx){return xs.push(s),''})),this.util.map((function (gensym_2_gnathyfw_azshjv,gensym_2_gnathyfw_azshhx){return (function (gensym_2_gnathyfw_azshhz){return (function (x,i,gensym_2_gnathyfw_azshhx){return result.push(new this.syntax(q+(i<strings.length?strings[i]:'')+q)).push(new this.syntax('(',this.parse(xs[i].replace(eq,q))))}).apply(gensym_2_gnathyfw_azshjv,arguments)})})(this),xs),new this.syntax('(',result.push(new this.syntax(q+(xs.length<strings.length?strings[strings.length-1]:'')+q)).unflatten())}).call(this)}))})})())).configuration('std',function (gensym_2_gnathyfw_azshid){this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string')});
+// Caterwaul standard library | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+  caterwaul.
+
+// Qs library.
+// You really need to use this if you're going to write macros. It enables the qs[] construct in your code. This comes by default when you configure with 'std'. A variant, qse[], macroexpands the
+// quoted code first and returns the macroexpansion. This improves performance while still enabling terse macro forms -- for example, if you write this:
+
+// | this.rmacro(qs[foo[_]], function (tree) {return qse[fn_[x + 1]].replace({x: tree})})
+
+// The fn_[] will be expanded exactly once when the qse[] is processed, rather than each time as part of the macroexpansion. I don't imagine it improves performance that noticeably, but it's
+// been bugging me for a while so I decided to add it.
+
+// Finally, there's also a literal[] macro to preserve code forms. Code inside literal[] will not be macroexpanded in any way.
+
+  configuration('std.qs', (function (qs_template, qse_template, literal_template) {return function () {
+                            this.macro(qs_template,      function (tree) {return new this.ref(tree)}).
+                                 macro(qse_template,     function (tree) {return new this.ref(this.macroexpand(tree))}).
+                                 macro(literal_template, function (tree) {return tree})}}) (caterwaul.parse('qs[_]'), caterwaul.parse('qse[_]'), caterwaul.parse('literal[_]'))).
+
+// Qg library.
+// The qg[] construct seems useless; all it does is parenthesize things. The reason it's there is to overcome constant-folding and rewriting Javascript runtimes such as SpiderMonkey. Firefox
+// failed the unit tests when ordinary parentheses were used because it requires disambiguation for expression-mode functions only at the statement level; thus syntax trees are not fully mobile
+// like they are ordinarily. Already-parenthesized expressions aren't wrapped.
+
+  tconfiguration('std.qs', 'std.qg', function () {this.rmacro(qs[qg[_]], function (expression) {return expression.as('(')})}).
+
+// Function abbreviations (the 'fn' library).
+// There are several shorthands that are useful for functions. fn[x, y, z][e] is the same as function (x, y, z) {return e}, fn_[e] constructs a nullary function returning e. fb[][] and fb_[]
+// are identical to fn[][] and fn_[], but they preserve 'this' across the function call.
+
+// The fc[][] and fc_[] variants build constructor functions. These are just like regular functions, but they always return undefined.
+
+  tconfiguration('std.qs std.qg', 'std.fn', function () {
+    this.configure('std.qg').
+         rmacro(qs[fn[_][_]], function (vars, expression) {return qs[qg[function (vars) {return expression}]].replace({vars: vars, expression: expression})}).
+         rmacro(qs[fn_[_]],   function       (expression) {return qs[qg[function     () {return expression}]].replace({expression: expression})}).
+         rmacro(qs[fb[_][_]], function (vars, expression) {return qse[fn[_t][fn_[fn[vars][e].apply(_t, arguments)]](this)].replace({_t: this.gensym(), vars: vars, e: expression})}).
+         rmacro(qs[fb_[_]],   function       (expression) {return qse[fn[_t][fn_[fn_     [e].apply(_t, arguments)]](this)].replace({_t: this.gensym(),             e: expression})}).
+         rmacro(qs[fc[_][_]], function       (vars, body) {return qse[qg[fn[vars][body, undefined]]].replace({vars: vars, body: body})}).
+         rmacro(qs[fc_[_]],   function             (body) {return qse[qg[fn[vars][body, undefined]]].replace({            body: body})})}).
+
+// Object abbreviations (the 'obj' library).
+// Another useful set of macros is the /mb/ and the /mb[] notation. These return methods bound to the object from which they were retrieved. This is useful when you don't want to explicitly
+// eta-expand when calling a method in point-free form:
+
+// | xs.map(object/mb/method);           // === xs.map(fn[x][object.method(x)])
+//   xs.map(object/mb[method]);          // === xs.map(fn[x][object[method](x)])
+
+// Note that undefined methods are returned as such rather than having a fail-later proxy. (i.e. if foo.bar === undefined, then foo/mb/bar === undefined too) Neither the object nor the property
+// (for the indirected version) are evaluated more than once.
+
+// Also useful is side-effecting, which you can do this way:
+
+// | {} /se[_.foo = 'bar']               // === l[_ = {}][_.foo = 'bar', _]
+
+// Conveniently, side-effects can be chained since / is left-associative. An alternative form of side-effecting is the 'right-handed' side-effect (which is still left-associative, despite the
+// name), written x /re[y]. This returns the result of evaluating y, where _ is bound to x. Variants of /se and /re allow you to specify a variable name:
+
+// | {} /se.o[o.foo = 'bar']
+
+  tconfiguration('std.qs std.qg std.fn', 'std.obj', function () {
+    this.configure('std.qg std.fn').
+      rmacro(qs[_/mb/_],    fn[object, method][qse[qg[fn[_o]    [_o.m   && fn_[_o.m.apply  (_o, arguments)]]](o)]   .replace({_o: this.gensym(),                    o: object, m: method})]).
+      rmacro(qs[_/mb[_]],   fn[object, method][qse[qg[fn[_o, _m][_o[_m] && fn_[_o[_m].apply(_o, arguments)]]](o, m)].replace({_o: this.gensym(), _m: this.gensym(), o: object, m: method})]).
+      rmacro(qs[_/se._[_]], fn[v, n, b][qse[qg[fn[n][b, n]].call(this, v)].replace({b: b, n: n, v: v})]).rmacro(qs[_/se[_]], fn[v, b][qse[v /se._[b]].replace({b: b, v: v})]).
+      rmacro(qs[_/re._[_]], fn[v, n, b][qse[qg[fn[n]   [b]].call(this, v)].replace({b: b, n: n, v: v})]).rmacro(qs[_/re[_]], fn[v, b][qse[v /re._[b]].replace({b: b, v: v})])}).
+
+// Binding abbreviations (the 'bind' library).
+// Includes forms for defining local variables. One is 'l[bindings] in expression', and the other is 'expression, where[bindings]'. For the second, keep in mind that comma is left-associative.
+// This means that you'll get the whole comma-expression placed inside a function, rendering it useless for expressions inside procedure calls. (You'll need parens for that.) Each of these
+// expands into a function call; e.g.
+
+// | l[x = 6] in x + y         -> (function (x) {return x + y}).call(this, 6)
+
+// You also get l* and where*, which define their variables in the enclosed scope:
+
+// | l*[x = 6, y = x] in x + y
+//   // compiles into:
+//   (function () {
+//     var x = 6, y = x;
+//     return x + y;
+//   }).call(this);
+
+// This form has a couple of advantages over the original. First, you can use the values of previous variables; and second, you can define recursive functions:
+
+// | l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]] in f(5)
+
+// You can also use the less English-like but more expressive l[...][...] syntax:
+
+// | l[x = 5][x + 1]
+//   l*[f = fn[x][x > 0 ? f(x - 1) + 1 : x]][f(5)]
+
+// This has the advantage that you no longer need to parenthesize any short-circuit, decisional, or relational logic in the expression.
+
+// The legacy let and let* forms are also supported, but they will cause syntax errors in some Javascript interpreters (hence the change).
+
+  tconfiguration('std.qs std.qg std.fn', 'std.bind', function () {this.configure('std.qg');
+    var lf = fb[form][this.rmacro(form, l_expander)], lsf = fb[form][this.rmacro(form, l_star_expander)],
+        l_star_expander = fb[vars, expression][qs[qg[function () {var vars; return expression}].call(this)].replace({vars: this.macroexpand(vars), expression: expression})],
+        l_expander      = fb[vars, expression][vars = this.macroexpand(vars).flatten(','),
+                            qs[qg[function (vars) {return e}].call(this, values)].replace({vars: vars.map(fn[n][n[0]]).unflatten(), e: expression, values: vars.map(fn[n][n[1]]).unflatten()})];
+
+    lf (qs[l [_] in _]), lf (qs[l [_][_]]), lf (let_in),  lf (let_brackets). rmacro(qs[_, where [_]], fn[expression, vars][l_expander(vars, expression)]);
+    lsf(qs[l*[_] in _]), lsf(qs[l*[_][_]]), lsf(lets_in), lsf(lets_brackets).rmacro(qs[_, where*[_]], fn[expression, vars][l_star_expander(vars, expression)])},
+
+    {let_in: caterwaul.parse('let [_] in _'), let_brackets: caterwaul.parse('let [_][_]'), lets_in: caterwaul.parse('let*[_] in _'), lets_brackets: caterwaul.parse('let*[_][_]')}).
+
+// Assignment abbreviations (the 'lvalue' library).
+// Lets you create functions using syntax similar to the one supported in Haskell and OCaml -- for example, f(x) = x + 1. You can extend this too, though Javascript's grammar is not very easy
+// to work with on this point. (It's only due to an interesting IE feature (bug) that assigning to a function call is possible in the first place.)
+
+  tconfiguration('std.qs std.qg std.fn', 'std.lvalue', function () {this.rmacro(qs[_(_) = _], fn[base, params, value][qs[base = qg[function (params) {return value}]].
+                                                                                                                        replace({base: base, params: params, value: value})])}).
+
+// Conditional abbreviations (the 'cond' library).
+// Includes forms for making decisions in perhaps a more readable way than using short-circuit logic. In particular, it lets you do things postfix; i.e. 'do X if Y' instead of 'if Y do X'.
+
+  tconfiguration('std.qs std.qg std.fn', 'std.cond', function () {this.configure('std.qg').rmacro(qs[_,   when[_]], fn[expr, cond][qs[  qg[l] && qg[r]].replace({l: cond, r: expr})]).
+                                                                                           rmacro(qs[_, unless[_]], fn[expr, cond][qs[! qg[l] && qg[r]].replace({l: cond, r: expr})])}).
+
+// Self-reference (the 'ref' library).
+// Sometimes you want to get a reference to 'this Caterwaul function' at runtime. If you're using the anonymous invocation syntax (which I imagine is the most common one), this is actually not
+// possible without a macro. This macro provides a way to obtain the current Caterwaul function by writing 'caterwaul'. The expression is replaced by a closure variable that will refer to
+// whichever Caterwaul function was used to transform the code.
+
+  tconfiguration('std.qs std.qg std.fn', 'std.ref', function () {this.macro(qs[caterwaul], fn_[new this.ref(this)])}).
+
+// String interpolation.
+// Rebase provides interpolation of #{} groups inside strings. Caterwaul can do the same using a similar rewrite technique that enables macroexpansion inside #{} groups. It generates a syntax
+// tree of the form (+ 'string' (expression) 'string' (expression) ... 'string') -- that is, a flattened variadic +. Strings that do not contain #{} groups are returned as-is.
+
+// There is some weird stuff going on with splitting and bounds here. Most of it is IE6-related workarounds; IE6 has a buggy implementation of split() that fails to return elements inside match
+// groups. It also fails to return leading and trailing zero-length strings (so, for example, splitting ':foo:bar:bif:' on /:/ would give ['foo', 'bar', 'bif'] in IE, vs. ['', 'foo', 'bar',
+// 'bif', ''] in sensible browsers). So there is a certain amount of hackery that happens to make sure that where there are too few strings empty ones get inserted, etc.
+
+// Another thing that has to happen is that we need to take care of any backslash-quote sequences in the expanded source. The reason is that while generally it's safe to assume that the user
+// didn't put any in, Firefox rewrites strings to be double-quoted, escaping any double-quotes in the process. So in this case we need to find \" and replace them with ".
+
+// In case the 'result.push' at the end looks weird, it's OK because result is a syntax node and syntax nodes return themselves when you call push(). If 'result' were an array the code would be
+// seriously borked.
+
+  tconfiguration('std.qs std.fn std.bind', 'std.string', function () {
+    this.rmacro(qs[_], fn[string]
+      [string.is_string() && /#\{[^\}]+\}/.test(string.data) &&
+       l*[q = string.data.charAt(0), s = string.as_escaped_string(), eq = new RegExp('\\\\' + q, 'g'), strings = s.split(/#\{[^\}]+\}/), xs = [], result = new this.syntax('+')]
+         [s.replace(/#\{([^\}]+)\}/g, fn[_, s][xs.push(s), '']),
+          this.util.map(fb[x, i][result.push(new this.syntax(q + (i < strings.length ? strings[i] : '') + q)).push(new this.syntax('(', this.parse(xs[i].replace(eq, q))))], xs),
+          new this.syntax('(', result.push(new this.syntax(q + (xs.length < strings.length ? strings[strings.length - 1] : '') + q)).unflatten())]])}).
+
+// Standard configuration.
+// This loads all of the production-use extensions.
+
+  configuration('std', function () {this.configure('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string')});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.tconfiguration('std.qs std.fn std.bind','macro.defmacro',caterwaul.precompiled_internal((function (){var gensym_2_gnathof9_h2rhrw=caterwaul.parse('defmacro[_][_]');
-var gensym_2_gnathof9_h2rhrx=caterwaul.parse('null');
-var gensym_2_gnathof9_h2rhry=caterwaul.parse('defsubst[_][_]');
-var gensym_2_gnathof9_h2rhrz=caterwaul.parse('null');
-return (function (gensym_2_gnathof9_h2rhrr){(function (wildcard){return this.macro(gensym_2_gnathof9_h2rhrw,(function (pattern,expansion){return this.rmacro(pattern,this.compile(this.macroexpand(expansion))),gensym_2_gnathof9_h2rhrx})).macro(gensym_2_gnathof9_h2rhry,(function (pattern,expansion){return this.rmacro(pattern.rmap(wildcard),(function (wildcards){return (function (){return (function (hash,as){return this.util.map((function (v,i){return hash[v.data]=as[i]}),wildcards),expansion.replace(hash)}).call(this,{},arguments)})}).call(this,pattern.collect(wildcard))),gensym_2_gnathof9_h2rhrz}))}).call(this,(function (n){return n.data.constructor===String&&n.data.charAt(0)==='_'&&'_'}))})})())).tconfiguration('std.qs std.fn std.bind','macro.with_gensyms',caterwaul.precompiled_internal((function (){var gensym_2_gnathof9_h2rhs1=caterwaul.parse('with_gensyms[_][_]');
-var gensym_2_gnathof9_h2rhs3=caterwaul.parse('qs[_]');
-return (function (gensym_2_gnathof9_h2rhrs){this.rmacro(gensym_2_gnathof9_h2rhs1,(function (vars,expansion){return (function (bindings){return vars.flatten(',').each((function (gensym_2_gnathof9_h2rhs2){return (function (){return (function (v){return bindings[v.data]=this.gensym()}).apply(gensym_2_gnathof9_h2rhs2,arguments)})})(this)),gensym_2_gnathof9_h2rhs3.replace({_:expansion.replace(bindings)})}).call(this,{})}))})})())).tconfiguration('std.qs std.fn','macro.compile_eval',caterwaul.precompiled_internal((function (){var gensym_2_gnathof9_h2rhs5=caterwaul.parse('compile_eval[_]');
-var gensym_2_gnathof9_h2rhs6=caterwaul.parse('fn_[_]');
-return (function (gensym_2_gnathof9_h2rhrt){this.macro(gensym_2_gnathof9_h2rhs5,(function (e){return new this.ref(this.compile(this.macroexpand(gensym_2_gnathof9_h2rhs6.replace({_:e}))).call(this))}))})})())).configuration('macro',function (gensym_2_gnathof9_h2rhru){this.configure('macro.defmacro macro.with_gensyms macro.compile_eval')});
+// Macro-authoring configurations | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// These configurations used to belong to the Caterwaul standard library, but I've moved them here given how infrequently they are used in practice.
+
+  caterwaul.
+
+// Macro authoring tools (the 'defmacro' library).
+// Lisp provides some handy macros for macro authors, including things like (with-gensyms (...) ...) and even (defmacro ...). Writing defmacro is simple because 'this' inside a macroexpander
+// refers to the caterwaul function that is running. It is trivial to expand into 'null' and side-effectfully define a new macro on that caterwaul object.
+
+// Another handy macro is 'with_gensyms', which lets you write hygienic macros. For example:
+
+// | defmacro[forEach[_][_]][fn[xs, f][with_gensyms[i, l, xs][(function() {for (var i = 0, xs = _xs, l = xs.length, it; it = xs[i], it < l; ++it) {_body}})()].replace({_xs: xs, _body: f})]];
+
+// This will prevent 'xs', 'l', and 'i' from being visible; here is a sample (truncated) macroexpansion:
+
+// | forEach[[1, 2, 3]][console.log(it)]   ->  (function() {for (var _gensym_gesr8o7u_10fo11_ = 0, _gensym_gesr8o7u_10fo12_ = [1, 2, 3],
+//                                                                   _gensym_gesr8o7u_10fo13_ = _gensym_gesr8o7u_10fo12_.length, it;
+//                                                               it = _gensym_gesr8o7u_10fo12_[_gensym_...], _gensym_... < ...; ...) {console.log(it)}})()
+
+// Since nobody in their right mind would name a variable _gensym_gesr8o7u_10fo11_, it is effectively collision-proof. (Also, even if you load Caterwaul twice you aren't likely to have gensym
+// collisions. The probability of it is one-in-several-billion at least.)
+
+// Note that macros defined with 'defmacro' are persistent; they outlast the function they were defined in. Presently there is no way to define scoped macros. Related to 'defmacro' is 'defsubst',
+// which lets you express simple syntactic rewrites more conveniently. Here's an example of a defmacro and an equivalent defsubst:
+
+// | defmacro[_ <equals> _][fn[left, right][qs[left === right].replace({left: left, right: right})]];
+//   defsubst[_left <equals> _right][_left === _right];
+
+// Syntax variables are prefixed with underscores; other identifiers are literals.
+
+  tconfiguration('std.qs std.fn std.bind', 'macro.defmacro', function () {
+    l[wildcard = fn[n][n.data.constructor === String && n.data.charAt(0) === '_' && '_']] in
+    this.macro(qs[defmacro[_][_]], fn[pattern, expansion][this.rmacro(pattern, this.compile(this.macroexpand(expansion))), qs[null]]).
+         macro(qs[defsubst[_][_]], fn[pattern, expansion][this.rmacro(pattern.rmap(wildcard), l[wildcards = pattern.collect(wildcard)] in fn_[l[hash = {}, as = arguments]
+                                                            [this.util.map(fn[v, i][hash[v.data] = as[i]], wildcards), expansion.replace(hash)]]), qs[null]])}).
+
+  tconfiguration('std.qs std.fn std.bind', 'macro.with_gensyms', function () {
+    this.rmacro(qs[with_gensyms[_][_]], fn[vars, expansion][l[bindings = {}][vars.flatten(',').each(fb[v][bindings[v.data] = this.gensym()]),
+                                                                             qs[qs[_]].replace({_: expansion.replace(bindings)})]])}).
+
+// Compile-time eval (the 'compile_eval' library).
+// This is one way to get values into your code (though you don't have closure if you do it this way). Compile-time evals will be bound to the current caterwaul function and the resulting
+// expression will be inserted into the code as a reference. The evaluation is done at macro-expansion time, and any macros defined when the expression is evaluated are used.
+
+  tconfiguration('std.qs std.fn', 'macro.compile_eval', function () {
+    this.macro(qs[compile_eval[_]], fn[e][new this.ref(this.compile(this.macroexpand(qs[fn_[_]].replace({_: e}))).call(this))])}).
+
+// Final configuration.
+// This one loads the others.
+
+  configuration('macro', function () {this.configure('macro.defmacro macro.with_gensyms macro.compile_eval')});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.tconfiguration('std macro','opt.unroll',caterwaul.precompiled_internal((function (){var gensym_2_gnathry6_6x0nkc=caterwaul.parse('opt.unroll[_,_][_]');
-var gensym_2_gnathry6_6x0nkh=caterwaul.parse('qg[function (gensym_2_gnathry6_6x0nkd,gensym_2_gnathry6_6x0nk9){for (var gensym_2_gnathry6_6x0nke=gensym_2_gnathry6_6x0nkd>=0&&gensym_2_gnathry6_6x0nkd>>3,gensym_2_gnathry6_6x0nkf=gensym_2_gnathry6_6x0nkd>=0&&gensym_2_gnathry6_6x0nkd&7,_i_=0;\n_i_<gensym_2_gnathry6_6x0nkf;\n ++_i_)_body_;\nfor (var gensym_2_gnathry6_6x0nkg=0;\ngensym_2_gnathry6_6x0nkg<gensym_2_gnathry6_6x0nke;\n ++gensym_2_gnathry6_6x0nkg){_body_;\n_i_++;\n_body_;\n_i_++;\n_body_;\n_i_++;\n_body_;\n_i_++;\n_body_;\n_i_++;\n_body_;\n_i_++;\n_body_;\n_i_++;\n_body_;\n_i_++};\nreturn gensym_2_gnathry6_6x0nkd}].call(this,_iterations_)');
-return (function (gensym_2_gnathry6_6x0nk8){this.rmacro(gensym_2_gnathry6_6x0nkc,(function (variable,iterations,body){return gensym_2_gnathry6_6x0nkh.replace({_i_:variable,_body_:body,_iterations_:iterations})}))})})()));
-caterwaul.configuration('opt',function (gensym_2_gnathry6_6x0nka){this.configure('opt.unroll')});
+// Caterwaul optimization library | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// JavaScript JIT technology has come a long way, but there are some optimizations that it still isn't very good at performing. One is loop unrolling, which can have a large impact on execution
+// speed. Another is function inlining, which may be coming soon but for now also makes a difference. This library provides macros to transform well-factored code into high-performance code.
+
+// Loop unrolling.
+// This is probably the most straightforward family of optimizations in the library. If you're using the 'seq' library for iteration, then you will already benefit from these macros; but you can
+// also use them directly.
+
+//   Counting loops.
+//   Loop unrolling is designed to optimize the most common use of 'for' loops, a loop from zero to some upper boundary. For example:
+
+//   | for (var i = 0, total = 0; i < xs.length; ++i) {
+//       console.log(xs[i]);
+//       total += xs[i];
+//     }
+
+//   Using opt.unroll.
+//   The opt.unroll macro takes two bracketed expressions. The first describes the loop parameters and the second is the body to be executed on each iteration. The loop parameters are the
+//   variable representing the index, and its upper bound. (At present there is no way to specify a lower loop bound, nor custom incrementing. This may be added later.)
+
+//   Note that there isn't a good way to break out of a loop that's running. Using 'break' directly is illegal because of JavaScript's syntax rules. In the future there will be some mechanism
+//   that supports break and perhaps continue, in some form or another.
+
+//   Here is the unrolled version of the for loop described in 'Counting loops':
+
+//   | var total = 0;
+//     var x;
+//     opt.unroll[i, xs.length][
+//       x = xs[i],
+//       console.log(x),
+//       total += x
+//     ];
+
+//   And here is the generated code, reformatted for readability:
+
+//   | var total = 0;
+//     var x;
+//     (function (_gensym_iterations) {
+//       var _gensym_rounds = _gensym_iterations >>> 3;
+//       var _gensym_extra  = _gensym_iterations & 7;
+//       for (var i = 0; i < _gensym_extra; ++i)
+//         x = xs[i], console.log(x), total += x;
+//       for (var _gensym_i = 0; _gensym_i < _gensym_rounds; ++_gensym_i) {
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//         x = xs[i], console.log(x), total += x; i++;
+//       }
+//       return _gensym_iterations;
+//     }) (xs.length);
+
+//   Caveats.
+//   Caterwaul's optimizer is not smart about identifying loop invariants or non-side-effectful things about loops. In other words, it really exists only for the purpose of taking the work out of
+//   unrolling things or doing similarly mechanical low-level optimization. It also does not optimize algorithms or any other high-level aspects of your code that generally have a more
+//   significant performance impact than low-level stuff like loop unrolling.
+
+  caterwaul.tconfiguration('std macro', 'opt.unroll', function () {this.rmacro(qs[opt.unroll[_, _][_]], fn[variable, iterations, body][
+    with_gensyms[l, rs, es, j][qg[function (l) {for (var rs = l >= 0 && l >> 3, es = l >= 0 && l & 7, _i_ = 0; _i_ < es; ++_i_) _body_;
+                                                for (var j = 0; j < rs; ++j) {_body_; _i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++;
+                                                                              _body_; _i_++; _body_; _i_++; _body_; _i_++; _body_; _i_++}; return l}].call(this, _iterations_)].
+    replace({_i_: variable, _body_: body, _iterations_: iterations})])});
+
+// Opt module collection.
+// Loading the 'opt' configuration will enable all of the individual macros in the optimization library.
+
+  caterwaul.configuration('opt', function () {this.configure('opt.unroll')});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.configuration('continuation.core',function (gensym_2_gnathj19_a2ufvg){this.shallow('continuation',{})}).tconfiguration('std','continuation.unwind',caterwaul.precompiled_internal((function (){var gensym_2_gnathj19_a2ufvq=caterwaul.parse('unwind_protect[_][_]');
-var gensym_2_gnathj19_a2ufvt=caterwaul.parse('_f((function (gensym_2_gnathj19_a2ufvr){return (function (){return (function (e){return _escape}).apply(gensym_2_gnathj19_a2ufvr,arguments)})})(this),(function (gensym_2_gnathj19_a2ufvs){return (function (){return (function (){return _body}).apply(gensym_2_gnathj19_a2ufvs,arguments)})})(this))');
-var gensym_2_gnathj19_a2ufvu=caterwaul.parse('caterwaul.continuation.unwind_protect');
-var gensym_2_gnathj19_a2ufvv=caterwaul.parse('unwind[_]');
-var gensym_2_gnathj19_a2ufvw=caterwaul.parse('caterwaul.continuation.unwind(_e)');
-return (function (gensym_2_gnathj19_a2ufvh){((function (_){return _.unwind_protect=function (escape,f,gensym_2_gnathj19_a2ufvi){try {return f()}catch (e){return escape(e)}},_.unwind=function (e,gensym_2_gnathj19_a2ufvj){throw e},_})).call(this,this.configure('std.fn continuation.core').continuation);
-this.rmacro(gensym_2_gnathj19_a2ufvq,(function (escape,body){return gensym_2_gnathj19_a2ufvt.replace({_f:gensym_2_gnathj19_a2ufvu,_escape:escape,_body:body})})).rmacro(gensym_2_gnathj19_a2ufvv,(function (e){return gensym_2_gnathj19_a2ufvw.replace({_e:e})}))})})())).tconfiguration('std','continuation.cps',caterwaul.precompiled_internal((function (){var gensym_2_gnathj19_a2ufvy=caterwaul.parse('(function (_){return _f}).call(this,_c)');
-var gensym_2_gnathj19_a2ufvz=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std');
-var gensym_2_gnathj19_a2ufw0=caterwaul.parse('_f[_v][_b]');
-var gensym_2_gnathj19_a2ufw1=caterwaul.parse('fb');
-var gensym_2_gnathj19_a2ufw2=caterwaul.parse('fn');
-var gensym_2_gnathj19_a2ufw4=caterwaul.parse('l/_form[_,_< -_] in _');
-var gensym_2_gnathj19_a2ufw5=gensym_2_gnathj19_a2ufvz;
-var gensym_2_gnathj19_a2ufw6=caterwaul.parse('l/_form[_< -_] in _');
-var gensym_2_gnathj19_a2ufw7=gensym_2_gnathj19_a2ufvz;
-var gensym_2_gnathj19_a2ufw8=caterwaul.parse('l/_form[_,_< -_][_]');
-var gensym_2_gnathj19_a2ufw9=gensym_2_gnathj19_a2ufvz;
-var gensym_2_gnathj19_a2ufwa=caterwaul.parse('l/_form[_< -_][_]');
-var gensym_2_gnathj19_a2ufwb=gensym_2_gnathj19_a2ufvz;
-var gensym_2_gnathj19_a2ufw3=caterwaul.parse('l/cps[cs][_f]');
-var gensym_2_gnathj19_a2ufwc=caterwaul.parse('_/_form[_]');
-var gensym_2_gnathj19_a2ufwd=caterwaul.parse('_f/_form._[_b]');
-var gensym_2_gnathj19_a2ufwe=caterwaul.parse('_/_form._[_]');
-var gensym_2_gnathj19_a2ufwf=caterwaul.parse('(function (_){return _f}).call(this,_c)');
-var gensym_2_gnathj19_a2ufwg=gensym_2_gnathj19_a2ufvz;
-var gensym_2_gnathj19_a2ufwh=caterwaul.parse('_f[_v][_b]');
-var gensym_2_gnathj19_a2ufwi=caterwaul.parse('fb');
-var gensym_2_gnathj19_a2ufwj=caterwaul.parse('fn');
-var gensym_2_gnathj19_a2ufwk=caterwaul.parse('cps');
-var gensym_2_gnathj19_a2ufwl=caterwaul.parse('cpb');
-var gensym_2_gnathj19_a2ufwm=caterwaul.parse('cps');
-var gensym_2_gnathj19_a2ufwn=caterwaul.parse('cpb');
-return (function (gensym_2_gnathj19_a2ufvk){(function (){var cps_convert=(function (v,f,b,bound){return gensym_2_gnathj19_a2ufvy.replace({_c:gensym_2_gnathj19_a2ufvz.macroexpand(gensym_2_gnathj19_a2ufw0.replace({_f:bound?gensym_2_gnathj19_a2ufw1:gensym_2_gnathj19_a2ufw2})).replace({_v:v.as('(')[0],_b:b}),_f:f})}),l_cps_def=(function (t,form,bound){return (function (inductive,base){return t.rmacro(gensym_2_gnathj19_a2ufw4.replace({_form:form}),inductive).rmacro(gensym_2_gnathj19_a2ufw5.parse(('let/'+(form.serialize())+'[_, _ <- _] in _')),inductive).rmacro(gensym_2_gnathj19_a2ufw6.replace({_form:form}),base).rmacro(gensym_2_gnathj19_a2ufw7.parse(('let/'+(form.serialize())+'[   _ <- _] in _')),base).rmacro(gensym_2_gnathj19_a2ufw8.replace({_form:form}),inductive).rmacro(gensym_2_gnathj19_a2ufw9.parse(('let/'+(form.serialize())+'[_, _ <- _][_]')),inductive).rmacro(gensym_2_gnathj19_a2ufwa.replace({_form:form}),base).rmacro(gensym_2_gnathj19_a2ufwb.parse(('let/'+(form.serialize())+'[   _ <- _][_]')),base)}).call(this,(function (cs,v,f,b){return gensym_2_gnathj19_a2ufw3.replace({cs:cs,_f:cps_convert(v,f,b,bound)})}),(function (v,f,b){return cps_convert(v,f,b,bound)}))}),cps_def=(function (t,form,bound){return t.rmacro(gensym_2_gnathj19_a2ufwc.replace({_form:form}),(function (f,b){return gensym_2_gnathj19_a2ufwd.replace({_form:form,_f:f,_b:b})})).rmacro(gensym_2_gnathj19_a2ufwe.replace({_form:form}),(function (f,v,b){return gensym_2_gnathj19_a2ufwf.replace({_c:gensym_2_gnathj19_a2ufwg.macroexpand(gensym_2_gnathj19_a2ufwh.replace({_f:bound?gensym_2_gnathj19_a2ufwi:gensym_2_gnathj19_a2ufwj})).replace({_v:v,_b:b}),_f:f})}))});
-return ((function (_){return cps_def(_,gensym_2_gnathj19_a2ufwk,false),cps_def(_,gensym_2_gnathj19_a2ufwl,true),l_cps_def(_,gensym_2_gnathj19_a2ufwm,false),l_cps_def(_,gensym_2_gnathj19_a2ufwn,true),_})).call(this,this.configure('std.fn continuation.core'))}).call(this)})})())).tconfiguration('std','continuation.delimited',caterwaul.precompiled_internal((function (){var gensym_2_gnathj19_a2ufwp=caterwaul.parse('call/cc[_]');
-var gensym_2_gnathj19_a2ufwq=caterwaul.parse('qg[caterwaul.continuation.call_cc.call(this,_f)]');
-var gensym_2_gnathj19_a2ufwr=caterwaul.parse('call/tail[_(_)]');
-var gensym_2_gnathj19_a2ufws=caterwaul.parse('qg[caterwaul.continuation.call_tail.call(_f,_args)]');
-return (function (gensym_2_gnathj19_a2ufvl){(function (magic){return ((function (_){return _.call_cc=function (f,gensym_2_gnathj19_a2ufvm){var escaped=false,cc=function (x,gensym_2_gnathj19_a2ufvn){escaped=true;
-throw x},frame={magic:magic,continuation:f,parameters:[cc]};
-try {while ((frame=frame.continuation.apply(this,frame.parameters))&&frame&&frame.magic===magic);
-return frame}catch (e){if (escaped)return e;
-else throw e}},_.call_tail=(function (){return {magic:magic,continuation:this,parameters:arguments}}),_})).call(this,this.continuation)}).call(this,this.configure('std.qg continuation.core').continuation.magic=this.magic('continuation.delimited'));
-this.rmacro(gensym_2_gnathj19_a2ufwp,(function (f){return gensym_2_gnathj19_a2ufwq.replace({_f:f})})).rmacro(gensym_2_gnathj19_a2ufwr,(function (f,args){return gensym_2_gnathj19_a2ufws.replace({_f:f,_args:args})}))})})())).configuration('continuation',function (gensym_2_gnathj19_a2ufvo){this.configure('continuation.core continuation.unwind continuation.cps continuation.delimited')});
+// Continuation manipulation module | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// This module provides macros to assist with continuations. The most widely-known case of continuation manipulation is probably continuation-passing-style conversion, which you use when you do
+// nonblocking things such as AJAX. In this case the callback function is the continuation of the call. (I'm not going to fully explain continuations here, but
+// http://en.wikipedia.org/wiki/Continuation is a good if intimidating place to start if you're into functional programming -- which I assume you are if you're using Caterwaul :).)
+
+  caterwaul.configuration('continuation.core', function () {this.shallow('continuation', {})}).
+
+// Unwind protection.
+// This is how you can implement error handling. You can intercept both the normal and the escaping cases and specify a return value for each alternative. Unwind-protect ultimately compiles into
+// a try/catch. Also provided is the unwind[] macro, which causes an unwind through any call/cc operations until an unwind-protect is hit or the toplevel is reached, in which case it shows up as
+// an error. unwind[x] is exactly equivalent to (function () {throw x})().
+
+// Unwind-protect is of this form:
+
+// | unwind_protect[<escape>][<body>]      // === caterwaul.continuation.unwind_protect(fn[e][<escape>], fn_[<body>])
+
+// The escape block will be run if any abnormal escaping is being performed (e.g. escaping via call/cc, unwind[], or an exception). Body is executed regardless, and if it returns normally then
+// its return value is the return value of the unwind_protect block. The escape block can refer to 'e', the escaping value. 'this' is preserved in the body and escape blocks.
+
+  tconfiguration('std', 'continuation.unwind', function () {
+    this.configure('std.fn continuation.core').continuation /se[_.unwind_protect = function (escape, f) {try {return f()} catch (e) {return escape(e)}},
+                                                                _.unwind         = function (e) {throw e}];
+    this.rmacro(qs[unwind_protect[_][_]], fn[escape, body][qse[_f(fb[e][_escape], fb_[_body])].replace({_f: qs[caterwaul.continuation.unwind_protect], _escape: escape, _body: body})]).
+         rmacro(qs[unwind[_]], fn[e][qs[caterwaul.continuation.unwind(_e)].replace({_e: e})])}).
+
+// CPS-conversion.
+// Converting a whole program to CPS to get re-entrant continuations is a lot of work, so I'm not even trying that. But localized CPS is really useful, especially for nested AJAX calls and such.
+// Here's a common example:
+
+// | $.getJSON('some-url', fn[result]
+//     [$.getJSON('some-other-url-#{result.property}', fn[other_result][...])]);
+
+// Rather than dealing with this nesting explicitly, it's more convenient to use normal l-notation. That's exactly what l/cps does:
+
+// | l/cps[result       <- $.getJSON('some-url', _),
+//         other_result <- $.getJSON('some-other-url-#{result.property}', _)]
+//   [console.log(result)];
+
+// There are a couple of things to note about this setup. First, the arrows. This is so that your continuations can be n-ary. (Javascript doesn't let you assign into a paren-list.)
+
+// | l/cps[(x, y) <- binary_ajax_call('some-url', _)][...];
+
+// Second, and this is important: l/cps returns immediately with the result of the first continuation-producing expression (so in the above example, the return value of binary_ajax_call would be
+// the value of the l/cps[][] block). This has some important ramifications, perhaps most importantly that the code in the block must be side-effectful to be productive. No magic is happening
+// here; l/cps ultimately gets translated into the set of nested functions that you would otherwise write.
+
+// As of version 0.5.5 the alternative "l/cps[x <- ...] in f(x)" notation is supported (basically, just like regular let-bindings). It's purely a stylistic thing.
+
+// There's also a shorthand form to CPS-convert functions. If you care only about the first parameter (which is true for a lot of functions), you can use the postfix /cps[] form, like this:
+
+// | $.getJSON('foo', _) /cps[alert(_)];
+//   $.getJSON('foo', _) /cps.x[alert(x)];         // Also has named form
+
+// Bound variants of both l/cps and /cps[] are also available:
+
+// | $.getJSON('foo', _) /cpb[...];
+//   l/cpb[x <- foo(_)][...];
+
+// The legacy let/cps and let/cpb forms are also supported for backwards compatibility.
+
+// There's an interesting scoping bug in Caterwaul <= 0.5.1. Suppose you have a form that binds _ in some context, but doesn't intend for it to be a continuation; for example:
+
+// | f(seq[xs *[_ + 1]], _) /cps[...];
+
+// In this case, _ + 1 is supposed to use the implicitly-bound _, not the outer continuation callback. However, the old continuation logic was perfectly happy to rewrite the term with two
+// continuation functions, a semantic disaster. What happens now is a regular lexical binding for _, which has the added benefit that multiple _'s in continuation-rewriting positions will refer
+// to the same callback function rather than multiply-evaluating it (though I'm not sure this actually matters...).
+
+  tconfiguration('std', 'continuation.cps', function () {
+    l*[cps_convert(v, f, b, bound) = qse[l[_ = _c][_f]].replace({_c: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v.as('(')[0], _b: b}), _f: f}),
+
+         l_cps_def(t, form, bound) = l[inductive(cs, v, f, b) = qs[l/cps[cs][_f]].replace({cs: cs, _f: cps_convert(v, f, b, bound)}), base(v, f, b) = cps_convert(v, f, b, bound)] in
+                                     t.rmacro(qs[l/_form[_, _ <- _] in _].replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _] in _'), inductive).
+                                       rmacro(qs[l/_form[   _ <- _] in _].replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _] in _'), base).
+                                       rmacro(qs[l/_form[_, _ <- _][_]]  .replace({_form: form}), inductive).rmacro(caterwaul.parse('let/#{form.serialize()}[_, _ <- _][_]'),   inductive).
+                                       rmacro(qs[l/_form[   _ <- _][_]]  .replace({_form: form}), base)     .rmacro(caterwaul.parse('let/#{form.serialize()}[   _ <- _][_]'),   base),
+
+         cps_def(t, form, bound)   = t.rmacro(qs[_ /_form[_]].  replace({_form: form}), fn[f, b][qse[_f /_form._[_b]].replace({_form: form, _f: f, _b: b})]).
+                                       rmacro(qs[_ /_form._[_]].replace({_form: form}), fn[f, v, b][qse[l[_ = _c][_f]].replace(
+                                         {_c: caterwaul.macroexpand(qs[_f[_v][_b]].replace({_f: bound ? qs[fb] : qs[fn]})).replace({_v: v, _b: b}), _f: f})])] in
+
+    this.configure('std.fn continuation.core') /se[cps_def(_, qs[cps], false), cps_def(_, qs[cpb], true), l_cps_def(_, qs[cps], false), l_cps_def(_, qs[cpb], true)]}).
+
+// Escaping continuations and tail call optimization.
+// The most common use for continuations besides AJAX is escaping. This library gives you a way to escape from a loop or other function by implementing a non-reentrant call/cc. You can also use
+// tail-call-optimized recursion if your functions are written as such.
+
+// | call/cc[fn[cc][cc(5)]]        // returns 5
+//   call/cc[fn[cc][cc(5), 6]]     // still returns 5
+//   call/cc[fn[cc][19]]           // returns 19
+
+// Tail calls must be indicated explicitly with call/tail. (Otherwise they'll be regular calls.) For example:
+
+// | var factorial_cps = fn[n, acc, cc][n > 0 ? call/tail[factorial_cps(n - 1, acc * n, cc)] : call/tail[cc(acc)]];
+//   call/cc[fn[cc][factorial_cps(5, 1, cc)]];   // -> 120
+
+// In this example it's also legal to call the final continuation 'cc' normally: cc(acc). It's faster to use call/tail[cc(acc)] though. Importantly, continuations lose their bindings! This means
+// that tail-calling a method won't do what you want:
+
+// | call/tail[object.method(5)]   // calls object.method with wrong 'this'
+
+// What you can do instead is eta-expand or use Caterwaul's /mb notation (note the extra parens; they're necessary, just as they would be if you were invoking an /mb'd method directly):
+
+// | call/tail[fn[x][object.method(x)](5)];
+//   call/tail[(object/mb/method)(5)];             // At this rate you're probably better off using the call_tail function directly.
+
+// Either of these will invoke object.method in the right context.
+
+// Delimited continuations work because call/cc uses an internal while loop to forward parameters outside of the tail call. This keeps the stack bounded by a constant. Note that tail calls work
+// only inside a call/cc context. You can use them elsewhere, but they will not do what you want. Also, tail calls really do have to be tail calls. You need to return the call/tail[...]
+// expression in order for it to work, just like you'd have to do in Scheme or ML (except that in JS, return is explicit rather than implicit).
+
+// Note that call/cc and call/tail are macros, not functions. The functions are available in normal Javascript form, however (no deep macro-magic is ultimately required to support delimited
+// continuations). call/cc is stored as caterwaul.continuation.call_cc, and call/tail is caterwaul.continuation.call_tail. The invocation of call_tail is different from call/tail:
+
+// | caterwaul.continuation.call_tail.call(f, arg1, arg2, ...);
+
+  tconfiguration('std', 'continuation.delimited', function () {
+    l[magic = this.configure('std.qg continuation.core').continuation.magic = this.magic('continuation.delimited')] in
+    this.continuation /se[_.call_cc     = function (f) {var escaped = false, cc = function (x) {escaped = true; throw x}, frame = {magic: magic, continuation: f, parameters: [cc]};
+                                                        try       {while ((frame = frame.continuation.apply(this, frame.parameters)) && frame && frame.magic === magic); return frame}
+                                                        catch (e) {if (escaped) return e; else throw e}},
+                          _.call_tail() = {magic: magic, continuation: this, parameters: arguments}];
+
+    this.rmacro(qs[call/cc[_]],      fn[f]      [qs[qg[caterwaul.continuation.call_cc.call(this, _f)]].   replace({_f: f})]).
+         rmacro(qs[call/tail[_(_)]], fn[f, args][qs[qg[caterwaul.continuation.call_tail.call(_f, _args)]].replace({_f: f, _args: args})])}).
+
+// End-user library.
+
+  configuration('continuation', function () {this.configure('continuation.core continuation.unwind continuation.cps continuation.delimited')});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.tconfiguration('std','seq.core',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yenz){this.shallow('seq',{core:((function (_){return _.prototype=((function (p){return p.constructor=_,p})).call(this,[]),_})).call(this,(function (){return null}))})})})())).tconfiguration('std opt continuation','seq.finite.core',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeo0){this.configure('seq.core').seq.finite=((function (c){return c.prototype=((function (_){return _.size=(function (){return this.l||this.length}),_.slice=(function (){return ((function (_){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)_.push(this[i]);
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){_.push(this[i]);
-i++;
-_.push(this[i]);
-i++;
-_.push(this[i]);
-i++;
-_.push(this[i]);
-i++;
-_.push(this[i]);
-i++;
-_.push(this[i]);
-i++;
-_.push(this[i]);
-i++;
-_.push(this[i]);
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,this.size()),_})).call(this,[])}),_.constructor=c,_})).call(this,new this.seq.core()),c})).call(this,((function (xs){return this.length=this.l=xs?(function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)this[i]=xs[i];
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++;
-this[i]=xs[i];
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,xs.size?xs.size():xs.length):0,undefined})))})})())).tconfiguration('std opt continuation','seq.finite.serialization',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeo1){((function (_){return _.toString=(function (){return ('seq['+(this.slice().join(", "))+']')}),_.join=(function (x){return this.slice().join(x)}),_})).call(this,this.configure('seq.finite.core').seq.finite.prototype)})})())).tconfiguration('std opt continuation','seq.finite.mutability',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeo2){(function (push,slice){return ((function (_){return _.push=(function (){return (function (as){return ((function (_){return this.length=this.l,this})).call(this,(function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)this[this.l++]=as[i];
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++;
-this[this.l++]=as[i];
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,as.length))}).call(this,arguments)}),_.pop=(function (){return ((function (_){return delete this[this.length=this.l],_})).call(this,this[ --this.l])}),_.concat=(function (xs){return ((function (_){return _.push.apply(_,slice.call(xs)),_})).call(this,new this.constructor(this))}),_})).call(this,this.configure('seq.finite.core').seq.finite.prototype)}).call(this,Array.prototype.push,Array.prototype.slice)})})())).tconfiguration('std opt continuation','seq.finite.object',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeo3){(function (own){return ((function (_){return _.keys=(function (o,all){return ((function (_){return (function (gensym_2_gnathvw5_29yeo4){for (var k in o)if (all||own.call(o,k))_.push(k)})(),_})).call(this,new _())}),_.values=(function (o,all){return ((function (_){return (function (gensym_2_gnathvw5_29yeo5){for (var k in o)if (all||own.call(o,k))_.push(o[k])})(),_})).call(this,new _())}),_.pairs=(function (o,all){return ((function (_){return (function (gensym_2_gnathvw5_29yeo6){for (var k in o)if (all||own.call(o,k))_.push([k,o[k]])})(),_})).call(this,new _())}),_.prototype.object=(function (o){return ((function (_){return this.each((function (p){return _[p[0]]=p[1]})),_})).call(this,(o||{}))}),_})).call(this,this.configure('seq.finite.core').seq.finite)}).call(this,Object.prototype.hasOwnProperty)})})())).tconfiguration('std opt continuation','seq.finite.traversal',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeo7){((function (_){return _.map=(function (f){return ((function (_){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)_.push(f.call(this,this[i],i));
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++;
-_.push(f.call(this,this[i],i));
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,this.l),_})).call(this,new this.constructor())}),_.filter=(function (f){return ((function (_){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)(f.call(this,this[i],i))&&(_.push(this[i]));
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++;
-(f.call(this,this[i],i))&&(_.push(this[i]));
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,this.l),_})).call(this,new this.constructor())}),_.each=(function (f){return ((function (_){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)f.call(_,_[i],i);
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++;
-f.call(_,_[i],i);
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,_.l),_})).call(this,this)}),_.reversed=(function (){return ((function (_){return (function (l){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)_.push(this[l-i-1]);
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++;
-_.push(this[l-i-1]);
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,l)}).call(this,this.l),_})).call(this,new this.constructor())}),_.flat_map=(function (f){return ((function (_){return this.each((function (x,xi){return (((function (xs){return xs.each?xs:new this.constructor(xs)})).call(this,f.call(this,x,xi))).each((function (x){return _.push(x)}))})),_})).call(this,new this.constructor())}),_.foldl=(function (f,x){return (function (x,xi){return (this.l>=xi)&&((function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)x=f.call(this,x,this[i+xi],i+xi);
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++;
-x=f.call(this,x,this[i+xi],i+xi);
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,this.l-xi),x)}).call(this,arguments.length>1?x:this[0],2-arguments.length)}),_.foldr=(function (f,x){return (function (x,xi,l){return (l>=xi-1)&&((function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++;
-x=f.call(this,this[l-(i+xi)],x,l-(i+xi));
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,l-(xi-1)),x)}).call(this,arguments.length>1?x:this[this.l-1],3-arguments.length,this.l)}),_})).call(this,this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype)})})())).tconfiguration('std opt continuation','seq.finite.zip',caterwaul.precompiled_internal((function (){var gensym_2_gnathvw5_29yeoo=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-return (function (gensym_2_gnathvw5_29yeo8){((function (_){return (function (seq,slice){return _.prototype.zip=(function (){return (function (as,options){return (as[as.size()-1].constructor===Object)&&(gensym_2_gnathvw5_29yeoo.util.merge(options,as.pop())),(function (l,f){return ((function (_){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++;
-_.push(f.apply({i:i},as.map((function (x){return x[i]})).slice()));
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,l),_})).call(this,new this.constructor())}).call(this,as.map((function (x){return x.size?x.size():x.length})).foldl(options.outer?(function (x,y){return Math.max(x,y)}):(function (x,y){return Math.min(x,y)})),options.f)}).call(this,new seq([this].concat(slice.call(arguments))),{f:(function (){return new seq(arguments)}),outer:false})})}).call(this,_,Array.prototype.slice),_})).call(this,this.configure('seq.finite.traversal').seq.finite)})})())).tconfiguration('std opt continuation','seq.finite.quantification',caterwaul.precompiled_internal((function (){var gensym_2_gnathvw5_29yeoq=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-return (function (gensym_2_gnathvw5_29yeo9){((function (_){return _.exists=(function (f){return (gensym_2_gnathvw5_29yeoq.continuation.call_cc.call(this,(function (gensym_2_gnathvw5_29yeor){return (function (){return (function (cc){return (function (gensym_2_gnathvw5_29yeio){for (var gensym_2_gnathvw5_29yeip=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio>>3,gensym_2_gnathvw5_29yeiq=gensym_2_gnathvw5_29yeio>=0&&gensym_2_gnathvw5_29yeio&7,i=0;
-i<gensym_2_gnathvw5_29yeiq;
- ++i)((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-for (var gensym_2_gnathvw5_29yeir=0;
-gensym_2_gnathvw5_29yeir<gensym_2_gnathvw5_29yeip;
- ++gensym_2_gnathvw5_29yeir){((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++;
-((function (_){return _&&cc(_)})).call(this,f.call(this,this[i],i));
-i++};
-return gensym_2_gnathvw5_29yeio}).call(this,this.l),false}).apply(gensym_2_gnathvw5_29yeor,arguments)})})(this)))}),_.forall=(function (f){return  !this.exists((function (){return  !f.apply(this,arguments)}))}),_})).call(this,this.configure('seq.finite.core').seq.finite.prototype)})})())).tconfiguration('std opt continuation','seq.infinite.core',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeoa){this.configure('seq.core').seq.infinite=((function (_){return (function (i){return _.def=(function (name,ctor,h,t){return i[name]=((function (_){return _.prototype=((function (_){return _.h=h,_.t=t,_.constructor=ctor,_})).call(this,new i()),_})).call(this,ctor)})}).call(this,_),_.def('cons',(function (h,t){return this._h=h,this._t=t}),(function (){return this._h}),(function (){return this._t})),_.def('k',(function (x){return this._x=x}),(function (){return this._x}),(function (){return this})),_})).call(this,((function (_){return (function (ctor){return _.prototype=((function (_){return _.constructor=ctor,_})).call(this,new this.seq.core())}).call(this,_),_})).call(this,(function (){return null})))})})())).tconfiguration('std opt continuation','seq.infinite.y',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeob){this.configure('seq.infinite.core').seq.infinite.def('y',((function (f,x){return this._f=f,this._x=x,undefined})),(function (){return this._x}),(function (){return new this.constructor(this._f,this._f(this._x))}))})})())).tconfiguration('std opt continuation','seq.infinite.transform',caterwaul.precompiled_internal((function (){var gensym_2_gnathvw5_29yeov=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathvw5_29yeow=gensym_2_gnathvw5_29yeov;
-return (function (gensym_2_gnathvw5_29yeoc){((function (_){return _.prototype.map=(function (f){return new _.map(f,this)}),_.def('map',((function (f,xs){return this._f=f,this._xs=xs,undefined})),(function (){return this._f(this._xs.h())}),(function (){return new this.constructor(this._f,this._xs.t())})),_.prototype.filter=(function (f){return new _.filter(f,this)}),_.def('filter',((function (f,xs){return this._f=f,this._xs=(function (){var next=(function (s){return (function (cc){return f(s.h())?cc(s):(gensym_2_gnathvw5_29yeov.continuation.call_tail.call(next(s.t()),cc))})});
-return (gensym_2_gnathvw5_29yeow.continuation.call_cc.call(this,next(xs)))}).call(this),undefined})),(function (){return this._xs.h()}),(function (){return new this.constructor(this._f,this._xs.t())})),_})).call(this,this.configure('seq.infinite.core').seq.infinite)})})())).tconfiguration('std opt continuation','seq.infinite.traversal',caterwaul.precompiled_internal((function (){var gensym_2_gnathvw5_29yeoy=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathvw5_29yeoz=gensym_2_gnathvw5_29yeoy;
-var gensym_2_gnathvw5_29yep0=gensym_2_gnathvw5_29yeoy;
-var gensym_2_gnathvw5_29yep1=gensym_2_gnathvw5_29yeoy;
-return (function (gensym_2_gnathvw5_29yeod){(function (finite){return ((function (_){return _.drop=(function (f){return (function (){var next=(function (s){return (function (cc){return f(s.h())?(gensym_2_gnathvw5_29yeoy.continuation.call_tail.call(next(s.t()),cc)):cc(s)})});
-return (gensym_2_gnathvw5_29yeoz.continuation.call_cc.call(this,next(this)))}).call(this)}),_.take=(function (f){return (function (){var xs=new finite(),next=(function (s){return (function (cc){return (function (h){return f(h)?(xs.push(h),(gensym_2_gnathvw5_29yep0.continuation.call_tail.call(next(s.t()),cc))):cc(xs)}).call(this,s.h())})});
-return (gensym_2_gnathvw5_29yep1.continuation.call_cc.call(this,next(this)))}).call(this)}),_})).call(this,this.configure('seq.infinite.core').seq.infinite.prototype)}).call(this,this.configure('seq.finite.core seq.finite.mutability').seq.finite)})})())).tconfiguration('std opt continuation','seq.numeric',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathvw5_29yeoe){((function (_){return _.naturals_from=(function (x){return new _.infinite.y((function (n){return n+1}),x)}),_.naturals=_.naturals_from(0),_.n=(function (l,u,s){return (function (lower,upper){return (function (step){return new _.infinite.y((function (n){return n+step}),lower).take((function (x){return (upper-lower)*(upper-x)>0}))}).call(this,Math.abs(s||1)*(lower<upper?1: -1))}).call(this,arguments.length>1?l:0,arguments.length>1?u:l)}),_})).call(this,this.configure('seq.infinite.core seq.infinite.y seq.finite.core').seq)})})())).tconfiguration('std opt continuation','seq.dsl',caterwaul.precompiled_internal((function (){var gensym_2_gnathvw5_29yep5=caterwaul.parse(' -x');
-var gensym_2_gnathvw5_29yep6=caterwaul.parse('[_]');
-var gensym_2_gnathvw5_29yep7=caterwaul.parse('_[_]');
-var gensym_2_gnathvw5_29yep8=caterwaul.parse(' +_');
-var gensym_2_gnathvw5_29yep9=caterwaul.parse('_+x');
-var gensym_2_gnathvw5_29yepa=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathvw5_29yepb=caterwaul.parse('qg[fn[f][fn_[ !f.apply(this,arguments)]]]');
-var gensym_2_gnathvw5_29yepc=caterwaul.parse('fn[xs][y]');
-var gensym_2_gnathvw5_29yepd=caterwaul.parse('fb');
-var gensym_2_gnathvw5_29yepe=caterwaul.parse('fn');
-var gensym_2_gnathvw5_29yepf=caterwaul.parse('_x.filter(_y)');
-var gensym_2_gnathvw5_29yepg=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yeph=caterwaul.parse('_x.map(_y)');
-var gensym_2_gnathvw5_29yepi=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yepj=caterwaul.parse('_x.foldl(_y)');
-var gensym_2_gnathvw5_29yepk=caterwaul.parse('_,_0,_i');
-var gensym_2_gnathvw5_29yepl=caterwaul.parse('_x.filter(c(_y))');
-var gensym_2_gnathvw5_29yepm=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yepn=caterwaul.parse('_x.each(_y)');
-var gensym_2_gnathvw5_29yepo=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yepp=caterwaul.parse('_x.foldr(_y)');
-var gensym_2_gnathvw5_29yepq=caterwaul.parse('_,_0,_i');
-var gensym_2_gnathvw5_29yepr=caterwaul.parse('_x.forall(_y)');
-var gensym_2_gnathvw5_29yeps=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yept=caterwaul.parse('_x.exists(_y)');
-var gensym_2_gnathvw5_29yepu=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yepv=caterwaul.parse('_x.flat_map(_y)');
-var gensym_2_gnathvw5_29yepw=caterwaul.parse('_,_i');
-var gensym_2_gnathvw5_29yepx=caterwaul.parse('_x.drop(_y)');
-var gensym_2_gnathvw5_29yepy=caterwaul.parse('_');
-var gensym_2_gnathvw5_29yepz=caterwaul.parse('_x.take(_y)');
-var gensym_2_gnathvw5_29yeq0=caterwaul.parse('_');
-var gensym_2_gnathvw5_29yeq1=caterwaul.parse('new caterwaul.seq.infinite.y(_y,_x)');
-var gensym_2_gnathvw5_29yeq2=caterwaul.parse('_');
-var gensym_2_gnathvw5_29yeq3=caterwaul.parse('_+_');
-var gensym_2_gnathvw5_29yeq4=caterwaul.parse('qg[_x].size()+qg[_y].size()');
-var gensym_2_gnathvw5_29yeq5=caterwaul.parse('_&&_');
-var gensym_2_gnathvw5_29yeq6=caterwaul.parse('((function (xp){return xp&&xp.size()?_y:xp}).call(this,_x))');
-var gensym_2_gnathvw5_29yeq7=caterwaul.parse('_||_');
-var gensym_2_gnathvw5_29yeq8=caterwaul.parse('((function (xp){return xp&&xp.size()?xp:_y}).call(this,_x))');
-var gensym_2_gnathvw5_29yeq9=caterwaul.parse('_===_');
-var gensym_2_gnathvw5_29yeqa=caterwaul.parse('qg[l[xp=_x,yp=_y][xp===yp||xp.size()===yp.size()&&xp.zip(yp).forall(fn[p][p[0]===p[1]])]]');
-var gensym_2_gnathvw5_29yeqb=caterwaul.parse('_!==_');
-var gensym_2_gnathvw5_29yeqc=caterwaul.parse('qg[l[xp=_x,yp=_y][xp!==yp&&(xp.size()!==yp.size()||xp.zip(yp).exists(fn[p][p[0]!==p[1]]))]]');
-var gensym_2_gnathvw5_29yeqd=caterwaul.parse('_^_');
-var gensym_2_gnathvw5_29yeqe=caterwaul.parse('_x.zip(_y)');
-var gensym_2_gnathvw5_29yeqf=caterwaul.parse('_+_');
-var gensym_2_gnathvw5_29yeqg=caterwaul.parse('_x.concat(_y)');
-var gensym_2_gnathvw5_29yeqh=caterwaul.parse(' !_');
-var gensym_2_gnathvw5_29yeqi=caterwaul.parse('_x.object()');
-var gensym_2_gnathvw5_29yeqj=caterwaul.parse('_,_');
-var gensym_2_gnathvw5_29yeqk=caterwaul.parse('_x,_y');
-var gensym_2_gnathvw5_29yeql=caterwaul.parse(' ~_');
-var gensym_2_gnathvw5_29yeqm=caterwaul.parse('qg[new caterwaul.seq.finite(_x)]');
-var gensym_2_gnathvw5_29yeqn=caterwaul.parse('_?_:_');
-var gensym_2_gnathvw5_29yeqo=caterwaul.parse('x?y:z');
-var gensym_2_gnathvw5_29yeqp=caterwaul.parse('_(_)');
-var gensym_2_gnathvw5_29yeqq=caterwaul.parse('_x(_y)');
-var gensym_2_gnathvw5_29yeqr=caterwaul.parse('_[_]');
-var gensym_2_gnathvw5_29yeqs=caterwaul.parse('_x[_y]');
-var gensym_2_gnathvw5_29yeqt=caterwaul.parse('_._');
-var gensym_2_gnathvw5_29yequ=caterwaul.parse('_x._y');
-var gensym_2_gnathvw5_29yeqv=caterwaul.parse('_');
-var gensym_2_gnathvw5_29yeqw=caterwaul.parse('qg[_x]');
-var gensym_2_gnathvw5_29yeqx=caterwaul.parse(' +_');
-var gensym_2_gnathvw5_29yeqy=caterwaul.parse('N');
-var gensym_2_gnathvw5_29yeqz=caterwaul.parse('caterwaul.seq.naturals');
-var gensym_2_gnathvw5_29yer0=caterwaul.parse('N[_]');
-var gensym_2_gnathvw5_29yer1=caterwaul.parse('caterwaul.seq.naturals_from(x)');
-var gensym_2_gnathvw5_29yer2=caterwaul.parse('n[_]');
-var gensym_2_gnathvw5_29yer3=caterwaul.parse('caterwaul.seq.n(x)');
-var gensym_2_gnathvw5_29yer5=caterwaul.parse('p[_]');
-var gensym_2_gnathvw5_29yer6=caterwaul.parse('caterwaul.seq.finite.r(x)');
-var gensym_2_gnathvw5_29yer7=caterwaul.parse('seq[_]');
-var gensym_2_gnathvw5_29yer8=gensym_2_gnathvw5_29yepa;
-return (function (gensym_2_gnathvw5_29yeof){this.configure('seq.core seq.infinite.y seq.finite.core seq.finite.zip seq.finite.traversal seq.finite.mutability').seq.dsl=((function (_){return (function (){var rxy=(function (tree){return (function (x,y){return tree.replace({_x:_.macroexpand(x),_y:y&&_.macroexpand(y)})})}),seq=(function (gensym_2_gnathvw5_29yep4){return (function (){return (function (xs){return new this.seq.finite(xs)}).apply(gensym_2_gnathvw5_29yep4,arguments)})})(this),prepend=(function (operator){return (function (x){return ((function (_){return _.data=operator,_})).call(this,gensym_2_gnathvw5_29yep5.replace({x:x}))})}),tree_forms=(function (){var base=seq([gensym_2_gnathvw5_29yep6,gensym_2_gnathvw5_29yep7]),mod=(function (fs,op){return fs.concat(fs.map(prepend(op)))});
-return mod(mod(base,'u-'),'u~').concat(seq([gensym_2_gnathvw5_29yep8]))}).call(this),template=(function (op){return (function (t){return ((function (_){return _.data=op,_})).call(this,gensym_2_gnathvw5_29yep9.replace({x:t}))})}),qw=gensym_2_gnathvw5_29yepa.util.qw,not=gensym_2_gnathvw5_29yepb,trees_for=(function (op){return ((function (_){return _.map(template(op.replace(/!$/,'')))})).call(this,((function (_){return op.charAt(op.length-1)==='!'?_.map(prepend('u!')):_})).call(this,tree_forms))});
-return _.prefix_substitute=(function (tree,prefix){return tree.rmap((function (n){return (n.data.charAt(0)==='_')&&(new n.constructor((''+(prefix)+''+(n.data.substring(1))+'')))}))}),_.define_functional=(function (op,expansion,xs){return trees_for(op).map((function (t,i){return _.macro(t,(function (l,v,r){return expansion.replace({_x:_.macroexpand(l),_y:i>=8?v:gensym_2_gnathvw5_29yepc.replace({fn:i&2?gensym_2_gnathvw5_29yepd:gensym_2_gnathvw5_29yepe,xs:_.prefix_substitute(xs,i&1?v.data:'_'),y:(i&4?_.macroexpand:(function (x){return x}))(r||v)})})}))}))}),((function (_){return _('%',gensym_2_gnathvw5_29yepf,gensym_2_gnathvw5_29yepg),_('*',gensym_2_gnathvw5_29yeph,gensym_2_gnathvw5_29yepi),_('/',gensym_2_gnathvw5_29yepj,gensym_2_gnathvw5_29yepk),_('%!',gensym_2_gnathvw5_29yepl.replace({c:not}),gensym_2_gnathvw5_29yepm),_('*!',gensym_2_gnathvw5_29yepn,gensym_2_gnathvw5_29yepo),_('/!',gensym_2_gnathvw5_29yepp,gensym_2_gnathvw5_29yepq),_('&',gensym_2_gnathvw5_29yepr,gensym_2_gnathvw5_29yeps),_('|',gensym_2_gnathvw5_29yept,gensym_2_gnathvw5_29yepu),_('-',gensym_2_gnathvw5_29yepv,gensym_2_gnathvw5_29yepw),_('>>',gensym_2_gnathvw5_29yepx,gensym_2_gnathvw5_29yepy),_('<<',gensym_2_gnathvw5_29yepz,gensym_2_gnathvw5_29yeq0),_('>>>',gensym_2_gnathvw5_29yeq1,gensym_2_gnathvw5_29yeq2),_})).call(this,_.define_functional),seq(qw('> < >= <= == !=')).each((function (op){return _.macro(((function (_){return _.data=op,_})).call(this,gensym_2_gnathvw5_29yeq3.clone()),rxy(((function (_){return _.data=op,_})).call(this,gensym_2_gnathvw5_29yeq4.clone())))})),(function (e){return ((function (_){return _(gensym_2_gnathvw5_29yeq5,rxy(gensym_2_gnathvw5_29yeq6)),_(gensym_2_gnathvw5_29yeq7,rxy(gensym_2_gnathvw5_29yeq8)),_(gensym_2_gnathvw5_29yeq9,rxy(gensym_2_gnathvw5_29yeqa)),_(gensym_2_gnathvw5_29yeqb,rxy(gensym_2_gnathvw5_29yeqc)),_(gensym_2_gnathvw5_29yeqd,rxy(gensym_2_gnathvw5_29yeqe)),_(gensym_2_gnathvw5_29yeqf,rxy(gensym_2_gnathvw5_29yeqg)),_(gensym_2_gnathvw5_29yeqh,rxy(gensym_2_gnathvw5_29yeqi)),_(gensym_2_gnathvw5_29yeqj,rxy(gensym_2_gnathvw5_29yeqk)),_(gensym_2_gnathvw5_29yeql,rxy(gensym_2_gnathvw5_29yeqm)),_(gensym_2_gnathvw5_29yeqn,(function (x,y,z){return gensym_2_gnathvw5_29yeqo.replace({x:e(x),y:e(y),z:e(z)})})),(function (rx){return _(gensym_2_gnathvw5_29yeqp,rx(gensym_2_gnathvw5_29yeqq)),_(gensym_2_gnathvw5_29yeqr,rx(gensym_2_gnathvw5_29yeqs)),_(gensym_2_gnathvw5_29yeqt,rx(gensym_2_gnathvw5_29yequ)),_(gensym_2_gnathvw5_29yeqv.as('('),rx(gensym_2_gnathvw5_29yeqw))}).call(this,(function (t){return (function (x,y){return t.replace({_x:e(x),_y:y})})})),_(gensym_2_gnathvw5_29yeqx,(function (x){return x})),(function (rx){return _(gensym_2_gnathvw5_29yeqy,(function (){return gensym_2_gnathvw5_29yeqz})),_(gensym_2_gnathvw5_29yer0,rx(gensym_2_gnathvw5_29yer1)),_(gensym_2_gnathvw5_29yer2,rx(gensym_2_gnathvw5_29yer3))}).call(this,(function (t){return (function (x){return t.replace({x:x})})})),seq(qw('sk sv sp')).zip(qw('keys values pairs')).each((function (gensym_2_gnathvw5_29yer4){return (function (){return (function (p){return _(gensym_2_gnathvw5_29yer5.replace({p:p[0]}),(function (x){return gensym_2_gnathvw5_29yer6.replace({r:p[1],x:x})}))}).apply(gensym_2_gnathvw5_29yer4,arguments)})})(this)),_})).call(this,_.macro)}).call(this,(function (x){return _.macroexpand(x)})),this.rmacro(gensym_2_gnathvw5_29yer7,_.macroexpand)}).call(this),_})).call(this,gensym_2_gnathvw5_29yer8.global().clone())})})())).configuration('seq',function (gensym_2_gnathvw5_29yeog){this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification '+'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal '+'seq.numeric seq.dsl')});
+// Caterwaul JS sequence library | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// Javascript's looping facilities are side-effectful and more importantly operate in statement-mode rather than expression-mode. This sequence library moves finite and anamorphic looping into
+// expression-mode using both methods and macros. Macros are used sparingly here; they provide comprehensions, but are ultimately just shorthands for sequence methods. All sequences ultimately
+// inherit from Array, which may or may not work as desired.
+
+  caterwaul.tconfiguration('std', 'seq.core', function () {this.shallow('seq', {core: fn_[null] /se[_.prototype = [] /se.p[p.constructor = _]]})}).
+
+// There are two kinds of sequences represented here. One is a finite sequence, which is eager and acts like a Javascript array (though it has a different prototype). The other is an infinite
+// stream; this is an anamorphism that generates new elements from previous ones. Because Javascript isn't required to optimize tail calls, any recursion done by the sequence library is coded in
+// CPS using the continuation library.
+
+// Finite sequence API.
+// Finite sequences are assumed to have numbered elements and a 'length' field, just like a Javascript array or jQuery object. Any mapping, filtering, or folding on these sequences is done
+// eagerly (put differently, most sequence/stream operations are closed under eagerness). There's a core prototype for finite sequences that contains eager implementations of each(), map(),
+// filter(), foldl(), foldr(), zip(), etc.
+
+// Note that because of an IE7 bug, all lengths are stored twice. Once in 'l' and once in 'length' -- the 'length' property is only updated for array compatibility on compliant platforms, but it
+// will always be 0 on IE7.
+
+  tconfiguration('std opt continuation', 'seq.finite.core', function () {
+    this.configure('seq.core').seq.finite = fc[xs][this.length = this.l = xs ? opt.unroll[i, xs.size ? xs.size() : xs.length][this[i] = xs[i]] : 0] /se.c[c.prototype = new this.seq.core() /se[
+      _.size() = this.l || this.length, _.slice() = [] /se[opt.unroll[i, this.size()][_.push(this[i])]], _.constructor = c]]}).
+
+  tconfiguration('std opt continuation', 'seq.finite.serialization', function () {
+    this.configure('seq.finite.core').seq.finite.prototype /se[_.toString() = 'seq[#{this.slice().join(", ")}]', _.join(x) = this.slice().join(x)]}).
+
+//   Mutability.
+//   Sequences can be modified in-place. Depending on how Javascript optimizes this case it may be much faster than reallocating. Note that the methods here are not quite the same as the regular
+//   Javascript array methods. In particular, push() returns the sequence rather than its new length. Also, there is no shift()/unshift() API. These would each be linear-time given that we're
+//   using hard indexes. concat() behaves as it does for arrays; it allocates a new sequence rather than modifying either of its arguments.
+
+    tconfiguration('std opt continuation', 'seq.finite.mutability', function () {
+      l[push = Array.prototype.push, slice = Array.prototype.slice] in
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.push()     = l[as = arguments] in opt.unroll[i, as.length][this[this.l++] = as[i]] /re[this.length = this.l, this],
+                                                                 _.pop()      = this[--this.l] /se[delete this[this.length = this.l]],
+                                                                 _.concat(xs) = new this.constructor(this) /se[_.push.apply(_, slice.call(xs))]]}).
+
+//   Object interfacing.
+//   Sequences can be built from object keys, values, or key-value pairs. This keeps you from having to write for (var k in o) ever again. Also, you can specify whether you want all properties or
+//   just those which belong to the object directly (by default the latter is assumed). For example:
+
+//   | var keys     = caterwaul.seq.finite.keys({foo: 'bar'});             // hasOwnProperty is used
+//     var all_keys = caterwaul.seq.finite.keys({foo: 'bar'}, true);       // hasOwnProperty isn't used; you get every enumerable property
+
+//   Javascript, unlike Perl, fails to make the very useful parallel between objects and arrays. Because references are cheap in Javascript (both notationally and computationally), the
+//   representation of an object is slightly different from the one in Perl. You use an array of pairs, like this: [[k1, v1], [k2, v2], ..., [kn, vn]].
+
+//   | object([o = {}]): Zips a sequence of pairs into an object containing those mappings. Later pairs take precedence over earlier ones if there is a collision. You can specify an optional
+//                       object o to zip into; if you do this, then the pairs are added to o and o is returned instead of creating a new object and adding pairs to that.
+
+    tconfiguration('std opt continuation', 'seq.finite.object', function () {
+      l[own = Object.prototype.hasOwnProperty] in
+      this.configure('seq.finite.core').seq.finite /se[_.keys  (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(k)})()],
+                                                       _.values(o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push(o[k])})()],
+                                                       _.pairs (o, all) = new _() /se[(function () {for (var k in o) if (all || own.call(o, k)) _.push([k, o[k]])})()],
+                                                       _.prototype.object(o) = (o || {}) /se[this.each(fn[p][_[p[0]] = p[1]])]]}).
+
+//   Mapping and traversal.
+//   Sequences support the usual set of map/filter/fold operations. Unlike most sequence libraries, though, all of these functions used unrolled loops. This means that if your JS runtime has good
+//   hot-inlining support they should be really fast. (The same does not hold for the infinite stream library, which uses simulated continuations for lots of things and is probably quite slow.)
+
+//   If you fold on a sequence with too few elements (and you don't supply extras by giving it more arguments), it will return something falsy.
+
+    tconfiguration('std opt continuation', 'seq.finite.traversal', function () {
+      this.configure('seq.finite.core seq.finite.mutability').seq.finite.prototype
+        /se[_.map(f)      = new this.constructor() /se[opt.unroll[i, this.l][_.push(f.call(this, this[i], i))]],
+            _.filter(f)   = new this.constructor() /se[opt.unroll[i, this.l][_.push(this[i]), when[f.call(this, this[i], i)]]],
+            _.each(f)     = this                   /se[opt.unroll[i,    _.l][f.call(_, _[i], i)]],
+            _.reversed()  = new this.constructor() /se[l[l = this.l] in opt.unroll[i, l][_.push(this[l - i - 1])]],
+            _.flat_map(f) = new this.constructor() /se[this.each(fn[x, xi][(f.call(this, x, xi) /re.xs[xs.each ? xs : new this.constructor(xs)]).each(fn[x][_.push(x)])])],
+
+            _.foldl(f, x) = l[x = arguments.length > 1 ? x : this[0], xi = 2 - arguments.length]
+                             [opt.unroll[i, this.l - xi][x = f.call(this, x, this[i + xi], i + xi)], x, when[this.l >= xi]],
+            _.foldr(f, x) = l[x = arguments.length > 1 ? x : this[this.l - 1], xi = 3 - arguments.length, l = this.l]
+                             [opt.unroll[i, l - (xi - 1)][x = f.call(this, this[l - (i + xi)], x, l - (i + xi))], x, when[l >= xi - 1]]]}).
+
+//   Zipping.
+//   Zipping as a generalized construct has a few variants. One is the function used to zip (by default, [x, y]), another is the number of sequences to zip together, and the last one is whether
+//   you want an inner or outer product. Here's the full argument syntax for zip() with defaults:
+
+//   | xs.zip(xs1, xs2, ..., xsn, {f: fn_[new seq(arguments)], outer: false})
+
+//   Each of xsi should be an array-ish object (i.e. should support .length and [i] attributes). If you specify the optional hash at the end, its 'f' attribute, if specified, will be invoked
+//   on every n-tuple of items, and if 'outer' is truthy then you will have the outer-product of all of your sequences (i.e. the longest sequence length is used, and undefined is specified when
+//   you run past the end of any other one).
+
+    tconfiguration('std opt continuation', 'seq.finite.zip', function () {
+      this.configure('seq.finite.traversal').seq.finite
+        /se[_.prototype.zip() = l[as = new seq([this].concat(slice.call(arguments))), options = {f: fn_[new seq(arguments)], outer: false}]
+                                 [caterwaul.util.merge(options, as.pop()), when[as[as.size() - 1].constructor === Object],
+                                  l[l = as.map(fn[x][x.size ? x.size() : x.length]).foldl(options.outer ? fn[x, y][Math.max(x, y)] : fn[x, y][Math.min(x, y)]), f = options.f] in
+                                  new this.constructor() /se[opt.unroll[i, l][_.push(f.apply({i: i}, as.map(fn[x][x[i]]).slice()))]]],
+            where[seq = _, slice = Array.prototype.slice]]}).
+
+//   Quantification.
+//   Functions to determine whether all sequence elements have some property. If an element satisfying the predicate is found, exists() returns the output of the predicate for that element. (So,
+//   for example, xs.exists(fn[x][x.length]) would return the length of the nonempty item, which we know to be truthy.) forall() has no such behavior, since the quantifier is decided when the
+//   predicate returns a falsy value and there are only a few falsy values in Javascript.
+
+    tconfiguration('std opt continuation', 'seq.finite.quantification', function () {
+      this.configure('seq.finite.core').seq.finite.prototype /se[_.exists(f) = call/cc[fb[cc][opt.unroll[i, this.l][f.call(this, this[i], i) /re[_ && cc(_)]], false]],
+                                                                 _.forall(f) = ! this.exists(fn_[! f.apply(this, arguments)])]}).
+
+// Stream API.
+// All streams are assumed to be infinite in length; that is, given some element there is always another one. Streams provide this interface with h() and t() methods; the former returns the first
+// element of the stream, and the latter returns a stream containing the rest of the elements.
+
+  tconfiguration('std opt continuation', 'seq.infinite.core', function () {
+    this.configure('seq.core').seq.infinite = fn_[null] /se[_.prototype = new this.seq.core() /se[_.constructor = ctor], where[ctor = _]]
+      /se[_.def(name, ctor, h, t) = i[name] = ctor /se[_.prototype = new i() /se[_.h = h, _.t = t, _.constructor = ctor]], where[i = _],
+
+          _.def('cons', fn[h, t][this._h = h, this._t = t], fn_[this._h], fn_[this._t]),
+          _.def('k',    fn   [x][this._x = x],              fn_[this._x], fn_[this])]}).
+
+//   Anamorphisms via fixed-point.
+//   Anamorphic streams are basically unwrapped version of the Y combinator. An anamorphic stream takes a function f and an initial element x, and returns x, f(x), f(f(x)), f(f(f(x))), ....
+
+    tconfiguration('std opt continuation', 'seq.infinite.y', function () {
+      this.configure('seq.infinite.core').seq.infinite.def('y', fc[f, x][this._f = f, this._x = x], fn_[this._x], fn_[new this.constructor(this._f, this._f(this._x))])}).
+
+//   Lazy map and filter.
+//   These are implemented as separate classes that wrap instances of infinite streams. They implement the next() method to provide the desired functionality. map() and filter() are simple
+//   because they provide streams as output. filter() is eager on its first element; that is, it remains one element ahead of what is requested.
+
+    tconfiguration('std opt continuation', 'seq.infinite.transform', function () {
+      this.configure('seq.infinite.core').seq.infinite
+        /se[_.prototype.map(f) = new _.map(f, this),
+            _.def('map', fc[f, xs][this._f = f, this._xs = xs], fn_[this._f(this._xs.h())], fn_[new this.constructor(this._f, this._xs.t())]),
+
+            _.prototype.filter(f) = new _.filter(f, this),
+            _.def('filter', fc[f, xs][this._f = f, this._xs = l*[next(s)(cc) = f(s.h()) ? cc(s) : call/tail[next(s.t())(cc)]] in call/cc[next(xs)]],
+                            fn_[this._xs.h()], fn_[new this.constructor(this._f, this._xs.t())])]}).
+
+//   Traversal and forcing.
+//   This is where we convert from infinite streams to finite sequences. You can take or drop elements while a condition is true. take() always assumes it will return a finite sequence, whereas
+//   drop() assumes it will return an infinite stream. (In other words, the number of taken or dropped elements is assumed to be finite.) Both take() and drop() are eager. drop() returns a
+//   sequence starting with the element that fails the predicate, whereas take() returns a sequence for which no element fails the predicate.
+
+    tconfiguration('std opt continuation', 'seq.infinite.traversal', function () {
+      l[finite = this.configure('seq.finite.core seq.finite.mutability').seq.finite] in
+      this.configure('seq.infinite.core').seq.infinite.prototype
+        /se[_.drop(f) = l*[next(s)(cc) = f(s.h()) ? call/tail[next(s.t())(cc)] : cc(s)] in call/cc[next(this)],
+            _.take(f) = l*[xs = new finite(), next(s)(cc) = l[h = s.h()][f(h) ? (xs.push(h), call/tail[next(s.t())(cc)]) : cc(xs)]] in call/cc[next(this)]]}).
+
+// Sequence utilities.
+// These methods are useful both for finite and for infinite sequences. Probably the most useful here is n(), which produces a bounded sequence of integers. You use n() like this:
+
+// | caterwaul.seq.n(10)                   -> [0, 1, 2, ..., 8, 9]
+//   caterwaul.seq.n(1, 10)                -> [1, 2, ..., 8, 9]
+//   caterwaul.seq.n(1, 10, 0.5)           -> [1, 1.5, 2, 2.5, ..., 8, 8.5, 9, 9.5]
+//   caterwaul.seq.n(-10)                  -> [0, -1, -2, ..., -8, -9]
+//   caterwaul.seq.n(-1, -10)              -> [-1, -2, ..., -8, -9]
+//   caterwaul.seq.n(-1, -10, 0.5)         -> [-1, -1.5, -2, ..., -8, -8.5, -9, -9.5]
+
+// Also useful is the infinite stream of natural numbers and its companion function naturals_from:
+
+// | caterwaul.seq.naturals                -> [0, 1, 2, 3, ...]
+//   caterwaul.seq.naturals_from(2)        -> [2, 3, 4, 5, ...]
+
+  tconfiguration('std opt continuation', 'seq.numeric', function () {
+    this.configure('seq.infinite.core seq.infinite.y seq.finite.core').seq /se[
+      _.naturals_from(x) = new _.infinite.y(fn[n][n + 1], x),
+      _.naturals         = _.naturals_from(0),
+      _.n(l, u, s)       = l[lower = arguments.length > 1 ? l : 0, upper = arguments.length > 1 ? u : l]
+                            [l[step = Math.abs(s || 1) * (lower < upper ? 1 : -1)] in new _.infinite.y(fn[n][n + step], lower).take(fn[x][(upper - lower) * (upper - x) > 0])]]}).
+
+// Sequence manipulation language.
+// Using methods to manipulate sequences can be clunky, so the sequence library provides a macro to enable sequence-specific manipulation. You enter this mode by using seq[], and expressions
+// inside the brackets are interpreted as sequence transformations. For example, here is some code translated into the seq[] macro:
+
+// | var primes1 = l[two = naturals.drop(fn[x][x < 2])] in two.filter(fn[n][two.take(fn[x][x <= Math.sqrt(n)]).forall(fn[k][n % k])]);
+//   var primes2 = l[two = seq[naturals >>[_ < 2]] in seq[two %n[two[_ <= Math.sqrt(n)] &[n % _]]];
+
+// These operators are supported and take their normal Javascript precedence and associativity:
+
+// | x *[_ + 2]            // x.map(fn[_, _i][_ + 2])
+//   x *~[_ + xs]          // x.map(fn[_, _i][_.concat(xs)])
+//   x *-[_ + 2]           // x.map(fb[_, _i][_ + 2])
+//   x *~-[_ + xs]         // x.map(fb[_, _i][_.concat(xs)])
+//   x *+(console/mb/log)  // x.map(console/mb/log)
+//   x *!+f                // x.each(f)
+//   x *![console.log(_)]  // x.each(fn[_, _i][console.log(_)])
+//   x /[_ + _0]           // x.foldl(fn[_, _0, _i][_ + _0])
+//   x /![_ + _0]          // x.foldr(fn[_, _0, _i][_ + _0])
+//   x %[_ >= 100]         // x.filter(fn[_, _i][_ >= 100])
+//   x %![_ >= 100]        // x.filter(fn[_, _i][!(x >= 100)])
+//   x *n[n + 2]           // x.map(fn[n, ni][n + 2])
+//   x *!n[console.log(n)] // x.each(fn[n, ni][console.log(n)])
+//   x /n[n + n0]          // x.foldl(fn[n, n0, ni][n + n0])
+//   x /!n[n + n0]         // x.foldr(fn[n, n0, ni][n + n0])
+//   x %n[n % 100 === 0]   // x.filter(fn[n, ni][n % 100 === 0])
+//   x %!n[n % 100]        // x.filter(fn[n, ni][!(n % 100 === 0)])
+//   x <<[_ >= 10]         // x.take(fn[_][_ >= 10])
+//   x <<n[n >= 10]        // x.take(fn[n][n >= 10])
+//   x >>[_ >= 10]         // x.drop(fn[_][_ >= 10])
+//   x >>n[n >= 10]        // x.drop(fn[n][n >= 10])
+//   x |[_ === 5]          // x.exists(fn[_, _i][_ === 5])
+//   x &[_ === 5]          // x.forall(fn[_, _i][_ === 5])
+//   x |n[n === 5]         // x.exists(fn[n, ni][n === 5])
+//   x &n[n === 5]         // x.forall(fn[n, ni][n === 5])
+//   x -~[~[_, _ + 1]]     // x.flat_map(fn[_, _i][seq[~[_, _ + 1]]])
+//   x -~i[~[i, i + 1]]    // x.flat_map(fn[i, ii][seq[~[i, i + 1]]])
+//   x >>>[_ + 1]          // new caterwaul.seq.infinite.y(fn[_][_ + 1], x)
+//   x >>>n[n + 1]         // new caterwaul.seq.infinite.y(fn[n][n + 1], x)
+//   x || y                // x && x.size() ? x : y        // except that each sequence is evaluated at most once, and if x && x.size() then y is not evaluated at all
+//   x && y                // x && x.size() ? y : x        // same here, except evaluation semantics are for && instead of ||
+//   x > y                 // x.size() > y.size()
+//   x >= y                // x.size() >= y.size()
+//   x < y                 // x.size() < y.size()
+//   x <= y                // x.size() <= y.size()
+//   x == y                // x.size() === y.size()
+//   x != y                // x.size() !== y.size()
+//   x === y               // x.size() === y.size() && x.zip(y).forall(fn[p][p[0] === p[1]])
+//   x !== y               // !(x === y)
+//   sk[x]                 // caterwaul.seq.finite.keys(x)
+//   sv[x]                 // caterwaul.seq.finite.values(x)
+//   sp[x]                 // caterwaul.seq.finite.pairs(x)
+//   n[...]                // caterwaul.seq.n(...)
+//   N                     // caterwaul.seq.naturals
+//   N[x]                  // caterwaul.seq.naturals_from
+//   x ^ y                 // x.zip(y)
+//   x + y                 // x.concat(y)
+//   !x                    // x.object()
+//   ~x                    // new caterwaul.seq.finite(x)
+//   +(x)                  // x    (this means 'literal', so no sequence transformations are applied to x)
+
+// Method calls are treated normally and arguments are untransformed; so you can call methods normally. Also, each operator above makes sure to evaluate each operand at most once (basically
+// mirroring the semantics of the Javascript operators in terms of evaluation).
+
+//   Modifiers.
+//   There are patterns in the above examples. For instance, x %[_ + 1] is the root form of the filter operator, but you can also write x %n[n + 1] to use a different variable name. The ~
+//   modifier is available as well; this evaluates the expression inside brackets in sequence context rather than normal Javascript. (e.g. xs %~[_ |[_ === 1]] finds all subsequences that contain
+//   1.) Finally, some operators have a ! variant (fully listed in the table above). In this case, the ! always precedes the ~.
+
+//   New in Caterwaul 0.6.7 is the unary - modifier, which preserves a function's binding. For example, seq[~xs *[this]] returns a sequence containing references to itself, whereas seq[~xs
+//   *-[this]] returns a sequence containing references to whatever 'this' was in the context containing the sequence comprehension. The difference is whether an fn[] or fb[] is used.
+
+//   Another modifier is +; this lets you use point-free form rather than creating a callback function. For example, xs %+divisible_by(3) expands into xs.filter(divisible_by(3)). This modifier
+//   goes where ~ would have gone.
+
+//   Bound variables.
+//   In addition to providing operator-to-method conversion, the seq[] macro also provides some functions. Prior to Caterwaul 0.6.7 you had to manually construct anamorphic sequences of integers,
+//   so a lot of code looked like seq[(0 >>>[_ + 1]) *![...]]. Caterwaul 0.6.7 introduces the following shorthands:
+
+//   | seq[N]              // caterwaul.seq.naturals
+//     seq[N[10]]          // caterwaul.seq.naturals_from(10)
+//     seq[n[10]]          // caterwaul.seq.n(10), which becomes [0, 1, ..., 9]
+//     seq[n[5, 10]]       // caterwaul.seq.n(5, 10), which becomes [5, 6, 7, 8, 9]
+//     seq[n[5, 8, 0.5]]   // caterwaul.seq.n(5, 8, 0.5)
+
+//   These should eliminate most if not all occurrences of manual anamorphic generation.
+
+//   Inside the DSL code.
+//   This code probably looks really intimidating, but it isn't actually that complicated. The first thing I'm doing is setting up a few methods to help with tree manipulation. The
+//   prefix_substitute() method takes a prefix and a tree and looks for data items in the tree that start with underscores. It then changes their names to reflect the variable prefixes. For
+//   example, prefix_substitute(qs[fn[_, _x, _i][...]], 'foo') would return fn[foo, foox, fooi].
+
+//   The next interesting thing is define_functional. This goes beyond macro() by assuming that you want to define an operator with a function body to its right; e.g. x >>[body]. It defines two
+//   forms each time you call it; the first form is the no-variable case (e.g. x *[_ + 1]), and the second is the with-variable case (e.g. x *n[n + 1]). The trees_for function takes care of the
+//   bang-variant of each operator. This gets triggered if you call define_functional on an operator that ends in '!'.
+
+//   After this is the expansion logic (which is just the regular Caterwaul macro logic). Any patterns that match are descended into; otherwise expansion returns its tree verbatim. Also, the
+//   expander-generator function rxy() causes expansion to happen on each side. This is what keeps expansion going. When I specify a custom function it's because either (1) rxy doesn't take
+//   enough parameters, or (2) I want to specify that only some subtrees should be expanded. (That's what happens when there's a dot or invocation, for instance.)
+
+//   Pattern matching always starts at the end of the arrays as of Caterwaul 0.5. This way any new patterns that you define will bind with higher precedence than the standard ones.
+
+    tconfiguration('std opt continuation', 'seq.dsl', function () {
+      this.configure('seq.core seq.infinite.y seq.finite.core seq.finite.zip seq.finite.traversal seq.finite.mutability').seq.dsl = caterwaul.global().clone()
+
+      /se[_.prefix_substitute(tree, prefix)      = tree.rmap(fn[n][new n.constructor('#{prefix}#{n.data.substring(1)}'), when[n.data.charAt(0) === '_']]),
+          _.define_functional(op, expansion, xs) = trees_for(op).map(fn[t, i][_.macro(t,
+            fn[l, v, r][expansion.replace({_x: _.macroexpand(l), _y: i >= 8 ? v : qs[fn[xs][y]].replace({fn: i & 2 ? qs[fb] : qs[fn], xs: _.prefix_substitute(xs, i & 1 ? v.data : '_'), 
+                                                                                                                                      y: (i & 4 ? _.macroexpand : fn[x][x])(r || v)})})])]),
+
+          _.define_functional /se[_('%',  qs[_x.filter(_y)],                      qs[_, _i]), _('*',  qs[_x.map(_y)],    qs[_, _i]), _('/',  qs[_x.foldl(_y)],    qs[_, _0, _i]),
+                                  _('%!', qs[_x.filter(c(_y))].replace({c: not}), qs[_, _i]), _('*!', qs[_x.each(_y)],   qs[_, _i]), _('/!', qs[_x.foldr(_y)],    qs[_, _0, _i]),
+                                  _('&',  qs[_x.forall(_y)],                      qs[_, _i]), _('|',  qs[_x.exists(_y)], qs[_, _i]), _('-',  qs[_x.flat_map(_y)], qs[_, _i]),
+                                  _('>>', qs[_x.drop(_y)],  qs[_]), _('<<', qs[_x.take(_y)], qs[_]), _('>>>', qs[new caterwaul.seq.infinite.y(_y, _x)], qs[_])],
+
+          seq(qw('> < >= <= == !=')).each(fn[op][_.macro(qs[_ + _].clone() /se[_.data = op], rxy(qs[qg[_x].size() + qg[_y].size()].clone() /se[_.data = op]))]),
+
+          l[e(x) = _.macroexpand(x)] in
+          _.macro /se[_(qs[_ && _], rxy(qse[qg[l[xp = _x][xp && xp.size() ? _y : xp]]])), _(qs[_ || _], rxy(qse[qg[l[xp = _x][xp && xp.size() ? xp : _y]]])),
+                      _(qs[_ === _], rxy(qs[qg[l[xp = _x, yp = _y][xp === yp ||  xp.size() === yp.size() && xp.zip(yp).forall(fn[p][p[0] === p[1]])]]])),
+                      _(qs[_ !== _], rxy(qs[qg[l[xp = _x, yp = _y][xp !== yp && (xp.size() !== yp.size() || xp.zip(yp).exists(fn[p][p[0] !== p[1]]))]]])),
+
+                      _(qs[_ ^ _], rxy(qs[_x.zip(_y)])), _(qs[_ + _], rxy(qs[_x.concat(_y)])), _(qs[!_], rxy(qs[_x.object()])), _(qs[_, _], rxy(qs[_x, _y])),
+                      _(qs[~_], rxy(qs[qg[new caterwaul.seq.finite(_x)]])), _(qs[_?_:_], fn[x, y, z][qs[x ? y : z].replace({x: e(x), y: e(y), z: e(z)})]),
+
+                      l[rx(t)(x, y) = t.replace({_x: e(x), _y: y})][_(qs[_(_)], rx(qs[_x(_y)])), _(qs[_[_]], rx(qs[_x[_y]])), _(qs[_._], rx(qs[_x._y])), _(qs[_].as('('), rx(qs[qg[_x]]))],
+                      _(qs[+_], fn[x][x]),
+
+                      l[rx(t)(x) = t.replace({x: x})][_(qs[N], fn_[qs[caterwaul.seq.naturals]]), _(qs[N[_]], rx(qs[caterwaul.seq.naturals_from(x)])), _(qs[n[_]], rx(qs[caterwaul.seq.n(x)]))],
+
+                      seq(qw('sk sv sp')).zip(qw('keys values pairs')).each(fb[p][_(qs[p[_]].replace({p: p[0]}), fn[x][qs[caterwaul.seq.finite.r(x)].replace({r: p[1], x: x})])])],
+
+          this.rmacro(qs[seq[_]], _.macroexpand),
+
+          where*[rxy(tree)(x, y)      = tree.replace({_x: _.macroexpand(x), _y: y && _.macroexpand(y)}), seq = fb[xs][new this.seq.finite(xs)],
+                 prepend(operator)(x) = qs[-x].replace({x: x}) /se[_.data = operator],
+                 tree_forms           = l*[base = seq([qs[[_]], qs[_[_]]]), mod(fs, op) = fs.concat(fs.map(prepend(op)))] in mod(mod(base, 'u-'), 'u~').concat(seq([qs[+_]])),
+
+                 template(op)(t)      = qs[_ + x].replace({x: t}) /se[_.data = op], qw = caterwaul.util.qw, not = qs[qg[fn[f][fn_[!f.apply(this, arguments)]]]],
+                 trees_for(op)        = tree_forms /re[op.charAt(op.length - 1) === '!' ? _.map(prepend('u!')) : _] /re[_.map(template(op.replace(/!$/, '')))]]]}).
+
+// Final configuration.
+// Rather than including individual configurations above, you'll probably just want to include this one.
+
+  configuration('seq', function () {this.configure('seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification ' +
+                                                            'seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal ' +
+                                                            'seq.numeric seq.dsl')});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.tconfiguration('std seq','heap',caterwaul.precompiled_internal((function (){var gensym_2_gnathmor_8uq4vg=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq');
-return (function (gensym_2_gnathmor_8uq4ve){this.heap=(function (less){return ((function (c){return c.prototype=((function (_){return _.insert=(function (x){return this.push(x).heapify_up(this.size()-1)}),_.root=(function (){return this[0]}),_.rroot=(function (){return ((function (_){return ((function (_){return (this.size())&&(this[0]=_,this.heapify_down(0)),_})).call(this,this.pop()),_})).call(this,this[0])}),_.swap=(function (i,j){return ((function (_){return (function (temp){return _[j]=_[i],_[i]=temp}).call(this,_[j]),_})).call(this,this)}),_.heapify_up=(function (i){return ((function (_){return (function (p){return (less.call(_,_[i],_[p]))&&(_.swap(i,p).heapify_up(p))}).call(this,i>>1),_})).call(this,this)}),_.heapify_down=(function (i){return ((function (_){return (function (){var s=_.size(),r=i+1<<1,l=r-1,ll=l<s&&less.call(_,_[l],_[i])?l:i,lr=r<s&&less.call(_,_[r],_[ll])?r:ll;
-return  !(lr===i)&&(_.swap(lr,i).heapify_down(lr))}).call(this),_})).call(this,this)}),_})).call(this,((function (_){return _.constructor=c,_})).call(this,new gensym_2_gnathmor_8uq4vg.seq.finite())),c})).call(this,((function (vars){return null,undefined})))})})})()));
+// Heap implementation | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// This module provides a basic heap implementation on top of finite caterwaul sequences. The heap is parameterized by a function that orders elements, returning true if the element belongs more
+// towards the root and false otherwise. (So a minheap on numbers or strings would use the function fn[x, y][x < y].)
+
+// Usage.
+// caterwaul.heap is a function that takes an order function and returns a constructor for heaps implementing that ordering. So, for example:
+
+// | var minheap = caterwaul.heap(fn[x, y][x < y]);
+//   var h = new minheap();
+//   h.insert(10).insert(20).root()        // -> 10
+//   h.rroot()                             // -> 10, removes the root
+
+  caterwaul.tconfiguration('std seq', 'heap', function () {
+    this.heap(less) = fc_[null] /se.c[c.prototype = new caterwaul.seq.finite() /se[_.constructor = c] /se[
+      _.insert(x) = this.push(x).heapify_up(this.size() - 1),
+      _.root()    = this[0],
+      _.rroot()   = this[0] /se[this.pop() /se[this[0] = _, this.heapify_down(0), when[this.size()]]],
+
+// Implementation.
+// There's some less-than-obvious math going on here. Down-heapifying requires comparing an element to its two children and finding the top of the three. We then swap that element into the top
+// position and heapify the tree that we swapped.
+
+// Normally in a heap the array indexes are one-based, but this is inconvenient considering that everything else in Javascript is zero-based. To remedy this, I'm using some makeshift offsets. We
+// basically transform the index in one-based space, but then subtract one to get its zero-based offset. Normally the left and right offsets are 2i and 2i + 1, respectively; in this case, here's
+// the math:
+
+// | right = 2(i + 1) + 1 - 1 = 2(i + 1)
+//   left  = 2(i + 1) - 1     = right - 1
+
+      _.swap(i, j)      = this /se[_[j] = _[i], _[i] = temp, where[temp = _[j]]],
+      _.heapify_up(i)   = this /se[_.swap(i, p).heapify_up(p), when[less.call(_, _[i], _[p])], where[p = i >> 1]],
+      _.heapify_down(i) = this /se[_.swap(lr, i).heapify_down(lr), unless[lr === i],
+                                   where*[s = _.size(), r = i + 1 << 1, l = r - 1, ll = l < s && less.call(_, _[l], _[i]) ? l : i, lr = r < s && less.call(_, _[r], _[ll]) ? r : ll]]]]});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.tconfiguration('std seq continuation','memoize',caterwaul.precompiled_internal((function (){var gensym_2_gnathq68_56eps=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathq68_56ept=gensym_2_gnathq68_56eps;
-return (function (gensym_2_gnathq68_56epq){((function (m){return m.wrap=(function (f){return ((function (_){return _.original=f,_})).call(this,(function (){return (function (as,start){return ((function (_){return _.time= +new Date()-start,_})).call(this,gensym_2_gnathq68_56eps.continuation.unwind_protect((function (gensym_2_gnathq68_56ekm){return (function (){return (function (e){return {error:e}}).apply(gensym_2_gnathq68_56ekm,arguments)})})(this),(function (gensym_2_gnathq68_56ekn){return (function (){return (function (){return {result:f.apply(this,as)}}).apply(gensym_2_gnathq68_56ekn,arguments)})})(this)))}).call(this,arguments, +new Date())}))}),m.perform=(function (result){return result.error?gensym_2_gnathq68_56ept.continuation.unwind(result.error):result.result}),m.from=(function (proxy){return (function (f){return (function (state,g){return (function (){return m.perform(proxy.call(state,this,arguments,g))})}).call(this,{},m.wrap(f))})}),m})).call(this,this.namespace('memoize'))})})()));
+// Memoization module | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// This memoizer is implemented a bit differently from Perl's memoize module; this one leaves more up to the user. To mitigate the difficulty involved in using it I've written a couple of default
+// proxy functions. The basic model is that functions are assumed to map some 'state' (which obviously involves their arguments, but could involve other things as well) into either a return value
+// or an exception. This memoization library lets you introduce a proxy around a function call:
+
+// | var null_proxy = fn[context, args, f][f.apply(context, args)];                                        // Identity memoizer (does no memoization)
+//   var memo_proxy = fn[context, args, f][this[args[0]] || (this[args[0]] = f.apply(context, args))];     // Memoizes on first argument
+//   var identity = caterwaul.memoize.from(null_proxy);
+//   var memoizer = caterwaul.memoize.from(memo_proxy);
+//   var fibonacci = memoizer(fn[x][x < 2 ? x : fibonacci(x - 1) + fibonacci(x - 2)]);                     // O(n) time
+
+// Here the 'fstate' argument represents state specific to the function being memoized. 'f' isn't the real function; it's a wrapper that returns an object describing the return value. This object
+// contains:
+
+// | 1. The amount of time spent executing the function. This can be used later to expire memoized results (see the 'heap' module for one way to do this).
+//   2. Any exceptions thrown by the function.
+//   3. Any value returned by the function.
+
+// Internals.
+// The core interface is the proxy function, which governs the memoization process at a low level. It is invoked with three parameters: the invocation context, the original 'arguments' object,
+// and the function being memoized (wrapped by a helper, explained below). It also receives an implicit fourth as 'this', which is bound to a generic object specific to the memoized function. The
+// proxy function owns this object, so it's allowed to manipulate it in any way.
+
+//   Helpers.
+//   The function passed into the proxy isn't the original. It's been wrapped by a result handler that captures the full range of things the function can do, including throwing an exception. This
+//   guarantees the following things:
+
+//   | 1. The wrapped function will never throw an exception.
+//     2. The wrapped function will always return a truthy value, and it will be an object.
+//     3. Each invocation of the wrapped function is automatically timed, and the time is accessible via the .time attribute on its return value.
+
+//   The proxy function is expected to return one of these values, which will then be translated into the corresponding real action.
+
+  caterwaul.tconfiguration('std seq continuation', 'memoize', function () {
+    this.namespace('memoize') /se.m[m.wrap(f) = fn_[l[as = arguments, start = +new Date()] in unwind_protect[{error: e}][{result: f.apply(this, as)}] /se[_.time = +new Date() - start]]
+                                                /se[_.original = f],
+                                    m.perform(result) = result.error ? unwind[result.error] : result.result,
+                                    m.from(proxy) = fn[f][l[state = {}, g = m.wrap(f)] in fn_[m.perform(proxy.call(state, this, arguments, g))]]]});
+// Generated by SDoc 
 
 
 
 
 
-caterwaul.tconfiguration('std seq continuation memoize','parser.core',caterwaul.precompiled_internal((function (){var gensym_2_gnathtog_4z8tbv=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation memoize');
-var gensym_2_gnathtog_4z8tbw=gensym_2_gnathtog_4z8tbv;
-return (function (gensym_2_gnathtog_4z8tbk){((function (_){return _.parse_state=(function (input,i,result,memo){return ((function (_){return this.input=input,this.i=i,this.result=result,this.memo=memo,_})).call(this,undefined)}),((function (s){return s.from_input=(function (input){return new _.parse_state(input,0,null,{})}),((function (_){return _.accept=(function (i,r){return new this.constructor(this.input,i,r,this.memo)}),_.has_input=(function (){return this.i<this.input.length}),_.toString=(function (){return ('ps['+(this.input.substr(this.i))+', '+(this.result)+']')}),_})).call(this,s.prototype),s})).call(this,_.parse_state),_.memoize=gensym_2_gnathtog_4z8tbv.memoize.from((function (c,as,f){return (function (k,m){return k in m?m[k]:(m[k]=f.apply(c,as))}).call(this,(''+(f.original.memo_id)+'|'+(as[0].i)+''),as[0].memo||(as[0].memo={}))})),_.promote_non_states=(function (f){return (function (state){return state instanceof _.parse_state?f.call(this,state):((function (_){return _&&_.result})).call(this,f.call(this,_.parse_state.from_input(state)))})}),_.identify=(function (f){return ((function (_){return _.memo_id=gensym_2_gnathtog_4z8tbw.gensym(),_})).call(this,f)}),_.parser=(function (f){return _.promote_non_states(_.memoize(_.identify(f)))}),_.defparser=(function (name,f){return _.parsers[name]=(function (){return _.parser(f.apply(this,arguments))})}),_.parsers={},_})).call(this,this.namespace('parser'))})})())).tconfiguration('std seq continuation','parser.c',caterwaul.precompiled_internal((function (){var gensym_2_gnathtog_4z8tby=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathtog_4z8tbz=gensym_2_gnathtog_4z8tby;
-var gensym_2_gnathtog_4z8tc0=gensym_2_gnathtog_4z8tby;
-var gensym_2_gnathtog_4z8tc1=gensym_2_gnathtog_4z8tby;
-return (function (gensym_2_gnathtog_4z8tbl){this.configure('parser.core').parser.defparser('c',(function (x,l){return (function (){var check_index=(function (i,s,p){return i.exists((function (_,_i){return (function (s){return _[('@'+(s)+'')]&&s}).call(this,s.substr(p,_.length))}))}),index_entries=(function (xs){return (function (){var xsp=(new gensym_2_gnathtog_4z8tby.seq.finite(xs)),ls=gensym_2_gnathtog_4z8tbz.seq.finite.keys((xsp.map((function (_,_i){return [_.length,true]}))).object()).map((function (_,_i){return Number(_)}));
-return (new gensym_2_gnathtog_4z8tc0.seq.finite(ls.slice().sort((function (x,y){return y-x})))).map((function (l,li){return (xsp.filter((function (_,_i){return _.length===l})).map((function (_,_i){return [('@'+(_)+''),true]})).concat([['length',l]])).object()}))}).call(this)}),add_absolute_anchors_to=(function (x){return (function (parts){return new RegExp(('^'+(parts[1])+'$'),parts[2])}).call(this,/^\/(.*)\/(\w*)$/.exec(x.toString()))}),fail_length=(function (re,s,p,l){return re.test(s.substr(p,l))?p+(l<<1)<=s.length?fail_length(re,s,p,l<<1):l<<1:l}),split_lengths=(function (re,s,p,l,u){return (function (){var b=(function (l,u){return l+1<u?((function (m){return re.test(s.substr(p,m))?b(m,u):b(l,m)})).call(this,(l+(u-l>>1))):l});
-return b(l,u)}).call(this)});
-return x.constructor===String?(function (st){return (x===st.input.substr(st.i,x.length))&&(st.accept(st.i+x.length,x))}):x instanceof Array?(function (index){return (function (st){return ((function (_){return _&&st.accept(st.i+_.length,_)})).call(this,check_index(index,st.input,st.i))})}).call(this,index_entries(x)):x.constructor===RegExp?(function (x){return (function (st){return ((function (_){return _>l&&((function (_){return st.accept(st.i+_,x.exec(st.input.substr(st.i,_)))})).call(this,split_lengths(x,st.input,st.i,l,_))})).call(this,fail_length(x,st.input,st.i,l))})}).call(this,add_absolute_anchors_to(x)):x.constructor===Function?(function (st){return ((function (_){return _&&st.accept(st.i+_,st.input.substr(st.i,_))})).call(this,x.call(st,st.input,st.i))}):(function (index){return (function (st){return ((function (_){return _&&st.accept(st.i+_.length,x[_])})).call(this,check_index(index,st.input,st.i))})}).call(this,index_entries(gensym_2_gnathtog_4z8tc1.seq.finite.keys(x)))}).call(this)}))})})())).tconfiguration('std opt seq continuation','parser.seq',caterwaul.precompiled_internal((function (){var gensym_2_gnathtog_4z8tc3=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-return (function (gensym_2_gnathtog_4z8tbm){this.configure('parser.core').parser.defparser('seq',(function (){return (function (as){return (function (state){return (function (result){return (gensym_2_gnathtog_4z8tc3.continuation.call_cc.call(this,(function (cc){return (function (gensym_2_gnathtog_4z8t69){for (var gensym_2_gnathtog_4z8t6a=gensym_2_gnathtog_4z8t69>=0&&gensym_2_gnathtog_4z8t69>>3,gensym_2_gnathtog_4z8t6b=gensym_2_gnathtog_4z8t69>=0&&gensym_2_gnathtog_4z8t69&7,i=0;
-i<gensym_2_gnathtog_4z8t6b;
- ++i)(state=as[i](state))?result.push(state.result):cc(false);
-for (var gensym_2_gnathtog_4z8t6c=0;
-gensym_2_gnathtog_4z8t6c<gensym_2_gnathtog_4z8t6a;
- ++gensym_2_gnathtog_4z8t6c){(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++;
-(state=as[i](state))?result.push(state.result):cc(false);
-i++};
-return gensym_2_gnathtog_4z8t69}).call(this,as.length),state.accept(state.i,result)})))}).call(this,[])})}).call(this,arguments)}))})})())).tconfiguration('std opt seq continuation','parser.alt',caterwaul.precompiled_internal((function (){var gensym_2_gnathtog_4z8tc5=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-return (function (gensym_2_gnathtog_4z8tbn){this.configure('parser.core').parser.defparser('alt',(function (){return (function (as){return (function (state){return as.exists((function (_,_i){return _(state)}))})}).call(this,(new gensym_2_gnathtog_4z8tc5.seq.finite(arguments)))}))})})())).tconfiguration('std opt seq continuation','parser.times',caterwaul.precompiled_internal((function (){var gensym_2_gnathtog_4z8tc7=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathtog_4z8tc8=gensym_2_gnathtog_4z8tc7;
-var gensym_2_gnathtog_4z8tc9=gensym_2_gnathtog_4z8tc7;
-return (function (gensym_2_gnathtog_4z8tbo){this.configure('parser.core').parser.defparser('times',(function (p,lower,upper){return (function (state){return (function (count,result){return (gensym_2_gnathtog_4z8tc7.continuation.call_cc.call(this,(function (cc){return (function (gensym_2_gnathtog_4z8t69){for (var gensym_2_gnathtog_4z8t6a=gensym_2_gnathtog_4z8t69>=0&&gensym_2_gnathtog_4z8t69>>3,gensym_2_gnathtog_4z8t6b=gensym_2_gnathtog_4z8t69>=0&&gensym_2_gnathtog_4z8t69&7,i=0;
-i<gensym_2_gnathtog_4z8t6b;
- ++i) ++count,(state=p(state))?result.push(state.result):cc(false);
-for (var gensym_2_gnathtog_4z8t6c=0;
-gensym_2_gnathtog_4z8t6c<gensym_2_gnathtog_4z8t6a;
- ++gensym_2_gnathtog_4z8t6c){ ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++;
- ++count,(state=p(state))?result.push(state.result):cc(false);
-i++};
-return gensym_2_gnathtog_4z8t69}).call(this,lower),true})))&&(gensym_2_gnathtog_4z8tc8.continuation.call_cc.call(this,(function (){var loop=(function (cc){return ( !upper||count++<upper)&&state.has_input()&&((function (_){return (_)&&(state=_),_})).call(this,p(state))?result.push(state.result)&&(gensym_2_gnathtog_4z8tc9.continuation.call_tail.call(loop,cc)):cc(state.accept(state.i,result))});
-return loop}).call(this)))}).call(this,0,[])})}))})})())).tconfiguration('std opt seq continuation','parser.opt',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathtog_4z8tbp){this.configure('parser.core').parser.defparser('opt',(function (p){return (function (state){return (function (){var s=p(state),n=s?s.i:state.i,r=s&&s.result;
-return state.accept(n,r)}).call(this)})}))})})())).tconfiguration('std opt seq continuation','parser.match',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathtog_4z8tbq){((function (_){return _.defparser('match',(function (p){return (function (state){return ((function (_){return _&&state.accept(state.i,state.result)})).call(this,p(state))})})),_.defparser('reject',(function (p){return (function (state){return ((function (_){return  !_&&state.accept(state.i,null)})).call(this,p(state))})})),_})).call(this,this.configure('parser.core').parser)})})())).tconfiguration('std opt seq continuation','parser.bind',caterwaul.precompiled_internal((function (){null;
-return (function (gensym_2_gnathtog_4z8tbr){((function (_){return _.defparser('bind',(function (p,f){return (function (state){return ((function (_){return _&&_.accept(_.i,f.call(_,_.result))})).call(this,p(state))})})),_})).call(this,this.configure('parser.core').parser)})})())).tconfiguration('std opt seq continuation','parser.dsl',caterwaul.precompiled_internal((function (){var gensym_2_gnathtog_4z8tce=caterwaul.parse('peg[_]');
-var gensym_2_gnathtog_4z8tcf=caterwaul.parse('qg[l*[_bindings][_parser]]');
-var gensym_2_gnathtog_4z8tcg=caterwaul.clone('std.qs std.qg std.bind std.lvalue std.cond std.fn std.obj std.ref std.string std opt.unroll opt seq.core seq.finite.core seq.finite.object seq.finite.mutability seq.finite.traversal seq.finite.zip seq.finite.quantification seq.finite.serialization seq.infinite.core seq.infinite.y seq.infinite.transform seq.infinite.traversal seq.numeric seq.dsl seq continuation.core continuation.unwind continuation.cps continuation.delimited continuation');
-var gensym_2_gnathtog_4z8tch=caterwaul.parse('_x=_y');
-var gensym_2_gnathtog_4z8tci=caterwaul.parse('_name(_x,_y)');
-var gensym_2_gnathtog_4z8tcj=caterwaul.parse('_name(_x,_y)');
-var gensym_2_gnathtog_4z8tck=caterwaul.parse('_name(_x)');
-var gensym_2_gnathtog_4z8tcl=caterwaul.parse('_(_)');
-var gensym_2_gnathtog_4z8tcm=caterwaul.parse('_x(_y)');
-var gensym_2_gnathtog_4z8tcn=caterwaul.parse('_/_');
-var gensym_2_gnathtog_4z8tco=caterwaul.parse('_%_');
-var gensym_2_gnathtog_4z8tcp=caterwaul.parse('_>>_');
-var gensym_2_gnathtog_4z8tcq=caterwaul.parse('[_]');
-var gensym_2_gnathtog_4z8tcr=caterwaul.parse('_');
-var gensym_2_gnathtog_4z8tcs=caterwaul.parse('_[_]');
-var gensym_2_gnathtog_4z8tct=caterwaul.parse('times(_x,_l)');
-var gensym_2_gnathtog_4z8tcu=caterwaul.parse('_[_,_]');
-var gensym_2_gnathtog_4z8tcv=caterwaul.parse('times(_x,_l,_u)');
-var gensym_2_gnathtog_4z8tcw=gensym_2_gnathtog_4z8tcg;
-return (function (gensym_2_gnathtog_4z8tbs){this.configure('parser.core').rmacro(gensym_2_gnathtog_4z8tce,(function (x){return (function (outer){return gensym_2_gnathtog_4z8tcf.replace({_bindings:new this.syntax(',',gensym_2_gnathtog_4z8tcg.seq.finite.pairs(this.parser.parsers).map((function (_,_i){return gensym_2_gnathtog_4z8tch.replace({_x:_[0],_y:new outer.ref(_[1])})}))),_parser:this.parser.dsl.macroexpand(x)})}).call(this,this)})),this.parser.dsl=((function (dsl){return ((function (_){return (function (){var e=dsl.macroexpand,fb=(function (op,name){return (function (x,y){return gensym_2_gnathtog_4z8tci.replace({_name:name,_x:((function (_){return _.data=',',_})).call(this,x.flatten(op).map(e)),_y:e(y)})})}),b=(function (name){return (function (x,y){return gensym_2_gnathtog_4z8tcj.replace({_name:name,_x:e(x),_y:y})})}),u=(function (name){return (function (x){return gensym_2_gnathtog_4z8tck.replace({_name:name,_x:e(x)})})});
-return _(gensym_2_gnathtog_4z8tcl,(function (x,y){return gensym_2_gnathtog_4z8tcm.replace({_x:e(x),_y:y})})),_(gensym_2_gnathtog_4z8tcn,fb('/','alt')),_(gensym_2_gnathtog_4z8tco,fb('%','seq')),_(gensym_2_gnathtog_4z8tcp,b('bind')),_(gensym_2_gnathtog_4z8tcq,u('opt')),_(gensym_2_gnathtog_4z8tcr.as('('),(function (x){return e(x).as('(')})),_(gensym_2_gnathtog_4z8tcs,(function (x,l){return gensym_2_gnathtog_4z8tct.replace({_x:e(x),_l:l})})),_(gensym_2_gnathtog_4z8tcu,(function (x,l,u){return gensym_2_gnathtog_4z8tcv.replace({_x:e(x),_l:l,_u:u})}))}).call(this),_})).call(this,dsl.macro),dsl})).call(this,gensym_2_gnathtog_4z8tcw.global().clone())})})())).configuration('parser',function (gensym_2_gnathtog_4z8tbt){this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
+// Caterwaul parser module | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
+// Introduction.
+// The caterwaul parser uses a combinatory approach, much like Haskell's parser combinator library. The parser consumes elements from a finite input stream and emits the parse tree at each step.
+// Note that parsers generated here are not at all insightful or necessarily performant. In particular, left-recursion isn't resolved, meaning that the parser will loop forever in this case.
+
+//   Basis and acknowledgements.
+//   This parser library is based heavily on Chris Double's JSParse (available at github.com/doublec/jsparse), which implements a memoized combinatory PEG parser. If you are looking for a simple
+//   and well-designed parsing library, I highly recommend JSParse; it will be easier to use and more predictable than caterwaul.parser. Like JSParse, these parsers are memoized and use parsing
+//   expression grammars. However, this parser is probably quite a lot slower.
+
+// Internals.
+// Memoization is restricted to a session rather than being global. This prevents the space leak that would otherwise occur if the parser outlived the result. Behind the scenes the parser
+// promotes the input into a parse-state (very much like the ps() function in JSParse). Like other caterwaul libraries, this one uses non-macro constructs behind the scenes. You can easily get at
+// this by accessing stuff inside the caterwaul.parser namespace.
+
+  caterwaul.tconfiguration('std seq continuation memoize', 'parser.core', function () {
+    this.namespace('parser') /se[_.parse_state(input, i, result, memo) = undefined /se[this.input = input, this.i = i, this.result = result, this.memo = memo],
+                                 _.parse_state /se.s[s.from_input(input) = new _.parse_state(input, 0, null, {}),
+                                                     s.prototype /se[_.accept(i, r) = new this.constructor(this.input, i, r, this.memo),
+                                                                     _.has_input()  = this.i < this.input.length,
+                                                                     _.toString()   = 'ps[#{this.input.substr(this.i)}, #{this.result}]']],
+
+                                 _.memoize               = caterwaul.memoize.from(fn[c, as, f][k in m ? m[k] : (m[k] = f.apply(c, as)),
+                                                                                               where[k = '#{f.original.memo_id}|#{as[0].i}', m = as[0].memo || (as[0].memo = {})]]),
+                                 _.promote_non_states(f) = fn[state][state instanceof _.parse_state ? f.call(this, state) : f.call(this, _.parse_state.from_input(state)) /re[_ && _.result]],
+                                 _.identify(f)           = f /se[_.memo_id = caterwaul.gensym()],
+                                 _.parser(f)             = _.promote_non_states(_.memoize(_.identify(f))),
+                                 _.defparser(name, f)    = _.parsers[name]() = _.parser(f.apply(this, arguments)),
+                                 _.parsers               = {}]}).
+
+// Notation.
+// Parsers are written as collections of named nonterminals. Each nonterminal contains a mandatory expansion and an optional binding:
+
+// | peg[c('a') % c('b')]                                 // A grammar that recognizes the character 'a' followed by the character 'b'
+//   peg[c('a') % c('b') >> fn[ab][ab[0] + ab[1]]]        // The same grammar, but the AST transformation step appends the two characters
+
+// The >> notation is borrowed from Haskell (would have been >>=, but this requires a genuine lvalue on the left); the idea is that the optional binding is a monadic transform on the parse-state
+// monad. (The only difference is that you don't have to re-wrap the result in a new parse state using 'return' as you would in Haskell -- the return here is implied.) The right-hand side of >>
+// can be any expression that returns a function. It will be evaluated directly within its lexical context, so the peg[] macro is scope-transparent modulo gensyms and the namespace importing of
+// caterwaul.parser.parsers.
+
+// Parsers are transparent over parentheses. Only the operators described below are converted specially.
+
+//   Constants.
+//   Strings are parsable by using the c(x) function, which is named this because it matches a constant.
+
+//   | peg[c('x')]                 // Parses the string 'x'
+//     peg[c('foo bar')]           // Parses the string 'foo bar'
+//     peg[c(['foo', 'bar'])]      // Parses either the string 'foo' or the string 'bar', in mostly-constant time in the size of the array (see below)
+//     peg[c({foo: 1, bar: 2})]    // Parses either the string 'foo' or the string 'bar'; returns 1 if 'foo' matched, 2 if 'bar' matched (also in mostly-constant time)
+//     peg[c(/\d+/, 1)]            // Parses strings of digits with a minimum length of 1. The parse is greedy, and the regexp's exec() method output is returned.
+//     peg[c(fn[s][3])]            // Always takes three characters, regardless of what they are.
+
+//   The c() function can take other arguments as well. One is an array of strings; in this case, it matches against any string in the array. (Matching time is O(l), where l is the number of
+//   distinct lengths of strings.) Another is an object; if any directly-contained (!) attribute of the key is parsed and consumed, then the value associated with that key is returned. The time
+//   for this algorithm is O(l), where l is the number of distinct lengths of the keys in the object.
+
+//   Another option is specifying a regular expression with a minimum length. The rule is that the parser fails immediately if the regexp doesn't match the minimum length of characters. If it
+//   does match, then the maximum matching length is found. This ends up performing O(log n) regexp-matches against the input, for a total runtime of O(n log n). (The algorithm here is an
+//   interesting one: Repeatedly double the match length until matching fails, then binary split between the last success and the first failure.) Because of the relatively low performance of this
+//   regexp approach, it may be faster to use a regular finite-automaton for routine parsing and lexing. Then again, O(log n) linear-time native code calls may be faster than O(n) constant-time
+//   calls in practice.
+
+//   In order for a regular expression to work sensibly in this context, it needs to have a couple of properties. One is that it partitions two contiguous ranges of substrings into matching and
+//   non-matching groups, and that the matching group, if it exists, contains shorter substrings than the non-matching group. Put differently, there exists some k such that substrings from length
+//   minimum (the minimum that you specify as the second argument to c()) to k all match, and substrings longer than k characters all fail to match. The other property is that the initial match
+//   length must be enough to accept or reject the regular expression. So, for example, c(/[a-zA-Z0-9]+/, 1) is a poor way to match against identifiers since it will also quite happily take an
+//   integer.
+
+//   Note that if you specify a regular expression, the parser library will recompile it into a new one that is anchored at both ends. This is necessary for sane behavior; nobody would ever want
+//   anything else. This means that matching on /foo/ will internally generate /^foo$/. This recompilation process preserves the flags on the original however. (Though you seriously shouldn't use
+//   /g -- I have no idea what this would do.)
+
+//   Finally, you can also specify a function. If you do this, the function will be invoked on the input and the current offset, and should return the number of characters it intends to consume.
+//   It returns a falsy value to indicate failure.
+
+    tconfiguration('std seq continuation', 'parser.c', function () {
+      this.configure('parser.core').parser.defparser('c', fn[x, l][
+        x.constructor === String   ? fn[st][st.accept(st.i + x.length, x), when[x === st.input.substr(st.i, x.length)]] :
+        x instanceof Array         ? l[index = index_entries(x)] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, _)]] :
+        x.constructor === RegExp   ? l[x = add_absolute_anchors_to(x)] in
+                                     fn[st][fail_length(x, st.input, st.i, l) /re[_ > l && split_lengths(x, st.input, st.i, l, _) /re[st.accept(st.i + _, x.exec(st.input.substr(st.i, _)))]]] :
+        x.constructor === Function ? fn[st][x.call(st, st.input, st.i) /re[_ && st.accept(st.i + _, st.input.substr(st.i, _))]] :
+                                     l[index = index_entries(seq[sk[x]])] in fn[st][check_index(index, st.input, st.i) /re[_ && st.accept(st.i + _.length, x[_])]],
+
+        where*[check_index(i, s, p) = seq[i |[_['@#{s}'] && s, where[s = s.substr(p, _.length)]]],
+               index_entries(xs)    = l*[xsp = seq[~xs], ls = seq[sk[seq[!(xsp *[[_.length, true]])]] *[Number(_)]]] in
+                                      seq[~ls.slice().sort(fn[x, y][y - x]) *~l[!(xsp %[_.length === l] *[['@#{_}', true]] + [['length', l]])]],
+
+               add_absolute_anchors_to(x)    = l[parts = /^\/(.*)\/(\w*)$/.exec(x.toString())] in new RegExp('^#{parts[1]}$', parts[2]),
+               fail_length(re, s, p, l)      = re.test(s.substr(p, l)) ? p + (l << 1) <= s.length ? fail_length(re, s, p, l << 1) : l << 1 : l,
+               split_lengths(re, s, p, l, u) = l*[b(l, u) = l + 1 < u ? (l + (u - l >> 1)) /re.m[re.test(s.substr(p, m)) ? b(m, u) : b(l, m)] : l] in b(l, u)]])}).
+
+//   Sequences.
+//   Denoted using the '%' operator. The resulting AST is flattened into a finite caterwaul sequence. For example:
+
+//   | peg[c('a') % c('b') % c('c')]('abc')                     // -> ['a', 'b', 'c']
+//     peg[c('a') % c('b') >> fn[xs][xs.join('/')]]('ab')       // -> 'a/b'
+
+    tconfiguration('std opt seq continuation', 'parser.seq', function () {
+      this.configure('parser.core').parser.defparser('seq', fn_[l[as = arguments] in fn[state][
+        call/cc[fn[cc][opt.unroll[i, as.length][(state = as[i](state)) ? result.push(state.result) : cc(false)], state.accept(state.i, result)]], where[result = []]]])}).
+
+//   Alternatives.
+//   Denoted using the '/' operator. Alternation is transparent; that is, the chosen entry is returned identically. Entries are tried from left to right without backtracking. For example:
+
+//   | peg[c('a') / c('b')]('a')        // -> 'a'
+
+    tconfiguration('std opt seq continuation', 'parser.alt', function () {
+      this.configure('parser.core').parser.defparser('alt', fn_[l[as = seq[~arguments]] in fn[state][seq[as |[_(state)]]]])}).
+
+//   Repetition.
+//   Denoted using subscripted ranges, similar to the notation used in regular expressions. For example:
+
+//   | peg[c('a')[0]]                   // Zero or more 'a's
+//     peg[c('b')[1,4]                  // Between 1 and 4 'b's
+
+    tconfiguration('std opt seq continuation', 'parser.times', function () {
+      this.configure('parser.core').parser.defparser('times', fn[p, lower, upper][fn[state][
+        call/cc[fn[cc][opt.unroll[i, lower][++count, (state = p(state)) ? result.push(state.result) : cc(false)], true]] &&
+        call/cc[l*[loop(cc) = (! upper || count++ < upper) && state.has_input() && p(state) /se[state = _, when[_]] ?
+                              result.push(state.result) && call/tail[loop(cc)] : cc(state.accept(state.i, result))] in loop], where[count = 0, result = []]]])}).
+
+//   Optional things.
+//   Denoted using arrays. Returns a tree of undefined if the option fails to match. For example:
+
+//   | peg[c('a') % [c('b')] % c('c')]  // a followed by optional b followed by c
+
+    tconfiguration('std opt seq continuation', 'parser.opt', function () {
+      this.configure('parser.core').parser.defparser('opt', fn[p][fn[state][state.accept(n, r), where*[s = p(state), n = s ? s.i : state.i, r = s && s.result]]])}).
+
+//   Positive and negative matches.
+//   Denoted using unary + and -, respectively. These consume no input but make assertions:
+
+//   | peg[c('a') % +c('b')]            // Matches an 'a' followed by a 'b', but consumes only the 'a'
+//     peg[c('a') % -c('b')]            // Matches an 'a' followed by anything except 'b', but consumes only the 'a'
+
+    tconfiguration('std opt seq continuation', 'parser.match', function () {
+      this.configure('parser.core').parser /se[_.defparser('match',  fn[p][fn[state][p(state) /re[_  && state.accept(state.i, state.result)]]]),
+                                               _.defparser('reject', fn[p][fn[state][p(state) /re[!_ && state.accept(state.i, null)]]])]}).
+
+//   Binding.
+//   This is fairly straightforward; a parser is 'bound' to a function by mapping through the function if it is successful. The function then returns a new result based on the old one. Binding is
+//   denoted by the >> operator.
+
+    tconfiguration('std opt seq continuation', 'parser.bind', function () {
+      this.configure('parser.core').parser /se[_.defparser('bind', fn[p, f][fn[state][p(state) /re[_ && _.accept(_.i, f.call(_, _.result))]]])]}).
+
+// DSL macro.
+// Most of the time you'll want to use the peg[] macro rather than hand-coding the grammar. The macro both translates the tree and introduces all of the parsers as local variables (like a with()
+// block, but much faster and doesn't earn the wrath of Douglas Crockford).
+
+  tconfiguration('std opt seq continuation', 'parser.dsl', function () {
+    this.configure('parser.core').rmacro(qs[peg[_]],
+      fn[x][qs[qg[l*[_bindings][_parser]]].replace({_bindings: new this.syntax(',', seq[sp[this.parser.parsers] *[qs[_x = _y].replace({_x: _[0], _y: new outer.ref(_[1])})]]),
+                                                      _parser: this.parser.dsl.macroexpand(x)}), where[outer = this]]),
+
+    this.parser.dsl = caterwaul.global().clone() /se.dsl[dsl.macro /se[
+      _(qs[_(_)], fn[x, y][qs[_x(_y)].replace({_x: e(x), _y: y})]),
+      _(qs[_ / _], fb('/', 'alt')), _(qs[_ % _], fb('%', 'seq')), _(qs[_ >> _], b('bind')), _(qs[[_]], u('opt')), _(qs[_].as('('), fn[x][e(x).as('(')]),
+      _(qs[_[_]], fn[x, l][qs[times(_x, _l)].replace({_x: e(x), _l: l})]), _(qs[_[_, _]], fn[x, l, u][qs[times(_x, _l, _u)].replace({_x: e(x), _l: l, _u: u})]),
+      where*[e = dsl.macroexpand, fb(op, name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: x.flatten(op).map(e) /se[_.data = ','], _y: e(y)}),
+                                       b(name)(x, y) = qs[_name(_x, _y)].replace({_name: name, _x: e(x), _y: y}),
+                                          u(name)(x) = qs[_name(_x)]    .replace({_name: name, _x: e(x)})]]]}).
+
+// Final configuration.
+// Loads both the classes and the peg[] macro.
+
+  configuration('parser', function () {
+    this.configure('parser.core parser.c parser.seq parser.alt parser.times parser.opt parser.match parser.bind parser.dsl')});
+// Generated by SDoc 
 
 
 
