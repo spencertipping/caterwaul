@@ -726,7 +726,7 @@ meta::function('render', <<'__');
 hook('before-render');
 hook('after-render');
 __
-meta::function('repl', 'node([\'pp::js::caterwaul\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('repl', 'node([\'pp::js::caterwaul\', \'pp::js::extensions/std\', \'pp::js::extensions/dev\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('repl-configuration', <<'__');
 node(['id::var unique = function () {return 1};', 'pp::js::core/caterwaul.utilities', 'pp::js::core/caterwaul.module', 'pp::js::core/caterwaul.configuration',
       'id::require("repl").start("caterwaul> ").context.module = module']);
@@ -3328,7 +3328,7 @@ standard library.
 - pinclude pp::js::extensions/std/words
 - pinclude pp::js::extensions/std/js
 
-  caterwaul.js.words       = caterwaul.words(caterwaul.js);
+  caterwaul.js.words       = caterwaul.word_macros(caterwaul.js);
   caterwaul.js.base        = caterwaul();
   caterwaul.js.base.macros = [caterwaul.js.words, caterwaul.js.macros];
 
