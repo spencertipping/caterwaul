@@ -521,9 +521,9 @@ my ($options, @stuff) = separate_options(@criteria);
 attribute_is($attribute, %$options);
 __
 meta::function('line', <<'__');
-# Prints a line, with some context, from caterwaul.all.js. This is useful when a test fails.
+# Prints a line with some context. This is useful when a test fails.
 my ($line, $part) = @_;
-my @lines = split /\n/, $part eq '-a' ? retrieve('pp::js::caterwaul') : retrieve('pp::js::caterwaul.core');
+my @lines = split /\n/, $part eq '-a' ? retrieve('pp::js::caterwaul.all') : retrieve('pp::js::caterwaul');
 
 for ($line - 5 .. $line + 5) {
   print "\033[1;32m" if $_ == $line;
@@ -665,7 +665,7 @@ $@ ? terminal::error($@) : $result;
 __
 meta::function('precompile', <<'__');
 terminal::info("precompiling $_[0]");
-node([qw|pp::js::caterwaul pp::js::extensions/dev js::precompile|], @_);
+node([qw|pp::js::caterwaul.all js::precompile|], @_);
 __
 meta::function('preprocess', <<'__');
 # Implements a simple preprocessing language.
@@ -726,12 +726,12 @@ meta::function('render', <<'__');
 hook('before-render');
 hook('after-render');
 __
-meta::function('repl', 'node([\'pp::js::caterwaul\', \'pp::js::extensions/std\', \'pp::js::extensions/dev\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('repl', 'node([\'pp::js::caterwaul.all\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('repl-configuration', <<'__');
 node(['id::var unique = function () {return 1};', 'pp::js::core/caterwaul.utilities', 'pp::js::core/caterwaul.module', 'pp::js::core/caterwaul.configuration',
       'id::require("repl").start("caterwaul> ").context.module = module']);
 __
-meta::function('repl-core', 'node([\'pp::js::caterwaul.core\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('repl-core', 'node([\'pp::js::caterwaul\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
 meta::function('repl-module', 'node([\'id::var unique = function () {return 1};\', \'pp::js::core/caterwaul.utilities\', \'pp::js::core/caterwaul.module\', \'id::require("repl").start("caterwaul> ").context.module = module\']);');
 meta::function('replc', 'node([\'pp::js::core/caterwaul\', \'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul\']);');
 meta::function('replp', 'node([\'pp::js::modules/caterwaul.all.pre\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
@@ -1918,6 +1918,13 @@ Licensed under the terms of the MIT source code license
 - pinclude pp::js::core/caterwaul
 - eval "caterwaul.version('" . fast_hash(retrieve('pp::js::core/caterwaul')) . "');"
 __
+meta::sdoc('js::caterwaul.all', <<'__');
+This file isn't rendered -- it's just used internally for node testing.
+
+- pinclude pp::js::caterwaul
+- pinclude pp::js::extensions/std
+- pinclude pp::js::extensions/dev
+__
 meta::sdoc('js::caterwaul.node', <<'__');
 CommonJS-compatible Caterwaul build | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -1967,6 +1974,8 @@ non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent pr
     var variable_definitions = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';'),
         function_body        = 'return(' + tree.toString() + ')';
 
+    process.stderr.write(function_body);
+
     try       {return (new Function(s, variable_definitions + ';' + function_body)).call(bindings['this'], bindings)}
     catch (e) {throw new Error(e + ' while compiling ' + code)}};
 __
@@ -2004,16 +2013,16 @@ available only on the global caterwaul() function.
   These are available for use by compiler functions or the end user.
 
     merge(caterwaul_global, {
-      merge:                 merge,
-      map:                   map,
-      rmap:                  rmap,
-      flatten:               flatten,
-      gensym:                gensym,
-      unique:                unique,
-      initializer:           initializer,
+      merge:          merge,
+      map:            map,
+      rmap:           rmap,
+      flatten:        flatten,
+      gensym:         gensym,
+      unique:         unique,
+      initializer:    initializer,
 
-      variadic:              function (f) {return function () {for (var i = 0, l = arguments.length;                       i < l; ++i) f.call(this, arguments[i]);    return this}},
-      right_variadic_binary: function (f) {return function () {for (var i = 0, l = arguments.length - 1, x = arguments[l]; i < l; ++i) f.call(this, arguments[i], x); return this}}});
+      variadic:       function (f) {return function () {for (var r = [], i = 0, l = arguments.length;                       i < l; ++i) r.push(f.call(this, arguments[i]));    return r}},
+      right_variadic: function (f) {return function () {for (var r = [], i = 0, l = arguments.length - 1, x = arguments[l]; i < l; ++i) r.push(f.call(this, arguments[i], x)); return r}}});
 __
 meta::sdoc('js::core/caterwaul.init', <<'__');
 Init method.
@@ -2050,13 +2059,15 @@ takes a string, function, or syntax tree and returns a value or syntax tree.
       ensure_pattern:       caterwaul_global.ensure_pattern,
       ensure_expander:      caterwaul_global.ensure_expander,
 
+      macros:               function () {return arguments.length ? (this._macros = caterwaul_global.flatten.apply(this, arguments), this) : this._macros},
+
       toString:             function () {return '[caterwaul insatnce ' + this.id() + ']'},
 
       init:                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)},
       init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.driver_function(f) : this.compile(this(this.parse(f)))}};
 
     caterwaul_global.setup_state = function (compiler, driver_function) {
-      return merge(compiler, caterwaul_global.instance_methods, {driver_function: driver_function}, {macros: [], environment: {}})};
+      return merge(compiler, caterwaul_global.instance_methods, {driver_function: driver_function}, {_macros: [], environment: {}})};
 __
 meta::sdoc('js::core/caterwaul.macroexpander', <<'__');
 Macroexpansion.
@@ -2102,7 +2113,7 @@ The macro needs to first identify things of the form '_something /log' and trans
   Just like previous versions of caterwaul the macros are matched last-to-first. This means that the /last/ matching macro is used, allowing you to easily override stuff. Also, the
   macroexpand() function takes optional extra parameters; these are either macros or arrays of macros to be added to the macro list stored on the caterwaul function.
 
-    caterwaul_global.macroexpand = function (tree) {for (var macros = arguments.length ? [].concat(this.macros || []) : this.macros || [], i = 1, l = arguments.length, x; i < l; ++i)
+    caterwaul_global.macroexpand = function (tree) {for (var macros = arguments.length ? [].concat(this._macros || []) : this._macros || [], i = 1, l = arguments.length, x; i < l; ++i)
                                                       (x = arguments[i]) instanceof Array ? macros.push.apply(macros, x) : macros.push(x);
 
                                                     var context = {caterwaul: this, macros: macros, expand: function (tree) {
@@ -2827,7 +2838,7 @@ It's used to initialize things statefully; for example:
     genval = (function (n, m, u) {return function () {return [u, n, ++m]}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
     gensym = function () {var v = genval(); return ['gensym', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
 
-   flatten = function () {for (var r = [], i = 0, l = arguments.length, x; i < l; ++i) (x = arguments[i]) instanceof Array ? r.push.apply(r, flatten(x)) : r.push(x); return r},
+   flatten = function () {for (var r = [], i = 0, l = arguments.length, x; i < l; ++i) (x = arguments[i]) instanceof Array ? r = r.concat(flatten.apply(this, x)) : r.push(x); return r},
 
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
       rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
@@ -2914,7 +2925,7 @@ Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-  caterwaul.self_eval(caterwaul('core.js core.words core.quote')(function (def) {
+caterwaul.js.base(function ($) {
 
   Precompiled output format.
   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -2984,8 +2995,8 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
   above).
 
-    def('precompile', this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)] -given.f),
-    where[
+    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)]
+    -where[
 
   Tracing function destinations.
   This is more subtle than you might think. We need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul function delegates
@@ -3144,7 +3155,7 @@ serialization of certain functions, significantly accelerating Caterwaul's loadi
     annotated_caterwaul(caterwaul, references) = caterwaul.method('compile', wrapped_compile(caterwaul.compile, references)),
     trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
                                                  -effect- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})()
-                                                 -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]}));
+                                                 -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]})(caterwaul);
 __
 meta::sdoc('js::extensions/dev/trace', <<'__');
 Code trace behavior | Spencer Tipping
@@ -3318,6 +3329,11 @@ meta::sdoc('js::extensions/std', <<'__');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+Internal libraries.
+These operate on caterwaul in some way, but don't necessarily have an effect on generated code.
+
+- pinclude pp::js::extensions/std/anonymize
+
 Language specializations.
 These provide configurations that specialize caterwaul to operate well with a given programming language. This is relevant because not all languages compile to Javascript the same way, and
 caterwaul should be able to adapt to the syntactic limitations of generated code (and thus be usable with non-Javascript languages like Coffeescript).
@@ -3328,14 +3344,11 @@ standard library.
 - pinclude pp::js::extensions/std/words
 - pinclude pp::js::extensions/std/js
 
-  caterwaul.js.words       = caterwaul.word_macros(caterwaul.js);
-  caterwaul.js.base        = caterwaul();
-  caterwaul.js.base.macros = [caterwaul.js.words, caterwaul.js.macros];
+  caterwaul.js.words = caterwaul.word_macros(caterwaul.js);
+  caterwaul.js.base  = caterwaul();
+  caterwaul.js.base.macros(caterwaul.js.words, caterwaul.js.macros);
 
-Internal libraries.
-These operate on caterwaul in some way, but don't necessarily have an effect on generated code.
-
-- pinclude pp::js::extensions/std/anonymize
+  console.log(caterwaul.js.words);
 
 Libraries.
 These apply more advanced syntactic transforms to the code and can depend on everything above.
@@ -3377,9 +3390,8 @@ To anonymize a set of macros you first need to create an anonymizer. This is eas
 
 Each anonymizer uses a separate symbol table. This means that two anonymizers that match against 'A' (or any other macro pattern) will always map them to different gensyms.
 
-caterwaul.js.base(function ($) {
-  $.anonymizer(symbols = arguments) = (translation_table[it] = gensym()) /over.symbols -then-
-                                      given.node [node.replace(translation_table)] -where [translation_table = {}]})();
+(function ($) {$.anonymizer = function () {for (var translation_table = {}, i = 0, l = arguments.length; i < l; ++i) translation_table[arguments[i]] = $.gensym();
+                                           return function (node) {return node.replace(translation_table)}}})(caterwaul);
 __
 meta::sdoc('js::extensions/std/inversion', <<'__');
 Inversion behavior | Spencer Tipping
@@ -3459,16 +3471,16 @@ caterwaul pre-1.0 had the problem of wildly divergent macros. The fn[] macro was
 In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
 pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
 
-  var macro  = function (template) {return $.macro      ($.parse(template).replace({_modifier: $.parse(name)}), expander)};
-  var macros = function (template) {return $.js_modifier($.parse(template).replace({_modifier: $.parse(name)}), expander)};
+  var macro  = function (name, expander) {return function (template) {return $.macro      ($.parse(template).replace({_modifier: $.parse(name)}), expander)}};
+  var macros = function (name, expander) {return function (template) {return $.js_modifier($.parse(template).replace({_modifier: $.parse(name)}), expander)}};
 
-  $.js = {modifier:               $.right_variadic_binary(function (name, expander) {return
-                                    $.map(macro, ['_expression /_modifier', '_expression -_modifier', '_expression |_modifier', '_expression._modifier',
-                                                  '_modifier[_expression]', '_modifier in _expression'])}),
+  $.js = {modifier:               $.right_variadic(function (name, expander) {
+                                    return $.map(macro(name, expander), ['_expression /_modifier', '_expression -_modifier', '_expression |_modifier', '_expression._modifier',
+                                                                         '_modifier[_expression]', '_modifier in _expression'])}),
 
-          parameterized_modifier: $.right_variadic_binary(function (name, expander) {return
-                                    [$.map(macros, ['_modifier[_parameters]', '_modifier._parameters']),
-                                     $.map(macro,  ['_expression <_modifier> _parameters', '_expression -_modifier- _parameters'])]})};
+          parameterized_modifier: $.right_variadic(function (name, expander) {
+                                    return [$.map(macros(name, expander), ['_modifier[_parameters]', '_modifier._parameters']),
+                                            $.map(macro(name, expander),  ['_expression <_modifier> _parameters', '_expression -_modifier- _parameters'])]})};
 
 Javascript-specific shorthands.
 Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
@@ -3571,6 +3583,7 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
 
 (function ($) {
+  var loop_anon = $.anonymizer('i', 'l', 'xs', 'result');
   $.word_macros = function (language) {
     return [
 
@@ -3637,26 +3650,23 @@ These impact how something gets evaluated.
     console.log(it), over_keys[{foo: 'bar'}]    // logs foo
     console.log(it), over_values[{foo: 'bar'}]  // logs bar
 
-    language.parameterized_modifier('over',        this.global.with_gensyms(
-      '(function () {for (var gensym_xs = (_modifiers), gensym_result = [], gensym_i = 0, gensym_l = gensym_xs.length, it; gensym_i < gensym_l; ++gensym_i) ' +
-                    '  it = gensym_xs[gensym_i], gensym_result.push(_expression); return gensym_result}).call(this)')),
 
-    language.parameterized_modifier('over_keys',   this.global.with_gensyms(
-      '(function () {var gensym_x = (_modifiers), gensym_result = []; ' +
-                    'for (var it in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, it) && gensym_result.push(_expression); return gensym_result}).call(this)')),
+    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_modifiers), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
+                                                               'it = xs[i], result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_values', this.global.with_gensyms(
-      '(function () {var gensym_x = (_modifiers), gensym_result = [], it; ' +
-                    'for (var gensym_k in gensym_x) Object.prototype.hasOwnProperty.call(gensym_x, gensym_k) && (it = gensym_x[gensym_k], gensym_result.push(_expression));' +
-                    'return gensym_result}).call(this)')),
+    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_modifiers), result = []; ' +
+                                                               'for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)')),
+
+    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_modifiers), result = [], it; ' +
+                                                               'for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));' +
+                                                               'return result}).call(this)')),
 
   Condition-based loops.
   These iterate until something is true or false, collecting the results of the expression and returning them as an array. For example:
 
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    language.parameterized_modifier('until', this.global.with_gensyms(
-      '(function () {var gensym_result = []; while (! (_modifiers)) gensym_result.push(_expression); return gensym_result}).call(this)'))]}})(caterwaul);
+    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_modifiers)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
 __
 meta::sdoc('js::modules/caterwaul.all', <<'__');
 Caterwaul with all modules | Spencer Tipping

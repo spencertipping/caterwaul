@@ -14,11 +14,11 @@
   var macro  = function (template) {return $.macro      ($.parse(template).replace({_modifier: $.parse(name)}), expander)};
   var macros = function (template) {return $.js_modifier($.parse(template).replace({_modifier: $.parse(name)}), expander)};
 
-  $.js = {modifier:               $.right_variadic_binary(function (name, expander) {return
+  $.js = {modifier:               $.right_variadic(function (name, expander) {return
                                     $.map(macro, ['_expression /_modifier', '_expression -_modifier', '_expression |_modifier', '_expression._modifier',
                                                   '_modifier[_expression]', '_modifier in _expression'])}),
 
-          parameterized_modifier: $.right_variadic_binary(function (name, expander) {return
+          parameterized_modifier: $.right_variadic(function (name, expander) {return
                                     [$.map(macros, ['_modifier[_parameters]', '_modifier._parameters']),
                                      $.map(macro,  ['_expression <_modifier> _parameters', '_expression -_modifier- _parameters'])]})};
 

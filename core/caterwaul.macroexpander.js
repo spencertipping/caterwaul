@@ -41,7 +41,7 @@
 //   Just like previous versions of caterwaul the macros are matched last-to-first. This means that the /last/ matching macro is used, allowing you to easily override stuff. Also, the
 //   macroexpand() function takes optional extra parameters; these are either macros or arrays of macros to be added to the macro list stored on the caterwaul function.
 
-    caterwaul_global.macroexpand = function (tree) {for (var macros = arguments.length ? [].concat(this.macros || []) : this.macros || [], i = 1, l = arguments.length, x; i < l; ++i)
+    caterwaul_global.macroexpand = function (tree) {for (var macros = arguments.length ? [].concat(this._macros || []) : this._macros || [], i = 1, l = arguments.length, x; i < l; ++i)
                                                       (x = arguments[i]) instanceof Array ? macros.push.apply(macros, x) : macros.push(x);
 
                                                     var context = {caterwaul: this, macros: macros, expand: function (tree) {
