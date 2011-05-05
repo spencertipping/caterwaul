@@ -418,7 +418,7 @@ around_hook('create', $name, $value, sub {
   associate($name, defined $value ? $value : '');
   edit($name) unless defined $value});
 __
-meta::function('ct', 'create("sdoc::js::modules/caterwaul.$_[0].test/$_[1]");');
+meta::function('ct', 'create("sdoc::js::test/$_[0]");');
 meta::function('current-state', <<'__');
 my @valid_keys   = grep ! /^state::/, sort keys %data;
 my @ordered_keys = (grep(/^meta::/, @valid_keys), grep(! /^meta::/, @valid_keys));
@@ -924,13 +924,13 @@ meta::function('test', <<'__');
 # gets run just once. This should be significantly faster.
 
 my ($options, @args) = separate_options(@_);
-my @tests            = grep s/^sdoc::js::/pp::js::/, sort keys %data;
+my @tests            = grep s/^sdoc::js::test\//pp::js::test\//, sort keys %data;
 render();
 
 unless ($$options{'-p'}) {
   terminal::info('running ' . join(' ', @tests));
-  node([qw(caterwaul.js build/extensions/std.js build/extensions/dev.js), @tests]) unless $$options{'-N'};
-  gjs([qw(caterwaul.js build/extensions/std.js build/extensions/dev.js), @tests]) if $$options{'-a'};
+  node([qw(caterwaul.js extensions/std.js extensions/dev.js), @tests]) unless $$options{'-N'};
+  gjs([qw(caterwaul.js extensions/std.js extensions/dev.js), @tests]) if $$options{'-a'};
 }
 
 terminal::info('with precompiled caterwaul');
@@ -3310,7 +3310,7 @@ Introduction.
 This behavior provides words that are useful for unit testing. It also creates functions on caterwaul to define and handle unit tests. For example, using the unit testing library you can do
 stuff like this:
 
-| var t = caterwaul.test(function () {
+| caterwaul.test(function () {
     'foo'.length -should_be- 3;
     'foo' -should_not_be- 'bar';
     // etc
@@ -3319,14 +3319,16 @@ stuff like this:
 caterwaul.js_base()(function ($) {
   $.assert(condition, message) = condition || wobbly[new Error(message)];
 
-  $.assertions = {should_be:     given[a, b] in $.assert(a === b, '#{failure}: #{a} !== #{b}' /given.failure),
-                  should_not_be: given[a, b] in $.assert(a !== b, '#{failure}: #{a} === #{b}' /given.failure)};
+  $.assertions = {should_be:     given[a, b, statement] in $.assert(a === b, '#{statement.toString()}: #{a} !== #{b}'),
+                  should_not_be: given[a, b, statement] in $.assert(a !== b, '#{statement.toString()}: #{a} === #{b}')};
 
   $.test_case_gensym     = $.gensym();
-  $.test_words(language) = [language.parameterized_modifier('should_be',     'caterwaul.assertions.should_be(_expression, _parameters)'),
-                            language.parameterized_modifier('should_not_be', 'caterwaul.assertions.should_not_be(_expression, _parameters)')];
+  $.test_words(language) = $.map(assertion_method, ['should_be', 'should_not_be'])
+                           -where [assertion_method(name) = language.parameterized_modifier(name, given.match in qs[caterwaul.assertions._name(_expression, _parameters, _ref)].
+                                                                                                                   replace({_expression: match._expression, _parameters: match._parameters,
+                                                                                                                            _name: name, _ref: new $.ref(match._)}))];
 
-  $.test_base() = this.clone() -effect- it.macros(it.macros().concat(it.test_words(it.js())));
+  $.test_base() = this.clone() -effect- it.macros((it.macros() || []).concat(it.test_words(it.js())));
   $.test(f)     = this.test_base()(f)()})(caterwaul);
 __
 meta::sdoc('js::extensions/std', <<'__');
@@ -3641,6 +3643,17 @@ Uses caterwaul's precompile() method.
 var code = require('fs').readFileSync(process.argv[2], 'utf8');
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
                             caterwaul.precompile('function () {' + code + '}').toString().replace(/^[\s\n]*function\s*\([^)]*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
+__
+meta::sdoc('js::test/sanity-check', <<'__');
+caterwaul.test(function () {
+  var threw = false;
+  3 -should_be- 3;
+
+  try {3 -should_be- 4}
+  catch (e) {threw = true}
+
+  threw -should_be- true;
+});
 __
 meta::sdoc('js::tools/precompile', <<'__');
 Caterwaul precompiler | Spencer Tipping
