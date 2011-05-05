@@ -2982,7 +2982,7 @@ caterwaul.js_base()(function ($) {
   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
   above).
 
-    $.precompile(f) = remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated)) -where[traced = trace_execution(this, f)]
+    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)]
     -where[
 
   Tracing function destinations.
@@ -3049,7 +3049,7 @@ caterwaul.js_base()(function ($) {
                                                          -effect[references[k].compiled = tree, references[k].environment = environment] -when[k && references[k]],
 
     wrapped_compile(original, references)(tree, environment) = original.call(this, tree, environment)
-                                                               -effect- mark_as_compiled(references, function_key(tree), tree, $.merge({}, environment)),
+                                                               -effect- mark_as_compiled(references, function_key(tree), tree, $.merge({}, this._environment || {}, environment)),
 
   Generating compiled functions.
   This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
@@ -5877,7 +5877,7 @@ Uses caterwaul's precompile() method.
 
 var code = require('fs').readFileSync(process.argv[2], 'utf8');
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
-                            caterwaul.precompile('function () {' + code + '}').toString().replace(/^function\s*\(\w*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
+                            caterwaul.precompile('function () {' + code + '}').toString().replace(/^[\s\n]*function\s*\([^)]*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
 __
 meta::sdoc('js::test/after', <<'__');
 Tests for composition via the after() method.

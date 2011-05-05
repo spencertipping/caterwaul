@@ -1,4 +1,4 @@
-function( ) { (function($) {$.anonymizer=function( ) {for(var translation_table= { } ,i=0,l=arguments.length;
+ (function($) {$.anonymizer=function( ) {for(var translation_table= { } ,i=0,l=arguments.length;
 i<l;
  ++i)translation_table[arguments[i] ] =$.gensym() ;
 return function(node) {return node.replace(translation_table) } } } ) (caterwaul) ;
@@ -23,4 +23,3 @@ return new syntax( '+' ,pieces) .unflatten() .as( '(' ) } ,this.macro( '_left(_a
 return result} } ) (caterwaul) ;
 caterwaul.js_base=function( ) {var js=this.js() ;
 return this.clone() .macros(this.word_macros(js) ,js.macros) } ;
-}

@@ -77,7 +77,7 @@ caterwaul.js_base()(function ($) {
 //   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
 //   above).
 
-    $.precompile(f) = remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated)) -where[traced = trace_execution(this, f)]
+    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)]
     -where[
 
 //   Tracing function destinations.
@@ -144,7 +144,7 @@ caterwaul.js_base()(function ($) {
                                                          -effect[references[k].compiled = tree, references[k].environment = environment] -when[k && references[k]],
 
     wrapped_compile(original, references)(tree, environment) = original.call(this, tree, environment)
-                                                               -effect- mark_as_compiled(references, function_key(tree), tree, $.merge({}, environment)),
+                                                               -effect- mark_as_compiled(references, function_key(tree), tree, $.merge({}, this._environment || {}, environment)),
 
 //   Generating compiled functions.
 //   This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
