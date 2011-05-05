@@ -59,8 +59,7 @@
 
       pieces.push(s.substring(start, l));
 
-      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? $.parse(pieces[i].replace(escaped, q)).as('(') :
-                                                                                                                new syntax(q + pieces[i] + q);
+      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? $.parse(pieces[i].replace(quoted, q)).as('(') : new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')},
 
 //   Destructuring function creation.

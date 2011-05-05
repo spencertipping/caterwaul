@@ -287,20 +287,18 @@ caterwaul.js_base()(function ($) {
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
 caterwaul.js_base()(function ($) {
-  $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
-
-  -where [trace_caterwaul = $.clone() -effect [it.macros(expression_macros, statement_macros, hook_macros)],
-          trace(tree)     = trace_caterwaul.macroexpand(tree)]
+  $.tracer(before, after) = $.clone().macros(expression_macros, statement_macros, hook_macros)
+                            -effect [it.init_function(tree) = this.macroexpand(anon('S[_x]').replace({_x: tree}))]
 
 //   Expression-mode transformations.
 //   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', D[] means 'hook this direct method call', I[] means 'hook this indirect
 //   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
 
   -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
-          rule(p, e)        = $.macro(anon(p), e.constructor === Function ? e : anon(e)),
+          rule(p, e)        = $.macro(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
 
-          expression_macros = [rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
-                               rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier or literal
+          expression_macros = [rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier, literal, or empty function
+                               rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
 
                                assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),
                                binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
@@ -316,12 +314,14 @@ caterwaul.js_base()(function ($) {
 
                                rule('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]'),                        // Use D[] to indicate direct method binding
                                rule('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]'),                     // Use I[] to indicate indirect method binding
-                               rule('E[_o._m()]',                'D[_, E[_o], _m, []'),                               // Duplicate for nullary method calls
-                               rule('E[_o[_m]()]',               'I[_, E[_o], E[_m], []'),
+                               rule('E[_o._m()]',                'D[_, E[_o], _m, []]'),                              // Duplicate for nullary method calls
+                               rule('E[_o[_m]()]',               'I[_, E[_o], E[_m], []]'),
 
                                rule('E[typeof _x]',              'H[_, typeof _x]'),                                  // No tracing for typeof since the value may not exist
                                rule('E[void _x]',                'H[_, void E[_x]]'),                                 // Normal tracing
-                               rule('E[delete _x._y]',           'H[_, delete E[_x]._y]'),                            // Lvalue, so no tracing for the original
+                               rule('E[delete _x]',              'H[_, delete _x]'),                                  // Lvalue, so no tracing for the original
+                               rule('E[delete _x._y]',           'H[_, delete E[_x]._y]'),
+                               rule('E[delete _x[_y]]',          'H[_, delete E[_x][E[_y]]]'),
                                rule('E[new _x(_y)]',             'H[_, new H[_x](E[_y])]'),                           // Hook the constructor to prevent method-handling from happening
                                rule('E[{_ps}]',                  'H[_, {E[_ps]}]'),                                   // Hook the final object and distribute across k/v pairs (more)
                                rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
@@ -330,15 +330,15 @@ caterwaul.js_base()(function ($) {
                                rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]'),                  // Trace body in statement mode rather than expression mode
                                rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]')]                  // Handle nullary case
 
-                              -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
-                                                                 rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
-                                                                 rule('E[_x._y  = _z]', 'H[_, E[_x]._y     = E[_z]]')] -where [t(x)       = anon(x).replace({'=': op}),
-                                                                                                                               rule(x, y) = $.macro(t(x), t(y))],
+                       -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
+                                                          rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
+                                                          rule('E[_x._y  = _z]', 'H[_, E[_x]._y     = E[_z]]')] -where [t(x)       = anon(x).replace({'=': op}),
+                                                                                                                        rule(x, y) = $.macro(t(x), t(y))],
 
-                                      binary_operator(op)     = $.macro(anon('E[_x + _y]').replace({'+': op}),    anon('H[_, E[_x] + E[_y]]').replace({'+': op})),
-                                      unary_operator(op)      = $.macro(anon('E[+_x]').replace({'u+': 'u#{op}'}), anon('H[_, +E[_x]]').replace({'u+': 'u#{op}'})),
+                               binary_operator(op)     = $.macro(anon('E[_x + _y]').replace({'+': op}),    anon('H[_, E[_x] + E[_y]]').replace({'+': op})),
+                               unary_operator(op)      = $.macro(anon('E[+_x]').replace({'u+': 'u#{op}'}), anon('H[_, +E[_x]]').replace({'u+': 'u#{op}'})),
 
-                                      qw(s)                   = s.split(/\s+/)],
+                               qw(s)                   = s.split(/\s+/)],
 
 //   Statement-mode transformations.
 //   A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
@@ -388,7 +388,7 @@ caterwaul.js_base()(function ($) {
                               after_hook_ref                                      = new $.ref(after_hook),
                               after_method_hook_ref                               = new $.ref(after_method_hook),
 
-                              quote_method_name(s)                                = '"#{method.data.replace(/"/g, "\\\"")}"',
+                              quote_method_name(s)                                = '"#{method.data.replace(/(")/g, "\\$1")}"',
 
                               expression_hook_template                            = $.parse('(_before(_tree), _after(_tree, _expression))'),
                               indirect_method_hook_template                       = $.parse('(_before(_tree), _after(_tree, _object, _method, [_parameters]))'),
