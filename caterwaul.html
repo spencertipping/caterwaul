@@ -924,18 +924,18 @@ meta::function('test', <<'__');
 # gets run just once. This should be significantly faster.
 
 my ($options, @args) = separate_options(@_);
-my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*$args[0]\\.?test/$args[1]");
+my @tests            = grep s/^sdoc::js::/pp::js::/, sort keys %data;
 render();
 
 unless ($$options{'-p'}) {
   terminal::info('running ' . join(' ', @tests));
-  node([qw(caterwaul.all.js test/lib/unit.js), @tests]) unless $$options{'-N'};
-  gjs([qw(caterwaul.all.js test/lib/unit.js), @tests]) if $$options{'-a'};
+  node([qw(caterwaul.js build/extensions/std.js build/extensions/dev.js), @tests]) unless $$options{'-N'};
+  gjs([qw(caterwaul.js build/extensions/std.js build/extensions/dev.js), @tests]) if $$options{'-a'};
 }
 
 terminal::info('with precompiled caterwaul');
-node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
-gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
+node([qw(caterwaul.js build/extensions/std.pre.js build/extensions/dev.pre.js), @tests]) unless $$options{'-N'};
+gjs([qw(caterwaul.js build/extensions/std.pre.js build/extensions/dev.pre.js), @tests]) if $$options{'-a'};
 __
 meta::function('testq-pre', <<'__');
 my ($options, @stuff) = separate_options(@_);
@@ -1038,6 +1038,8 @@ meta::hook('after-render::notes', <<'__');
 # Render each note into an SDoc file.
 file::write('doc/notes/' . attribute($_) . '.sdoc', retrieve($_)) for grep /^note::/, keys %data;
 __
+meta::hook('after-render::tests', 'file::write(\'build/\' . attribute($_) . \'.js\', retrieve("pp::$_"), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::test\\//, sort keys %data;');
+meta::hook('after-render::tools', 'file::write(\'build/tools/precompile.js\', retrieve(\'pp::js::tools/precompile\'), mkpath => 1);');
 meta::internal_function('around_hook', <<'__');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -3186,7 +3188,7 @@ or (2) caching of the object. In this case I've written a special function to ha
 caterwaul.js_base()(function ($) {
   $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
 
-  -where [trace_caterwaul = $.clone() -effect [it.macros = $.flatten(trace_macros)],
+  -where [trace_caterwaul = $.clone() -effect [it.macros(expression_macros, statement_macros, hook_macros)],
           trace(tree)     = trace_caterwaul.macroexpand(tree)]
 
   Expression-mode transformations.
@@ -3194,7 +3196,7 @@ caterwaul.js_base()(function ($) {
   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
 
   -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
-          rule(p, e)        = $.macro(anon(p), anon(e)),
+          rule(p, e)        = $.macro(anon(p), e.constructor === Function ? e : anon(e)),
 
           expression_macros = [rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
                                rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier or literal
@@ -3277,7 +3279,7 @@ caterwaul.js_base()(function ($) {
                               rule('I[_tree, _object, _method, [_parameters]]', indirect_method_hook(match._tree[1], match)    -given.match)]
 
                       -where [before_hook(tree)                                   = before(tree)       /when.before,
-                              after_hook(tree, value)                             = after(tree, value) /when.after -returning- tree,
+                              after_hook(tree, value)                             = after(tree, value) /when.after -returning- value,
                               after_method_hook(tree, object, method, parameters) = before_hook(tree[0]) -then- after_hook(tree[0], resolved) -then-
                                                                                     after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
 
@@ -3299,6 +3301,33 @@ caterwaul.js_base()(function ($) {
 
                               direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),
                               indirect_method_hook(tree, match)                   = method_hook(tree, match._object, match._method,                    match._parameters)]]})(caterwaul);
+__
+meta::sdoc('js::extensions/dev/unit', <<'__');
+Unit/integration testing behavior | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This behavior provides words that are useful for unit testing. It also creates functions on caterwaul to define and handle unit tests. For example, using the unit testing library you can do
+stuff like this:
+
+| var t = caterwaul.test(function () {
+    'foo'.length -should_be- 3;
+    'foo' -should_not_be- 'bar';
+    // etc
+  });
+
+caterwaul.js_base()(function ($) {
+  $.assert(condition, message) = condition || wobbly[new Error(message)];
+
+  $.assertions = {should_be:     given[a, b] in $.assert(a === b, '#{failure}: #{a} !== #{b}' /given.failure),
+                  should_not_be: given[a, b] in $.assert(a !== b, '#{failure}: #{a} === #{b}' /given.failure)};
+
+  $.test_case_gensym     = $.gensym();
+  $.test_words(language) = [language.parameterized_modifier('should_be',     'caterwaul.assertions.should_be(_expression, _parameters)'),
+                            language.parameterized_modifier('should_not_be', 'caterwaul.assertions.should_not_be(_expression, _parameters)')];
+
+  $.test_base() = this.clone() -effect- it.macros(it.macros().concat(it.test_words(it.js())));
+  $.test(f)     = this.test_base()(f)()})(caterwaul);
 __
 meta::sdoc('js::extensions/std', <<'__');
 Caterwaul standard library | Spencer Tipping
@@ -3506,44 +3535,6 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
     this.macro('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})')]};
 
     return result}})(caterwaul);
-__
-meta::sdoc('js::extensions/std/unit', <<'__');
-Unit/integration testing behavior | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-This behavior provides words that are useful for unit testing. It also creates functions on caterwaul to define and handle unit tests. For example, using the unit testing library you can do
-stuff like this:
-
-| var t = caterwaul.test('string', function () {
-    'foo'.length.should.be(3);
-    'foo'.charAt(0).should.be('f');
-    'bar'.charAt(0).should.be('f');       // failing assertion
-    // etc
-  });
-
-The key here is the introduction of the 'should' postfix modifier, which builds a wrapper around both the value and the syntax that generated it. Test cases are automatically traced so that
-you can ask for a list of recently evaluated expressions:
-
-| t.failed()    // -> true
-  t.log()       // -> [{time: 1303480366440, tree: qs[...], value: v}, ...]
-
-You can then interactively inspect these if you're running your tests in a REPL environment. You can also change stuff and rerun a test:
-
-| t.run()       // clears previous state and tries again
-
-Functions passed to the test() method are customized by the caterwaul's test_transform function, which is a caterwaul instance customized for unit testing. By default it's configured with
-core.js and core.test, but doesn't have much in the way of standard-library features. You can change this by configuring it, or by cloning your caterwaul and configuring the clone's
-test_transform function.
-
-Assertions.
-The 'should' word is implemented by a modifier macro that creates an instance of caterwaul.test.should_wrapper. 
-
-  caterwaul.tconfiguration('core.js core.words', 'core.test', function () {
-
-
-    this.event ('test_defined', 'test_passed', 'test_failed'),
-    this.method('test', given[name, f] in this.test_transform(f) -effect[this.merge(it, this.test_methods)] -effect[this.test_defined(name, it)])});
 __
 meta::sdoc('js::extensions/std/words', <<'__');
 Common adjectives and adverbs | Spencer Tipping
@@ -5879,124 +5870,7 @@ var code = require('fs').readFileSync(process.argv[2], 'utf8');
 require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
                             caterwaul.precompile('function () {' + code + '}').toString().replace(/^[\s\n]*function\s*\([^)]*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
 __
-meta::sdoc('js::test/after', <<'__');
-Tests for composition via the after() method.
-
-test('after', function () {
-  caterwaul.clone('std')(function (eq) {
-    var c1 = caterwaul.clone('std macro'), c2 = caterwaul.clone('std macro');
-
-    eq(c1.after.constructor, Function); c1.rmacro(qs[_ + _], fn[x, y][qs[_x * _y].replace({_x: x, _y: y})]);
-    eq(c2.after.constructor, Function); c2.rmacro(qs[_ * _], fn[x, y][qs[_x + _y].replace({_x: x, _y: y})]);
-
-    var c12 = c1.clone();
-    eq(c12.after(c2), c12);
-    eq(c12.after().length, 1);
-    eq(c12.after()[0], c2);
-    eq(c12(qs[x + y]).data, '+');
-    eq(c12(qs[x * y]).data, '+');
-
-    var c21 = c2.clone();
-    eq(c21.after(c1), c21);
-    eq(c21.after().length, 1);
-    eq(c21.after()[0], c1);
-    eq(c21(qs[x + y]).data, '*');
-    eq(c21(qs[x * y]).data, '*');
-  })(eq);
-});
-__
-meta::sdoc('js::test/environment', <<'__');
-Environment compilation test.
-Makes sure that Caterwaul compiles a function within the right environment.
-
-test('environment', function () {
-  var c = caterwaul.clone('std');
-  eq(c(function () {return x}, {x: 5})(), 5);
-  eq(c(function () {return x}, {x: false})(), false);
-  eq(c(function () {return x}, {x: 'foo bar bif'})(), 'foo bar bif');
-});
-__
-meta::sdoc('js::test/lex-atom', <<'__');
-Atom lexing unit tests
-
-test('lex-atom', function () {
-  var t = function (s, s2) {return eq(caterwaul.parse(s).inspect(), '(' + s2 + ')')},
-      s = function (s)     {return t(s, s)};
-
-  Identifiers
-
-  s('foo');
-  s('bar');
-  s('bif');
-
-  Strings
-
-  s('"foo"');
-  s('"foo bar"');
-  t('"foo bar", "bif baz"', ', ("foo bar") ("bif baz")');
-
-  s('"foo"');
-  s("'foo bar'");
-  t('"foo bar", \'bif baz\'', ', ("foo bar") (\'bif baz\')');
-
-  Escaped strings
-
-  s('"foo\\"bar"');
-  s('"foo\\"\\"bar\\"\\"bif"');
-  s('"\\"foo\\"\\"bar\\"\\"bif"');
-  s('"\\"foo\\"\\"bar\\"\\"bif\\""');
-  s('"\\"foo\\\\bar\\\\bif\\""');
-
-  Regular expressions
-
-  s('/foo/');
-  s('/foo bar/');
-  s('/foo bar bif/');
-
-  s('/foo/gi');
-  s('/foo/gsim');
-  s('/foo bar bif/gim');
-
-  Escaped regular expressions
-
-  s('/foo\\/bar/');
-  s('/foo\\/bar\\/bif/');
-  s('/foo\\/bar\\/bif/gi');
-  s('/foo\\/bar\\/bif/gims');
-  s('/foo\\/bar\\/bif\\\\/gims');
-  s('/foo\\/bar\\/bif\\\\\\//gims');
-
-  Numeric literals
-
-  s('3');
-  s('3.');
-  s('.3');
-  s('3.0');
-  s('3.014');
-  s('3.141592653589793238462643383279502884197');
-
-  s('3e10');
-  s('3e3');
-  s('3.0e10');
-  s('3.0e+10');
-  s('3.0e-10');
-  s('3.0E+10');
-  s('3.0E-10');
-  s('3.0E-1');
-  s('3.0E1');
-
-  Regular expressions and parens
-
-  t('(/foo/g)', '( (/foo/g)');
-  t('[/foo/g]', '[ (/foo/g)');
-  t('{/foo/g}', '{ (/foo/g)');
-
-  t('(foo)/foo/g', '/ (/ (( (foo)) (foo)) (g)');
-  t('[foo]/foo/g', '/ (/ ([ (foo)) (foo)) (g)');
-  t('{foo}/foo/g', '/ (/ ({ (foo)) (foo)) (g)');
-});
-__
-meta::sdoc('js::test/lex-end-failure', <<'__');
+meta::sdoc('js::test/bugs/lex-end', <<'__');
 Mysterious 'end()' bug -- caused by a lexer bug that interpreted '.e' as a number in scientific notation
 
 test('lex-end-failure', function () {
@@ -6007,7 +5881,7 @@ test('lex-end-failure', function () {
   eq(p('foo.end()').inspect(), '(() (. (foo) (end)) (<>))');
 });
 __
-meta::sdoc('js::test/lex-neq-failure', <<'__');
+meta::sdoc('js::test/bugs/lex-neq', <<'__');
 Proper parsing of != and !== (in response to a failure)
 
 test('lex-neq-failure', function () {
@@ -6015,37 +5889,7 @@ test('lex-neq-failure', function () {
   eq(caterwaul.parse('foo[1] != 5').inspect(), '(!= ([] (foo) (1)) (5))');
 });
 __
-meta::sdoc('js::test/lex-op', <<'__');
-Operation lexing tests.
-
-test('lex-op', function () {
-  var s = function (e, i) {eq(caterwaul.parse(e).inspect(), i)};
-
-  Pathological numerical cases.
-
-  s('1.2e+3+4', '(+ (1.2e+3) (4))');
-  s('1.2E10+5', '(+ (1.2E10) (5))');
-  s('1E10+2',   '(+ (1E10) (2))');
-  s('1E+10+4E+10', '(+ (1E+10) (4E+10))');
-
-  s('0x14.serialize', '(. (0x14) (serialize))');
-  s('0xE+5', '(+ (0xE) (5))');
-
-  s('0644.serialize', '(. (0644) (serialize))');
-  s('0x511e+10e+10', '(+ (0x511e) (10e+10))');
-
-  Regular expression inference.
-
-  s('return /foo/g', '(return (/foo/g))');
-  s('throw /foo/g', '(throw (/foo/g))');
-  s('case /foo/g:', '(: (case (/foo/g)) (<>))');
-
-  s('bar /foo/g', '(/ (/ (bar) (foo)) (g))');
-  s('3.5 /foo/g', '(/ (/ (3.5) (foo)) (g))');
-  s('false /foo/g', '(/ (/ (false) (foo)) (g))');
-});
-__
-meta::sdoc('js::test/lex-regexp-in-for-failure', <<'__');
+meta::sdoc('js::test/bugs/regexp-statement', <<'__');
 Observed failure case:
 for (var k in hash) /foo/.test(k) || ...
 
@@ -6064,7 +5908,7 @@ test('lex-regexp-for-in-failure', function () {
   f('if (k in hash) /foo/.test(k) && bar(); else /foo/.test(k) && bar()');
 });
 __
-meta::sdoc('js::test/lex-semicolon-failure', <<'__');
+meta::sdoc('js::test/bugs/semicolon', <<'__');
 test('lex-semicolon-failure', function () {
   var t = function (s, s2) {return eq(caterwaul.parse(s).inspect(), s2)};
 
@@ -6074,60 +5918,6 @@ test('lex-semicolon-failure', function () {
   t('x;/foo/g', '(; (x) (/foo/g))');
   t('/foo/g;/bar/g', '(; (/foo/g) (/bar/g))');
 });
-__
-meta::sdoc('js::test/lib/unit', <<'__');
-Unit testing library functions
-
-var original_caterwaul = caterwaul.deglobalize();
-
-var log_message = function (message) {
-  if (typeof console === 'undefined') print(message);
-  else                                console.log(message);
-};
-
-var on_error = function (name, e) {
-  log_message('Error at or shortly after eq count ' + eq_count + ' in test ' + name + ': ' + (e.description || e));
-  throw new Error(e);
-};
-
-var eq_count = 0;
-var eq = function (x, y, message) {
-  ++eq_count;
-  if (x == y) return true;
-  else        return on_error(current_test, (message || '') + x + ' !== ' + y);
-};
-
-var current_test = null;
-var test = function (name, f) {
-  log_message('[unit] starting test ' + (current_test = name));
-
-  try {
-    eq_count  = 0;
-    caterwaul = original_caterwaul.clone();
-    f();
-
-    var precompiled = 0;
-    for (var k in caterwaul.precompiled_internal_table) Object.hasOwnProperty.call(caterwaul.precompiled_internal_table, k) && ++precompiled;
-
-    if (! precompiled) {
-      eq_count  = 0;
-      log_message('[unit] reinitializing');
-      caterwaul = caterwaul.reinitialize(caterwaul);
-      f();
-    }
-  } catch (e) {
-    on_error(name, e);
-  }
-};
-__
-meta::sdoc('js::test/lib/unit.client', <<'__');
-Client-side unit testing hooks.
-
-log = function (message) {
-  var d = document.createElement('div');
-  d.appendChild(document.createTextNode(message));
-  document.getElementById('log').appendChild(d);
-};
 __
 meta::sdoc('js::test/parse-arithmetic', <<'__');
 Arithmetic/expression tests for the parser.
@@ -10918,6 +10708,18 @@ test('tostring-jquery', function () {
  })(window);
   });
 });
+__
+meta::sdoc('js::tools/precompile', <<'__');
+Caterwaul precompiler | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Usage: node precompile.js file.js
+This will produce a precompiled file called 'file.pre.js'.
+
+- include pp::js::caterwaul
+- include pp::js::extensions/std
+- include pp::js::extensions/dev
+- include pp::js::precompile
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');

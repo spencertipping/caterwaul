@@ -51,7 +51,7 @@
 caterwaul.js_base()(function ($) {
   $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
 
-  -where [trace_caterwaul = $.clone() -effect [it.macros = $.flatten(trace_macros)],
+  -where [trace_caterwaul = $.clone() -effect [it.macros(expression_macros, statement_macros, hook_macros)],
           trace(tree)     = trace_caterwaul.macroexpand(tree)]
 
 //   Expression-mode transformations.
@@ -59,7 +59,7 @@ caterwaul.js_base()(function ($) {
 //   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
 
   -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
-          rule(p, e)        = $.macro(anon(p), anon(e)),
+          rule(p, e)        = $.macro(anon(p), e.constructor === Function ? e : anon(e)),
 
           expression_macros = [rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
                                rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier or literal
@@ -142,7 +142,7 @@ caterwaul.js_base()(function ($) {
                               rule('I[_tree, _object, _method, [_parameters]]', indirect_method_hook(match._tree[1], match)    -given.match)]
 
                       -where [before_hook(tree)                                   = before(tree)       /when.before,
-                              after_hook(tree, value)                             = after(tree, value) /when.after -returning- tree,
+                              after_hook(tree, value)                             = after(tree, value) /when.after -returning- value,
                               after_method_hook(tree, object, method, parameters) = before_hook(tree[0]) -then- after_hook(tree[0], resolved) -then-
                                                                                     after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
 
