@@ -234,6 +234,7 @@ meta::alias('emo', 'edit sdoc::js::core/caterwaul.module');
 meta::alias('eo', 'edit sdoc::js::core/caterwaul.composition');
 meta::alias('ep', 'edit sdoc::js::core/caterwaul.parser');
 meta::alias('epd', 'edit sdoc::js::core/caterwaul.parser-data');
+meta::alias('eps', 'edit sdoc::js::core/caterwaul.precompile-support');
 meta::alias('er', 'edit sdoc::js::core/caterwaul.precompile');
 meta::alias('et', 'edit sdoc::js::core/caterwaul.tree');
 meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
@@ -1028,7 +1029,7 @@ file::write(attribute($_) . '.js',     retrieve("pp::$_"),                 mkpat
 file::write('build/caterwaul.js',      retrieve('pp::js::caterwaul'),      mkpath => 1);
 file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'), mkpath => 1);
 
-precompile($_) for qw|build/caterwaul.js extensions/std.js|;
+precompile($_) for qw|extensions/std.js extensions/dev.js|;
 
 mkdir 'build/extensions';
 rename "extensions/$_.pre.js", "build/extensions/$_.pre.js" for qw|std dev|;
@@ -1952,7 +1953,7 @@ Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.co
 - pinclude pp::js::core/caterwaul.precompile-support
 - pinclude pp::js::core/caterwaul.init
 
-  return caterwaul_global});
+  return caterwaul = caterwaul_global = caterwaul_global.clone()});
 __
 meta::sdoc('js::core/caterwaul.compiler', <<'__');
 Environment-dependent compilation.
@@ -1964,17 +1965,12 @@ An optional second parameter 'environment' can contain a hash of variable->value
 
 New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
-Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
-non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
-
   caterwaul_global.compile = function (tree, environment) {
-    var vars = [], values = [], bindings = merge({}, this.environment || {}, environment || {}, tree.bindings()), s = gensym();
+    var vars = [], values = [], bindings = merge({}, this._environment || {}, environment || {}, tree.bindings()), s = gensym();
     for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
 
     var variable_definitions = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';'),
         function_body        = 'return(' + tree.toString() + ')';
-
-    process.stderr.write(function_body);
 
     try       {return (new Function(s, variable_definitions + ';' + function_body)).call(bindings['this'], bindings)}
     catch (e) {throw new Error(e + ' while compiling ' + code)}};
@@ -1985,8 +1981,9 @@ Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism t
 caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
 available only on the global caterwaul() function.
 
-  var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
-      caterwaul_global = caterwaul = function () {return caterwaul_global.init.apply(this, arguments)};
+  var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
+      original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+      caterwaul_global = calls_init();
 
   caterwaul_global.deglobalize = function () {caterwaul = original_global; return caterwaul_global};
 
@@ -2026,11 +2023,10 @@ available only on the global caterwaul() function.
 __
 meta::sdoc('js::core/caterwaul.init', <<'__');
 Init method.
-There are two init methods worth thinking about. One is the global caterwaul's init method, which takes a driver function and returns a compiler. The other is the compiler's init method, which
-takes a string, function, or syntax tree and returns a value or syntax tree.
+This runs a compilation stage. If the input is a function or string, then the function or string is parsed, run through the macroexpander, and compiled.
 
-  caterwaul_global.init = function (f) {var result = function () {return result.init.apply(result, arguments)};
-                                        return caterwaul_global.setup_state(result, f || caterwaul_global.macroexpand)};
+  caterwaul_global.clone = function (f) {return se(this.merge(calls_init(), this, this.instance_methods(), {constructor: this}), function () {
+                                                  delete this._id, delete this._macros, delete this._environment})};
 
   Compiler instance methods/attributes.
   These are installed on each generated compiler function. You can change some of them if you know what you're doing (for instance, you can create a compiler for a different programming
@@ -2041,33 +2037,30 @@ takes a string, function, or syntax tree and returns a value or syntax tree.
     var other_caterwaul = caterwaul(my_caterwaul);
     other_caterwaul.parse = function (x) {...};
 
-  In this example, other_caterwaul delegates its macroexpansion to my_caterwaul, but it uses a custom parse function. (You could also customize the compile function, though generally there
-  isn't a good reason to.)
+  In this example, other_caterwaul delegates its macroexpansion to my_caterwaul, but it uses a custom parse function.
 
-  I'm (ab)using the constructor property here. I'd like to convey the idea that functions produced by caterwaul() are instances of caterwaul, even though Javascript won't see it that way.
+    caterwaul_global.instance_methods = function () {
+      return {compile:              this.compile,
+              parse:                this.parse,
+              macroexpand:          this.macroexpand,
+              syntax:               this.syntax,
+              ref:                  this.ref,
+              id:                   this.syntax_common.id,
 
-    caterwaul_global.instance_methods = {
-      constructor:          caterwaul_global,
-      parse:                caterwaul_global.parse,
-      compile:              caterwaul_global.compile,
-      macroexpand:          caterwaul_global.macroexpand,
-      syntax:               caterwaul_global.syntax,
-      ref:                  caterwaul_global.ref,
-      id:                   caterwaul_global.syntax_common.id,
+              init_function:        this.init_function || this.macroexpand,
+              instance_methods:     this.instance_methods,
 
-      ensure_syntax:        caterwaul_global.ensure_syntax,
-      ensure_pattern:       caterwaul_global.ensure_pattern,
-      ensure_expander:      caterwaul_global.ensure_expander,
+              ensure_syntax:        this.ensure_syntax,
+              ensure_pattern:       this.ensure_pattern,
+              ensure_expander:      this.ensure_expander,
 
-      macros:               function () {return arguments.length ? (this._macros = caterwaul_global.flatten.apply(this, arguments), this) : this._macros},
+              environment:          function (e) {return arguments.length ? (this._environment = e, this)                              : this._environment},
+              macros:               function ()  {return arguments.length ? (this._macros = this.flatten.apply(this, arguments), this) : this._macros},
 
-      toString:             function () {return '[caterwaul insatnce ' + this.id() + ']'},
+              toString:             function () {return '[caterwaul instance ' + this.id() + ']'},
 
-      init:                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)},
-      init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.driver_function(f) : this.compile(this(this.parse(f)))}};
-
-    caterwaul_global.setup_state = function (compiler, driver_function) {
-      return merge(compiler, caterwaul_global.instance_methods, {driver_function: driver_function}, {_macros: [], environment: {}})};
+              init:                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)},
+              init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.init_function(f) : this.constructor.compile(this(this.parse(f)))}}};
 __
 meta::sdoc('js::core/caterwaul.macroexpander', <<'__');
 Macroexpansion.
@@ -2102,8 +2095,8 @@ The macro needs to first identify things of the form '_something /log' and trans
     caterwaul_global.ensure_expander = function (expander) {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
                                                                    expander.constructor === this.syntax ? function (match) {return this.expand(expander.replace(match))} : expander};
 
-    caterwaul_global.macro = function (pattern, expander) {pattern = this.ensure_pattern(pattern), expander = this.ensure_expander(expander);
-                                                           return function (tree) {var match = pattern.call(this, tree); return match && expander.call(this, match)}};
+    caterwaul_global.macro = caterwaul_global.right_variadic(function (pattern, expander) {pattern = this.ensure_pattern(pattern), expander = this.ensure_expander(expander);
+                                                               return function (tree) {var match = pattern.call(this, tree); return match && expander.call(this, match)}});
 
   Macroexpander logic.
   This behaves just like the pre-1.0 macroexpander, except that the patterns and expanders are now fused. The macro functions are also evaluated under a different context; rather than being
@@ -2466,9 +2459,9 @@ meta::sdoc('js::core/caterwaul.precompile-support', <<'__');
 Precompilation support.
 This makes caterwaul precompilation-aware ahead of time. I'm doing this so that you can precompile caterwaul itself, which used to be responsible for a fair amount of loading time.
 
-  caterwaul_global.precompiled_internal_table = {};
-  caterwaul_global.precompiled_internal       = function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k};
-  caterwaul_global.is_precompiled             = function (f) {return f.constructor === String && this.precompiled_internal_table[f]};
+  var precompiled_internal_table = {};
+  caterwaul_global.precompiled_internal = function (f) {var k = gensym(); return precompiled_internal_table[k] = f, k};
+  caterwaul_global.is_precompiled       = function (f) {return f.constructor === String && precompiled_internal_table[f]};
 __
 meta::sdoc('js::core/caterwaul.tree', <<'__');
 Syntax data structures.
@@ -2765,6 +2758,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
                                                else if (has(parse_r_until_block, d)) return push(d), this[0].serialize(xs), this[1].serialize(xs);
                                                else if (has(parse_invisible, d))     return this[0].serialize(xs), this[1].serialize(xs);
+                                               else if (d === ';')                   return this[0].serialize(xs), push(semi), this[1].serialize(xs);
                                                else                                  return this[0].serialize(xs), push(d), this[1].serialize(xs);
 
                                            default: if (has(parse_ternary, d))       return this[0].serialize(xs), push(d), this[1].serialize(xs), push(':'), this[2].serialize(xs);
@@ -2925,7 +2919,7 @@ Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-caterwaul.js.base(function ($) {
+caterwaul.js_base()(function ($) {
 
   Precompiled output format.
   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -2938,9 +2932,9 @@ caterwaul.js.base(function ($) {
 
   | var f = caterwaul.precompile(function () {
       alert('hi');
-      caterwaul.tconfiguration('std', 'foo', function () {
-        this.macro(qs[foo], qs[bar]);
-      });
+      caterwaul.js.base(function () {
+        console.log(x /given.y, qs[foo]);
+      })();
       return 10;
     });
 
@@ -2948,14 +2942,11 @@ caterwaul.js.base(function ($) {
 
   | function () {
       alert('hi');
-      caterwaul.tconfiguration('std', 'foo', caterwaul.precompiled_internal((function () {
-        var gensym_1 = caterwaul.parse('foo');
-        var gensym_2 = caterwaul.parse('bar');
+      caterwaul.js.base(caterwaul.precompiled_internal((function () {
+        var gensym_1 = new caterwaul.syntax('foo');
         return function () {
-          this.macro(gensym_1, function () {
-            return gensym_2;
-          });
-        })()));
+          console.log(function (y) {return x}, gensym_1);
+        })()))();
       return 10;
     }
 
@@ -2967,16 +2958,12 @@ caterwaul.js.base(function ($) {
   | 1. Precompiling a function executes that function at compile time! This has some important consequences, perhaps most importantly that if you do something global, you could bork your
        precompiling environment. The other important consequence is that if some code paths aren't run, those paths won't be precompiled. Caterwaul can only precompile paths that it has
        traced.
-    2. As mentioned above, Caterwaul assumes that the act of macroexpanding a function will have no side effects. This is not always true, and by design. In particular, stuff in the 'macro'
-       module violates this assumption. So if your code relies on escaping side-effects of the macroexpansion process, the precompiled version will behave differently from the regular version.
-       For instance, if you are using defmacro[], defsubst[], or compile_eval[] and hanging onto the caterwaul function, then the precompiled version will act as if those macros had never been
-       encountered.
-    3. Precompilation doesn't macroexpand the function being precompiled, even if the caterwaul function performing the precompilation has macros defined.
-    4. Most syntax tree refs can't be precompiled! If Caterwaul bumps into one it will throw an error. The only refs that it knows how to handle are (1) itself, and (2) references to syntax
+    2. Precompilation doesn't macroexpand the function being precompiled, even if the caterwaul function performing the precompilation has macros defined.
+    3. Most syntax tree refs can't be precompiled! If Caterwaul bumps into one it will throw an error. The only refs that it knows how to handle are (1) itself, and (2) references to syntax
        trees that don't contain other refs. If you want it to handle other refs, you'll need to write a macro that transforms them into something else before the precompiler sees them.
        (Actually, the standard library contains a fair amount of this kind of thing to avoid this very problem. Instead of using refs to generated values, it installs values onto the caterwaul
-       global and generates references to them.)
-    5. Caterwaul assumes that compilation is completely deterministic. Any nondeterminism won't be reflected. This generally isn't a problem, it just means that your code may have
+       global and generates indirect references to them.)
+    4. Caterwaul assumes that compilation is completely deterministic. Any nondeterminism won't be reflected. This generally isn't a problem, it just means that your code may have
        un-precompiled segments if the precompilation test run didn't cover all of those cases.
 
   For most code these concerns won't be a problem at all. But if you're doing anything especially dynamic you might run into one of them.
@@ -2995,7 +2982,7 @@ caterwaul.js.base(function ($) {
   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
   above).
 
-    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)]
+    $.precompile(f) = remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated)) -where[traced = trace_execution(this, f)]
     -where[
 
   Tracing function destinations.
@@ -3015,16 +3002,16 @@ caterwaul.js.base(function ($) {
 
   Note that for these patterns we need to use parse() because Spidermonkey optimizes away non-side-effectful function bodies.
 
-    nontrivial_function_pattern         = caterwaul.parse('function (_args) {_body}'),
-    trivial_function_pattern            = caterwaul.parse('function ()      {_body}'),
-    nontrivial_function_gensym_template = caterwaul.parse('function (_args, _gensym) {_body}'),
-    trivial_function_gensym_template    = caterwaul.parse('function (_gensym)        {_body}'),
+    nontrivial_function_pattern         = $.parse('function (_args) {_body}'),
+    trivial_function_pattern            = $.parse('function ()      {_body}'),
+    nontrivial_function_gensym_template = $.parse('function (_args, _gensym) {_body}'),
+    trivial_function_gensym_template    = $.parse('function (_gensym)        {_body}'),
 
     nontrivial_gensym_detection_pattern = nontrivial_function_gensym_template,
     trivial_gensym_detection_pattern    = trivial_function_gensym_template,
 
     annotate_macro_generator(template)(references)(match) = result -effect[references[s] = {tree: result}]
-                                                                   -where[s      = caterwaul.gensym(),
+                                                                   -where[s      = $.gensym(),
                                                                           result = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
 
     mark_nontrivial_function_macro = annotate_macro_generator(nontrivial_function_gensym_template),
@@ -3038,8 +3025,8 @@ caterwaul.js.base(function ($) {
   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
   more generic case.
 
-    annotate_functions_in(tree, references) = caterwaul.macroexpand(tree, [trivial_function_pattern,                nontrivial_function_pattern],
-                                                                          [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)]),
+    annotate_functions_in(tree, references) = $.macroexpand(tree, $.macro(trivial_function_pattern,    mark_trivial_function_macro(references)),
+                                                                  $.macro(nontrivial_function_pattern, mark_nontrivial_function_macro(references))),
 
   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -3062,7 +3049,7 @@ caterwaul.js.base(function ($) {
                                                          -effect[references[k].compiled = tree, references[k].environment = environment] -when[k && references[k]],
 
     wrapped_compile(original, references)(tree, environment) = original.call(this, tree, environment)
-                                                               -effect- mark_as_compiled(references, function_key(tree), tree, caterwaul.merge({}, this.globals, environment)),
+                                                               -effect- mark_as_compiled(references, function_key(tree), tree, $.merge({}, environment)),
 
   Generating compiled functions.
   This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
@@ -3078,19 +3065,14 @@ caterwaul.js.base(function ($) {
     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
     along with the compiled function, to simulate the closure capture performed by the compile() function.
 
-      closure_template                     = caterwaul.parse('(function () {_vars; return (_value)}).call(this)'),
-      closure_variable_template            = caterwaul.parse('var _var = _value'),
-      closure_null_template                = caterwaul.parse('null'),
+      closure_template                     = $.parse('(function () {_vars; return (_value)}).call(this)'),
+      closure_variable_template            = $.parse('var _var = _value'),
+      closure_null_template                = $.parse('null'),
 
       escape_string(s)                     = '\'' + s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\'',
-      caterwaul_ref_string(configurations) = '\'' + it /over_keys[configurations] + '\'',
 
-    Detecting caterwaul functions.
-    This can be done by using the is_caterwaul property of caterwaul functions. (Presumably other functions won't have this property, but if they attempt to look like caterwaul functions by
-    taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
-    right value for this property, since the value is a unique gensym.
-
-    Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the standard library apparently depends on it somehow.
+    Detecting serializable values.
+    Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the pre-1.0 standard library apparently depends on it somehow.
 
     There's a nice optimization we can make here. Rather than using parse() to reconstruct syntax trees, we can actually go a step further and build the constructor invocations that will build
     them up from scratch. This should end up being just a bit faster than parsing, at the expense of larger code. (That said, the code should pack very well under gzip and/or minification.)
@@ -3099,14 +3081,11 @@ caterwaul.js.base(function ($) {
 
       serialize_syntax(value)          = value.length === 0 ? qs[new caterwaul.syntax(_name)].replace({_name: escape_string(value.data)}) :
                                                               qs[new caterwaul.syntax(_name, _children)].replace({_name: escape_string(value.data), _children: children})
-                                                                -where[children = new caterwaul.syntax(',', serialize_syntax(it) -over.value).unflatten()],
+                                                                -where[children = new $.syntax(',', serialize_syntax(it) -over.value).unflatten()],
 
-      serialize_caterwaul(value)       = qs[caterwaul(_string)].replace({_string: caterwaul_ref_string(value.active_configurations())}),
-
-      serialize_ref(value, name, seen) = ! value                                       ? '#{value}' :
-                                         value.constructor  === caterwaul.syntax       ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
-                                         value.is_caterwaul === caterwaul.is_caterwaul ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_caterwaul(value) :
-                                                                                         wobbly[new Error('syntax ref value is not serializable: #{value}')],
+      serialize_ref(value, name, seen) = ! value                        ? '#{value}' :
+                                         value.constructor === $.syntax ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
+                                                                          wobbly[new Error('syntax ref value is not serializable: #{value}')],
 
     Variable table generation.
     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
@@ -3118,7 +3097,7 @@ caterwaul.js.base(function ($) {
                                                -where[vars = [], seen = {}],
 
       variables_for(tree, environment)  = bind[all_variables = names_and_values_for(environment).concat(tree_variables(tree))]
-                                              [all_variables.length ? new caterwaul.syntax(';', all_variables) : closure_null_template],
+                                              [all_variables.length ? new $.syntax(';', all_variables) : closure_null_template],
 
     Closure state generation.
     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
@@ -3132,9 +3111,7 @@ caterwaul.js.base(function ($) {
 
     substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when[ref && ref.compiled] -where[ref = references[match._gensym.data]],
 
-    perform_substitution(references, tree)    = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                            [expander,                         expander])
-                                                -where[expander = substitute_precompiled(references)],
+    perform_substitution(references, tree)    = $.macroexpand(tree, $.macro(trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern, substitute_precompiled(references))),
 
     Gensym removal.
     After we're done compiling we should nuke all of the gensyms we introduced to mark the functions. The remove_gensyms() function does this.
@@ -3144,18 +3121,16 @@ caterwaul.js.base(function ($) {
 
       remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when[ref && ref.tree] -where[ref = references[match._gensym.data]],
 
-      remove_gensyms(references, tree)             = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                 [expander,                         expander])
-                                                     -where[expander = remove_referenced_gensyms(references)],
+      remove_gensyms(references, tree)             = $.macroexpand(tree, $.macro(trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern, remove_referenced_gensyms(references))),
 
   Tracing.
   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
   builds references for us.
 
-    annotated_caterwaul(caterwaul, references) = caterwaul.method('compile', wrapped_compile(caterwaul.compile, references)),
+    annotated_caterwaul(caterwaul, references) = caterwaul.clone() -effect[it.compile = wrapped_compile(it.compile, references)],
     trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
                                                  -effect- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})()
-                                                 -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]})(caterwaul);
+                                                 -where[references = {}, annotated = annotate_functions_in($.parse(f), references)]]})(caterwaul);
 __
 meta::sdoc('js::extensions/dev/trace', <<'__');
 Code trace behavior | Spencer Tipping
@@ -3208,10 +3183,10 @@ If Javascript were any kind of sane language this module would be trivial to imp
 statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-caterwaul.js.base(function ($) {
+caterwaul.js_base()(function ($) {
   $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
 
-  -where [trace_caterwaul = $() -effect [it.macros = $.flatten(trace_macros)],
+  -where [trace_caterwaul = $.clone() -effect [it.macros = $.flatten(trace_macros)],
           trace(tree)     = trace_caterwaul.macroexpand(tree)]
 
   Expression-mode transformations.
@@ -3344,11 +3319,8 @@ standard library.
 - pinclude pp::js::extensions/std/words
 - pinclude pp::js::extensions/std/js
 
-  caterwaul.js.words = caterwaul.word_macros(caterwaul.js);
-  caterwaul.js.base  = caterwaul();
-  caterwaul.js.base.macros(caterwaul.js.words, caterwaul.js.macros);
-
-  console.log(caterwaul.js.words);
+  caterwaul.js_base = function () {var js = this.js();
+                                   return this.clone().macros(this.word_macros(js), js.macros)};
 
 Libraries.
 These apply more advanced syntactic transforms to the code and can depend on everything above.
@@ -3471,26 +3443,27 @@ caterwaul pre-1.0 had the problem of wildly divergent macros. The fn[] macro was
 In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
 pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
 
-  var macro  = function (name, expander) {return function (template) {return $.macro      ($.parse(template).replace({_modifier: $.parse(name)}), expander)}};
-  var macros = function (name, expander) {return function (template) {return $.js_modifier($.parse(template).replace({_modifier: $.parse(name)}), expander)}};
+  $.js = function () {
+    var macro  = function (name, expander) {return function (template) {return $.macro        ($.parse(template).replace({_modifiers: $.parse(name)}), expander)}};
+    var macros = function (name, expander) {return function (template) {return result.modifier($.parse(template).replace({_modifiers: $.parse(name)}), expander)}};
 
-  $.js = {modifier:               $.right_variadic(function (name, expander) {
-                                    return $.map(macro(name, expander), ['_expression /_modifier', '_expression -_modifier', '_expression |_modifier', '_expression._modifier',
-                                                                         '_modifier[_expression]', '_modifier in _expression'])}),
+    var result = {modifier:               this.right_variadic(function (name, expander) {
+                                            return $.map(macro(name, expander), ['_expression /_modifiers', '_expression -_modifiers', '_expression |_modifiers', '_expression._modifiers',
+                                                                                 '_modifiers[_expression]', '_modifiers in _expression'])}),
 
-          parameterized_modifier: $.right_variadic(function (name, expander) {
-                                    return [$.map(macros(name, expander), ['_modifier[_parameters]', '_modifier._parameters']),
-                                            $.map(macro(name, expander),  ['_expression <_modifier> _parameters', '_expression -_modifier- _parameters'])]})};
+                  parameterized_modifier: this.right_variadic(function (name, expander) {
+                                            return [$.map(macros(name, expander), ['_modifiers[_parameters]', '_modifiers._parameters']),
+                                                    $.map(macro(name, expander),  ['_expression <_modifiers> _parameters', '_expression -_modifiers- _parameters'])]}),
 
 Javascript-specific shorthands.
 Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
 
-  $.js.macros = [
+                  macros: [
 
   Javascript intrinsic verbs.
   These are things that you can do in statement mode but not expression mode.
 
-    $.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
+    this.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
 
   String interpolation.
   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
@@ -3506,7 +3479,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
 
     function (node) {
-      var s = node.data, q = s.charAt(0), parse = $.parse, syntax = $.syntax;
+      var s = node.data, q = s.charAt(0), syntax = $.syntax;
       if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
 
       for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
@@ -3518,7 +3491,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
       pieces.push(s.substring(start, l));
 
-      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? parse(pieces[i].replace(escaped, q)).as('(') :
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? $.parse(pieces[i].replace(escaped, q)).as('(') :
                                                                                                                 new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')},
 
@@ -3529,8 +3502,10 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
   inside the body of the function without worrying whether you'll lose the function context.
 
-    $.macro('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
-    $.macro('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})')]})(caterwaul);
+    this.macro('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
+    this.macro('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})')]};
+
+    return result}})(caterwaul);
 __
 meta::sdoc('js::extensions/std/unit', <<'__');
 Unit/integration testing behavior | Spencer Tipping
@@ -3605,8 +3580,8 @@ These all impact scope or references somehow -- in other words, they create vari
     var f = x + 1 |given[x];
     var f = x + 1 |given.x;
 
-    language.parameterized_modifier('given',  'from',  'fn', '(function (_modifiers) {return _expression})'),
-    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))'),
+    language.parameterized_modifier('given',  'from',  'fn', '(function (_parameters) {return _expression})'),
+    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
 
   Side-effecting.
   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -3615,8 +3590,8 @@ These all impact scope or references somehow -- in other words, they create vari
   | hash(k, v) = {} /effect[it[k] = v];
     compose(f, g)(x) = g(x) -then- f(it);
 
-    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_modifiers), it}).call(this, (_expression))'),
-    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_modifiers)}).call(this, (_expression))'),
+    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_parameters), it}).call(this, (_expression))'),
+    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_parameters)}).call(this, (_expression))'),
 
   Scoping.
   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -3625,7 +3600,7 @@ These all impact scope or references somehow -- in other words, they create vari
     alert(x), where[x = 10]
     bind[f(x) = x + 1] in alert(f(10))
 
-    language.parameterized_modifier('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)'),
+    language.parameterized_modifier('where', 'bind', '(function () {var _parameters; return (_expression)}).call(this)'),
 
 Control flow modifiers.
 These impact how something gets evaluated.
@@ -3636,12 +3611,12 @@ These impact how something gets evaluated.
 
   | x = x /otherwise.y + z;
 
-    language.parameterized_modifier('when',      '((_modifiers) && (_expression))'),
-    language.parameterized_modifier('unless',    '(! (_modifiers) && (_expression))'),
-    language.parameterized_modifier('otherwise', '((_expression) || (_modifiers))'),
+    language.parameterized_modifier('when',      '((_parameters) && (_expression))'),
+    language.parameterized_modifier('unless',    '(! (_parameters) && (_expression))'),
+    language.parameterized_modifier('otherwise', '((_expression) || (_parameters))'),
 
-    language.parameterized_modifier('when_defined',   '((_modifiers) != null && (_expression))'),
-    language.parameterized_modifier('unless_defined', '((_modifiers) == null && (_expression))'),
+    language.parameterized_modifier('when_defined',   '((_parameters) != null && (_expression))'),
+    language.parameterized_modifier('unless_defined', '((_parameters) == null && (_expression))'),
 
   Collection-based loops.
   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
@@ -3651,13 +3626,13 @@ These impact how something gets evaluated.
     console.log(it), over_values[{foo: 'bar'}]  // logs bar
 
 
-    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_modifiers), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
+    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_parameters), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
                                                                'it = xs[i], result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_modifiers), result = []; ' +
+    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_parameters), result = []; ' +
                                                                'for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_modifiers), result = [], it; ' +
+    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_parameters), result = [], it; ' +
                                                                'for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));' +
                                                                'return result}).call(this)')),
 
@@ -3666,7 +3641,7 @@ These impact how something gets evaluated.
 
   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_modifiers)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
+    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_parameters)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
 __
 meta::sdoc('js::modules/caterwaul.all', <<'__');
 Caterwaul with all modules | Spencer Tipping

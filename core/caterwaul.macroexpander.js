@@ -30,8 +30,8 @@
     caterwaul_global.ensure_expander = function (expander) {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
                                                                    expander.constructor === this.syntax ? function (match) {return this.expand(expander.replace(match))} : expander};
 
-    caterwaul_global.macro = function (pattern, expander) {pattern = this.ensure_pattern(pattern), expander = this.ensure_expander(expander);
-                                                           return function (tree) {var match = pattern.call(this, tree); return match && expander.call(this, match)}};
+    caterwaul_global.macro = caterwaul_global.right_variadic(function (pattern, expander) {pattern = this.ensure_pattern(pattern), expander = this.ensure_expander(expander);
+                                                               return function (tree) {var match = pattern.call(this, tree); return match && expander.call(this, match)}});
 
 //   Macroexpander logic.
 //   This behaves just like the pre-1.0 macroexpander, except that the patterns and expanders are now fused. The macro functions are also evaluated under a different context; rather than being

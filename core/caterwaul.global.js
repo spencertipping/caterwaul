@@ -3,8 +3,9 @@
 // caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
 // available only on the global caterwaul() function.
 
-  var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
-      caterwaul_global = caterwaul = function () {return caterwaul_global.init.apply(this, arguments)};
+  var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
+      original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+      caterwaul_global = calls_init();
 
   caterwaul_global.deglobalize = function () {caterwaul = original_global; return caterwaul_global};
 

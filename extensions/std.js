@@ -90,8 +90,8 @@
 //     var f = x + 1 |given[x];
 //     var f = x + 1 |given.x;
 
-    language.parameterized_modifier('given',  'from',  'fn', '(function (_modifiers) {return _expression})'),
-    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))'),
+    language.parameterized_modifier('given',  'from',  'fn', '(function (_parameters) {return _expression})'),
+    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -100,8 +100,8 @@
 //   | hash(k, v) = {} /effect[it[k] = v];
 //     compose(f, g)(x) = g(x) -then- f(it);
 
-    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_modifiers), it}).call(this, (_expression))'),
-    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_modifiers)}).call(this, (_expression))'),
+    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_parameters), it}).call(this, (_expression))'),
+    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_parameters)}).call(this, (_expression))'),
 
 //   Scoping.
 //   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -110,7 +110,7 @@
 //     alert(x), where[x = 10]
 //     bind[f(x) = x + 1] in alert(f(10))
 
-    language.parameterized_modifier('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)'),
+    language.parameterized_modifier('where', 'bind', '(function () {var _parameters; return (_expression)}).call(this)'),
 
 // Control flow modifiers.
 // These impact how something gets evaluated.
@@ -121,12 +121,12 @@
 
 //   | x = x /otherwise.y + z;
 
-    language.parameterized_modifier('when',      '((_modifiers) && (_expression))'),
-    language.parameterized_modifier('unless',    '(! (_modifiers) && (_expression))'),
-    language.parameterized_modifier('otherwise', '((_expression) || (_modifiers))'),
+    language.parameterized_modifier('when',      '((_parameters) && (_expression))'),
+    language.parameterized_modifier('unless',    '(! (_parameters) && (_expression))'),
+    language.parameterized_modifier('otherwise', '((_expression) || (_parameters))'),
 
-    language.parameterized_modifier('when_defined',   '((_modifiers) != null && (_expression))'),
-    language.parameterized_modifier('unless_defined', '((_modifiers) == null && (_expression))'),
+    language.parameterized_modifier('when_defined',   '((_parameters) != null && (_expression))'),
+    language.parameterized_modifier('unless_defined', '((_parameters) == null && (_expression))'),
 
 //   Collection-based loops.
 //   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
@@ -136,13 +136,13 @@
 //     console.log(it), over_values[{foo: 'bar'}]  // logs bar
 
 
-    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_modifiers), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
+    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_parameters), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
                                                                'it = xs[i], result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_modifiers), result = []; ' +
+    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_parameters), result = []; ' +
                                                                'for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_modifiers), result = [], it; ' +
+    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_parameters), result = [], it; ' +
                                                                'for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));' +
                                                                'return result}).call(this)')),
 
@@ -151,7 +151,7 @@
 
 //   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_modifiers)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
+    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_parameters)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
 // Generated by SDoc 
 
 
@@ -171,26 +171,27 @@
 // In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
 // pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
 
-  var macro  = function (template) {return $.macro      ($.parse(template).replace({_modifier: $.parse(name)}), expander)};
-  var macros = function (template) {return $.js_modifier($.parse(template).replace({_modifier: $.parse(name)}), expander)};
+  $.js = function () {
+    var macro  = function (name, expander) {return function (template) {return $.macro        ($.parse(template).replace({_modifiers: $.parse(name)}), expander)}};
+    var macros = function (name, expander) {return function (template) {return result.modifier($.parse(template).replace({_modifiers: $.parse(name)}), expander)}};
 
-  $.js = {modifier:               $.right_variadic(function (name, expander) {return
-                                    $.map(macro, ['_expression /_modifier', '_expression -_modifier', '_expression |_modifier', '_expression._modifier',
-                                                  '_modifier[_expression]', '_modifier in _expression'])}),
+    var result = {modifier:               this.right_variadic(function (name, expander) {
+                                            return $.map(macro(name, expander), ['_expression /_modifiers', '_expression -_modifiers', '_expression |_modifiers', '_expression._modifiers',
+                                                                                 '_modifiers[_expression]', '_modifiers in _expression'])}),
 
-          parameterized_modifier: $.right_variadic(function (name, expander) {return
-                                    [$.map(macros, ['_modifier[_parameters]', '_modifier._parameters']),
-                                     $.map(macro,  ['_expression <_modifier> _parameters', '_expression -_modifier- _parameters'])]})};
+                  parameterized_modifier: this.right_variadic(function (name, expander) {
+                                            return [$.map(macros(name, expander), ['_modifiers[_parameters]', '_modifiers._parameters']),
+                                                    $.map(macro(name, expander),  ['_expression <_modifiers> _parameters', '_expression -_modifiers- _parameters'])]}),
 
 // Javascript-specific shorthands.
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
 
-  $.js.macros = [
+                  macros: [
 
 //   Javascript intrinsic verbs.
 //   These are things that you can do in statement mode but not expression mode.
 
-    $.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
+    this.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
 
 //   String interpolation.
 //   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
@@ -206,7 +207,7 @@
 //   | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
 
     function (node) {
-      var s = node.data, q = s.charAt(0), parse = $.parse, syntax = $.syntax;
+      var s = node.data, q = s.charAt(0), syntax = $.syntax;
       if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
 
       for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
@@ -218,7 +219,7 @@
 
       pieces.push(s.substring(start, l));
 
-      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? parse(pieces[i].replace(escaped, q)).as('(') :
+      for (var escaped = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? $.parse(pieces[i].replace(escaped, q)).as('(') :
                                                                                                                 new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')},
 
@@ -229,16 +230,17 @@
 //   There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
 //   inside the body of the function without worrying whether you'll lose the function context.
 
-    $.macro('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
-    $.macro('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})')]})(caterwaul);
+    this.macro('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
+    this.macro('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})')]};
+
+    return result}})(caterwaul);
 // Generated by SDoc 
 
 
 
 
-  caterwaul.js.words       = caterwaul.word_macros(caterwaul.js);
-  caterwaul.js.base        = caterwaul();
-  caterwaul.js.base.macros = caterwaul.flatten(caterwaul.js.words, caterwaul.js.macros);
+  caterwaul.js_base = function () {var js = this.js();
+                                   return this.clone().macros(this.word_macros(js), js.macros)};
 
 // Libraries.
 // These apply more advanced syntactic transforms to the code and can depend on everything above.

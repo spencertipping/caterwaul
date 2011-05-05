@@ -7,11 +7,8 @@
 
 // New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
-// Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
-// non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
-
   caterwaul_global.compile = function (tree, environment) {
-    var vars = [], values = [], bindings = merge({}, this.environment || {}, environment || {}, tree.bindings()), s = gensym();
+    var vars = [], values = [], bindings = merge({}, this._environment || {}, environment || {}, tree.bindings()), s = gensym();
     for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
 
     var variable_definitions = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';'),

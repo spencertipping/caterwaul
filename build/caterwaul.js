@@ -80,8 +80,9 @@
 // caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
 // available only on the global caterwaul() function.
 
-  var original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
-      caterwaul_global = caterwaul = function () {return caterwaul_global.init.apply(this, arguments)};
+  var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
+      original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+      caterwaul_global = calls_init();
 
   caterwaul_global.deglobalize = function () {caterwaul = original_global; return caterwaul_global};
 
@@ -467,6 +468,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
                                                else if (has(parse_r_until_block, d)) return push(d), this[0].serialize(xs), this[1].serialize(xs);
                                                else if (has(parse_invisible, d))     return this[0].serialize(xs), this[1].serialize(xs);
+                                               else if (d === ';')                   return this[0].serialize(xs), push(semi), this[1].serialize(xs);
                                                else                                  return this[0].serialize(xs), push(d), this[1].serialize(xs);
 
                                            default: if (has(parse_ternary, d))       return this[0].serialize(xs), push(d), this[1].serialize(xs), push(':'), this[2].serialize(xs);
@@ -818,11 +820,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
 
-// Caterwaul 1.0 introduces the 'globals' attribute, which lets you set global variables that will automatically be present when compiling syntax trees. Note that using this feature with
-// non-serializable values (see sdoc::js::behaviors/core/precompile) can prevent precompilation, since the global references may not be serializable (and they are included in precompiled code).
-
   caterwaul_global.compile = function (tree, environment) {
-    var vars = [], values = [], bindings = merge({}, this.environment || {}, environment || {}, tree.bindings()), s = gensym();
+    var vars = [], values = [], bindings = merge({}, this._environment || {}, environment || {}, tree.bindings()), s = gensym();
     for (var k in bindings) if (own.call(bindings, k)) vars.push(k), values.push(bindings[k]);
 
     var variable_definitions = map(function (v) {return v === 'this' ? '' : 'var ' + v + '=' + s + '.' + v}, vars).join(';'),
@@ -869,8 +868,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     caterwaul_global.ensure_expander = function (expander) {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
                                                                    expander.constructor === this.syntax ? function (match) {return this.expand(expander.replace(match))} : expander};
 
-    caterwaul_global.macro = function (pattern, expander) {pattern = this.ensure_pattern(pattern), expander = this.ensure_expander(expander);
-                                                           return function (tree) {var match = pattern.call(this, tree); return match && expander.call(this, match)}};
+    caterwaul_global.macro = caterwaul_global.right_variadic(function (pattern, expander) {pattern = this.ensure_pattern(pattern), expander = this.ensure_expander(expander);
+                                                               return function (tree) {var match = pattern.call(this, tree); return match && expander.call(this, match)}});
 
 //   Macroexpander logic.
 //   This behaves just like the pre-1.0 macroexpander, except that the patterns and expanders are now fused. The macro functions are also evaluated under a different context; rather than being
@@ -898,9 +897,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Precompilation support.
 // This makes caterwaul precompilation-aware ahead of time. I'm doing this so that you can precompile caterwaul itself, which used to be responsible for a fair amount of loading time.
 
-  caterwaul_global.precompiled_internal_table = {};
-  caterwaul_global.precompiled_internal       = function (f) {var k = gensym(); return this.precompiled_internal_table[k] = f, k};
-  caterwaul_global.is_precompiled             = function (f) {return f.constructor === String && this.precompiled_internal_table[f]};
+  var precompiled_internal_table = {};
+  caterwaul_global.precompiled_internal = function (f) {var k = gensym(); return precompiled_internal_table[k] = f, k};
+  caterwaul_global.is_precompiled       = function (f) {return f.constructor === String && precompiled_internal_table[f]};
 // Generated by SDoc 
 
 
@@ -908,11 +907,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 // Init method.
-// There are two init methods worth thinking about. One is the global caterwaul's init method, which takes a driver function and returns a compiler. The other is the compiler's init method, which
-// takes a string, function, or syntax tree and returns a value or syntax tree.
+// This runs a compilation stage. If the input is a function or string, then the function or string is parsed, run through the macroexpander, and compiled.
 
-  caterwaul_global.init = function (f) {var result = function () {return result.init.apply(result, arguments)};
-                                        return caterwaul_global.setup_state(result, f || caterwaul_global.macroexpand)};
+  caterwaul_global.clone = function (f) {return se(this.merge(calls_init(), this, this.instance_methods(), {constructor: this}), function () {
+                                                  delete this._id, delete this._macros, delete this._environment})};
 
 //   Compiler instance methods/attributes.
 //   These are installed on each generated compiler function. You can change some of them if you know what you're doing (for instance, you can create a compiler for a different programming
@@ -923,42 +921,39 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     var other_caterwaul = caterwaul(my_caterwaul);
 //     other_caterwaul.parse = function (x) {...};
 
-//   In this example, other_caterwaul delegates its macroexpansion to my_caterwaul, but it uses a custom parse function. (You could also customize the compile function, though generally there
-//   isn't a good reason to.)
+//   In this example, other_caterwaul delegates its macroexpansion to my_caterwaul, but it uses a custom parse function.
 
-//   I'm (ab)using the constructor property here. I'd like to convey the idea that functions produced by caterwaul() are instances of caterwaul, even though Javascript won't see it that way.
+    caterwaul_global.instance_methods = function () {
+      return {compile:              this.compile,
+              parse:                this.parse,
+              macroexpand:          this.macroexpand,
+              syntax:               this.syntax,
+              ref:                  this.ref,
+              id:                   this.syntax_common.id,
 
-    caterwaul_global.instance_methods = {
-      constructor:          caterwaul_global,
-      parse:                caterwaul_global.parse,
-      compile:              caterwaul_global.compile,
-      macroexpand:          caterwaul_global.macroexpand,
-      syntax:               caterwaul_global.syntax,
-      ref:                  caterwaul_global.ref,
-      id:                   caterwaul_global.syntax_common.id,
+              init_function:        this.init_function || this.macroexpand,
+              instance_methods:     this.instance_methods,
 
-      ensure_syntax:        caterwaul_global.ensure_syntax,
-      ensure_pattern:       caterwaul_global.ensure_pattern,
-      ensure_expander:      caterwaul_global.ensure_expander,
+              ensure_syntax:        this.ensure_syntax,
+              ensure_pattern:       this.ensure_pattern,
+              ensure_expander:      this.ensure_expander,
 
-      macros:               function () {return arguments.length ? (this._macros = caterwaul_global.flatten.apply(this, arguments), this) : this._macros},
+              environment:          function (e) {return arguments.length ? (this._environment = e, this)                              : this._environment},
+              macros:               function ()  {return arguments.length ? (this._macros = this.flatten.apply(this, arguments), this) : this._macros},
 
-      toString:             function () {return '[caterwaul insatnce ' + this.id() + ']'},
+              toString:             function () {return '[caterwaul instance ' + this.id() + ']'},
 
-      init:                 function (f, environment) {return caterwaul_global.is_precompiled(f) || this.init_not_precompiled(f, environment)},
-      init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.driver_function(f) : this.compile(this(this.parse(f)))}};
-
-    caterwaul_global.setup_state = function (compiler, driver_function) {
-      return merge(compiler, caterwaul_global.instance_methods, {driver_function: driver_function}, {_macros: [], environment: {}})};
+              init:                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)},
+              init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.init_function(f) : this.constructor.compile(this(this.parse(f)))}}};
 // Generated by SDoc 
 
 
 
 
-  return caterwaul_global});
+  return caterwaul = caterwaul_global = caterwaul_global.clone()});
 // Generated by SDoc 
 
 
 
-caterwaul.version('59d0cbf011d8aef0e9182a55496322af');
+caterwaul.version('f1e4d2b4486f66342e1335e5a3989d83');
 // Generated by SDoc 

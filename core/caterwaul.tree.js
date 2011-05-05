@@ -292,6 +292,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                             case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
                                                else if (has(parse_r_until_block, d)) return push(d), this[0].serialize(xs), this[1].serialize(xs);
                                                else if (has(parse_invisible, d))     return this[0].serialize(xs), this[1].serialize(xs);
+                                               else if (d === ';')                   return this[0].serialize(xs), push(semi), this[1].serialize(xs);
                                                else                                  return this[0].serialize(xs), push(d), this[1].serialize(xs);
 
                                            default: if (has(parse_ternary, d))       return this[0].serialize(xs), push(d), this[1].serialize(xs), push(':'), this[2].serialize(xs);

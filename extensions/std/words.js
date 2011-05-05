@@ -32,8 +32,8 @@
 //     var f = x + 1 |given[x];
 //     var f = x + 1 |given.x;
 
-    language.parameterized_modifier('given',  'from',  'fn', '(function (_modifiers) {return _expression})'),
-    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_modifiers) {return _expression}))'),
+    language.parameterized_modifier('given',  'from',  'fn', '(function (_parameters) {return _expression})'),
+    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
@@ -42,8 +42,8 @@
 //   | hash(k, v) = {} /effect[it[k] = v];
 //     compose(f, g)(x) = g(x) -then- f(it);
 
-    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_modifiers), it}).call(this, (_expression))'),
-    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_modifiers)}).call(this, (_expression))'),
+    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_parameters), it}).call(this, (_expression))'),
+    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_parameters)}).call(this, (_expression))'),
 
 //   Scoping.
 //   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -52,7 +52,7 @@
 //     alert(x), where[x = 10]
 //     bind[f(x) = x + 1] in alert(f(10))
 
-    language.parameterized_modifier('where', 'bind', '(function () {var _modifiers; return (_expression)}).call(this)'),
+    language.parameterized_modifier('where', 'bind', '(function () {var _parameters; return (_expression)}).call(this)'),
 
 // Control flow modifiers.
 // These impact how something gets evaluated.
@@ -63,12 +63,12 @@
 
 //   | x = x /otherwise.y + z;
 
-    language.parameterized_modifier('when',      '((_modifiers) && (_expression))'),
-    language.parameterized_modifier('unless',    '(! (_modifiers) && (_expression))'),
-    language.parameterized_modifier('otherwise', '((_expression) || (_modifiers))'),
+    language.parameterized_modifier('when',      '((_parameters) && (_expression))'),
+    language.parameterized_modifier('unless',    '(! (_parameters) && (_expression))'),
+    language.parameterized_modifier('otherwise', '((_expression) || (_parameters))'),
 
-    language.parameterized_modifier('when_defined',   '((_modifiers) != null && (_expression))'),
-    language.parameterized_modifier('unless_defined', '((_modifiers) == null && (_expression))'),
+    language.parameterized_modifier('when_defined',   '((_parameters) != null && (_expression))'),
+    language.parameterized_modifier('unless_defined', '((_parameters) == null && (_expression))'),
 
 //   Collection-based loops.
 //   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
@@ -78,13 +78,13 @@
 //     console.log(it), over_values[{foo: 'bar'}]  // logs bar
 
 
-    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_modifiers), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
+    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_parameters), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
                                                                'it = xs[i], result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_modifiers), result = []; ' +
+    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_parameters), result = []; ' +
                                                                'for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)')),
 
-    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_modifiers), result = [], it; ' +
+    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_parameters), result = [], it; ' +
                                                                'for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));' +
                                                                'return result}).call(this)')),
 
@@ -93,5 +93,5 @@
 
 //   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
 
-    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_modifiers)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
+    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_parameters)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
 // Generated by SDoc 

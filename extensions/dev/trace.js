@@ -48,10 +48,10 @@
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-caterwaul.js.base(function ($) {
+caterwaul.js_base()(function ($) {
   $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
 
-  -where [trace_caterwaul = $() -effect [it.macros = $.flatten(trace_macros)],
+  -where [trace_caterwaul = $.clone() -effect [it.macros = $.flatten(trace_macros)],
           trace(tree)     = trace_caterwaul.macroexpand(tree)]
 
 //   Expression-mode transformations.

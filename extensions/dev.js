@@ -14,7 +14,7 @@
 // Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 // serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-caterwaul.js.base(function ($) {
+caterwaul.js_base()(function ($) {
 
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -27,9 +27,9 @@ caterwaul.js.base(function ($) {
 
 //   | var f = caterwaul.precompile(function () {
 //       alert('hi');
-//       caterwaul.tconfiguration('std', 'foo', function () {
-//         this.macro(qs[foo], qs[bar]);
-//       });
+//       caterwaul.js.base(function () {
+//         console.log(x /given.y, qs[foo]);
+//       })();
 //       return 10;
 //     });
 
@@ -37,14 +37,11 @@ caterwaul.js.base(function ($) {
 
 //   | function () {
 //       alert('hi');
-//       caterwaul.tconfiguration('std', 'foo', caterwaul.precompiled_internal((function () {
-//         var gensym_1 = caterwaul.parse('foo');
-//         var gensym_2 = caterwaul.parse('bar');
+//       caterwaul.js.base(caterwaul.precompiled_internal((function () {
+//         var gensym_1 = new caterwaul.syntax('foo');
 //         return function () {
-//           this.macro(gensym_1, function () {
-//             return gensym_2;
-//           });
-//         })()));
+//           console.log(function (y) {return x}, gensym_1);
+//         })()))();
 //       return 10;
 //     }
 
@@ -56,16 +53,12 @@ caterwaul.js.base(function ($) {
 //   | 1. Precompiling a function executes that function at compile time! This has some important consequences, perhaps most importantly that if you do something global, you could bork your
 //        precompiling environment. The other important consequence is that if some code paths aren't run, those paths won't be precompiled. Caterwaul can only precompile paths that it has
 //        traced.
-//     2. As mentioned above, Caterwaul assumes that the act of macroexpanding a function will have no side effects. This is not always true, and by design. In particular, stuff in the 'macro'
-//        module violates this assumption. So if your code relies on escaping side-effects of the macroexpansion process, the precompiled version will behave differently from the regular version.
-//        For instance, if you are using defmacro[], defsubst[], or compile_eval[] and hanging onto the caterwaul function, then the precompiled version will act as if those macros had never been
-//        encountered.
-//     3. Precompilation doesn't macroexpand the function being precompiled, even if the caterwaul function performing the precompilation has macros defined.
-//     4. Most syntax tree refs can't be precompiled! If Caterwaul bumps into one it will throw an error. The only refs that it knows how to handle are (1) itself, and (2) references to syntax
+//     2. Precompilation doesn't macroexpand the function being precompiled, even if the caterwaul function performing the precompilation has macros defined.
+//     3. Most syntax tree refs can't be precompiled! If Caterwaul bumps into one it will throw an error. The only refs that it knows how to handle are (1) itself, and (2) references to syntax
 //        trees that don't contain other refs. If you want it to handle other refs, you'll need to write a macro that transforms them into something else before the precompiler sees them.
 //        (Actually, the standard library contains a fair amount of this kind of thing to avoid this very problem. Instead of using refs to generated values, it installs values onto the caterwaul
-//        global and generates references to them.)
-//     5. Caterwaul assumes that compilation is completely deterministic. Any nondeterminism won't be reflected. This generally isn't a problem, it just means that your code may have
+//        global and generates indirect references to them.)
+//     4. Caterwaul assumes that compilation is completely deterministic. Any nondeterminism won't be reflected. This generally isn't a problem, it just means that your code may have
 //        un-precompiled segments if the precompilation test run didn't cover all of those cases.
 
 //   For most code these concerns won't be a problem at all. But if you're doing anything especially dynamic you might run into one of them.
@@ -84,7 +77,7 @@ caterwaul.js.base(function ($) {
 //   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
 //   above).
 
-    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)]
+    $.precompile(f) = remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated)) -where[traced = trace_execution(this, f)]
     -where[
 
 //   Tracing function destinations.
@@ -104,16 +97,16 @@ caterwaul.js.base(function ($) {
 
 //   Note that for these patterns we need to use parse() because Spidermonkey optimizes away non-side-effectful function bodies.
 
-    nontrivial_function_pattern         = caterwaul.parse('function (_args) {_body}'),
-    trivial_function_pattern            = caterwaul.parse('function ()      {_body}'),
-    nontrivial_function_gensym_template = caterwaul.parse('function (_args, _gensym) {_body}'),
-    trivial_function_gensym_template    = caterwaul.parse('function (_gensym)        {_body}'),
+    nontrivial_function_pattern         = $.parse('function (_args) {_body}'),
+    trivial_function_pattern            = $.parse('function ()      {_body}'),
+    nontrivial_function_gensym_template = $.parse('function (_args, _gensym) {_body}'),
+    trivial_function_gensym_template    = $.parse('function (_gensym)        {_body}'),
 
     nontrivial_gensym_detection_pattern = nontrivial_function_gensym_template,
     trivial_gensym_detection_pattern    = trivial_function_gensym_template,
 
     annotate_macro_generator(template)(references)(match) = result -effect[references[s] = {tree: result}]
-                                                                   -where[s      = caterwaul.gensym(),
+                                                                   -where[s      = $.gensym(),
                                                                           result = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
 
     mark_nontrivial_function_macro = annotate_macro_generator(nontrivial_function_gensym_template),
@@ -127,8 +120,8 @@ caterwaul.js.base(function ($) {
 //   Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
 //   more generic case.
 
-    annotate_functions_in(tree, references) = caterwaul.macroexpand(tree, [trivial_function_pattern,                nontrivial_function_pattern],
-                                                                          [mark_trivial_function_macro(references), mark_nontrivial_function_macro(references)]),
+    annotate_functions_in(tree, references) = $.macroexpand(tree, $.macro(trivial_function_pattern,    mark_trivial_function_macro(references)),
+                                                                  $.macro(nontrivial_function_pattern, mark_nontrivial_function_macro(references))),
 
 //   Also, an interesting failure case has to do with duplicate compilation:
 
@@ -151,7 +144,7 @@ caterwaul.js.base(function ($) {
                                                          -effect[references[k].compiled = tree, references[k].environment = environment] -when[k && references[k]],
 
     wrapped_compile(original, references)(tree, environment) = original.call(this, tree, environment)
-                                                               -effect- mark_as_compiled(references, function_key(tree), tree, caterwaul.merge({}, this.globals, environment)),
+                                                               -effect- mark_as_compiled(references, function_key(tree), tree, $.merge({}, environment)),
 
 //   Generating compiled functions.
 //   This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
@@ -167,19 +160,14 @@ caterwaul.js.base(function ($) {
 //     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
 //     along with the compiled function, to simulate the closure capture performed by the compile() function.
 
-      closure_template                     = caterwaul.parse('(function () {_vars; return (_value)}).call(this)'),
-      closure_variable_template            = caterwaul.parse('var _var = _value'),
-      closure_null_template                = caterwaul.parse('null'),
+      closure_template                     = $.parse('(function () {_vars; return (_value)}).call(this)'),
+      closure_variable_template            = $.parse('var _var = _value'),
+      closure_null_template                = $.parse('null'),
 
       escape_string(s)                     = '\'' + s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\'',
-      caterwaul_ref_string(configurations) = '\'' + it /over_keys[configurations] + '\'',
 
-//     Detecting caterwaul functions.
-//     This can be done by using the is_caterwaul property of caterwaul functions. (Presumably other functions won't have this property, but if they attempt to look like caterwaul functions by
-//     taking on its value then there isn't much we can do.) The idea here is to compare this to a known global value and see if it matches up. Only a caterwaul function (we hope) will have the
-//     right value for this property, since the value is a unique gensym.
-
-//     Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the standard library apparently depends on it somehow.
+//     Detecting serializable values.
+//     Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the pre-1.0 standard library apparently depends on it somehow.
 
 //     There's a nice optimization we can make here. Rather than using parse() to reconstruct syntax trees, we can actually go a step further and build the constructor invocations that will build
 //     them up from scratch. This should end up being just a bit faster than parsing, at the expense of larger code. (That said, the code should pack very well under gzip and/or minification.)
@@ -188,14 +176,11 @@ caterwaul.js.base(function ($) {
 
       serialize_syntax(value)          = value.length === 0 ? qs[new caterwaul.syntax(_name)].replace({_name: escape_string(value.data)}) :
                                                               qs[new caterwaul.syntax(_name, _children)].replace({_name: escape_string(value.data), _children: children})
-                                                                -where[children = new caterwaul.syntax(',', serialize_syntax(it) -over.value).unflatten()],
+                                                                -where[children = new $.syntax(',', serialize_syntax(it) -over.value).unflatten()],
 
-      serialize_caterwaul(value)       = qs[caterwaul(_string)].replace({_string: caterwaul_ref_string(value.active_configurations())}),
-
-      serialize_ref(value, name, seen) = ! value                                       ? '#{value}' :
-                                         value.constructor  === caterwaul.syntax       ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
-                                         value.is_caterwaul === caterwaul.is_caterwaul ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_caterwaul(value) :
-                                                                                         wobbly[new Error('syntax ref value is not serializable: #{value}')],
+      serialize_ref(value, name, seen) = ! value                        ? '#{value}' :
+                                         value.constructor === $.syntax ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
+                                                                          wobbly[new Error('syntax ref value is not serializable: #{value}')],
 
 //     Variable table generation.
 //     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
@@ -207,7 +192,7 @@ caterwaul.js.base(function ($) {
                                                -where[vars = [], seen = {}],
 
       variables_for(tree, environment)  = bind[all_variables = names_and_values_for(environment).concat(tree_variables(tree))]
-                                              [all_variables.length ? new caterwaul.syntax(';', all_variables) : closure_null_template],
+                                              [all_variables.length ? new $.syntax(';', all_variables) : closure_null_template],
 
 //     Closure state generation.
 //     This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
@@ -221,9 +206,7 @@ caterwaul.js.base(function ($) {
 
     substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when[ref && ref.compiled] -where[ref = references[match._gensym.data]],
 
-    perform_substitution(references, tree)    = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                            [expander,                         expander])
-                                                -where[expander = substitute_precompiled(references)],
+    perform_substitution(references, tree)    = $.macroexpand(tree, $.macro(trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern, substitute_precompiled(references))),
 
 //     Gensym removal.
 //     After we're done compiling we should nuke all of the gensyms we introduced to mark the functions. The remove_gensyms() function does this.
@@ -233,18 +216,16 @@ caterwaul.js.base(function ($) {
 
       remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when[ref && ref.tree] -where[ref = references[match._gensym.data]],
 
-      remove_gensyms(references, tree)             = caterwaul.macroexpand(tree, [trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                 [expander,                         expander])
-                                                     -where[expander = remove_referenced_gensyms(references)],
+      remove_gensyms(references, tree)             = $.macroexpand(tree, $.macro(trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern, remove_referenced_gensyms(references))),
 
 //   Tracing.
 //   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
 //   builds references for us.
 
-    annotated_caterwaul(caterwaul, references) = caterwaul.method('compile', wrapped_compile(caterwaul.compile, references)),
+    annotated_caterwaul(caterwaul, references) = caterwaul.clone() -effect[it.compile = wrapped_compile(it.compile, references)],
     trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
                                                  -effect- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)})()
-                                                 -where[references = {}, annotated = annotate_functions_in(caterwaul.parse(f), references)]]})(caterwaul);
+                                                 -where[references = {}, annotated = annotate_functions_in($.parse(f), references)]]})(caterwaul);
 // Generated by SDoc 
 
 
@@ -305,10 +286,10 @@ caterwaul.js.base(function ($) {
 // statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
 // or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
 
-caterwaul.js.base(function ($) {
+caterwaul.js_base()(function ($) {
   $.tracer(before, after)(tree) = trace(anon('S[_x]').replace({_x: tree}))
 
-  -where [trace_caterwaul = $() -effect [it.macros = $.flatten(trace_macros)],
+  -where [trace_caterwaul = $.clone() -effect [it.macros = $.flatten(trace_macros)],
           trace(tree)     = trace_caterwaul.macroexpand(tree)]
 
 //   Expression-mode transformations.
