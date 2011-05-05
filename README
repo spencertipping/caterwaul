@@ -1,2 +1,10 @@
 Caterwaul JS: a Javascript to Javascript compiler
 Visit caterwaul.html in a non-IE web browser for documentation.
+
+Stable builds of caterwaul are in the stable/ directory. Builds ending with 'rN',
+such as '0.3.4r1', are revisions that fix some bug but don't change functionality.
+
+Builds ending with 'bN' are beta and should NOT be used if correctness matters!
+These builds are primarily for me to test against and probably have bugs. That
+said, if you do happen to use one and find a problem, e-mail me and I'll fix it
+before releasing a non-beta.
