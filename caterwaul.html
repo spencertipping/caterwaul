@@ -3935,9 +3935,9 @@ caterwaul.js_base()(function ($) {
                                       rule('J[_element1, _element2]',     '(J[_element1]).add((J[_element2]))'),
                                       rule('J[_element1 + _element2]',    '(J[_element1]).add((J[_element2]))'),
 
-                                      rule('J[_element >> _pattern]',     '(J[_element]).filter((PS[P[_pattern]]))'),
-                                      rule('J[_element >>> _pattern]',    '(J[_element]).find((PS[P[_pattern]]))'),
-                                      rule('J[_element << _pattern]',     '(J[_element]).parents((PS[P[_pattern]]))'),
+                                      rule('J[_element >> _pattern]',     '(J[_element]).filter((PS[_pattern]))'),
+                                      rule('J[_element >>> _pattern]',    '(J[_element]).find((PS[_pattern]))'),
+                                      rule('J[_element << _pattern]',     '(J[_element]).parents((PS[_pattern]))'),
 
                                       rule('J[(_element)]',               '(J[_element])'),
                                       rule('J[[_element]]',               '[J[_element]]'),
@@ -3950,23 +3950,28 @@ caterwaul.js_base()(function ($) {
 
                               -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
 
-                     search_macros = [rule('P[_element]',                 new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                      -given.match),
-                                      rule('P[_element._class]',          new $.syntax('#{this.expand(p(match._element)).data}.#{hyphenate(match._class.data)}')        -given.match),
+                     search_macros = [rule('P[_element]',                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                         -given.match),
+                                      rule('P[_element._class]',             new $.syntax('#{this.expand(p(match._element)).data}.#{hyphenate(match._class.data)}')           -given.match),
 
-                                      rule('P[_element[_attributes]]',    new $.syntax('#{this.expand(p(match._element)).data}[#{this.expand(p(match._attributes))}]')  -given.match),
-                                      rule('P[_attribute = _value]',      new $.syntax('#{this.expand(p(match._attribute)).data}="#' + '{#{match._value.toString()}}"') -given.match),
+                                      rule('P[_element[_attributes]]',       new $.syntax('#{this.expand(p(match._element)).data}[#{this.expand(p(match._attributes))}]')     -given.match),
+                                      rule('P[_attribute = _value]',         new $.syntax('#{this.expand(p(match._attribute)).data}="#' + '{#{interpolated(match._value)}}"') -given.match),
 
-                                      rule('P[P[_element]]',             'P[_element]'),
-                                      rule('P[(_element)]',              'P[_element]'),        // No paren support
+                                      rule('P[P[_element]]',                'P[_element]'),
+                                      rule('P[(_element)]',                 'P[_element]'),        // No paren support
 
-                                      rule('P[_element1 +   _element2]',  binary(', ')),
-                                      rule('P[_element1,    _element2]',  binary(', ')),
-                                      rule('P[_element1 >>  _element2]',  binary(' ')),
-                                      rule('P[_element1 >>> _element2]',  binary(' ')),
-                                      rule('P[_element1 >   _element2]',  binary(' > ')),
-                                      rule('P[_element1(_element2)]',     binary(' > '))]
+                                      rule('P[_element1 +   _element2]',     binary(', ')),
+                                      rule('P[_element1,    _element2]',     binary(', ')),
+                                      rule('P[_element1 >>  _element2]',     binary(' ')),
+                                      rule('P[_element1 >>> _element2]',     binary(' ')),
+                                      rule('P[_element1 >   _element2]',     binary(' > ')),
+                                      rule('P[_element1(_element2)]',        binary(' > ')),
 
-                              -where [binary(op)(match) = new $.syntax('#{this.expand(p(match._element1)).data}, #{this.expand(p(match._element2)).data}')]]})(caterwaul);
+                                      rule('P[_element /_selector]',         new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}'))       -given.match,
+                                      rule('P[_element /_selector(_value)]', new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
+                                                                                          '{#{interpolated(match._value)}")')                                                 -given.match)]
+
+                              -where [interpolated(node) = '(#{node.toString()}).replace(/(\\\\)/g, \\"$1$1\\").replace(/(\\")/g, \\"\\\\$1\\")',
+                                      binary(op)(match)  = new $.syntax('#{this.expand(p(match._element1)).data}, #{this.expand(p(match._element2)).data}')]]})(caterwaul);
 __
 meta::sdoc('js::precompile', <<'__');
 Offline precompilation.
