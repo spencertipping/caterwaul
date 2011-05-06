@@ -22,9 +22,11 @@
 //   %! = filter-not               e.g.  [1, 2, 3] %![x & 1] |seq           ->  [2]
 //   +  = concatenate              e.g.  [1, 2, 3] + [4, 5] |seq            ->  [1, 2, 3, 4, 5]
 //   -  = cartesian product        e.g.  [1, 2] - [3, 4] |seq               ->  [[1, 3], [1, 4], [2, 3], [2, 4]]
-//   ^  = zip                      e.g.  seq[[1, 2, 3] ^ [4, 5, 6]]         ->  [[1, 4], [2, 5], [3, 6]]
+//   ^  = zip                      e.g.  [1, 2, 3] ^ [4, 5, 6] |seq         ->  [[1, 4], [2, 5], [3, 6]]
 //   |  = exists                   e.g.  [1, 2, 3] |[x === 2] |seq          ->  true
 //   &  = forall                   e.g.  [1, 2, 3] &[x < 3] |seq            ->  false
+
+// Note that ^ has higher precedence than |, so we can use it in a sequence comprehension without interfering with the |seq macro (so long as the |seq macro is placed on the right).
 
 //   Modifiers.
 //   Modifiers are unary operators that come after the primary operator. These have the same (or similar) functionality as before:
@@ -83,7 +85,7 @@
 // such (from a design perspective).
 
 caterwaul.js_base()(function ($) {
-  $.seq_macro(language) = language.modifier('seq', seq_expand(tree) -given.tree -where [seq_expand = $.seq()]);
+  $.seq_macro(language) = language.modifier('seq', seq_expand(tree._expression) -given.tree -where [seq_expand = $.seq()]);
 
   $.seq() = $.clone().macros(operator_macros, word_macros)
             -effect [it.init_function(tree) = this.macroexpand(anon('S[_x]').replace({_x: tree}))]
@@ -104,7 +106,7 @@ caterwaul.js_base()(function ($) {
                                                                          -returning- it.concat(context_conversions)
 
                                                                   -where [template(p)         = anon(p).replace({'+': op}),
-                                                                          trule(p, e)         = rule(template(p), e),
+                                                                          trule(p, e)         = rule(template(p), e.constructor === Function ? e : template(e)),
 
                                                                           context_conversions = [
                                                                             trule('S[_xs +~[_f]]',   'S[_xs +[S[_f]]]'),   trule('S[_xs +~_var[_f]]',   'S[_xs +_var[S[_f]]]'),
@@ -117,7 +119,7 @@ caterwaul.js_base()(function ($) {
                              scoped(tree)     = scope.replace({_body: tree}),
 
                              loop_anon        = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj'),
-                             loop_form(x)     = scoped(loop_anon(x)),
+                             loop_form(x)     = scoped(loop_anon(anon(x))),
 
                              op_form(pattern) = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
 
@@ -135,7 +137,7 @@ caterwaul.js_base()(function ($) {
                              exists     = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
                              forall     = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
 
-                             concat     = op_form('(S[_xs]).concat(S[_ys])'),
+                             concat     = op_form('return (S[_xs]).concat(S[_ys])'),
                              zip        = op_form('for (var xs = S[_xs], ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
                              cross      = op_form('for (var xs = S[_xs], ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
                                                     'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
@@ -148,7 +150,7 @@ caterwaul.js_base()(function ($) {
                              rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',   pairs),
                                                                       rule('S[_xs |object]', object)]
 
-                     -where [n(match)  = n_pattern.replace($.merge({_lower: 0, _step: 1}, match)),
+                     -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
                              n_pattern = anon('(function () {for (var r = [], i = _lower, u = _upper; i < u; i += _step) r.push(i); return r})()'),
 
                              scope     = $.parse('(function () {_body}).call(this)'),
