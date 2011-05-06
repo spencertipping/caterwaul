@@ -85,7 +85,7 @@
 // such (from a design perspective).
 
 caterwaul.js_base()(function ($) {
-  $.seq_macro(language) = language.modifier('seq', seq_expand(tree._expression) -given.tree -where [seq_expand = $.seq()]);
+  $.seq_macro(language) = language.modifier('seq', this.expand(seq_expand(tree._expression)) -given.tree -where [seq_expand = $.seq()]);
 
   $.seq() = $.clone().macros(operator_macros, word_macros)
             -effect [it.init_function(tree) = this.macroexpand(anon('S[_x]').replace({_x: tree}))]

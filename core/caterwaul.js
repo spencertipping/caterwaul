@@ -270,7 +270,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       map:   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
 
       reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
-      rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r.data === undefined ? new this.constructor(r) : r},
+      rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r.rmap === undefined ? new this.constructor(r) : r},
 
       clone: function () {return this.rmap(function () {return false})},
 
