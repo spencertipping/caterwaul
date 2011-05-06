@@ -1,4 +1,4 @@
-// Sequence extension | Spencer Tipping
+// Sequence comprehensions | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
 // Introduction.
@@ -70,7 +70,21 @@
 //     n[10] |seq                  ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 //     n[0, 10, 2] |seq            ->  [0, 2, 4, 6, 8]
 
+// Generated code.
+// Previously the code was factored into separate methods that took callback functions. (Basically the traditional map/filter/each arrangement in functional languages.) However, now the library
+// optimizes the methods out of the picture. This means that now we manage all of the dataflow between the different sequence operators. I thought about allocating gensym variables -- one for
+// each temporary result -- but this means that the temporary results won't be garbage-collected until the entire sequence comprehension is complete. So instead it generates really gnarly code,
+// with each dependent sequence listed in the for-loop variable initialization.
+
+// Luckily this won't matter because, like, there aren't any bugs or anything ;)
+
+// Portability.
+// The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
+// such (from a design perspective).
+
 caterwaul.js_base()(function ($) {
+  $.seq_macro(language) = language.modifier('seq', seq_expand(tree) -given.tree -where [seq_expand = $.seq()]);
+
   $.seq() = $.clone().macros(operator_macros, word_macros)
             -effect [it.init_function(tree) = this.macroexpand(anon('S[_x]').replace({_x: tree}))]
 
@@ -97,8 +111,7 @@ caterwaul.js_base()(function ($) {
                                                                             trule('S[_xs +!~[_f]]',  'S[_xs +![S[_f]]]'),  trule('S[_xs +!~_var[_f]]',  'S[_xs +!_var[S[_f]]]'),
                                                                             trule('S[_xs +~!~[_f]]', 'S[_xs +~![S[_f]]]'), trule('S[_xs +~!~_var[_f]]', 'S[_xs +~!_var[S[_f]]]')]],
 
-                             binary_operator(op, f)                    = [rule(t('S[_xs + _ys]'), f),
-                                                                          rule(t('S[_xs + _ys]'), t('S[_xs] + S[_ys]'))] -where [t(pattern) = anon(pattern).replace({'+': op})],
+                             binary_operator(op, f)                    = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})],
 
                              scope            = $.parse('(function () {_body}).call(this)'),
                              scoped(tree)     = scope.replace({_body: tree}),
@@ -108,25 +121,43 @@ caterwaul.js_base()(function ($) {
 
                              op_form(pattern) = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
 
-                             map              = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
-                             each             = op_form('for (var xs = _xs,          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
-                             flatmap          = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
+                             map        = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
+                             each       = op_form('for (var xs = S[_xs],          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
+                             flatmap    = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
 
-                             filter           = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
-                             filter_not       = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
-                             map_filter       = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+                             filter     = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
+                             filter_not = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
+                             map_filter = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
 
-                             foldl            = op_form('for (var xs = _xs, _x = xs[0], _xi = 1, _xl = xs.length, _x0;      _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);            return _x'),
-                             foldr            = op_form('for (var xs = _xs, _xi = 0, _xl = xs.length - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);            return _x'),
+                             foldl      = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 1, _xl = xs.length, _x0;      _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);            return _x'),
+                             foldr      = op_form('for (var xs = S[_xs], _xi = 0, _xl = xs.length - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);            return _x'),
 
-                             exists           = op_form('for (var xs = _xs, _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
-                             forall           = op_form('for (var xs = _xs, _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
+                             exists     = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
+                             forall     = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
 
-                             concat           = op_form('(_xs).concat(_ys)'),
-                             zip              = op_form('for (var xs = _xs, ys = _ys, pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
-                             cross            = op_form('for (var xs = _xs, ys = _ys, pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
-                                                          'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
+                             concat     = op_form('(S[_xs]).concat(S[_ys])'),
+                             zip        = op_form('for (var xs = S[_xs], ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
+                             cross      = op_form('for (var xs = S[_xs], ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
+                                                    'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
 
                              variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
-                             prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p || 'x']]]})(caterwaul);
+                             prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p || 'x']],
+
+          word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',    keys),
+                             rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]',  values),
+                             rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',   pairs),
+                                                                      rule('S[_xs |object]', object)]
+
+                     -where [n(match)  = n_pattern.replace($.merge({_lower: 0, _step: 1}, match)),
+                             n_pattern = anon('(function () {for (var r = [], i = _lower, u = _upper; i < u; i += _step) r.push(i); return r})()'),
+
+                             scope     = $.parse('(function () {_body}).call(this)'),
+                             scoped(t) = scope.replace({_body: t}),
+
+                             form(p)   = scoped(anon(p)).replace(match) /given.match,
+                             keys      = form('var ks = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
+                             values    = form('var vs = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
+                             pairs     = form('var ps = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
+
+                             object    = form('for (var o = {}, xs = S[_xs], i = 0, l = xs.length, x; i < l; ++i) x = xs[i], o[x[0]] = x[1]; return o')]]})(caterwaul);
 // Generated by SDoc 
