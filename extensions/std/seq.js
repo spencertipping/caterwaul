@@ -81,7 +81,7 @@ caterwaul.js_base()(function ($) {
                              rule('S[_x, _y]', 'S[_x], S[_y]'),                      operator_pattern('&', forall),
 
                              operator_pattern('*', map,    each,       flatmap),     binary_operator('+', concat),
-                             operator_pattern('%', filter, filter_not, map_filter),  binary_operator('-', cartesian_product),
+                             operator_pattern('%', filter, filter_not, map_filter),  binary_operator('-', cross),
                              operator_pattern('/', foldl,  foldr),                   binary_operator('^', zip)]
 
                      -where [operator_pattern(op, normal, bang, tbang) = [] -effect- it.push(trule('S[_xs +[_f]]',   normal), trule('S[_xs +_var[_f]]',   normal))
@@ -100,25 +100,33 @@ caterwaul.js_base()(function ($) {
                              binary_operator(op, f)                    = [rule(t('S[_xs + _ys]'), f),
                                                                           rule(t('S[_xs + _ys]'), t('S[_xs] + S[_ys]'))] -where [t(pattern) = anon(pattern).replace({'+': op})],
 
-                             scope              = $.parse('(function () {_body}).call(this)'),
-                             scoped(tree)       = scope.replace({_body: tree}),
+                             scope            = $.parse('(function () {_body}).call(this)'),
+                             scoped(tree)     = scope.replace({_body: tree}),
 
-                             loop_anon          = $.anonymizer('xs', 'ys'),
-                             loop_form(x)       = scoped(loop_anon(x)),
+                             loop_anon        = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj'),
+                             loop_form(x)     = scoped(loop_anon(x)),
 
-                             map_pattern        = form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
-                             each_pattern       = form('for (var xs = _xs,          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
-                             flatmap_pattern    = form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
+                             op_form(pattern) = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
 
-                             filter_pattern     = form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
-                             filter_not_pattern = form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
-                             map_filter_pattern = form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+                             map              = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
+                             each             = op_form('for (var xs = _xs,          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
+                             flatmap          = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
 
-                             foldl_pattern      = form('for (var xs = _xs, _x = xs[0], _xi = 1, _xl = xs.length, _x0;      _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);            return _x'),
-                             foldr_pattern      = form('for (var xs = _xs, _xi = 0, _xl = xs.length - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);            return _x'),
+                             filter           = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
+                             filter_not       = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
+                             map_filter       = op_form('for (var xs = _xs, ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
 
+                             foldl            = op_form('for (var xs = _xs, _x = xs[0], _xi = 1, _xl = xs.length, _x0;      _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);            return _x'),
+                             foldr            = op_form('for (var xs = _xs, _xi = 0, _xl = xs.length - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);            return _x'),
 
-                             map(match)         = map_pattern.replace(replacements_for(match)),
+                             exists           = op_form('for (var xs = _xs, _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
+                             forall           = op_form('for (var xs = _xs, _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
 
-})(caterwaul);
+                             concat           = op_form('(_xs).concat(_ys)'),
+                             zip              = op_form('for (var xs = _xs, ys = _ys, pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
+                             cross            = op_form('for (var xs = _xs, ys = _ys, pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
+                                                          'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
+
+                             variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
+                             prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p || 'x']]]})(caterwaul);
 // Generated by SDoc 
