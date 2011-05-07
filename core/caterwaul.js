@@ -84,14 +84,7 @@
 //   Version management and reinitialization.
 //   There's an interesting case that comes up when loading a global caterwaul. If we detect that the caterwaul we just loaded has the same version as the one that's already there, we revert back
 //   to the original. This is very important for precompilation and the reason for it is subtle. Precompilation relies on tracing to determine the compiled form of each function handed to
-//   caterwaul, so if that caterwaul is replaced for any reason then the traces won't happen. A very common setup is something like this:
-
-//   | <script src='caterwaul.js'></script>
-//     <script src='some-caterwaul-extension.js'></script>
-//     <script src='my-script.js'></script>
-
-//   Often you'll want to precompile the whole bundle, since caterwaul.js includes behaviors that aren't necessarily precompiled and you might get better minification. To do this, it's tempting
-//   to precompile the whole bundle of caterwaul, the extensions, and your code. Without version checking, however, the traces would be lost and nothing would happen.
+//   caterwaul, so if that caterwaul is replaced for any reason then the traces won't happen.
 
 //   There is, of course, a pathological failure case in all of this. If you load three caterwauls [why?] and the second of the three has a different version than the other two, then you'll still
 //   get precompiled erasure. I personally don't care about this case. You'd have to be insane to do crazy stuff like this and expect precompilation to work.
