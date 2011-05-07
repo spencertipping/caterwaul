@@ -67,16 +67,16 @@
 //   element >> span[data_bar]        ->  element.filter('span[data-bar]')                    <- note conversion of _ to -
 //   element >> span[foo=x]           ->  element.filter('span[foo="#{string_escape(x)}"]')
 
+// Note that this isn't really intended to be a replacement for jQuery's builtin methods; it's just an easy way to do some simple selection. I highly recommend using native jQuery selectors if
+// you need something more powerful.
+
 // You shouldn't try to get too elaborate with these; I'm not sure how much stuff jQuery's CSS parser can handle. Also note that CSS3's operator precedence differs from Javascript's. In
 // particular, doing things like div > span + div > code is incorrect because it will be parsed as 'div > (span, div) > code' (though it may render properly as a CSS pattern). It's a good idea to
-// parenthesize in this case, just to communicate your intent to whoever's reading your code.
+// parenthesize in this case, just to communicate your intent to whoever's reading your code. Caterwaul removes the parentheses to make it a valid CSS selector.
 
 // Unlike the montenegro html[] macro, this one doesn't do any autodetection. The good part about this is that you can create custom HTML elements this way. For example:
 
 // | my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
-
-// Note that this isn't really intended to be a replacement for jQuery's builtin methods; it's just an easy way to do some simple selection. I highly recommend using native jQuery selectors if
-// you need something more powerful.
 
 caterwaul.js_base()(function ($) {
   $.jquery_macro(language, options) = language.modifier('jquery', this.expand(jquery_expand(match._expression)) -given.match -where [jquery_expand = $.jquery(options)]);
@@ -96,10 +96,10 @@ caterwaul.js_base()(function ($) {
                      anon          = $.anonymizer('J', 'TS', 'S', 'P', 'PS'),
 
                      rule(p, e)    = $.macro(anon(p), e.constructor === Function ? this.expand(e.call(this, match)) -given.match : anon(e)),
+
                      hyphenate(s)  = s.replace(/_/g, '-'),
 
-                     p_pattern     = anon('P[_thing]'),
-                     p(node)       = p_pattern.replace({_thing: node}),
+                     p             = bind [p_pattern = anon('P[_thing]')] in p_pattern.replace({_thing: node}) -given.node,
 
                      jquery_macros = [rule('J[_element]',                 '#{jq}(TS[_element])'),
                                       rule('J[_element._class]',          '(J[_element]).addClass(S[_class])'),
@@ -108,7 +108,7 @@ caterwaul.js_base()(function ($) {
                                       rule('J[_element *!_name(_val)]',   '(J[_element]).data(S[_name], _val)'),
                                       rule('J[_element /_method(_args)]', '(J[_element])._method(_args)'),
                                       rule('J[_element /!_event(_args)]', '(J[_element]).bind(S[_event], _args)'),
-                                      rule('J[_element %_function]',      '_function(J[_element])'),
+                                      rule('J[_element %_function]',      '_function((J[_element]))'),
 
                                       rule('J[_element(_children)]',      '(J[_element]).append((J[_children]))'),
                                       rule('J[_element[_children]]',      '(J[_element]).append(_children)'),
@@ -139,7 +139,6 @@ caterwaul.js_base()(function ($) {
                                       rule('P[_element[_attributes]]',       new $.syntax('#{this.expand(p(match._element)).data}[#{this.expand(p(match._attributes))}]')     -given.match),
                                       rule('P[_attribute = _value]',         new $.syntax('#{this.expand(p(match._attribute)).data}="#' + '{#{interpolated(match._value)}}"') -given.match),
 
-                                      rule('P[P[_element]]',                'P[_element]'),
                                       rule('P[(_element)]',                 'P[_element]'),        // No paren support
 
                                       rule('P[_element1 +   _element2]',     binary(', ')),
@@ -149,12 +148,12 @@ caterwaul.js_base()(function ($) {
                                       rule('P[_element1 >   _element2]',     binary(' > ')),
                                       rule('P[_element1(_element2)]',        binary(' > ')),
 
-                                      rule('P[_element /_selector]',         new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}'))       -given.match,
+                                      rule('P[_element /_selector]',         new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')        -given.match),
                                       rule('P[_element /_selector(_value)]', new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
                                                                                           '{#{interpolated(match._value)}")')                                                 -given.match)]
 
-                              -where [interpolated(node) = '(#{node.toString()}).replace(/(\\\\)/g, \\"$1$1\\").replace(/(\\")/g, \\"\\\\$1\\")',
-                                      binary(op)(match)  = new $.syntax('#{this.expand(p(match._element1)).data}, #{this.expand(p(match._element2)).data}')]]})(caterwaul);
+                              -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
+                                      binary(op)(match)  = new $.syntax('#{this.expand(p(match._element1)).data}#{op}#{this.expand(p(match._element2)).data}')]]})(caterwaul);
 // Generated by SDoc 
 
 

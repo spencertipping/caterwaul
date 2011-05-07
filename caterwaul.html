@@ -2066,7 +2066,7 @@ This runs a compilation stage. If the input is a function or string, then the fu
               toString:             function () {return '[caterwaul instance ' + this.id() + ']'},
 
               init:                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)},
-              init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.init_function(f) : this.constructor.compile(this(this.parse(f)))}}};
+              init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.init_function(f) : this.compile(this(this.parse(f)), environment)}}};
 __
 meta::sdoc('js::core/caterwaul.macroexpander', <<'__');
 Macroexpansion.
@@ -3147,14 +3147,11 @@ Introduction.
 The 'tracer' function constructs a caterwaul compiler that invokes hooks before and after each expression. You can inspect the value after it is computed and can measure how long it takes to
 return (or whether it fails to return due to an exception being thrown). For example, here's a very simple profiler (it doesn't account for 'own time', just 'total time'):
 
-| var trace   = caterwaul.tracer(function (expression)        {timings[expression.id()] = timings[expression.id()] || 0; timers.push(+new Date())},
-                                 function (expression, value) {timings[expression.id()] += +new Date() - timers.pop()});
+| var trace    = caterwaul.tracer(function (expression)        {timings[expression.id()] = timings[expression.id()] || 0; timers.push(+new Date())},
+                                  function (expression, value) {timings[expression.id()] += +new Date() - timers.pop()});
   var timings  = {};
   var timers   = [];
-  var profiler = caterwaul(function (code) {    // This caterwaul creation is unnecessary since it isn't doing anything else, but generally you'll have one
-    return trace(code);
-  });
-  var profiled = profiler(function () {...});   // Annotations inserted during macroexpansion
+  var profiled = trace(function () {...});      // Annotations inserted during macroexpansion
   profiled();                                   // This run is measured
 
 Interface details.
@@ -3169,13 +3166,7 @@ Here is the basic transformation applied to each expression in the code (where q
 
 | some_expression   ->  (before_hook(qs[some_expression]), after_hook(qs[some_expression], some_expression))
 
-Note that when you're building up a caterwaul function you'll probably want to trace the code last. For example, these two definitions are very different:
-
-| // Fails:                                     // Succeeds:
-  caterwaul(function (code) {                   caterwaul(function (code) {
-    var c1 = trace(code);                         var c1 = this.macroexpand(code, macros);
-    return this.macroexpand(c1, macros);          return trace(c1);
-  });                                           });
+Note that when you're building up a caterwaul function you'll probably want to trace the code last.
 
 The reason is that traced code isn't much like the code going in due to the way the transformation works. Another side-effect of tracing is that some of the functions you're tracing will have
 transformed source code. For example, suppose you're tracing this:
@@ -3214,12 +3205,9 @@ caterwaul.js_base()(function ($) {
 
                                rule('E[_x, _y]',                 'E[_x], E[_y]'),                                     // Preserve commas -- works in an argument list
                                rule('E[_x._y]',                  'H[_, E[_x]._y]'),                                   // No tracing for constant attributes
-                               rule('E[_f()]',                   'H[_, E[_f]()]'),                                    // Nullary function call won't be handled by binary ()
 
                                rule('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]'),                        // Use D[] to indicate direct method binding
                                rule('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]'),                     // Use I[] to indicate indirect method binding
-                               rule('E[_o._m()]',                'D[_, E[_o], _m, []]'),                              // Duplicate for nullary method calls
-                               rule('E[_o[_m]()]',               'I[_, E[_o], E[_m], []]'),
 
                                rule('E[typeof _x]',              'H[_, typeof _x]'),                                  // No tracing for typeof since the value may not exist
                                rule('E[void _x]',                'H[_, void E[_x]]'),                                 // Normal tracing
@@ -3231,8 +3219,7 @@ caterwaul.js_base()(function ($) {
                                rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
                                rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
                                rule('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]'),
-                               rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]'),                  // Trace body in statement mode rather than expression mode
-                               rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]')]                  // Handle nullary case
+                               rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]')]                  // Trace body in statement mode rather than expression mode
 
                        -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
                                                           rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
@@ -3267,7 +3254,7 @@ caterwaul.js_base()(function ($) {
                               rule('S[const _xs]',       'const S[_xs]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
                                                                                 rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
                               rule('S[return _x]',       'return E[_x]'),       rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
-                              rule('S[return]',          'return'),             rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
+                              rule('S[return]',          'return'),
                               rule('S[throw _x]',        'throw E[_x]'),
                               rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
                               rule('S[break]',           'break'),              rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
@@ -3292,7 +3279,7 @@ caterwaul.js_base()(function ($) {
                               after_hook_ref                                      = new $.ref(after_hook),
                               after_method_hook_ref                               = new $.ref(after_method_hook),
 
-                              quote_method_name(s)                                = '"#{method.data.replace(/(")/g, "\\$1")}"',
+                              quote_method_name(node)                             = '"#{node.data.replace(/(")/g, "\\$1")}"',
 
                               expression_hook_template                            = $.parse('(_before(_tree), _after(_tree, _expression))'),
                               indirect_method_hook_template                       = $.parse('(_before(_tree), _after(_tree, _object, _method, [_parameters]))'),
@@ -3301,7 +3288,7 @@ caterwaul.js_base()(function ($) {
                                                                                                                       _tree: new $.ref(original), _expression: tree.as('(')}),
 
                               method_hook(tree, object, method, parameters)       = indirect_method_hook_template.replace({_before: before_hook_ref, _after: after_method_hook_ref,
-                                                                                                                           _tree: new $.ref(original), _object: object, _method: method,
+                                                                                                                           _tree: new $.ref(tree), _object: object, _method: method,
                                                                                                                            _parameters: parameters}),
 
                               direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),
@@ -3884,16 +3871,16 @@ Also, you can now dig through the DOM using HTML selectors. Here's what that loo
   element >> span[data_bar]        ->  element.filter('span[data-bar]')                    <- note conversion of _ to -
   element >> span[foo=x]           ->  element.filter('span[foo="#{string_escape(x)}"]')
 
+Note that this isn't really intended to be a replacement for jQuery's builtin methods; it's just an easy way to do some simple selection. I highly recommend using native jQuery selectors if
+you need something more powerful.
+
 You shouldn't try to get too elaborate with these; I'm not sure how much stuff jQuery's CSS parser can handle. Also note that CSS3's operator precedence differs from Javascript's. In
 particular, doing things like div > span + div > code is incorrect because it will be parsed as 'div > (span, div) > code' (though it may render properly as a CSS pattern). It's a good idea to
-parenthesize in this case, just to communicate your intent to whoever's reading your code.
+parenthesize in this case, just to communicate your intent to whoever's reading your code. Caterwaul removes the parentheses to make it a valid CSS selector.
 
 Unlike the montenegro html[] macro, this one doesn't do any autodetection. The good part about this is that you can create custom HTML elements this way. For example:
 
 | my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
-
-Note that this isn't really intended to be a replacement for jQuery's builtin methods; it's just an easy way to do some simple selection. I highly recommend using native jQuery selectors if
-you need something more powerful.
 
 caterwaul.js_base()(function ($) {
   $.jquery_macro(language, options) = language.modifier('jquery', this.expand(jquery_expand(match._expression)) -given.match -where [jquery_expand = $.jquery(options)]);
@@ -3913,10 +3900,10 @@ caterwaul.js_base()(function ($) {
                      anon          = $.anonymizer('J', 'TS', 'S', 'P', 'PS'),
 
                      rule(p, e)    = $.macro(anon(p), e.constructor === Function ? this.expand(e.call(this, match)) -given.match : anon(e)),
+
                      hyphenate(s)  = s.replace(/_/g, '-'),
 
-                     p_pattern     = anon('P[_thing]'),
-                     p(node)       = p_pattern.replace({_thing: node}),
+                     p             = bind [p_pattern = anon('P[_thing]')] in p_pattern.replace({_thing: node}) -given.node,
 
                      jquery_macros = [rule('J[_element]',                 '#{jq}(TS[_element])'),
                                       rule('J[_element._class]',          '(J[_element]).addClass(S[_class])'),
@@ -3925,7 +3912,7 @@ caterwaul.js_base()(function ($) {
                                       rule('J[_element *!_name(_val)]',   '(J[_element]).data(S[_name], _val)'),
                                       rule('J[_element /_method(_args)]', '(J[_element])._method(_args)'),
                                       rule('J[_element /!_event(_args)]', '(J[_element]).bind(S[_event], _args)'),
-                                      rule('J[_element %_function]',      '_function(J[_element])'),
+                                      rule('J[_element %_function]',      '_function((J[_element]))'),
 
                                       rule('J[_element(_children)]',      '(J[_element]).append((J[_children]))'),
                                       rule('J[_element[_children]]',      '(J[_element]).append(_children)'),
@@ -3956,7 +3943,6 @@ caterwaul.js_base()(function ($) {
                                       rule('P[_element[_attributes]]',       new $.syntax('#{this.expand(p(match._element)).data}[#{this.expand(p(match._attributes))}]')     -given.match),
                                       rule('P[_attribute = _value]',         new $.syntax('#{this.expand(p(match._attribute)).data}="#' + '{#{interpolated(match._value)}}"') -given.match),
 
-                                      rule('P[P[_element]]',                'P[_element]'),
                                       rule('P[(_element)]',                 'P[_element]'),        // No paren support
 
                                       rule('P[_element1 +   _element2]',     binary(', ')),
@@ -3966,12 +3952,12 @@ caterwaul.js_base()(function ($) {
                                       rule('P[_element1 >   _element2]',     binary(' > ')),
                                       rule('P[_element1(_element2)]',        binary(' > ')),
 
-                                      rule('P[_element /_selector]',         new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}'))       -given.match,
+                                      rule('P[_element /_selector]',         new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')        -given.match),
                                       rule('P[_element /_selector(_value)]', new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
                                                                                           '{#{interpolated(match._value)}")')                                                 -given.match)]
 
-                              -where [interpolated(node) = '(#{node.toString()}).replace(/(\\\\)/g, \\"$1$1\\").replace(/(\\")/g, \\"\\\\$1\\")',
-                                      binary(op)(match)  = new $.syntax('#{this.expand(p(match._element1)).data}, #{this.expand(p(match._element2)).data}')]]})(caterwaul);
+                              -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
+                                      binary(op)(match)  = new $.syntax('#{this.expand(p(match._element1)).data}#{op}#{this.expand(p(match._element2)).data}')]]})(caterwaul);
 __
 meta::sdoc('js::precompile', <<'__');
 Offline precompilation.

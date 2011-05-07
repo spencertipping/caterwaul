@@ -5,14 +5,11 @@
 // The 'tracer' function constructs a caterwaul compiler that invokes hooks before and after each expression. You can inspect the value after it is computed and can measure how long it takes to
 // return (or whether it fails to return due to an exception being thrown). For example, here's a very simple profiler (it doesn't account for 'own time', just 'total time'):
 
-// | var trace   = caterwaul.tracer(function (expression)        {timings[expression.id()] = timings[expression.id()] || 0; timers.push(+new Date())},
-//                                  function (expression, value) {timings[expression.id()] += +new Date() - timers.pop()});
+// | var trace    = caterwaul.tracer(function (expression)        {timings[expression.id()] = timings[expression.id()] || 0; timers.push(+new Date())},
+//                                   function (expression, value) {timings[expression.id()] += +new Date() - timers.pop()});
 //   var timings  = {};
 //   var timers   = [];
-//   var profiler = caterwaul(function (code) {    // This caterwaul creation is unnecessary since it isn't doing anything else, but generally you'll have one
-//     return trace(code);
-//   });
-//   var profiled = profiler(function () {...});   // Annotations inserted during macroexpansion
+//   var profiled = trace(function () {...});      // Annotations inserted during macroexpansion
 //   profiled();                                   // This run is measured
 
 // Interface details.
@@ -27,13 +24,7 @@
 
 // | some_expression   ->  (before_hook(qs[some_expression]), after_hook(qs[some_expression], some_expression))
 
-// Note that when you're building up a caterwaul function you'll probably want to trace the code last. For example, these two definitions are very different:
-
-// | // Fails:                                     // Succeeds:
-//   caterwaul(function (code) {                   caterwaul(function (code) {
-//     var c1 = trace(code);                         var c1 = this.macroexpand(code, macros);
-//     return this.macroexpand(c1, macros);          return trace(c1);
-//   });                                           });
+// Note that when you're building up a caterwaul function you'll probably want to trace the code last.
 
 // The reason is that traced code isn't much like the code going in due to the way the transformation works. Another side-effect of tracing is that some of the functions you're tracing will have
 // transformed source code. For example, suppose you're tracing this:
@@ -72,12 +63,9 @@ caterwaul.js_base()(function ($) {
 
                                rule('E[_x, _y]',                 'E[_x], E[_y]'),                                     // Preserve commas -- works in an argument list
                                rule('E[_x._y]',                  'H[_, E[_x]._y]'),                                   // No tracing for constant attributes
-                               rule('E[_f()]',                   'H[_, E[_f]()]'),                                    // Nullary function call won't be handled by binary ()
 
                                rule('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]'),                        // Use D[] to indicate direct method binding
                                rule('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]'),                     // Use I[] to indicate indirect method binding
-                               rule('E[_o._m()]',                'D[_, E[_o], _m, []]'),                              // Duplicate for nullary method calls
-                               rule('E[_o[_m]()]',               'I[_, E[_o], E[_m], []]'),
 
                                rule('E[typeof _x]',              'H[_, typeof _x]'),                                  // No tracing for typeof since the value may not exist
                                rule('E[void _x]',                'H[_, void E[_x]]'),                                 // Normal tracing
@@ -89,8 +77,7 @@ caterwaul.js_base()(function ($) {
                                rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
                                rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
                                rule('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]'),
-                               rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]'),                  // Trace body in statement mode rather than expression mode
-                               rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]')]                  // Handle nullary case
+                               rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]')]                  // Trace body in statement mode rather than expression mode
 
                        -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
                                                           rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
@@ -125,7 +112,7 @@ caterwaul.js_base()(function ($) {
                               rule('S[const _xs]',       'const S[_xs]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
                                                                                 rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
                               rule('S[return _x]',       'return E[_x]'),       rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
-                              rule('S[return]',          'return'),             rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
+                              rule('S[return]',          'return'),
                               rule('S[throw _x]',        'throw E[_x]'),
                               rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
                               rule('S[break]',           'break'),              rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
@@ -150,7 +137,7 @@ caterwaul.js_base()(function ($) {
                               after_hook_ref                                      = new $.ref(after_hook),
                               after_method_hook_ref                               = new $.ref(after_method_hook),
 
-                              quote_method_name(s)                                = '"#{method.data.replace(/(")/g, "\\$1")}"',
+                              quote_method_name(node)                             = '"#{node.data.replace(/(")/g, "\\$1")}"',
 
                               expression_hook_template                            = $.parse('(_before(_tree), _after(_tree, _expression))'),
                               indirect_method_hook_template                       = $.parse('(_before(_tree), _after(_tree, _object, _method, [_parameters]))'),
@@ -159,7 +146,7 @@ caterwaul.js_base()(function ($) {
                                                                                                                       _tree: new $.ref(original), _expression: tree.as('(')}),
 
                               method_hook(tree, object, method, parameters)       = indirect_method_hook_template.replace({_before: before_hook_ref, _after: after_method_hook_ref,
-                                                                                                                           _tree: new $.ref(original), _object: object, _method: method,
+                                                                                                                           _tree: new $.ref(tree), _object: object, _method: method,
                                                                                                                            _parameters: parameters}),
 
                               direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),
