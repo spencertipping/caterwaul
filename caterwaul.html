@@ -372,13 +372,13 @@ share data between the compiling and compiled environments.</p>
   <h1>Core Javascript extensions</h1>
   <p>These macros are designed specifically to make Javascript more fun:</p>
   <pre class='quoted'>f(x) = x + 1;
-  String.prototype.say_hi(name) = 'hi #{name}!';</pre>
+String.prototype.say_hi(name) = 'hi #{name}!';</pre>
   <div class='section level2'>
     <h2>Modifiers</h2>
     <p>  Modifiers are words that modify expressions that are used near them. You use an operator together with a modifier to indicate the extent of modification. This happens because different
   operators have different precedence. For example:</p>
     <pre class='quoted'>1 + x /given.x
-  1 + x -given.x</pre>
+1 + x -given.x</pre>
   </div>
 </div>
 
@@ -980,8 +980,8 @@ my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//g
 my $escape_all    = sub {s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g};
 my $escape_some   = sub {s/&/&amp;/g; s/<(?!\/|($known_tags)[^>]*>.*<\/\1>)/&lt;/g};
 
-my $code          = sub {&$escape_all(); &$unindent();             push @markup, &$indent() . "<pre class='code'>$_</pre>"};
-my $quoted        = sub {&$escape_all(); &$unindent(); s/^\|\s?//; push @markup, &$indent() . "<pre class='quoted'>$_</pre>"};
+my $code          = sub {&$escape_all(); &$unindent();                             push @markup, &$indent() . "<pre class='code'>$_</pre>"};
+my $quoted        = sub {&$escape_all(); &$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, &$indent() . "<pre class='quoted'>$_</pre>"};
 
 my $paragraph     = sub {&$escape_some(); push @markup, &$indent() . "<p>$_</p>"};
 
@@ -1810,7 +1810,7 @@ internal_function::dep                                      bad9b934374b176318ed
 message_color::test                                         14e993fdf2c62df353613c243dc9053b
 meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
 parent::/home/spencertipping/bin/repository                 0d317b0c917f59703ee01bf3cf03ad13
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  6a5c7ec116abef8a7c7142d1f5fae0d8
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  e3fc5cfcb42fc929d07a588023f9be5d
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
 bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
@@ -1925,7 +1925,7 @@ parent::/home/spencertipping/bin/configuration  e4d22dc2215115982f6b79ed0ce22a42
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
-function::sdoc-html                      5fffe6139a81ff67ee063ebcbfadad2a
+function::sdoc-html                      e53ef666b3ae25af0050c3ed582fca8e
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
 parent::/home/spencertipping/bin/object  9088a9cf9c95b7c1184f1c3b528824ba
