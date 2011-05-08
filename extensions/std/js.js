@@ -32,6 +32,7 @@
 //   These are things that you can do in statement mode but not expression mode.
 
     this.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
+    this.macro('safely[_x][_catch]', '(function () {try {return (_x)} catch (e) {return (_catch)}}).call(this)'),
 
 //   String interpolation.
 //   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
@@ -59,7 +60,8 @@
 
       pieces.push(s.substring(start, l));
 
-      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? $.parse(pieces[i].replace(quoted, q)).as('(') : new syntax(q + pieces[i] + q);
+      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this.expand($.parse(pieces[i].replace(quoted, q)).as('(')) :
+                                                                                                               new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')},
 
 //   Destructuring function creation.
