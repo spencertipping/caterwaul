@@ -28,12 +28,6 @@
 
                   macros: [
 
-//   Javascript intrinsic verbs.
-//   These are things that you can do in statement mode but not expression mode.
-
-    this.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
-    this.macro('safely[_x][_catch]', '(function () {try {return (_x)} catch (e) {return (_catch)}}).call(this)'),
-
 //   String interpolation.
 //   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
 //   bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.

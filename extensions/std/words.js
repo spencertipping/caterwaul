@@ -21,6 +21,12 @@
   language.modifier('qs',  function (match) {return new $.ref(match._expression)}),
   language.modifier('qse', function (match) {return new $.ref(this.expand(match._expression))}),
 
+// Error handling.
+// Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
+
+  language.modifier('wobbly', 'chuck', '(function () {throw _expression}).call(this)'),
+  language.parameterized_modifier('failover', 'safely', '(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+
 // Scoping and referencing.
 // These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
 

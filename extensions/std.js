@@ -79,6 +79,12 @@
   language.modifier('qs',  function (match) {return new $.ref(match._expression)}),
   language.modifier('qse', function (match) {return new $.ref(this.expand(match._expression))}),
 
+// Error handling.
+// Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
+
+  language.modifier('wobbly', 'chuck', '(function () {throw _expression}).call(this)'),
+  language.parameterized_modifier('failover', 'safely', '(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+
 // Scoping and referencing.
 // These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
 
@@ -187,12 +193,6 @@
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
 
                   macros: [
-
-//   Javascript intrinsic verbs.
-//   These are things that you can do in statement mode but not expression mode.
-
-    this.macro('wobbly[_x]', '(function () {throw _x}).call(this)'),
-    this.macro('safely[_x][_catch]', '(function () {try {return (_x)} catch (e) {return (_catch)}}).call(this)'),
 
 //   String interpolation.
 //   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
