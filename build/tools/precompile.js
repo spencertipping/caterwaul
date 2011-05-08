@@ -1138,7 +1138,7 @@ caterwaul.version('38a64d04bc7900cdc4ac21b990618642');
 
     var result = {modifier:               this.right_variadic(function (name, expander) {
                                             return $.map(macro(name, expander), ['_expression /_modifiers', '_expression -_modifiers', '_expression |_modifiers', '_expression._modifiers',
-                                                                                 '_modifiers[_expression]', '_modifiers in _expression'])}),
+                                                                                 '_modifiers[_expression]', '_modifiers in _expression', '_expression, _modifiers'])}),
 
                   parameterized_modifier: this.right_variadic(function (name, expander) {
                                             return [$.map(macros(name, expander), ['_modifiers[_parameters]', '_modifiers._parameters']),
