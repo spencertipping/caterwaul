@@ -302,19 +302,26 @@ var shell = shell.append(history_container(), shell_prompt()).
                     history_log_for(o)    = pre.log    /text('' + o) -jquery,
                     history_error_for(e)  = pre.error  /text('' + e) -jquery,
 
-                    realign()             = setTimeout(shell.css({top: $(window).height() - prompt_y - 8, bottom: 0})
-                                                       -when  [prompt_y > $(window).height()]
-                                                       -then- input.width(input.parent().width() - (input.prev().width() + 10))
-                                                       -where [prompt   = shell.children('.prompt').eq(0),
-                                                               prompt_y = prompt.position().top + prompt.height(),
-                                                               input    = shell.find('.prompt .input')]
-                                                       -given.nothing, 0),
+                    realign()             = setTimeout(shell.animate({top: $(window).height() - prompt_relative_y - 8, bottom: 0}) /when [prompt_absolute_y > bottom_of_screen]
+                                                -then- shell.css({top: 0, bottom: 0})                                              /when [prompt_absolute_y < top_of_screen]
+                                                -then- input.width(input.parent().width() - (input.prev().width() + 10))
+
+                                                -where [prompt            = shell.children('.prompt').eq(0),
+                                                        prompt_relative_y = prompt.position().top + prompt.height(),
+                                                        prompt_absolute_y = prompt.offset().top   + prompt.height(),
+
+                                                        top_of_screen     = $(window).scrollTop(),
+                                                        bottom_of_screen  = top_of_screen + $(window).height(),
+
+                                                        input             = shell.find('.prompt .input')]
+
+                                                -given.nothing, 10),
 
                     log(x)                = shell.children('.history').append(x) -then- realign() -returning- x,
 
                     context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
-                                             clear:     given.nothing in shell.children('.history').empty(),
+                                             clear:     given.nothing in shell.children('.history').empty() -then- realign() -returning- '',
                                              caterwaul: caterwaul.js_ui(caterwaul.js_all()),
                                              show:      given.tree in context.caterwaul.macroexpand(tree),
                                              history:   [],
@@ -4469,19 +4476,26 @@ var shell = shell.append(history_container(), shell_prompt()).
                     history_log_for(o)    = pre.log    /text('' + o) -jquery,
                     history_error_for(e)  = pre.error  /text('' + e) -jquery,
 
-                    realign()             = setTimeout(shell.css({top: $(window).height() - prompt_y - 8, bottom: 0})
-                                                       -when  [prompt_y > $(window).height()]
-                                                       -then- input.width(input.parent().width() - (input.prev().width() + 10))
-                                                       -where [prompt   = shell.children('.prompt').eq(0),
-                                                               prompt_y = prompt.position().top + prompt.height(),
-                                                               input    = shell.find('.prompt .input')]
-                                                       -given.nothing, 0),
+                    realign()             = setTimeout(shell.animate({top: $(window).height() - prompt_relative_y - 8, bottom: 0}) /when [prompt_absolute_y > bottom_of_screen]
+                                                -then- shell.css({top: 0, bottom: 0})                                              /when [prompt_absolute_y < top_of_screen]
+                                                -then- input.width(input.parent().width() - (input.prev().width() + 10))
+
+                                                -where [prompt            = shell.children('.prompt').eq(0),
+                                                        prompt_relative_y = prompt.position().top + prompt.height(),
+                                                        prompt_absolute_y = prompt.offset().top   + prompt.height(),
+
+                                                        top_of_screen     = $(window).scrollTop(),
+                                                        bottom_of_screen  = top_of_screen + $(window).height(),
+
+                                                        input             = shell.find('.prompt .input')]
+
+                                                -given.nothing, 10),
 
                     log(x)                = shell.children('.history').append(x) -then- realign() -returning- x,
 
                     context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
-                                             clear:     given.nothing in shell.children('.history').empty(),
+                                             clear:     given.nothing in shell.children('.history').empty() -then- realign() -returning- '',
                                              caterwaul: caterwaul.js_ui(caterwaul.js_all()),
                                              show:      given.tree in context.caterwaul.macroexpand(tree),
                                              history:   [],
