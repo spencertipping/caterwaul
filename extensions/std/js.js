@@ -16,7 +16,7 @@
     var macros = function (name, expander) {return function (template) {return result.modifier($.parse(template).replace({_modifiers: $.parse(name)}), expander)}};
 
     var result = {modifier:               this.right_variadic(function (name, expander) {
-                                            return $.map(macro(name, expander), ['_expression /_modifiers', '_expression -_modifiers', '_expression |_modifiers', '_expression._modifiers',
+                                            return $.map(macro(name, expander), ['_expression /_modifiers', '_expression -_modifiers', '_expression |_modifiers',
                                                                                  '_modifiers[_expression]', '_modifiers in _expression', '_expression, _modifiers'])}),
 
                   parameterized_modifier: this.right_variadic(function (name, expander) {
