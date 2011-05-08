@@ -302,18 +302,23 @@ var shell = shell.append(history_container(), shell_prompt()).
                     history_log_for(o)    = pre.log    /text('' + o) -jquery,
                     history_error_for(e)  = pre.error  /text('' + e) -jquery,
 
-                    clear()               = shell.animate({top: -history.height() - 4, bottom: 0}) -where [history = shell.children('.history')],
-                    realign()             = setTimeout(shell.animate({top: $(window).height() - prompt.position().top - prompt.height() - 8, bottom: 0})
-                                                       -when  [prompt.position().top + prompt.height() > $(window).height()]
-                                                       -where [prompt = shell.children('.prompt')] -given.nothing, 0),
+                    realign()             = setTimeout(shell.css({top: $(window).height() - prompt_y - 8, bottom: 0})
+                                                       -when  [prompt_y > $(window).height()]
+                                                       -then- input.width(input.parent().width() - (input.prev().width() + 10))
+                                                       -where [prompt   = shell.children('.prompt').eq(0),
+                                                               prompt_y = prompt.position().top + prompt.height(),
+                                                               input    = shell.find('.prompt .input')]
+                                                       -given.nothing, 0),
 
                     log(x)                = shell.children('.history').append(x) -then- realign() -returning- x,
 
-                    context               = {expand:    given.nothing in shell.animate({left: 0, right: 0},    realign),
+                    context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
+                                             clear:     given.nothing in shell.children('.history').empty(),
                                              caterwaul: caterwaul.js_ui(caterwaul.js_all()),
+                                             show:      given.tree in context.caterwaul.macroexpand(tree),
                                              history:   [],
-                                             help:      given.nothing in 'Available commands: #{(context /keys /seq).join(", ")}',
+                                             help:      given.nothing in 'available variables:\n#{(context /keys /seq).join("\n")}',
                                              log:       given.thing   in log(history_log_for(thing)),
                                              it:        null}
                                             -effect [it.context = it],
@@ -321,15 +326,19 @@ var shell = shell.append(history_container(), shell_prompt()).
                     run_command(c)        = log(history_entry_for(c))
                                             -then- log(history_result_for(context.it = context.caterwaul(c, context))) /failover [log(history_error_for(context.it = e))],
 
-                    shell_prompt()        = div.prompt(span.prompt(span.accent >= '&gt;'))[input] -jquery
+                    shell_prompt()        = div.prompt[prompt, input] -jquery
+                                            -effect- setTimeout(realign, 10)
 
                                             -effect- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
 
-                                            -effect- it.find('.input').keydown(history_prev() /effect [e.preventDefault()] /when [e.which === 38] -otherwise-
+                                            -effect- it.find('.input').keydown(realign() -then-
+
+                                                                               history_prev() /effect [e.preventDefault()] /when [e.which === 38] -otherwise-
                                                                                history_next() /effect [e.preventDefault()] /when [e.which === 40] -otherwise-
                                                                                run_it()       /effect [e.preventDefault()] /when [e.which === 13] -otherwise- true -given.e)
 
-                                             -where [input          = input.input /jquery,
+                                             -where [input          = input.input /val('help()') |jquery,
+                                                     prompt         = span.accent >= '&gt;'      |jquery,
 
                                                      h_index        = 0,
                                                      history_prev() = (h[h_index] = input.val()) -then- input.val(h[--h_index]) -when [h_index > 0]            -where [h = context.history],
@@ -401,19 +410,10 @@ a:hover {color: #fa4}
 .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; overflow: hidden; color: white; background: black}
 .shell .accent {color: #fa4}
 
-.shell .toolbar {visibility: hidden; border-bottom: solid 1px #222}
-.shell .toolbar div {font-family: 'Ubuntu', sans-serif; font-size: 9pt; padding: 4px; display: inline-block; cursor: pointer}
-.shell .toolbar div:before {content: '< '; color: #444}
-.shell .toolbar div:after  {content: ' >'; color: #444}
+.shell .prompt span {margin: 4px; display}
 
-.shell .toolbar div:hover  {background: #222}
-.shell .toolbar div:hover:before {color: #fa4}
-.shell .toolbar div:hover:after  {color: #fa4}
-
-.shell > .prompt {margin: 4px}
-.shell .prompt .prompt {cursor: pointer}
-.shell .prompt .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; display: inline-block; margin-left: 4px; border: none !important; outline: none !important}
-.shell .prompt .input {font-size: 10pt; background: transparent; color: white}
+.shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
+.shell .input {font-size: 10pt; background: transparent; color: white}
 
 .shell .input:focus {border: none !important; outline: none !important}
 
@@ -2289,19 +2289,10 @@ a:hover {color: #fa4}
 .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; overflow: hidden; color: white; background: black}
 .shell .accent {color: #fa4}
 
-.shell .toolbar {visibility: hidden; border-bottom: solid 1px #222}
-.shell .toolbar div {font-family: 'Ubuntu', sans-serif; font-size: 9pt; padding: 4px; display: inline-block; cursor: pointer}
-.shell .toolbar div:before {content: '< '; color: #444}
-.shell .toolbar div:after  {content: ' >'; color: #444}
+.shell .prompt span {margin: 4px; display}
 
-.shell .toolbar div:hover  {background: #222}
-.shell .toolbar div:hover:before {color: #fa4}
-.shell .toolbar div:hover:after  {color: #fa4}
-
-.shell > .prompt {margin: 4px}
-.shell .prompt .prompt {cursor: pointer}
-.shell .prompt .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; display: inline-block; margin-left: 4px; border: none !important; outline: none !important}
-.shell .prompt .input {font-size: 10pt; background: transparent; color: white}
+.shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
+.shell .input {font-size: 10pt; background: transparent; color: white}
 
 .shell .input:focus {border: none !important; outline: none !important}
 
@@ -4478,18 +4469,23 @@ var shell = shell.append(history_container(), shell_prompt()).
                     history_log_for(o)    = pre.log    /text('' + o) -jquery,
                     history_error_for(e)  = pre.error  /text('' + e) -jquery,
 
-                    clear()               = shell.animate({top: -history.height() - 4, bottom: 0}) -where [history = shell.children('.history')],
-                    realign()             = setTimeout(shell.animate({top: $(window).height() - prompt.position().top - prompt.height() - 8, bottom: 0})
-                                                       -when  [prompt.position().top + prompt.height() > $(window).height()]
-                                                       -where [prompt = shell.children('.prompt')] -given.nothing, 0),
+                    realign()             = setTimeout(shell.css({top: $(window).height() - prompt_y - 8, bottom: 0})
+                                                       -when  [prompt_y > $(window).height()]
+                                                       -then- input.width(input.parent().width() - (input.prev().width() + 10))
+                                                       -where [prompt   = shell.children('.prompt').eq(0),
+                                                               prompt_y = prompt.position().top + prompt.height(),
+                                                               input    = shell.find('.prompt .input')]
+                                                       -given.nothing, 0),
 
                     log(x)                = shell.children('.history').append(x) -then- realign() -returning- x,
 
-                    context               = {expand:    given.nothing in shell.animate({left: 0, right: 0},    realign),
+                    context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
+                                             clear:     given.nothing in shell.children('.history').empty(),
                                              caterwaul: caterwaul.js_ui(caterwaul.js_all()),
+                                             show:      given.tree in context.caterwaul.macroexpand(tree),
                                              history:   [],
-                                             help:      given.nothing in 'Available commands: #{(context /keys /seq).join(", ")}',
+                                             help:      given.nothing in 'available variables:\n#{(context /keys /seq).join("\n")}',
                                              log:       given.thing   in log(history_log_for(thing)),
                                              it:        null}
                                             -effect [it.context = it],
@@ -4497,15 +4493,19 @@ var shell = shell.append(history_container(), shell_prompt()).
                     run_command(c)        = log(history_entry_for(c))
                                             -then- log(history_result_for(context.it = context.caterwaul(c, context))) /failover [log(history_error_for(context.it = e))],
 
-                    shell_prompt()        = div.prompt(span.prompt(span.accent >= '&gt;'))[input] -jquery
+                    shell_prompt()        = div.prompt[prompt, input] -jquery
+                                            -effect- setTimeout(realign, 10)
 
                                             -effect- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
 
-                                            -effect- it.find('.input').keydown(history_prev() /effect [e.preventDefault()] /when [e.which === 38] -otherwise-
+                                            -effect- it.find('.input').keydown(realign() -then-
+
+                                                                               history_prev() /effect [e.preventDefault()] /when [e.which === 38] -otherwise-
                                                                                history_next() /effect [e.preventDefault()] /when [e.which === 40] -otherwise-
                                                                                run_it()       /effect [e.preventDefault()] /when [e.which === 13] -otherwise- true -given.e)
 
-                                             -where [input          = input.input /jquery,
+                                             -where [input          = input.input /val('help()') |jquery,
+                                                     prompt         = span.accent >= '&gt;'      |jquery,
 
                                                      h_index        = 0,
                                                      history_prev() = (h[h_index] = input.val()) -then- input.val(h[--h_index]) -when [h_index > 0]            -where [h = context.history],
