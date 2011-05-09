@@ -311,7 +311,7 @@ caterwaul.js_base()(function ($) {
                                rule('E[delete _x]',              'H[_, delete _x]'),                                  // Lvalue, so no tracing for the original
                                rule('E[delete _x._y]',           'H[_, delete E[_x]._y]'),
                                rule('E[delete _x[_y]]',          'H[_, delete E[_x][E[_y]]]'),
-                               rule('E[new _x(_y)]',             'H[_, new H[_x](E[_y])]'),                           // Hook the constructor to prevent method-handling from happening
+                               rule('E[new _x(_y)]',             'H[_, new H[_x, _x](E[_y])]'),                       // Hook the constructor to prevent method-handling from happening
                                rule('E[{_ps}]',                  'H[_, {E[_ps]}]'),                                   // Hook the final object and distribute across k/v pairs (more)
                                rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
                                rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
@@ -347,8 +347,9 @@ caterwaul.js_base()(function ($) {
 
           statement_macros = [rule('S[_x]',              'E[_x]'),
                               rule('S[{_x}]',            '{S[_x]}'),
+                              rule('S[{}]',              '{}'),                 // Do nothing for an empty block. We know it's a block because it was in statement context.
                               rule('S[_x; _y]',          'S[_x]; S[_y]'),
-                              rule('S[_x _y]',           'S[_x] S[_y]'),        // Invisible semicolon case
+                              rule('S[_x _y]',           'S[_x] S[_y]'),        // Invisible semicolon case; preserve invisibility.
 
                               rule('S[break _label]',    'break _label'),       rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
                               rule('S[break]',           'break'),              rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
