@@ -115,31 +115,31 @@ caterwaul.js_base()(function ($) {
 
                              binary_operator(op, f)                    = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})],
 
-                             scope            = $.parse('(function () {_body}).call(this)'),
-                             scoped(tree)     = scope.replace({_body: tree}),
-
                              loop_anon        = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj'),
-                             loop_form(x)     = scoped(loop_anon(anon(x))),
+                             loop_form(x)     = loop_anon(scoped(anon(x))),
+
+                             scope            = anon('(function (xs) {_body}).call(this, S[_xs])'),
+                             scoped(tree)     = scope.replace({_body: tree}),
 
                              op_form(pattern) = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
 
-                             map        = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
-                             each       = op_form('for (var xs = S[_xs],          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
-                             flatmap    = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
+                             map        = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
+                             each       = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
+                             flatmap    = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
 
-                             filter     = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
-                             filter_not = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
-                             map_filter = op_form('for (var xs = S[_xs], ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+                             filter     = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
+                             filter_not = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
+                             map_filter = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
 
-                             foldl      = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 1, _xl = xs.length, _x0;      _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);            return _x'),
-                             foldr      = op_form('for (var xs = S[_xs], _xi = 0, _xl = xs.length - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);            return _x'),
+                             foldl      = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);      return _x'),
+                             foldr      = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);      return _x0'),
 
-                             exists     = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
-                             forall     = op_form('for (var xs = S[_xs], _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
+                             exists     = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
+                             forall     = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
 
-                             concat     = op_form('return (S[_xs]).concat(S[_ys])'),
-                             zip        = op_form('for (var xs = S[_xs], ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
-                             cross      = op_form('for (var xs = S[_xs], ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
+                             concat     = op_form('return xs.concat(S[_ys])'),
+                             zip        = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
+                             cross      = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
                                                     'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
 
                              variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
