@@ -1303,7 +1303,6 @@ caterwaul.version('38a64d04bc7900cdc4ac21b990618642');
 //   -  = cartesian product        e.g.  [1, 2] - [3, 4] |seq               ->  [[1, 3], [1, 4], [2, 3], [2, 4]]
 //   ^  = zip                      e.g.  [1, 2, 3] ^ [4, 5, 6] |seq         ->  [[1, 4], [2, 5], [3, 6]]
 //   |  = exists                   e.g.  [1, 2, 3] |[x === 2] |seq          ->  true
-//   &  = forall                   e.g.  [1, 2, 3] &[x < 3] |seq            ->  false
 
 // Note that ^ has higher precedence than |, so we can use it in a sequence comprehension without interfering with the |seq macro (so long as the |seq macro is placed on the right).
 
@@ -1372,8 +1371,8 @@ caterwaul.js_base()(function ($) {
   -where [anon            = $.anonymizer('S'),
           rule(p, e)      = $.macro(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
 
-          operator_macros = [rule('S[_x]', '_x'),                                    operator_pattern('|', exists),
-                             rule('S[_x, _y]', 'S[_x], S[_y]'),                      operator_pattern('&', forall),
+          operator_macros = [rule('S[_x]', '_x'),
+                             rule('S[_x, _y]', 'S[_x], S[_y]'),                      operator_pattern('|', exists),
 
                              operator_pattern('*', map,    each,       flatmap),     binary_operator('+', concat),
                              operator_pattern('%', filter, filter_not, map_filter),  binary_operator('-', cross),
@@ -1392,15 +1391,15 @@ caterwaul.js_base()(function ($) {
                                                                             trule('S[_xs +!~[_f]]',  'S[_xs +![S[_f]]]'),  trule('S[_xs +!~_var[_f]]',  'S[_xs +!_var[S[_f]]]'),
                                                                             trule('S[_xs +~!~[_f]]', 'S[_xs +~![S[_f]]]'), trule('S[_xs +~!~_var[_f]]', 'S[_xs +~!_var[S[_f]]]')]],
 
-                             binary_operator(op, f)                    = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})],
+                             binary_operator(op, f) = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})],
 
-                             loop_anon        = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj'),
-                             loop_form(x)     = loop_anon(scoped(anon(x))),
+                             loop_anon              = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj'),
+                             loop_form(x)           = loop_anon(scoped(anon(x))),
 
-                             scope            = anon('(function (xs) {_body}).call(this, S[_xs])'),
-                             scoped(tree)     = scope.replace({_body: tree}),
+                             scope                  = anon('(function (xs) {_body}).call(this, S[_xs])'),
+                             scoped(tree)           = scope.replace({_body: tree}),
 
-                             op_form(pattern) = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
+                             op_form(pattern)       = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
 
                              map        = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
                              each       = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
@@ -1413,8 +1412,7 @@ caterwaul.js_base()(function ($) {
                              foldl      = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);      return _x'),
                              foldr      = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);      return _x0'),
 
-                             exists     = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y}   return false'),
-                             forall     = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length;    _xi < _xl; ++_xi) {_x = xs[_xi]; if (! (_f)) return false} return true'),
+                             exists     = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false'),
 
                              concat     = op_form('return xs.concat(S[_ys])'),
                              zip        = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
@@ -1422,7 +1420,7 @@ caterwaul.js_base()(function ($) {
                                                     'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
 
                              variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
-                             prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p || 'x']],
+                             prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p && p.data || 'x']],
 
           word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',    keys),
                              rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]',  values),
@@ -1430,7 +1428,7 @@ caterwaul.js_base()(function ($) {
                                                                       rule('S[_xs |object]', object)]
 
                      -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
-                             n_pattern = anon('(function () {for (var r = [], i = _lower, u = _upper; i < u; i += _step) r.push(i); return r})()'),
+                             n_pattern = anon('(function () {for (var r = [], i = _lower, u = _upper, d = u - i; d > 0 ? i < u : i > u; i += _step) r.push(i); return r})()'),
 
                              scope     = $.parse('(function () {_body}).call(this)'),
                              scoped(t) = scope.replace({_body: t}),
