@@ -298,15 +298,15 @@ var shell = shell.append(history_container(), shell_prompt()).
 
  -where [shell = div.shell -jquery
  -effect- setInterval(do_the_scroll_thing_on(it), 30)
- -effect- it.mousemove(given.e [mouse_y = e.pageY + 1]).
+ -effect- it.mousemove(given.e [mouse_y = e.pageY - $(window).scrollTop() + 1]).
  mouseout(given.e [mouse_y = false])
 
  -where [mouse_y = false,
  do_the_scroll_thing_on(element)() = element.css({top: new_y}) -when [new_y !== current_y]
 
  -where [area_size = 50,
- top_area = $(window).scrollTop() + area_size,
- bottom_area = $(window).scrollTop() + $(window).height() - area_size,
+ top_area = area_size,
+ bottom_area = $(window).height() - area_size,
 
  current_y = element.position().top - $(window).scrollTop(),
  height = element.children() -re- $(it[it.length - 1]).position().top,
@@ -4737,15 +4737,15 @@ var shell = shell.append(history_container(), shell_prompt()).
 
             -where [shell                 = div.shell -jquery
                                             -effect- setInterval(do_the_scroll_thing_on(it), 30)
-                                            -effect- it.mousemove(given.e [mouse_y = e.pageY + 1]).
+                                            -effect- it.mousemove(given.e [mouse_y = e.pageY - $(window).scrollTop() + 1]).
                                                          mouseout(given.e [mouse_y = false])
 
                                              -where [mouse_y                           = false,
                                                      do_the_scroll_thing_on(element)() = element.css({top: new_y}) -when [new_y !== current_y]
 
                                                                                          -where [area_size   = 50,
-                                                                                                 top_area    = $(window).scrollTop() + area_size,
-                                                                                                 bottom_area = $(window).scrollTop() + $(window).height() - area_size,
+                                                                                                 top_area    = area_size,
+                                                                                                 bottom_area = $(window).height() - area_size,
 
                                                                                                  current_y   = element.position().top - $(window).scrollTop(),
                                                                                                  height      = element.children() -re- $(it[it.length - 1]).position().top,
