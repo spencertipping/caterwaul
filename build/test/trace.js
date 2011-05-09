@@ -12,15 +12,15 @@ caterwaul.test(function () {
 
   tree_stack.length -should_be- 0;
 
-  var f = function () {return 5};
+  var f = function (x) {return x};
   var traced_f = t(f);
-  traced_f();
+  traced_f(5);
 
   tree_stack.length            -should_be- 0;
   observed_values[0]           -should_be- traced_f;
   observed_values[1]           -should_be- 5;
   observed_trees[0].toString() -should_be- caterwaul.parse(f).toString();
-  observed_trees[1].toString() -should_be- caterwaul.parse('5').toString();
+  observed_trees[1].toString() -should_be- caterwaul.parse('x').toString();
   observed_values.length       -should_be- 2;
   observed_trees.length        -should_be- 2;
 });

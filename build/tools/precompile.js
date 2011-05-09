@@ -1427,7 +1427,9 @@ caterwaul.js_base()(function ($) {
                                                                       rule('S[_xs |object]', object)]
 
                      -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
-                             n_pattern = anon('(function () {for (var r = [], i = _lower, u = _upper, d = u - i; d > 0 ? i < u : i > u; i += _step) r.push(i); return r})()'),
+                             n_pattern = anon('(function () {var i = _lower, u = _upper, s = _step;' +
+                                                            'if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                            'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})()'),
 
                              scope     = $.parse('(function () {_body}).call(this)'),
                              scoped(t) = scope.replace({_body: t}),
@@ -1732,7 +1734,8 @@ caterwaul.js_base()(function ($) {
 
 //   Expression-mode transformations.
 //   Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', D[] means 'hook this direct method call', I[] means 'hook this indirect
-//   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. It's essentially a simple context-free grammar over tree expressions.
+//   method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. A special case V[] is used in conjunction with var statements (see the
+//   statement-mode stuff below for a more complete explanation.) It's essentially a simple context-free grammar over tree expressions.
 
   -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
           rule(p, e)        = $.macro(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
@@ -1764,6 +1767,7 @@ caterwaul.js_base()(function ($) {
                                rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
                                rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
                                rule('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]'),
+                               rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]'),
                                rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]')]                  // Trace body in statement mode rather than expression mode
 
                        -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
@@ -1789,21 +1793,27 @@ caterwaul.js_base()(function ($) {
 //   we have to produce x = H[5], y = H[6]. The statement-mode comma and equals rules do exactly that. Note that we don't lose anything by doing this because in statement context the result of an
 //   assignment is never used anyway.
 
+//   There's another interesting case regarding var statements. Sometimes you have a var statement like this: 'var x = 5, y' -- in this case, we can't hook the y because it's technically in
+//   assignment context. So we need to keep track of the fact that we're within a var statement by using the V[] modifier. (V[] is identical to S[], but used only inside vars.)
+
           statement_macros = [rule('S[_x]',              'E[_x]'),              rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
                               rule('S[{_x}]',            '{S[_x]}'),            rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
                               rule('S[_x; _y]',          'S[_x]; S[_y]'),       rule('S[while (_x) _y]',                         'while (E[_x]) S[_y]'),
-                                                                                rule('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])'),
-                              rule('S[_x, _y]',          'S[_x], S[_y]'),       rule('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])'),
-                              rule('S[_x = _y]',         '_x = E[_y]'),
-                              rule('S[var _xs]',         'var S[_xs]'),         rule('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}'),
-                              rule('S[const _xs]',       'const S[_xs]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
-                                                                                rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
-                              rule('S[return _x]',       'return E[_x]'),       rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
+
+                              rule('S[_x, _y]',          'S[_x], S[_y]'),       rule('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])'),
+                              rule('S[_x = _y]',         '_x = E[_y]'),         rule('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])'),
+                              rule('V[_x]',              '_x'),
+                              rule('V[_x = _y]',         '_x = E[_y]'),         rule('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}'),
+                                                                                rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
+                              rule('S[var _xs]',         'var V[_xs]'),         rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
+                              rule('S[const _xs]',       'const V[_xs]'),
+                                                                                rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
+                              rule('S[return _x]',       'return E[_x]'),       rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
                               rule('S[return]',          'return'),
-                              rule('S[throw _x]',        'throw E[_x]'),
-                              rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
-                              rule('S[break]',           'break'),              rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
-                              rule('S[continue _label]', 'continue _label'),    rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
+                              rule('S[throw _x]',        'throw E[_x]'),        rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
+                              rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
+                              rule('S[break]',           'break'),              rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
+                              rule('S[continue _label]', 'continue _label'),
                               rule('S[continue]',        'continue'),           rule('S[switch (_c) {_body}]',                   'switch (E[_c]) {S[_body]}'),
                               rule('S[_label: _stuff]',  '_label: S[_stuff]'),  rule('S[with (_x) _y]',                          'with (E[_x]) S[_y]')],
 
