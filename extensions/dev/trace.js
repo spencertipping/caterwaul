@@ -52,7 +52,7 @@ caterwaul.js_base()(function ($) {
           rule(p, e)        = $.macro(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
 
           expression_macros = [rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier, literal, or empty function
-                               rule('E[]',   'null'),                                                                 // Base case: oops, descended into nullary something
+                               rule('E[]',   ''),                                                                     // Base case: oops, descended into nullary something
 
                                assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),
                                binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
@@ -107,25 +107,29 @@ caterwaul.js_base()(function ($) {
 //   There's another interesting case regarding var statements. Sometimes you have a var statement like this: 'var x = 5, y' -- in this case, we can't hook the y because it's technically in
 //   assignment context. So we need to keep track of the fact that we're within a var statement by using the V[] modifier. (V[] is identical to S[], but used only inside vars.)
 
-          statement_macros = [rule('S[_x]',              'E[_x]'),              rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
-                              rule('S[{_x}]',            '{S[_x]}'),            rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
-                              rule('S[_x; _y]',          'S[_x]; S[_y]'),       rule('S[while (_x) _y]',                         'while (E[_x]) S[_y]'),
+          statement_macros = [rule('S[_x]',              'E[_x]'),
+                              rule('S[{_x}]',            '{S[_x]}'),
+                              rule('S[_x; _y]',          'S[_x]; S[_y]'),
+                              rule('S[_x _y]',           'S[_x] S[_y]'),        // Invisible semicolon case
 
+                              rule('S[break _label]',    'break _label'),       rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
+                              rule('S[break]',           'break'),              rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
+                                                                                rule('S[while (_x) _y]',                         'while (E[_x]) S[_y]'),
                               rule('S[_x, _y]',          'S[_x], S[_y]'),       rule('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])'),
                               rule('S[_x = _y]',         '_x = E[_y]'),         rule('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])'),
                               rule('V[_x]',              '_x'),
                               rule('V[_x = _y]',         '_x = E[_y]'),         rule('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}'),
-                                                                                rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
+                              rule('V[_x, _y]',          'V[_x], V[_y]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
                               rule('S[var _xs]',         'var V[_xs]'),         rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
                               rule('S[const _xs]',       'const V[_xs]'),
                                                                                 rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
                               rule('S[return _x]',       'return E[_x]'),       rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
                               rule('S[return]',          'return'),
                               rule('S[throw _x]',        'throw E[_x]'),        rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
-                              rule('S[break _label]',    'break _label'),       rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
-                              rule('S[break]',           'break'),              rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
-                              rule('S[continue _label]', 'continue _label'),
-                              rule('S[continue]',        'continue'),           rule('S[switch (_c) {_body}]',                   'switch (E[_c]) {S[_body]}'),
+                                                                                rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
+                              rule('S[continue _label]', 'continue _label'),    rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
+                              rule('S[continue]',        'continue'),
+                                                                                rule('S[switch (_c) {_body}]',                   'switch (E[_c]) {S[_body]}'),
                               rule('S[_label: _stuff]',  '_label: S[_stuff]'),  rule('S[with (_x) _y]',                          'with (E[_x]) S[_y]')],
 
 //   Hook generation.
