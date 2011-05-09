@@ -311,13 +311,13 @@ var shell = shell.append(history_container(), shell_prompt()).
 
  log(x) = shell.children('.history').append(x) -then- realign() -returning- x,
 
+ history_n = 0,
  context = {expand: given.nothing in shell.animate({left: 0, right: 0}, realign),
  collapse: given.nothing in shell.animate({left: 600, right: 50}, realign),
  clear: given.nothing in shell.children('.history').empty() -then- realign() -returning- '',
  caterwaul: caterwaul.js_ui(caterwaul.js_all()),
  show: given.tree in context.caterwaul.macroexpand(tree),
  history: [],
- history_n: 0,
  help: given.nothing in 'available variables:\n#{(context /keys /seq).join("\n")}',
  log: given.thing in log(history_log_for(thing)),
  trace: given.f in caterwaul.tracer(null, given[t, v] in context.log('#{t} = #{v}'))(f),
@@ -338,7 +338,7 @@ var shell = shell.append(history_container(), shell_prompt()).
  history_next() /effect [e.preventDefault()] /when [e.which === 40] -otherwise-
  run_it() /effect [e.preventDefault()] /when [e.which === 13] -otherwise- true -given.e)
 
- -where [input = input.input /val('help()') -jquery,
+ -where [input = input.input -jquery,
  prompt = span.accent('&gt;') -jquery,
 
  h_index = 0,
@@ -470,7 +470,7 @@ pre {white-space: pre-wrap; word-wrap: break-word}
   <h1>Introduction</h1>
   <p>Caterwaul is a pure Javascript compiler that lets you change the semantics of functions. To do this it implements a modular decompiler, macroexpander, and compiler that allow you to manipulate
 code in a first-class way. It also comes with several macro (Lisp-style, not C-style) libraries to make Javascript more fun (though you can easily disable them and/or write your own).</p>
-  <p>A <a href='javascript:void($(".shell").click())'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.</p>
+  <p>A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.</p>
 </div>
 <div class='section level1'>
   <h1>Javascript extensions</h1>
@@ -4746,13 +4746,13 @@ var shell = shell.append(history_container(), shell_prompt()).
 
                     log(x)                = shell.children('.history').append(x) -then- realign() -returning- x,
 
+                    history_n             = 0,
                     context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
                                              clear:     given.nothing in shell.children('.history').empty() -then- realign() -returning- '',
                                              caterwaul: caterwaul.js_ui(caterwaul.js_all()),
                                              show:      given.tree in context.caterwaul.macroexpand(tree),
                                              history:   [],
-                                             history_n: 0,
                                              help:      given.nothing in 'available variables:\n#{(context /keys /seq).join("\n")}',
                                              log:       given.thing   in log(history_log_for(thing)),
                                              trace:     given.f       in caterwaul.tracer(null, given[t, v] in context.log('#{t} = #{v}'))(f),
@@ -4773,8 +4773,8 @@ var shell = shell.append(history_container(), shell_prompt()).
                                                                                history_next() /effect [e.preventDefault()] /when [e.which === 40] -otherwise-
                                                                                run_it()       /effect [e.preventDefault()] /when [e.which === 13] -otherwise- true -given.e)
 
-                                             -where [input           = input.input /val('help()') -jquery,
-                                                     prompt          = span.accent('&gt;')        -jquery,
+                                             -where [input           = input.input         -jquery,
+                                                     prompt          = span.accent('&gt;') -jquery,
 
                                                      h_index         = 0,
                                                      history_prev()  = (h[h_index] = input.val()) -when [h_index < history_n] -then- input.val(h[--h_index]) -when [h_index > 0]
@@ -4795,7 +4795,7 @@ Introduction.
 Caterwaul is a pure Javascript compiler that lets you change the semantics of functions. To do this it implements a modular decompiler, macroexpander, and compiler that allow you to manipulate
 code in a first-class way. It also comes with several macro (Lisp-style, not C-style) libraries to make Javascript more fun (though you can easily disable them and/or write your own).
 
-A <a href='javascript:void($(".shell").click())'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.
+A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.
 
 Javascript extensions.
 Caterwaul's core macro set starts by extending Javascript syntax in some helpful ways. In particular, it enables quick function assignment and Ruby-style string interpolation:
