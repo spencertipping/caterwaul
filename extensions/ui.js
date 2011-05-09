@@ -101,26 +101,34 @@ caterwaul.js_base()(function ($) {
 
                      p             = bind [p_pattern = anon('P[_thing]')] in p_pattern.replace({_thing: node}) -given.node,
 
-                     jquery_macros = [rule('J[_element]',                 '#{jq}(TS[_element])'),
-                                      rule('J[_element._class]',          '(J[_element]).addClass(S[_class])'),
+                     jquery_macros = [rule('J[_element]',                 given.match [match._element.is_constant() || match._element.length ?
+                                                                                         wrap_in_jquery(match) :
+                                                                                         become_dom_node(match)]
 
-                                      rule('J[_element *_attr(_val)]',    '(J[_element]).attr(S[_attr], _val)'),
-                                      rule('J[_element *!_name(_val)]',   '(J[_element]).data(S[_name], _val)'),
-                                      rule('J[_element /_method(_args)]', '(J[_element])._method(_args)'),
-                                      rule('J[_element /!_event(_args)]', '(J[_element]).bind(S[_event], _args)'),
-                                      rule('J[_element %_function]',      '_function((J[_element]))'),
+                                                                          -where [dom_node_template      = anon('#{jq}(TS[_element])'),
+                                                                                  jquery_template        = anon('#{jq}("<span>" + (_element) + "</span>")'),
+                                                                                  become_dom_node(match) = dom_node_template.replace(match),
+                                                                                  wrap_in_jquery(match)  = jquery_template.replace(match)]),
 
-                                      rule('J[_element(_children)]',      '(J[_element]).append((J[_children]))'),
-                                      rule('J[_element[_children]]',      '(J[_element]).append(_children)'),
-                                      rule('J[_element > _child]',        '(J[_element]).append((J[_child]))'),
-                                      rule('J[_element >= _child]',       '(J[_element]).append(_child)'),
+                                      rule('J[_element._class]',          'J[_element].addClass(S[_class])'),
 
-                                      rule('J[_element1, _element2]',     '(J[_element1]).add((J[_element2]))'),
-                                      rule('J[_element1 + _element2]',    '(J[_element1]).add((J[_element2]))'),
+                                      rule('J[_element *_attr(_val)]',    'J[_element].attr(S[_attr], _val)'),
+                                      rule('J[_element *!_name(_val)]',   'J[_element].data(S[_name], _val)'),
+                                      rule('J[_element /_method(_args)]', 'J[_element]._method(_args)'),
+                                      rule('J[_element /!_event(_args)]', 'J[_element].bind(S[_event], _args)'),
+                                      rule('J[_element %_function]',      '_function(J[_element])'),
 
-                                      rule('J[_element >> _pattern]',     '(J[_element]).filter((PS[_pattern]))'),
-                                      rule('J[_element >>> _pattern]',    '(J[_element]).find((PS[_pattern]))'),
-                                      rule('J[_element << _pattern]',     '(J[_element]).parents((PS[_pattern]))'),
+                                      rule('J[_element(_children)]',      'J[_element].append(J[_children])'),
+                                      rule('J[_element[_children]]',      'J[_element].append(_children)'),
+                                      rule('J[_element > _child]',        'J[_element].append(J[_child])'),
+                                      rule('J[_element >= _child]',       'J[_element].append(_child)'),
+
+                                      rule('J[_element1, _element2]',     'J[_element1].add(J[_element2])'),
+                                      rule('J[_element1 + _element2]',    'J[_element1].add(J[_element2])'),
+
+                                      rule('J[_element >> _pattern]',     'J[_element].filter(PS[_pattern])'),
+                                      rule('J[_element >>> _pattern]',    'J[_element].find(PS[_pattern])'),
+                                      rule('J[_element << _pattern]',     'J[_element].parents(PS[_pattern])'),
 
                                       rule('J[(_element)]',               '(J[_element])'),
                                       rule('J[[_element]]',               '[J[_element]]'),
