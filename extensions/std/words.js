@@ -31,15 +31,14 @@
 // These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
 
 //   Function words.
-//   These define functions in some form. given[] and bgiven[] are postfix adverbs to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure
-//   binding. They're aliased to the more concise fn[] and fb[] for historical and ergonomic reasons. For example:
+//   These define functions in some form. given[] and bgiven[] are modifiers to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure binding.
+//   For example:
 
-//   | var f = fn[x] in x + 1
-//     var f = x + 1 |given[x];
+//   | var f = x + 1 |given[x];
 //     var f = x + 1 |given.x;
 
-    language.parameterized_modifier('given',  'from',  'fn', '(function (_parameters) {return _expression})'),
-    language.parameterized_modifier('bgiven', 'bfrom', 'fb', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
+    language.parameterized_modifier('given',  '(function (_parameters) {return _expression})'),
+    language.parameterized_modifier('bgiven', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
 
 //   Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
