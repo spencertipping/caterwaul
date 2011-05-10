@@ -439,16 +439,16 @@ caterwaul.js_base()(function ($) {
 
                              op_form(pattern)       = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) /given.match,
 
-                             map        = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                  return ys'),
-                             each       = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                           return xs'),
-                             flatmap    = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, (_f));        return ys'),
+                             map        = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                          return ys'),
+                             each       = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                   return xs'),
+                             flatmap    = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f))); return ys'),
 
-                             filter     = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);            return ys'),
-                             filter_not = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);            return ys'),
-                             map_filter = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+                             filter     = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                    return ys'),
+                             filter_not = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                    return ys'),
+                             map_filter = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);         return ys'),
 
-                             foldl      = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);      return _x'),
-                             foldr      = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);      return _x0'),
+                             foldl      = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);              return _x'),
+                             foldr      = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);              return _x0'),
 
                              exists     = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false'),
 
