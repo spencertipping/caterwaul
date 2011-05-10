@@ -446,6 +446,8 @@ var shell = shell.append(history_container(), shell_prompt()).
  core = sdocs %[/core\//.test(x.attribute)] -seq,
  extension = sdocs %[/extensions\//.test(x.attribute)] -seq,
 
+ back_link = jquery in a.back('Back to tutorial') *href('#'),
+
  title(a) = jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
  span.name[a.replace(/.*\//, '')],
  span.extension('.js')],
@@ -454,7 +456,8 @@ var shell = shell.append(history_container(), shell_prompt()).
  -effect- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
  -effect- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
- sections = $([]) -effect- core *~![section(x)] *![it.push(x)] /seq
+ sections = $([]) -effect- back_link *![it.push(x)] /seq
+ -effect- core *~![section(x)] *![it.push(x)] /seq
  -effect- extension *~![section(x)] *![it.push(x)] /seq];
 
  setInterval(check_for_destination, 50)
@@ -531,6 +534,12 @@ a:hover {color: #fa4}
 /* This is optimized for long lines and lots of text.*/
 
 #sdoc-page {padding-bottom: 100px; color: white; position: absolute; display: none}
+
+#sdoc-page a.back {font-size: 16pt; color: #999; display: block; text-transform: lowercase; text-decoration: none}
+#sdoc-page a.back:before {content: '<< '; color: #444}
+
+#sdoc-page a.back:hover {color: #ccc}
+#sdoc-page a.back:hover:before {content: '<< '; color: #fa4}
 
 #sdoc-page .file > h1                  {color: #999; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
 #sdoc-page .file > h1 .path            {color: #444}
@@ -2685,6 +2694,12 @@ This is optimized for long lines and lots of text.
 
 #sdoc-page {padding-bottom: 100px; color: white; position: absolute; display: none}
 
+#sdoc-page a.back {font-size: 16pt; color: #999; display: block; text-transform: lowercase; text-decoration: none}
+#sdoc-page a.back:before {content: '<< '; color: #444}
+
+#sdoc-page a.back:hover {color: #ccc}
+#sdoc-page a.back:hover:before {content: '<< '; color: #fa4}
+
 #sdoc-page .file > h1                  {color: #999; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
 #sdoc-page .file > h1 .path            {color: #444}
 #sdoc-page .file > h1 .extension       {display: none; color: #444}
@@ -2790,7 +2805,7 @@ caterwaul.merge(exports, caterwaul);
 __
 meta::sdoc('js::core/caterwaul', <<'__');
 Introduction.
-Caterwaul is a Javascript-to-Javascript compiler. Visit http://spencertipping.com/caterwaul/caterwaul.html for information about how and why you might use it.
+Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
 
 (function (f) {return f(f, (function (x) {return function () {return ++x}})(0))})(function (initializer, unique, undefined) {
 
@@ -5051,6 +5066,8 @@ This is just a matter of finding the right SDoc sources and tying them together.
                                           core       = sdocs %[/core\//.test(x.attribute)] -seq,
                                           extension  = sdocs %[/extensions\//.test(x.attribute)] -seq,
 
+                                          back_link  = jquery in a.back('Back to tutorial') *href('#'),
+
                                           title(a)   = jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
                                                                span.name[a.replace(/.*\//, '')],
                                                                span.extension('.js')],
@@ -5059,7 +5076,8 @@ This is just a matter of finding the right SDoc sources and tying them together.
                                                        -effect- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
                                                        -effect- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
-                                          sections   = $([]) -effect- core      *~![section(x)] *![it.push(x)] /seq
+                                          sections   = $([]) -effect- back_link                 *![it.push(x)] /seq
+                                                             -effect- core      *~![section(x)] *![it.push(x)] /seq
                                                              -effect- extension *~![section(x)] *![it.push(x)] /seq];
 
   setInterval(check_for_destination, 50)
