@@ -279,7 +279,6 @@ caterwaul.js_base()(caterwaul.precompiled_internal((function(){null;return(funct
 $(caterwaul.js_ui(caterwaul.js_all())(function () {
  var original_html = $('body').html(),
  original_pages = $('#tutorial-page, #sdoc-page'),
- original_tutorial = $('#tutorial'),
  original_styles = $('style, link[rel="stylesheet"]');
 
 
@@ -294,17 +293,18 @@ $(caterwaul.js_ui(caterwaul.js_all())(function () {
 
 
 
-var shell = shell.append(history_container(), shell_prompt()).
- click(shell.find('.prompt .input').focus() -given.e)
+var shell = given.nothing in
+ shell.append(history_container, shell_prompt).
+ click(setTimeout(given.nothing in shell.find('.prompt .input').focus(), 10) -given.e)
 
- -where [shell = div.shell -jquery,
+ -where [shell = jquery in div.shell,
 
- history_container() = div.history -jquery,
+ history_container = jquery in div.history,
 
- history_entry_for(s) = pre.entry(span.accent('&gt;'), span.command /text(s)) -jquery,
- history_result_for(o) = pre.result /text('' + o) -jquery,
- history_log_for(o) = pre.log /text('' + o) -jquery,
- history_error_for(e) = pre.error /text('' + e) -jquery,
+ history_entry_for(s) = jquery in pre.entry(span.accent('&gt;'), span.command /text(s)),
+ history_result_for(o) = jquery in pre.result /text('' + o),
+ history_log_for(o) = jquery in pre.log /text('' + o),
+ history_error_for(e) = jquery in pre.error /text('' + e),
 
  realign() = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
  -where [input = shell.find('.prompt .input')]
@@ -317,18 +317,26 @@ var shell = shell.append(history_container(), shell_prompt()).
  collapse: given.nothing in shell.animate({left: 600, right: 50}, realign),
  clear: given.nothing in shell.children('.history').empty() -then- realign() -returning- '',
  caterwaul: caterwaul.js_ui(caterwaul.js_all()),
- show: given.tree in context.caterwaul.macroexpand(tree),
  history: [],
- help: given.nothing in 'available variables:\n#{(context /keys /seq).join("\n")}',
+ help: given.nothing in 'available variables:\n' + (context /pairs *['#{x[0]}: #{x[1] && x[1].description || ""}'] /seq).join("\n"),
  log: given.thing in log(history_log_for(thing)),
  trace: given.f in caterwaul.tracer(null, given[t, v] in context.log('#{t} = #{v}'))(f),
  it: null}
- -effect [it.context = it],
+ -effect [it.context = it]
+ -effect [it.context.description = 'variables available to the shell',
+ it.expand.description = 'expands the shell',
+ it.collapse.description = 'collapses the shell',
+ it.clear.description = 'clears old output',
+ it.caterwaul.description = 'the caterwaul function that transforms shell input',
+ it.history.description = 'shell input history',
+ it.description.description = 'this description message',
+ it.log.description = 'logs a value to the shell',
+ it.trace.description = 'inserts tracing annotations into a function'],
 
  run_command(c) = log(history_entry_for(c))
  -then- log(history_result_for(context.it = context.caterwaul(c, context))) /failover [log(history_error_for(context.it = e))],
 
- shell_prompt() = div.prompt[prompt, input] -jquery
+ shell_prompt = jquery [div.prompt[prompt, input]]
  -effect- setTimeout(realign, 10)
 
  -effect- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
@@ -339,8 +347,8 @@ var shell = shell.append(history_container(), shell_prompt()).
  history_next() /effect [e.preventDefault()] /when [e.which === 40] -otherwise-
  run_it() /effect [e.preventDefault()] /when [e.which === 13] -otherwise- true -given.e)
 
- -where [input = input.input -jquery,
- prompt = span.accent('&gt;') -jquery,
+ -where [input = jquery in input.input,
+ prompt = jquery in span.accent('&gt;'),
 
  h_index = 0,
  history_prev() = (h[h_index] = input.val()) -when [h_index < history_n] -then- input.val(h[--h_index]) -when [h_index > 0]
@@ -441,10 +449,12 @@ var shell = shell.append(history_container(), shell_prompt()).
 // Building the documentation pages.
 // This is just a matter of finding the right SDoc sources and tying them together.
 
- $('#sdoc-page').append(sections) -where[attributes = perl_attributes(original_html.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&')),
- sdocs = attributes %[x.namespace === 'sdoc'] -seq,
+ var attributes = perl_attributes(original_html.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+
+ $('#sdoc-page').append(sections) -where[sdocs = attributes %[x.namespace === 'sdoc' && /^js::/.test(x.attribute)] -seq,
  core = sdocs %[/core\//.test(x.attribute)] -seq,
  extension = sdocs %[/extensions\//.test(x.attribute)] -seq,
+ web = sdocs %[/web\//.test(x.attribute)] -seq,
 
  back_link = jquery in a.back('Back to tutorial') *href('#'),
 
@@ -458,7 +468,8 @@ var shell = shell.append(history_container(), shell_prompt()).
 
  sections = $([]) -effect- back_link *![it.push(x)] /seq
  -effect- core *~![section(x)] *![it.push(x)] /seq
- -effect- extension *~![section(x)] *![it.push(x)] /seq];
+ -effect- extension *~![section(x)] *![it.push(x)] /seq
+ -effect- web *~![section(x)] *![it.push(x)] /seq];
 
  setInterval(check_for_destination, 50)
  -where [viewing_annotated_source = false,
@@ -487,10 +498,22 @@ var shell = shell.append(history_container(), shell_prompt()).
 
 
 
- $('head').append(jquery in title('caterwaul js'));
 
+
+// Building the tutorial.
+// All we have to do here is create a div to contain the tutorial and populate it with the SDoc obtained by parsing the object state. (Since this HTML file is actually a self-modifying Perl
+// object.)
+
+ $('#tutorial-page').append(tutorial, shell()) -where [tutorial_attribute = attributes |[x.namespace === 'sdoc' && x.attribute === 'web/tutorial' && x] |seq,
+ tutorial = jquery in div.tutorial[sdoc_to_dom(tutorial_attribute.value)]];
+// Generated by SDoc 
+
+
+
+
+ $('head').append(jquery in title('caterwaul js'));
  $('body').empty().append(page_header, original_pages);
- $('#tutorial-page').empty().append(jquery in div.page[original_tutorial, shell]);
+
  original_styles.appendTo('head')}));
 // Generated by SDoc 
 
@@ -577,9 +600,7 @@ a:hover {color: #fa4}
 /* Tutorial page styling.*/
 /* These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.*/
 
-#tutorial-page {width: 550px; padding-bottom: 100px; padding-right: 200px; position: relative}
-
-#tutorial-page .section.level1 {padding-left: 50px}
+#tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
 #tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '< '; color: #fa4}
 #tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ' >'; color: #fa4}
@@ -614,12 +635,12 @@ a:hover {color: #fa4}
 #tutorial-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
 #tutorial-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
 
-#tutorial-page .section {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
-#tutorial-page .section code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page .section pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page p {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
+#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
 
-#tutorial-page .section pre.code {cursor: pointer}
-#tutorial-page .section pre.code:hover {background: #222; color: #fa4}
+#tutorial-page pre.code {cursor: pointer}
+#tutorial-page pre.code:hover {background: #222; color: #fa4}
 /* Generated by SDoc */
 
 </style>
@@ -629,331 +650,8 @@ a:hover {color: #fa4}
 <div class='page' id='sdoc-page'>
 
 </div>
+<div class='page' id='tutorial-page'>
 
-<div class='page' id='tutorial-page' >
-<div id='tutorial' >
-
-
-<div class='section level1'>
-  <h1>Introduction</h1>
-  <p>Caterwaul is a pure Javascript compiler that lets you change the semantics of functions. To do this it implements a modular decompiler, macroexpander, and compiler that allow you to manipulate
-code in a first-class way. It also comes with several macro (Lisp-style, not C-style) libraries to make Javascript more fun (though you can easily disable them and/or write your own).</p>
-  <p>If you're feeling adventurous, you might be interested to see the <a href='#annotated'>annotated source</a>.</p>
-  <p>A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.</p>
-</div>
-<div class='section level1'>
-  <h1>Javascript extensions</h1>
-  <p>Caterwaul's core macro set starts by extending Javascript syntax in some helpful ways. In particular, it enables quick function assignment and Ruby-style string interpolation:</p>
-  <pre class='code'>f(x) = x + 1</pre>
-  <pre class='code'>String.prototype.say_hi() = 'hi from #{this}!'</pre>
-  <p>Caterwaul translates these expressions into this:</p>
-  <pre class='quoted'>f = function (x) {
-  return x + 1;
-};
-String.prototype.say_hi = function (name) {
-  return 'hi ' + (name) + '!';
-};</pre>
-  <p>String interpolation and function assignment are the only irregular syntactic forms provided by Caterwaul. Everything else is implemented as a regular form called a modifier.</p>
-</div>
-<div class='section level1'>
-  <h1>Modifiers</h1>
-  <p>A modifier is a word that is used with an operator to modify a bit of syntax. For example, Caterwaul provides a modifier called <code>when</code> to execute things conditionally:</p>
-  <pre class='code'>log('hi') -when['foo'.length === 3]</pre>
-  <p>There are two parts to a modifier. The first is the operator you use with it (in this case minus), and the second is the modifier and any arguments it takes. The operator is very important; it
-determines how much stuff you're modifying. For example:</p>
-  <pre class='code'>log('hi'), log('again') -when[1 === 2]</pre>
-  <p>Here the <code>when[1 === 2]</code> only modifies <code>log('again')</code> because minus has much higher precedence than the comma operator. However, Caterwaul lets you use several other
-operators to change this:</p>
-  <pre class='code'>log('hi'), log('again'), when[1 === 2]</pre>
-  <p>In this case the <code>when[1 === 2]</code> modifies both <code>log</code> statements. The reason for this is kind of subtle: comma left-associates, so the first comma was collapsed into a
-single syntax node that then became the left-hand side of the second comma. Because Caterwaul operates on the structure of your code, it groups both <code>log</code> statements into the
-conditional.</p>
-  <div class='section level2'>
-    <h2>Modifier operators</h2>
-    <p>  There are about six different operators you can use in conjunction with a modifier. From highest to lowest precedence they are:
-  <ol><li>The slash. For example, <code>log('hi') /when [true]</code>. I use this when I need something tighter than a minus.</li>
-      <li>The minus. For example, <code>log('hi') -when [true]</code>. It also comes in another form: <code>log('hi') -when- true</code>. I use this most of the time because it seems easier to
-          read.</li>
-      <li>The <code>in</code> operator. For example, <code>bind [x = 10] in x + 1</code>. <code>in</code> has the same precedence as <code>&lt;</code> and <code>></code>, which is lower
-          than the arithmetic operators. As a result, it's useful when you're binding variables or creating functions around simple expressions.</li>
-      <li>The <code>&lt;></code> operators. These are used around a modifier: <code>log('hi') &lt;unless> no_logging</code>. This has the same precedence as <code>in</code> and other relational
-          operators.
-      <li>The <code>|</code> operator. This is the lowest-precedence regular operator; the only things lower are <code>&amp;&amp;</code>, <code>||</code>, <code>?:</code>, assignment, and the
-          comma.</li>
-      <li>The <code>,</code> operator. This is the lowest-precedence operator in Javascript. It can be dangerous to use because it left-associates; for example,
-          <code>f(x, y, z, where [z = 10])</code> will invoke <code>f</code> on just one parameter, since the <code>where</code> gobbles everything to its left. (Using a <code>|</code> here
-          would fix the problem.)</li>
-      <li>The <code>[]</code> operator. This starts the precedence hierarchy over by using explicit grouping. For example, <code>bind[x = 10][log(x)]</code>.</li></ol></p>
-  </div>
-  <div class='section level2'>
-    <h2>Conditional modifiers</h2>
-    <p>  <code>when</code> is one of the five conditional modifiers you can use. The others are <code>unless</code>, <code>otherwise</code>, <code>when_defined</code>, and
-  <code>unless_defined</code>. The semantics and return values are:</p>
-    <pre class='quoted'>x -when- y           -&gt; y &amp;&amp; x
-x -unless- y         -&gt; !y &amp;&amp; x
-x -otherwise- y      -&gt; x || y
-x -when_defined- y   -&gt; y != null &amp;&amp; x
-x -unless_defined- y -&gt; y == null &amp;&amp; x</pre>
-  </div>
-  <div class='section level2'>
-    <h2>Binding modifiers</h2>
-    <p>  These let you define locally-scoped variables. There is in fact only one such modifier, <code>where</code>, but it can also be called <code>bind</code> to read more naturally:</p>
-    <pre class='code'>x -where [x = 10]</pre>
-    <pre class='code'>bind [x = 10] in x</pre>
-    <pre class='code'>bind [f(x) = x + 1] in f(7)</pre>
-    <p>  Despite the name, <code>bind</code> has nothing to do with <code>this</code> binding inside functions. (Though Caterwaul does provide some modifiers to handle that.) Previous versions of
-  Caterwaul called this macro <code>let</code>, but it's a reserved word in recent versions of Javascript.</p>
-  </div>
-  <div class='section level2'>
-    <h2>Function modifiers</h2>
-    <p>  There are two words that create functions. One is <code>given</code>, which creates a regular function. The other is <code>bgiven</code>, which binds the function to the <code>this</code>
-  where it was defined. For example:</p>
-    <pre class='code'>given[x] in x + 1</pre>
-    <pre class='code'>x + 1 -given[x]</pre>
-    <pre class='code'>f.call(10) -where [f = this -given- x]</pre>
-    <pre class='code'>f.call(10) -where [f = this -bgiven- x]</pre>
-    <p>  There's a shorthand you can use if you just have a single operand for a modifier:</p>
-    <pre class='code'>x + 1 -given.x</pre>
-    <pre class='code'>given.x in x + 1</pre>
-    <pre class='code'>given.x [x + 1]</pre>
-  </div>
-  <div class='section level2'>
-    <h2>Side-effecting modifiers</h2>
-    <p>  These make it easy to manipulate values and return things without using an explicit variable. We do this in English using pronouns, and Caterwaul binds the variable <code>it</code> to refer
-  to "the thing that we're working with."</p>
-    <p>  There are two ways to create a side-effect. One is to return the side-effecting expression and the other is to return the original value. For example, suppose you want to write a function
-  <code>hash(k, v)</code> that returns a hash <code>h</code> such that <code>h[k] === v</code>. In plain Javascript you'd write this:</p>
-    <pre class='quoted'>var hash = function (k, v) {
-  var result = {};
-  result[k] = v;
-  return result;
-};</pre>
-    <p>  However, the amount of typing required is much larger than the complexity of the problem. We want to return an object after applying a side-effect to it; to do this with Caterwaul we would
-  use the <code>effect</code> modifier (also called <code>se</code>, which stands for "side-effect"):</p>
-    <pre class='code'>hash(k, v) = {} -effect [it[k] = v]</pre>
-    <p>  This style of side-effects returns the original expression. Sometimes, though, you want to return the result of the side-effect rather than the original. For example, here's a zero-division
-  check in plain Javascript:</p>
-    <pre class='quoted'>var x_over_yp1 = function (x, y) {
-  var y_plus_1 = y + 1;
-  return y_plus_1 === 0 ? 0 : x / y_plus_1;
-};</pre>
-    <p>  Here's the same function using a returning side-effect:</p>
-    <pre class='code'>x_over_yp1(x, y) = y + 1 -returning [it === 0 ? 0 : x / it]</pre>
-    <p>  The <code>returning</code> modifier is also called <code>then</code> and <code>re</code>. Note that it doesn't actually use <code>return</code> (i.e. it won't jump out of stuff to return
-  from a function). It just returns a value locally as any other expression would. This means you can chain them along:</p>
-    <pre class='code'>log('hi') -then- log('again') -then- log('!')</pre>
-    <p>  Side-effecting won't impact the evaluation order of your code. That is, <code>x -effect- y</code> and <code>x -returning- y</code> will always evaluate <code>x</code> before <code>y</code>.</p>
-  </div>
-  <div class='section level2'>
-    <h2>Looping modifiers</h2>
-    <p>  These repeatedly execute an expression. There are four looping modifiers, each of which has only one name. <code>over</code> is used with arrays; it forms a map. For example:</p>
-    <pre class='code'>log(it) -over- [1, 2, 3]</pre>
-    <p>  This not only invokes <code>log</code> on each element, but returns an array of the results returned by each invocation of <code>log(it)</code>.</p>
-    <p>  Similar to <code>over</code> are <code>over_keys</code> and <code>over_values</code>, each of which operates on an object. Like <code>over</code>, each one returns an array of results
-  (though unlike <code>over</code> the array will not have any particular order). For example:</p>
-    <pre class='code'>log(it) -over_keys- {foo: 'bar', bif: 'baz'}</pre>
-    <pre class='code'>log(it) -over_values- {foo: 1, bar: 2}</pre>
-    <p>  The final modifier is <code>until</code>, which does exactly what it sounds like:</p>
-    <pre class='code'>x = 0, log(x) -until [++x &gt;= 10]</pre>
-    <p>  You can use these basic modifiers, but if you plan on doing any heavy lifting you should check out the <a href='#seq'>sequence library</a> below. (I rarely use anything else for iterative
-  functions.)</p>
-  </div>
-  <div class='section level2'>
-    <h2>Quotation</h2>
-    <p>  Most people won't use this, but it's handy if you're doing heavy-duty syntax analysis or writing complex macros. The standard library includes an obscure modifier called <code>qs</code> that
-  you can use to quote a piece of code. Quotation is basically grabbing the literal syntax rather than evaluating it normally. For example:</p>
-    <pre class='code'>qs[foo + bar]</pre>
-    <pre class='code'>qs[foo + bar].data</pre>
-    <pre class='code'>qs[foo + bar].length</pre>
-    <pre class='code'>qs[foo + bar][0]</pre>
-    <p>  Quotation is an idea that comes from Lisp and is handled similarly by Caterwaul. (The only difference is that Caterwaul returns its own n-ary syntax tree format instead of cons trees.)</p>
-    <p>  A variant, <code>qse</code>, macroexpands the quoted code before returning it as a syntax tree. For example:</p>
-    <pre class='code'>qse[log(foo) -unless[true]]</pre>
-    <pre class='code'>log(foo) -unless[true], qse</pre>
-  </div>
-  <div class='section level2'>
-    <h2>Other modifiers</h2>
-    <p>  There are a few more modifiers that I threw in to the standard library to make some edge cases easier.</p>
-    <pre class='code'>'oh no!' -wobbly</pre>
-    <pre class='code'>'another error!' -chuck</pre>
-    <pre class='code'>null.foo -failover- log('got #{e}')</pre>
-    <pre class='code'>safely [alert(e)] in undefined.bar</pre>
-  </div>
-</div>
-<div class='section level1'>
-  <h1>Sequence library</h1>
-  <p><span id='seq'></span>
-This is probably the gnarliest part of Caterwaul, but in my opinion it's also the most useful. The sequence library provides a modifier called <code>seq</code> that reinterprets some syntax
-within an APL-like domain-specific language. It generates very efficient code and lets you express maps, folds, cartesian products, zips, etc, with very little effort.</p>
-  <p>For instance, suppose we want an array of the first 10 squares. Using <code>until</code>, the algorithm looks like this:</p>
-  <pre class='code'>bind [i = 0] in i*i -until [++i &gt; 10]</pre>
-  <p>Using the sequence library looks like this:</p>
-  <pre class='code'>n[1, 11] *[x * x] /seq</pre>
-  <div class='section level2'>
-    <h2>Mapping and iterating</h2>
-    <p>  The <code>*</code> operator is responsible for mapping, iterating, and flat-mapping. It's fairly easy to use; you just "multiply" a sequence by a bracketed expression. <code>*</code> will
-  create a variable called <code>x</code> and evaluate your expression for each element in the sequence. It then collects these results and returns a new array. For example:</p>
-    <pre class='code'>seq in [1, 2, 3] *['x = #{x}']</pre>
-    <p>  You don't have to use just arrays. You can use anything with a <code>.length</code> and <code>[0]</code> ... <code>[n - 1]</code> attributes. One of the most common non-array collections I
-  use is a jQuery selector (just be sure to wrap <code>x</code> again so that you're not dealing with a plain DOM node):</p>
-    <pre class='code'>seq in $('div') *[$(x).attr('class')]</pre>
-    <div class='section level3'>
-      <h3>Alternative forms</h3>
-      <p>    Most operators have an alternative form that does something similar to the original. You specify this form by using a <code>!</code> after the operator. The alternative form of
-    <code>*</code> is used to iterate without collecting the results; doing this returns the original array. For example:</p>
-      <pre class='code'>seq in [1, 2, 3] *![log(x)]</pre>
-      <p>    The third use of <code>*</code> is flat-mapping, which is denoted by writing <code>*~!</code>. For example:</p>
-      <pre class='code'>seq in [1, 2, 3] *~![[x, x + 1]]</pre>
-      <p>    Like the original form, these alternative forms can be combined with any of the operator features below.</p>
-    </div>
-  </div>
-  <div class='section level2'>
-    <h2>Operator features</h2>
-    <p>  The sequence library uses operators to describe operations on arrays. Most of them are regular binary infix operators like <code>+</code> and <code>*</code>, though a few of them have names
-  (such as <code>n[]</code> above).</p>
-    <p>  Despite the wide array of operators supported, there is a high degree of regularity among them. Each operator that takes a block (like <code>*</code> does) has several options that can be
-  set to change the way it interprets the block.</p>
-    <div class='section level3'>
-      <h3>Sequence interpretation</h3>
-      <p>    Normally the expression inside <code>[]</code> is interpreted as a regular Javascript expression. But sometimes you want to remain in sequence context so that you don't have to explicitly
-    modify the expression. To do that, you prefix the <code>[]</code> with a <code>~</code>:</p>
-      <pre class='code'>seq in [[1], [2], [3]] *~[x *[x + 1]]</pre>
-    </div>
-    <div class='section level3'>
-      <h3>Variable renaming</h3>
-      <p>    In the example above we lost access to the outer <code>x</code> due to shadowing. To avoid this problem, the sequence language lets you rename any variable by prefixing the <code>[]</code>
-    with a new variable name:</p>
-      <pre class='code'>seq in [1, 2, 3] *y[y + 1]</pre>
-      <p>    You can use both of these options at the same time, yielding this:</p>
-      <pre class='code'>seq in [[1], [2], [3]] *~y[y *[x + 1]]</pre>
-      <p>    Note that you can't say <code>*y~[...]</code>, as this is invalid Javascript syntax (<code>~</code> is always a unary operator).</p>
-    </div>
-  </div>
-  <div class='section level2'>
-    <h2>Filtering</h2>
-    <p>  The filtering family of operators is denoted by <code>%</code>. For instance, here's a way to get multiples of three:</p>
-    <pre class='code'>seq in [1, 2, 3] %[x % 3 === 0]</pre>
-    <div class='section level3'>
-      <h3>Alternative forms</h3>
-      <p>    Negation is so high precedence that it's often difficult to work it into a form without adding parentheses. The alternative form of <code>%</code> negates the predicate:</p>
-      <pre class='code'>seq in [1, 2, 3] %![x % 3]</pre>
-      <p>    The other alternative form of <code>%</code> is a simultaneous map/filter. The idea is to return the expression value when it's truthy and drop the element otherwise. For example, we can
-    get the squares of all negative elements this way:</p>
-      <pre class='code'>seq in [1, -2, -3, 4] %~![x &lt; 0 &amp;&amp; x * x]</pre>
-    </div>
-  </div>
-  <div class='section level2'>
-    <h2>Folding</h2>
-    <p>  You can fold stuff through a binary expression by using the <code>/</code> family of operators. <code>/</code> has two forms: left fold (the default), and right fold (written as
-  <code>/!</code>). For example, here is how you might sum a bunch of numbers:</p>
-    <pre class='code'>seq in [1, 2, 3] /[x + x0]</pre>
-    <p>  Since <code>+</code> is associative it doesn't matter which direction the fold goes. It becomes obvious, however, if we interpolate the values into a string:</p>
-    <pre class='code'>seq in [1, 2, 3] /['[#{x}, #{x0}]']</pre>
-    <pre class='code'>seq in [1, 2, 3] /!['[#{x}, #{x0}]']</pre>
-    <p>  Notice that for folding we have a new variable <code>x0</code>. There are actually a few variables you have access to depending on what you're doing. Inside any block you'll have
-  <code>x</code>, <code>xi</code> (the current index), and <code>xl</code> (the length of the original sequence). <code>x0</code> is available only when folding. Each of these changes
-  uniformly if you rename the variable; so for instance:</p>
-    <pre class='code'>seq in [1, 2, 3] /bar[bar + bar0 + bari + barl]</pre>
-  </div>
-  <div class='section level2'>
-    <h2>Quantification</h2>
-    <p>  The sequence library provides existential quantification on arrays. Each of these uses a block that acts as a predicate. So, for instance, to determine whether any element in an array is
-  positive:</p>
-    <pre class='code'>[-4, -5, 10, 2] |[x &gt; 0] |seq</pre>
-    <p>  The <code>|</code> operator returns the first truthy value generated by the expression (not just true or false), so you can use it to detect things too. This block causes the sequence
-  comprehension to return not only whether an element is positive, but if so the first such element will be returned:</p>
-    <pre class='code'>[-4, -5, 10, 2] |[x &gt; 0 &amp;&amp; x] |seq</pre>
-    <pre class='code'>[-4, -5, 10, 2] |[x -when[x &gt; 0]] |seq</pre>
-    <p>  We can also use this construct to return the index of the first matching element. Because an index of 0 is falsy, we'll have to add one (so 0 is the not-found value rather than -1):</p>
-    <pre class='code'>[-4, -5, 10, 2] |[xi + 1 -when[x &gt; 0]] |seq</pre>
-  </div>
-  <div class='section level2'>
-    <h2>Combination</h2>
-    <p>  There are three ways you can combine things. The most obvious is concatenation, written <code>+</code>:</p>
-    <pre class='code'>seq in [1, 2, 3] + [4, 5, 6]</pre>
-    <p>  Less obvious are zipping, written <code>^</code>, and the inner product, written <code>-</code>. Because <code>^</code> has lower precedence than <code>in</code>, we have to switch to a
-  lower-precedence modifier form for <code>seq</code>. For example:</p>
-    <pre class='code'>[1, 2, 3] ^ [4, 5, 6] |seq</pre>
-    <p>  The inner product takes every possible pairing of elements from the two sequences:</p>
-    <pre class='code'>seq in [1, 2, 3] - [4, 5, 6]</pre>
-    <p>  Each of these operators has lower precedence than <code>*</code>, <code>/</code>, and <code>%</code> (all of which have equal precedence), so they can be used without parentheses.</p>
-  </div>
-  <div class='section level2'>
-    <h2>Objects</h2>
-    <p>  A really useful and important feature of the sequence library is that it works with objects very easily. It has four operators, <code>/keys</code>, <code>/values</code>, <code>/pairs</code>,
-  and <code>|object</code>, that can convert between objects and arrays.</p>
-    <p>  You can pull an array of the keys or values of an object (not in any particular order of course) by using <code>/keys</code> and <code>/values</code>. For example:</p>
-    <pre class='code'>window /keys -seq</pre>
-    <pre class='code'>jQuery /values -seq</pre>
-    <p>  More interesting is the <code>/pairs</code> operator. This pulls out key-value pairs as two-element arrays:</p>
-    <pre class='code'>{foo: 'bar', bif: 'baz'} /pairs -seq</pre>
-    <p>  Its inverse is the <code>|object</code> operator, which turns an array of those pairs back into an object:</p>
-    <pre class='code'>[['foo', 'bar'], ['bif', 'baz']] |object |seq</pre>
-    <p>  Note the differing precedences of <code>/keys</code> etc. and <code>|object</code>. This is intentional. The rationale is that you rarely manipulate objects as objects in sequence
-  comprehensions, since the sequence library has no useful operators for objects other than unpacking. Therefore, objects come from various other values and enter a sequence comprehension,
-  which may at the very end zip an intermediate result into a final object return value.</p>
-    <p>  I may change this in the future as I use it more, but any changes will be backwards-compatible.</p>
-  </div>
-  <div class='section level2'>
-    <h2>Numerical iteration</h2>
-    <p>  Within a sequence comprehension you have access to the <code>n[]</code> operator, which generates arrays of evenly-spaced numbers. It has three uses. When invoked on one argument it returns
-  integers between 0, inclusive, and the number, exclusive. When invoked with two arguments the first becomes the inclusive lower bound and the second is the exclusive upper bound. Adding a
-  third argument changes the increment from its default value of 1. For example:</p>
-    <pre class='code'>n[10] -seq</pre>
-    <pre class='code'>n[5, 8] -seq</pre>
-    <pre class='code'>n[0, 1, 0.25] -seq</pre>
-  </div>
-</div>
-<div class='section level1'>
-  <h1>Development tools</h1>
-  <p>Most compilers operate offline; that is, they generate standalone code with no references back to the compiler. However, there are some cases where you want to interact with code as it's
-running. Caterwaul's tracing extension is one way to do this.</p>
-  <p>The idea behind a trace is that you can observe when (1) an expression is about to be evaluated, and (2) the value it produced after evaluation. Caterwaul does this by inserting hook functions
-into your source; these functions ideally don't change any behavior (other than making your code a bit slower) and allow you to see what's happening. You get to determine what to do with the
-observed expressions and values.</p>
-  <p>Here's an example of defining a function and then tracing it (note that Caterwaul doesn't provide the <code>trace()</code> function used here):</p>
-  <pre class='code'>f(n) = n ? n * f(n - 1) : 1</pre>
-  <pre class='code'>f = trace(f)</pre>
-  <pre class='code'>f(5)</pre>
-  <p>If you run these statements and scroll back a bit you'll see these huge gnarly expressions with variables like <code>gensym_1_gnhnr4un_bwv17j</code>. This is called a gensym (the term comes
-from Lisp parlance), and Caterwaul uses variables like this when it needs a unique name. In this case we're seeing gensyms because this is how Caterwaul names its trace functions.</p>
-  <div class='section level2'>
-    <h2>Building your own tracer</h2>
-    <p>  Sometimes you want to do something besides listing the expression values. Maybe you want to profile stuff, for example. To do this, you need to construct your own tracer. You do this by
-  calling <code>caterwaul.tracer()</code>, which takes two optional callbacks and returns a trace function. (The <code>trace()</code> function used above is the result of
-  <code>caterwaul.tracer()</code>.) The first callback, if it is defined, will be invoked on each syntax tree before that tree is evaluated. The second callback will be invoked on the syntax
-  tree and the value that it produced. Based on this information we can now construct a very simple profiler that counts the number of evaluations of each expression:</p>
-    <pre class='code'>counts = {}, trees = {}</pre>
-    <pre class='code'>count(tree) = trees[tree.id()] = tree -effect [counts[tree.id()] = (counts[tree.id()] || 0) + 1]</pre>
-    <pre class='code'>profile = caterwaul.tracer(null, count)</pre>
-    <p>  Now let's profile something:</p>
-    <pre class='code'>is_prime(n) = !(n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq)</pre>
-    <pre class='code'>takes_a_bit() = n[10000] %[is_prime(x)] /seq</pre>
-    <pre class='code'>profile(takes_a_bit)()</pre>
-    <p>  At this point the profiling data is in <code>counts</code> and <code>trees</code>. <code>counts</code> maps tree IDs to the number of times that tree was evaluated, and <code>trees</code>
-  maps tree IDs to the trees they represent. Let's stash the tree-count pair list into its own variable:</p>
-    <pre class='code'>pairs = counts /pairs *[[trees[x[0]], x[1]]] /seq</pre>
-    <p>  This is a complete profile, but maybe we don't want that much information at once. Let's just look for trees that represent <code>push()</code> invocations:</p>
-    <pre class='code'>pairs %[qs[_x.push(_y)].match(x[0])] /seq</pre>
-    <p>  Here we're using some methods provided by syntax trees. We first quote a pattern (which is an instance of Caterwaul's syntax tree class), and then we call its <code>match()</code> method on
-  another tree. <code>match()</code> returns an object if <code>x[0]</code> matches <code>qs[_x.push(_y)]</code> and <code>false</code> otherwise. For the purposes of matching, identifiers
-  that start with underscores can match against any expression. The object that <code>match()</code> returns maps the names of these wildcards to the trees they matched against.</p>
-    <p>  Here are some other queries you could perform:</p>
-    <pre class='code'>pairs %[qs[is_prime(_x)].match(x[0])] /seq</pre>
-    <pre class='code'>pairs %[x[1] &gt; 5000] /seq</pre>
-  </div>
-</div>
-<div class='section level1'>
-  <h1>Using Caterwaul</h1>
-  <p>Because Caterwaul is written in Javascript, it's very easy to add to your application:</p>
-  <pre class='quoted'>&lt;script src='/path/to/caterwaul.js'&gt;&lt;/script&gt;
-&lt;script src='/path/to/caterwaul-extension.js'&gt;&lt;/script&gt;
-&lt;script src='/path/to/application-code.js'&gt;&lt;/script&gt;</pre>
-  <p>The application code can then refer to <code>caterwaul</code> to access the compiler.</p>
-</div>
-
-
-</div>
 </div>
 </body>
 </html>
@@ -1050,12 +748,7 @@ meta::data('bootstrap.html.sdoc', <<'__');
 
   - body << end
     - div class='page' id='sdoc-page'
-
-    - div class='page' id='tutorial-page' << end
-      - div id='tutorial' << end
-        - pinclude html::web/tutorial
-      - end
-    - end
+    - div class='page' id='tutorial-page'
   - end
 - end
 __
@@ -2736,9 +2429,7 @@ This is optimized for long lines and lots of text.
 Tutorial page styling.
 These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.
 
-#tutorial-page {width: 550px; padding-bottom: 100px; padding-right: 200px; position: relative}
-
-#tutorial-page .section.level1 {padding-left: 50px}
+#tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
 #tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '< '; color: #fa4}
 #tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ' >'; color: #fa4}
@@ -2773,12 +2464,12 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
 #tutorial-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
 
-#tutorial-page .section {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
-#tutorial-page .section code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page .section pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page p {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
+#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
 
-#tutorial-page .section pre.code {cursor: pointer}
-#tutorial-page .section pre.code:hover {background: #222; color: #fa4}
+#tutorial-page pre.code {cursor: pointer}
+#tutorial-page pre.code:hover {background: #222; color: #fa4}
 __
 meta::sdoc('js::caterwaul', <<'__');
 Core caterwaul build with version ID | Spencer Tipping
@@ -4940,7 +4631,6 @@ Licensed under the terms of the MIT source code license
 $(caterwaul.js_ui(caterwaul.js_all())(function () {
   var original_html     = $('body').html(),
       original_pages    = $('#tutorial-page, #sdoc-page'),
-      original_tutorial = $('#tutorial'),
       original_styles   = $('style, link[rel="stylesheet"]');
 
   - pinclude pp::js::web/header
@@ -4951,11 +4641,20 @@ $(caterwaul.js_ui(caterwaul.js_all())(function () {
   - pinclude pp::js::web/sdoc
   - pinclude pp::js::web/source
 
-  $('head').append(jquery in title('caterwaul js'));
+  - pinclude pp::js::web/render-tutorial
 
+  $('head').append(jquery in title('caterwaul js'));
   $('body').empty().append(page_header, original_pages);
-  $('#tutorial-page').empty().append(jquery in div.page[original_tutorial, shell]);
+
   original_styles.appendTo('head')}));
+__
+meta::sdoc('js::web/render-tutorial', <<'__');
+Building the tutorial.
+All we have to do here is create a div to contain the tutorial and populate it with the SDoc obtained by parsing the object state. (Since this HTML file is actually a self-modifying Perl
+object.)
+
+  $('#tutorial-page').append(tutorial, shell()) -where [tutorial_attribute = attributes |[x.namespace === 'sdoc' && x.attribute === 'web/tutorial' && x] |seq,
+                                                        tutorial           = jquery in div.tutorial[sdoc_to_dom(tutorial_attribute.value)]];
 __
 meta::sdoc('js::web/sdoc', <<'__');
 SDoc-to-HTML converter.
@@ -4995,17 +4694,18 @@ in the markup.
                                                                              paragraph = jquery in p[escape_html_in(parts[2])]]];
 __
 meta::sdoc('js::web/shell', <<'__');
-var shell = shell.append(history_container(), shell_prompt()).
-                   click(shell.find('.prompt .input').focus() -given.e)
+var shell = given.nothing in
+            shell.append(history_container, shell_prompt).
+                   click(setTimeout(given.nothing in shell.find('.prompt .input').focus(), 10) -given.e)
 
-            -where [shell                 = div.shell -jquery,
+            -where [shell                 = jquery in div.shell,
 
-                    history_container()   = div.history -jquery,
+                    history_container     = jquery in div.history,
 
-                    history_entry_for(s)  = pre.entry(span.accent('&gt;'), span.command /text(s)) -jquery,
-                    history_result_for(o) = pre.result /text('' + o) -jquery,
-                    history_log_for(o)    = pre.log    /text('' + o) -jquery,
-                    history_error_for(e)  = pre.error  /text('' + e) -jquery,
+                    history_entry_for(s)  = jquery in pre.entry(span.accent('&gt;'), span.command /text(s)),
+                    history_result_for(o) = jquery in pre.result /text('' + o),
+                    history_log_for(o)    = jquery in pre.log    /text('' + o),
+                    history_error_for(e)  = jquery in pre.error  /text('' + e),
 
                     realign()             = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
                                                        -where [input = shell.find('.prompt .input')]
@@ -5018,18 +4718,26 @@ var shell = shell.append(history_container(), shell_prompt()).
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
                                              clear:     given.nothing in shell.children('.history').empty() -then- realign() -returning- '',
                                              caterwaul: caterwaul.js_ui(caterwaul.js_all()),
-                                             show:      given.tree in context.caterwaul.macroexpand(tree),
                                              history:   [],
-                                             help:      given.nothing in 'available variables:\n#{(context /keys /seq).join("\n")}',
+                                             help:      given.nothing in 'available variables:\n' + (context /pairs *['#{x[0]}: #{x[1] && x[1].description || ""}'] /seq).join("\n"),
                                              log:       given.thing   in log(history_log_for(thing)),
                                              trace:     given.f       in caterwaul.tracer(null, given[t, v] in context.log('#{t} = #{v}'))(f),
                                              it:        null}
-                                            -effect [it.context = it],
+                                            -effect [it.context = it]
+                                            -effect [it.context.description     = 'variables available to the shell',
+                                                     it.expand.description      = 'expands the shell',
+                                                     it.collapse.description    = 'collapses the shell',
+                                                     it.clear.description       = 'clears old output',
+                                                     it.caterwaul.description   = 'the caterwaul function that transforms shell input',
+                                                     it.history.description     = 'shell input history',
+                                                     it.description.description = 'this description message',
+                                                     it.log.description         = 'logs a value to the shell',
+                                                     it.trace.description       = 'inserts tracing annotations into a function'],
 
                     run_command(c)        = log(history_entry_for(c))
                                             -then- log(history_result_for(context.it = context.caterwaul(c, context))) /failover [log(history_error_for(context.it = e))],
 
-                    shell_prompt()        = div.prompt[prompt, input] -jquery
+                    shell_prompt          = jquery [div.prompt[prompt, input]]
                                             -effect- setTimeout(realign, 10)
 
                                             -effect- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
@@ -5040,8 +4748,8 @@ var shell = shell.append(history_container(), shell_prompt()).
                                                                                history_next() /effect [e.preventDefault()] /when [e.which === 40] -otherwise-
                                                                                run_it()       /effect [e.preventDefault()] /when [e.which === 13] -otherwise- true -given.e)
 
-                                             -where [input           = input.input         -jquery,
-                                                     prompt          = span.accent('&gt;') -jquery,
+                                             -where [input           = jquery in input.input,
+                                                     prompt          = jquery in span.accent('&gt;'),
 
                                                      h_index         = 0,
                                                      history_prev()  = (h[h_index] = input.val()) -when [h_index < history_n] -then- input.val(h[--h_index]) -when [h_index > 0]
@@ -5061,10 +4769,12 @@ meta::sdoc('js::web/source', <<'__');
 Building the documentation pages.
 This is just a matter of finding the right SDoc sources and tying them together.
 
-  $('#sdoc-page').append(sections) -where[attributes = perl_attributes(original_html.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&')),
-                                          sdocs      = attributes %[x.namespace === 'sdoc'] -seq,
+  var attributes = perl_attributes(original_html.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+
+  $('#sdoc-page').append(sections) -where[sdocs      = attributes %[x.namespace === 'sdoc' && /^js::/.test(x.attribute)] -seq,
                                           core       = sdocs %[/core\//.test(x.attribute)] -seq,
                                           extension  = sdocs %[/extensions\//.test(x.attribute)] -seq,
+                                          web        = sdocs %[/web\//.test(x.attribute)] -seq,
 
                                           back_link  = jquery in a.back('Back to tutorial') *href('#'),
 
@@ -5078,7 +4788,8 @@ This is just a matter of finding the right SDoc sources and tying them together.
 
                                           sections   = $([]) -effect- back_link                 *![it.push(x)] /seq
                                                              -effect- core      *~![section(x)] *![it.push(x)] /seq
-                                                             -effect- extension *~![section(x)] *![it.push(x)] /seq];
+                                                             -effect- extension *~![section(x)] *![it.push(x)] /seq
+                                                             -effect- web       *~![section(x)] *![it.push(x)] /seq];
 
   setInterval(check_for_destination, 50)
   -where [viewing_annotated_source = false,
