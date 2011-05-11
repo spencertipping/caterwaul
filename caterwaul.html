@@ -462,7 +462,7 @@ var shell = given.nothing in
  extension = sdocs %[/extensions\//.test(x.attribute)] -seq,
  web = sdocs %[/web\//.test(x.attribute)] -seq,
 
- back_link = jquery in a.back('Back to tutorial') *href('#'),
+ back_link = jquery in a.back('Back to tutorial') *href('#tutorial'),
 
  title(a) = jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
  span.name[a.replace(/.*\//, '')],
@@ -472,10 +472,10 @@ var shell = given.nothing in
  -effect- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
  -effect- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
- sections = $([]) -effect- back_link *![it.push(x)] /seq
- -effect- core *~![section(x)] *![it.push(x)] /seq
- -effect- extension *~![section(x)] *![it.push(x)] /seq
- -effect- web *~![section(x)] *![it.push(x)] /seq];
+ sections = jquery [div *id('annotated') >= back_link >= core_sections >= extension_sections >= web_sections]
+ -where [core_sections = $([]) -effect- core *~![section(x)] *![it.push(x)] /seq,
+ extension_sections = $([]) -effect- extension *~![section(x)] *![it.push(x)] /seq,
+ web_sections = $([]) -effect- web *~![section(x)] *![it.push(x)] /seq]];
 
  setInterval(check_for_destination, 50)
  -where [viewing_annotated_source = false,
@@ -484,7 +484,7 @@ var shell = given.nothing in
  check_for_destination() = show_annotated_source() -when [! moving && ! viewing_annotated_source && /^#annotated/.test(document.location.hash)] <then>
  hide_annotated_source() -when [! moving && viewing_annotated_source && ! /^#annotated/.test(document.location.hash)],
 
- show_annotated_source() = moving = $('#sdoc-page').css({display: 'block', top: $('#tutorial-page').position().top, left: $(window).width()}).
+ show_annotated_source() = moving = $('#sdoc-page').css({display: 'block', top: $(window).scrollTop(), left: $(window).width()}).
  animate({left: 50}, 'slow')
 
  -effect- $('#tutorial-page').animate({left: '-=#{distance}'}, 'slow', given.nothing [viewing_annotated_source = true, moving = false])
@@ -4847,7 +4847,7 @@ This is just a matter of finding the right SDoc sources and tying them together.
                                           extension  = sdocs %[/extensions\//.test(x.attribute)] -seq,
                                           web        = sdocs %[/web\//.test(x.attribute)] -seq,
 
-                                          back_link  = jquery in a.back('Back to tutorial') *href('#'),
+                                          back_link  = jquery in a.back('Back to tutorial') *href('#tutorial'),
 
                                           title(a)   = jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
                                                                span.name[a.replace(/.*\//, '')],
@@ -4857,10 +4857,10 @@ This is just a matter of finding the right SDoc sources and tying them together.
                                                        -effect- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
                                                        -effect- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
-                                          sections   = $([]) -effect- back_link                 *![it.push(x)] /seq
-                                                             -effect- core      *~![section(x)] *![it.push(x)] /seq
-                                                             -effect- extension *~![section(x)] *![it.push(x)] /seq
-                                                             -effect- web       *~![section(x)] *![it.push(x)] /seq];
+                                          sections   = jquery [div *id('annotated') >= back_link >= core_sections >= extension_sections >= web_sections]
+                                                       -where [core_sections      = $([]) -effect- core      *~![section(x)] *![it.push(x)] /seq,
+                                                               extension_sections = $([]) -effect- extension *~![section(x)] *![it.push(x)] /seq,
+                                                               web_sections       = $([]) -effect- web       *~![section(x)] *![it.push(x)] /seq]];
 
   setInterval(check_for_destination, 50)
   -where [viewing_annotated_source = false,
@@ -4869,7 +4869,7 @@ This is just a matter of finding the right SDoc sources and tying them together.
           check_for_destination()  = show_annotated_source() -when [! moving && ! viewing_annotated_source &&   /^#annotated/.test(document.location.hash)] <then>
                                      hide_annotated_source() -when [! moving &&   viewing_annotated_source && ! /^#annotated/.test(document.location.hash)],
 
-          show_annotated_source()  = moving = $('#sdoc-page').css({display: 'block', top: $('#tutorial-page').position().top, left: $(window).width()}).
+          show_annotated_source()  = moving = $('#sdoc-page').css({display: 'block', top: $(window).scrollTop(), left: $(window).width()}).
                                                           animate({left: 50}, 'slow')
 
                                              -effect- $('#tutorial-page').animate({left: '-=#{distance}'}, 'slow', given.nothing [viewing_annotated_source = true, moving = false])
