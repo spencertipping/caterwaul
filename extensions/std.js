@@ -411,7 +411,7 @@ caterwaul.js_base()(function ($) {
 
           operator_macros = [rule('S[_x]', '_x'),
                              rule('S[_x, _y]', 'S[_x], S[_y]'),                      operator_pattern('|', exists),
-
+                             rule('S[(_x)]', '(S[_x])'),
                              operator_pattern('*', map,    each,       flatmap),     binary_operator('+', concat),
                              operator_pattern('%', filter, filter_not, map_filter),  binary_operator('-', cross),
                              operator_pattern('/', foldl,  foldr),                   binary_operator('^', zip)]
@@ -466,9 +466,8 @@ caterwaul.js_base()(function ($) {
                                                                       rule('S[_xs |object]', object)]
 
                      -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
-                             n_pattern = anon('(function () {var i = _lower, u = _upper, s = _step;' +
-                                                            'if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
-                                                            'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})()'),
+                             n_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                                   'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
 
                              scope     = $.parse('(function () {_body}).call(this)'),
                              scoped(t) = scope.replace({_body: t}),
