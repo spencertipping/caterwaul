@@ -477,6 +477,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
+//   Caterwaul 1.0 adds named gensyms, and one of the things you can do is name your refs accordingly. If you don't name one it will just be called 'ref', but you can make it more descriptive by
+//   passing in a second constructor argument. This name will automatically be wrapped in a gensym, but that gensym will be removed at compile-time unless you specify not to rename gensyms.
+
     caterwaul_global.ref = function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
                                                    else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')};
 

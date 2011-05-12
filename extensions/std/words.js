@@ -18,8 +18,8 @@
 // qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant that
 // macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro reuse.
 
-  language.modifier('qs',  function (match) {return new $.ref(match._expression)}),
-  language.modifier('qse', function (match) {return new $.ref(this.expand(match._expression))}),
+  language.modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')}),
+  language.modifier('qse', function (match) {return new $.ref(this.expand(match._expression), 'qse')}),
 
 // Error handling.
 // Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.

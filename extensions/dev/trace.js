@@ -146,9 +146,9 @@ caterwaul.js_base()(function ($) {
                               after_method_hook(tree, object, method, parameters) = before_hook(tree[0]) -then- after_hook(tree[0], resolved) -then-
                                                                                     after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
 
-                              before_hook_ref                                     = new $.ref(before_hook),
-                              after_hook_ref                                      = new $.ref(after_hook),
-                              after_method_hook_ref                               = new $.ref(after_method_hook),
+                              before_hook_ref                                     = new $.ref(before_hook, 'hook'),
+                              after_hook_ref                                      = new $.ref(after_hook, 'hook'),
+                              after_method_hook_ref                               = new $.ref(after_method_hook, 'hook'),
 
                               quote_method_name(node)                             = '"#{node.data.replace(/(")/g, "\\$1")}"',
 
@@ -156,10 +156,10 @@ caterwaul.js_base()(function ($) {
                               indirect_method_hook_template                       = $.parse('(_before(_tree), _after(_tree, _object, _method, [_parameters]))'),
 
                               expression_hook(original, tree)                     = expression_hook_template.replace({_before: before_hook_ref, _after: after_hook_ref,
-                                                                                                                      _tree: new $.ref(original), _expression: tree.as('(')}),
+                                                                                                                      _tree: new $.ref(original, 'tree'), _expression: tree.as('(')}),
 
                               method_hook(tree, object, method, parameters)       = indirect_method_hook_template.replace({_before: before_hook_ref, _after: after_method_hook_ref,
-                                                                                                                           _tree: new $.ref(tree), _object: object, _method: method,
+                                                                                                                           _tree: new $.ref(tree, 'tree'), _object: object, _method: method,
                                                                                                                            _parameters: parameters}),
 
                               direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),

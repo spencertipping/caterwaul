@@ -10,8 +10,7 @@ caterwaul.js_base()(function ($) {
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
 //   function with an annotated copy of the caterwaul compiler, tracing calls to compile(). It assumes, incorrectly in pathological cases, that the macroexpansion step does not side-effect
-//   against caterwaul or other escaping values. If it does, the precompiled code won't reflect those side-effects. (Though local side-effects, like defmacro[], will apply within the scope of the
-//   function being compiled -- as they normally would, in other words.)
+//   against caterwaul or other escaping values. If it does, the precompiled code won't reflect those side-effects.
 
 //   The output function performs side-effects necessary to emulate the behavior of your macroexpanded code. All other behavior performed by the precompiled function will be identical to the
 //   original. Here's an example of how it is used:
