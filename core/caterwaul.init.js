@@ -23,6 +23,8 @@
               ref:                  this.ref,
               id:                   this.syntax_common.id,
 
+              gensym_rename_table:  this.gensym_rename_table,
+
               init_function:        this.init_function || this.macroexpand,
               instance_methods:     this.instance_methods,
 

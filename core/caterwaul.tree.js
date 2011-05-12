@@ -72,7 +72,7 @@
 //     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
 //     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-      id: function () {var id = gensym(); return (this.id = function () {return id})()},
+      id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -104,10 +104,9 @@
       clone: function () {return this.rmap(function () {return false})},
 
       collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-      replace: function (rs) {return this.rmap(function (n) {if (! own.call(rs, n.data)) return n;
-                                                             var replacement = rs[n.data];
-                                                             return replacement && replacement.constructor === String ? new n.constructor(replacement, Array.prototype.slice.call(n)) :
-                                                                                                                        replacement})},
+      replace: function (rs) {var r; return own.call(rs, this.data) && (r = rs[this.data]) ?
+                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : r :
+                                              this.map(function (n) {return n.replace(rs)})},
 
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
@@ -310,10 +309,18 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
 //   represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
 
-    caterwaul_global.ref = function (value) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
-                                             else                                   this.value = value,       this.data = gensym()};
+    caterwaul_global.ref = function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
+                                                   else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')};
 
     merge(caterwaul_global.ref.prototype, syntax_common, {binds_a_value: true, length: 0});
+
+//   Reference replace() support.
+//   Refs aren't normal nodes; in particular, invoking the constructor as we do in replace() will lose the ref's value and cause all kinds of problems. In order to avoid this we override the
+//   replace() method for syntax refs to behave more sensibly. Note that you can't replace a ref with a syntax 
+
+    caterwaul_global.ref.prototype.replace = function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
+                                                                                      r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) : r :
+                                                                                      this};
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
