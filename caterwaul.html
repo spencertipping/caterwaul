@@ -307,6 +307,7 @@ var shell = given.nothing in
  history_error_for(e) = jquery in pre.error /text('' + e),
 
  ui_for(x) = ! x ? jquery in span /text('' + x) :
+ x.constructor === caterwaul.syntax ? jquery in span /text(x.replace(caterwaul.gensym_rename_table(x)).toString()) :
  x.constructor === jQuery ? jquery in span /text(jquery in span[x] /html()) :
  jquery in span /text('' + x),
 
@@ -4826,9 +4827,10 @@ var shell = given.nothing in
                     history_log_for(o)    = jquery in pre.log   /text('' + o),
                     history_error_for(e)  = jquery in pre.error /text('' + e),
 
-                    ui_for(x)             = ! x                      ? jquery in span /text('' + x) :
-                                            x.constructor === jQuery ? jquery in span /text(jquery in span[x] /html()) :
-                                                                       jquery in span /text('' + x),
+                    ui_for(x)             = ! x                                ? jquery in span /text('' + x) :
+                                            x.constructor === caterwaul.syntax ? jquery in span /text(x.replace(caterwaul.gensym_rename_table(x)).toString()) :
+                                            x.constructor === jQuery           ? jquery in span /text(jquery in span[x] /html()) :
+                                                                                 jquery in span /text('' + x),
 
                     realign()             = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
                                                        -where [input = shell.find('.prompt .input')]
