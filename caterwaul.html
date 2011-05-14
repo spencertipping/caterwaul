@@ -4981,8 +4981,8 @@ Caterwaul translates these expressions into this:
 | f = function (x) {
     return x + 1;
   };
-  String.prototype.say_hi = function (name) {
-    return 'hi ' + (name) + '!';
+  String.prototype.say_hi = function () {
+    return 'hi ' + (this) + '!';
   };
 
 String interpolation and function assignment are the only irregular syntactic forms provided by Caterwaul. Everything else is implemented as a regular form called a modifier.
