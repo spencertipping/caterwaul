@@ -438,7 +438,7 @@ var shell = given.nothing in
  quoted(p) = jquery in pre.quoted[escape_all_in(p)],
  code(p) = jquery in pre.code[p.replace(/^\s*c\n/, '')],
 
- starts_section(p) = /^\s*(.*\.)\n\s*(.*)/.exec(p) -returning [it && it[1].length <= it[2].length + 10],
+ starts_section(p) = /^\s*(.*\.)\n\s*(.*)/.exec(p) -returning [it && it[1].length + 10 <= it[2].length],
  unindent(p) = p.replace(indentation, '') -where [spaces = n[indentation_of(p) - 1] *['( |\\|){2}'] -seq -returning- it.join(''),
  indentation = new RegExp('^#{spaces}', 'gm')],
 
@@ -4806,7 +4806,7 @@ in the markup.
                                           quoted(p)                = jquery in pre.quoted[escape_all_in(p)],
                                           code(p)                  = jquery in pre.code[p.replace(/^\s*c\n/, '')],
 
-                                          starts_section(p)        = /^\s*(.*\.)\n\s*(.*)/.exec(p) -returning [it && it[1].length <= it[2].length + 10],
+                                          starts_section(p)        = /^\s*(.*\.)\n\s*(.*)/.exec(p) -returning [it && it[1].length + 10 <= it[2].length],
                                           unindent(p)              = p.replace(indentation, '') -where [spaces      = n[indentation_of(p) - 1] *['( |\\|){2}'] -seq -returning- it.join(''),
                                                                                                         indentation = new RegExp('^#{spaces}', 'gm')],
 
@@ -5521,7 +5521,7 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
     (function () {return foo['bar']}).toString()
 
     If you were using Caterwaul on this function, then, you might see two different macroexpansions. Where possible I've tried to design the standard macros such that you don't run into this
-    kind of thing, but it's worth being aware that it can happen anyway.
+    kind of thing, but it's worth being aware that it can happen anyway. (This is one reason you should precompile production code, discussed below.)
 
     Regarding the question of whether Caterwaul is broken, I think the answer is that it's unlikely unless you're doing something very gnarly. The pieces of Caterwaul that could be broken,
     from most to least likely, are:
@@ -5531,9 +5531,17 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
     <li>The serializer -- maybe I've left out an edge case. Also, the syntax structure is loose enough for you to easily create invalid trees; you might want to compare against the output of
         parsing a known-good function.</li>
     <li>The macroexpander -- this is basically bulletproof. I've found maybe one bug relating to the macroexpander throughout all of Caterwaul's development. Things that appear to be
-        macroexpander bugs have, in my experience, been precedence issues.</li></ol>
+        macroexpander bugs have, in my experience, been precedence/associativity issues.</li></ol>
 
     That said, if you're running into something that doesn't make sense, <a href='mailto:spencer@spencertipping.com'>e-mail me</a> and I'll take a look.
+
+    Low-level functions.
+    This page doesn't really talk about how to write macros or use the options available for compiling expressions. That's all documented in the <a href='#annotated'>individual source
+    modules</a> that implement those features. So, for example, documentation about the <code>caterwaul.macro()</code> function is available in the <code>caterwaul.macroexpander</code> module.
+    The <code>caterwaul.compiler</code> module contains documentation about the <code>caterwaul.compile()</code> function.
+
+    If you intend to do this kind of hacking on Caterwaul, I recommend reading through all of the core modules, especially <code>caterwaul.init</code> and <code>caterwaul.tree</code>. Both of
+    these will make more sense with the context from <code>caterwaul</code> (which contains preprocessor directives to build <code>caterwaul.js</code>) and <code>caterwaul.utilities</code>.
 
   Caterwaul and Coffeescript.
   Why did I write Caterwaul knowing that Coffeescript was already out there? Caterwaul and Coffeescript exist to solve two different problems. Coffeescript enhances Javascript's syntax, while
@@ -5544,6 +5552,22 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
   rather than intrinsic to each modifier. This is why there's a <code>js_</code> prefix on all of the configuration methods I've mentioned. (The Javascript stuff is defined in
   <code>extensions/std/js</code> in the <a href='#annotated'>source</a>.)
 
+  Performance.
+  Code written in Caterwaul won't be significantly slower than regular Javascript most of the time. The largest performance impact of using Caterwaul is compiling your code, and the slowest
+  stage of that is macroexpanding the code. This delay can be eliminated by precompiling.
+
+  Depending on what you're doing, Caterwaul may or may not help you write really fast code. If you're doing sequence-related stuff, Caterwaul will certainly help. It compiles all of the
+  sequence macros into inline for-loops, which can be a bit faster than using a sequence library built on higher-order functions. (Whether or not it makes a difference depends on how good the
+  JS runtime is at inlining function calls.)
+
+  Sometimes Caterwaul produces code that isn't particularly efficient. Most of this has to do with binding variables and side-effecting. For instance, look at how it expands these:
+
+  qse[x -effect- it.f() -re- y]
+
+  qse[bind [x = 10] in x + 1]
+
+  Each of these creates at least one possibly-superfluous closure. If you were using one inside a big loop and had an uninsightful JS runtime you might feel a performance hit.
+
   Downloading Caterwaul.
   You've already got a complete Caterwaul distribution opened in your browser. This HTML file is also a <a href='http://github.com/spencertipping/writing-self-modifying-perl'
   target='_blank'>self-modifying Perl file</a> that can build, precompile (if you have node.js in your path), and minify (if you have yuicompressor in your path) the Caterwaul core and
@@ -5552,7 +5576,7 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
   | $ chmod u+x caterwaul.html
     $ ./caterwaul.html render
 
-  If all goes well (i.e. you've got Perl v5.10 or later and are on a Linux-like OS) you'll now have three new directories: <code>core</code>, <code>extensions</code>, and <code>build</code>.
+  If all goes well (i.e. you've got Perl v5.10 or later and are on a UNIX-ish OS) you'll now have three new directories: <code>core</code>, <code>extensions</code>, and <code>build</code>.
   <code>core</code> and <code>extensions</code> aren't terribly useful by themselves; they're just the individual pieces that make up the Caterwaul compiler and standard library.
 
   The <code>build</code> directory should contain roughly these files (potentially fewer if you either (1) don't have node, or (2) don't have yuicompressor):
@@ -5571,6 +5595,15 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
     build/test/sanity-check.js
 
   These are the files you'll probably be using in end-user applications.
+
+  Alternatively, you can clone the <a href='http://github.com/spencertipping/caterwaul'>Caterwaul Github repo</a>, which contains up-to-date copies of the generated Javascript files, or
+  download the files directly from here (though you probably won't want to link your pages to them, as these files will change frequently):
+  <ul>
+  <li><a href='build/caterwaul.js'>build/caterwaul.js</a></li>
+  <li><a href='build/caterwaul.node.js'>build/caterwaul.node.js</a></li>
+  <li><a href='build/extensions/std.pre.js'>build/extensions/std.pre.js</a></li>
+  <li><a href='build/extensions/dev.pre.js'>build/extensions/dev.pre.js</a></li>
+  <li><a href='build/extensions/ui.pre.js'>build/extensions/ui.pre.js</a></li></ul>
 
   Caterwaul in client code.
   The first step is to import the core Caterwaul compiler and any extensions you want to use (here I'm including the precompiled versions, since they load much more quickly):
