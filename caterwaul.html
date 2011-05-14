@@ -5139,9 +5139,8 @@ The <code>structure</code> method gives you a string containing the syntax tree 
   functions.)
 
   Quotation.
-  <span id='quotation'></span>
-  Most people won't use this, but it's handy if you're doing heavy-duty syntax analysis or writing complex macros. The standard library includes an obscure modifier called <code>qs</code> that
-  you can use to quote a piece of code. Quotation is basically grabbing the literal syntax rather than evaluating it normally. For example:
+  <span id='quotation'></span> Most people won't use this, but it's handy if you're doing heavy-duty syntax analysis or writing complex macros. The standard library includes an obscure
+  modifier called <code>qs</code> that you can use to quote a piece of code. Quotation is basically grabbing the literal syntax rather than evaluating it normally. For example:
 
   qs[foo + bar]
 
@@ -5175,9 +5174,8 @@ The <code>structure</code> method gives you a string containing the syntax tree 
   safely [alert(e)] in undefined.bar
 
 Sequence library.
-<span id='seq'></span>
-This is probably the gnarliest part of Caterwaul, but in my opinion it's also the most useful. The sequence library provides a modifier called <code>seq</code> that reinterprets some syntax
-within an APL-like domain-specific language. It generates very efficient code and lets you express maps, folds, cartesian products, zips, etc, with very little effort.
+<span id='seq'></span> This is probably the gnarliest part of Caterwaul, but in my opinion it's also the most useful. The sequence library provides a modifier called <code>seq</code> that
+reinterprets some syntax within an APL-like domain-specific language. It generates very efficient code and lets you express maps, folds, cartesian products, zips, etc, with very little effort.
 
 For instance, suppose we want an array of the first 10 squares. Using <code>until</code>, the algorithm looks like this:
 
