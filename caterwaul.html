@@ -308,7 +308,9 @@ var shell = given.nothing in
 
  ui_for(x) = ! x ? jquery in span /text('' + x) :
  x.constructor === caterwaul.syntax ? jquery in span /text(x.replace(caterwaul.gensym_rename_table(x)).toString()) :
- x.constructor === jQuery ? jquery in span /text(jquery in span[x.clone()] /html()) :
+ x.constructor === jQuery ? x.parent().length ? jquery in div.sandbox('(DOM node already in document)')
+ /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
+ jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
  jquery in span /text('' + x),
 
  realign() = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
@@ -567,6 +569,8 @@ a:hover {color: #fa4}
 
 .accent {color: #fa4; z-index: 20}
 
+.identify {background: #752 !important}
+
 /* Word wrapping inside <pre> elements.*/
 /* A great article about this (and its cross-browser ramifications) at http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/.*/
 
@@ -654,6 +658,8 @@ a:hover {color: #fa4}
 #tutorial-page .shell .history .result {color: #7bf}
 #tutorial-page .shell .history .log    {color: #7fb}
 #tutorial-page .shell .history .error  {color: #f87}
+
+#tutorial-page .shell .sandbox {font-family: 'Neuton', 'Garamond', serif; background: #222; color: #eee; padding: 10px; margin-top: 4px}
 
 #tutorial-page .section {margin-top: 50px}
 
@@ -2413,6 +2419,8 @@ a:hover {color: #fa4}
 
 .accent {color: #fa4; z-index: 20}
 
+.identify {background: #752 !important}
+
 Word wrapping inside <pre> elements.
 A great article about this (and its cross-browser ramifications) at http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/.
 
@@ -2500,6 +2508,8 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page .shell .history .result {color: #7bf}
 #tutorial-page .shell .history .log    {color: #7fb}
 #tutorial-page .shell .history .error  {color: #f87}
+
+#tutorial-page .shell .sandbox {font-family: 'Neuton', 'Garamond', serif; background: #222; color: #eee; padding: 10px; margin-top: 4px}
 
 #tutorial-page .section {margin-top: 50px}
 
@@ -4832,7 +4842,9 @@ var shell = given.nothing in
 
                     ui_for(x)             = ! x                                ? jquery in span /text('' + x) :
                                             x.constructor === caterwaul.syntax ? jquery in span /text(x.replace(caterwaul.gensym_rename_table(x)).toString()) :
-                                            x.constructor === jQuery           ? jquery in span /text(jquery in span[x.clone()] /html()) :
+                                            x.constructor === jQuery           ? x.parent().length ? jquery in div.sandbox('(DOM node already in document)')
+                                                                                                               /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
+                                                                                                     jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
                                                                                  jquery in span /text('' + x),
 
                     realign()             = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
@@ -5396,11 +5408,11 @@ In this example, <code>jquery</code> is a modifier that interprets its code as H
   Attributes and jQuery data.
   These can be setup by using the <code>*</code> operator. For example:
 
-  jquery in a *href('http://google.com')
+  jquery in a('google') *href('http://google.com')
 
   This invokes jQuery's <code>attr()</code> method on <code>'href', 'http://google.com'</code>. A similar shorthand is provided for jQuery's <code>data()</code>:
 
-  jquery in a *!foo('bar')
+  jquery in a('got data') *!foo('bar')
 
   This results in <code>data('foo', 'bar')</code>. The expression inside parentheses is evaluated in normal Javascript context.
 
