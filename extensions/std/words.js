@@ -21,6 +21,12 @@
   language.modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')}),
   language.modifier('qse', function (match) {return new $.ref(this.expand(match._expression), 'qse')}),
 
+// Macroexpansion control.
+// Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
+
+  language.modifier('reexpand', function (match) {return this.expand(this.expand(match._expression))}),
+  language.modifier('noexpand', function (match) {return match._expression}),
+
 // Error handling.
 // Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
