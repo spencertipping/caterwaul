@@ -5217,6 +5217,16 @@ The <code>structure</code> method gives you a string containing the syntax tree 
 
   You can use this in the shell to see how Caterwaul will macroexpand something. Note that the shell's <code>caterwaul</code> function is configured with all extensions enabled.
 
+  Macroexpansion modifiers.
+  The <code>reexpand</code> and <code>noexpand</code> modifiers give Caterwaul instructions about how to handle an expression. For instance, suppose you have a variable called
+  <code>given</code>, and you want to use it without worrying that Caterwaul will interpret it as a modifier. You can wrap expressions that contain this variable with the <code>noexpand</code>
+  modifier to prevent any macroexpansion from happening:
+
+  qse in noexpand [x -given.x]
+
+  Similar to <code>noexpand</code> is <code>reexpand</code>, which tells Caterwaul to re-expand the output of the first macroexpansion. Normally you don't need to use this because most macros
+  require only the initial expansion, though there is a use case that involves operator overloading (discussed below).
+
   Other modifiers.
   There are a few more modifiers that I threw in to the standard library to make some edge cases easier.
 
@@ -5227,6 +5237,52 @@ The <code>structure</code> method gives you a string containing the syntax tree 
   null.foo -failover- log('got #{e}')
 
   safely [alert(e)] in undefined.bar
+
+Operator overloading.
+This gets a bad name not because it isn't useful, but because it's so devious. Does <code>x + y</code> involve overloaded operators? This depends on what <code>x</code> and <code>y</code> are,
+which blurs the line between the syntactic and semantic domains.
+
+Caterwaul's operator overloading is entirely voluntary and tries not to be evil. Rather than enabling overloading for all operators, Caterwaul gives you an <code>overload</code> modifier that
+enables it only locally. This modifier rewrites its expression to use method calls in place of most operators. For example:
+
+qse [x + y]
+
+qse [overload in x + y]
+
+These operators are overloaded:
+<ul><li>Unary: <code>! ~ - + new void typeof</code></li>
+    <li>Binary: <code>+ - * / % ^ & | << >> >>> in instanceof < > <= >= == != === !==</code></li>
+    <li>Assignment <code>+= -= *= /= %= ^= &= |= <<= >>= >>>=</code></li></ul>
+
+Each overloaded operator is converted into a method call whose name is the same as the operator name, except for the unary <code>+</code>, <code>-</code>, <code>~</code>, and <code>!</code>,
+each of which is prefixed with a <code>u</code>; for instance:
+
+qse [overload in -x]
+
+qse [overload in new x]
+
+qse [overload in x - y]
+
+  Using overloaded operators.
+  Most builtin prototypes don't have any named operator methods, so if you want to use operator overloading you'll have to define some. Let's define one for arrays that concatenates them:
+
+  [].constructor.prototype['+'](that) = this.concat(that)
+
+  And now we can add arrays together:
+
+  overload in [1, 2] + [3, 4]
+
+  Defining operators.
+  Notice that the output of an operator-overloading modifier looks just like a function call, which for simple arguments looks just like a function definition. For example, <code>overload [x +
+  y]</code> expands into <code>x['+'](y)</code>.
+
+  It's tempting to think of syntactic macros as being non-transitive, but in fact they compose quite nicely. As such, it's really easy to define an overloaded operator:
+
+  | overload [[].constructor.prototype + that] = this.concat(that)
+
+  This example almost works. The only problem is that we need to trigger one more macroexpansion to make the <code>=</code> sign recognize its new left-hand-side as a function call:
+
+  reexpand [overload [[].constructor.prototype + that] = this.concat(that)]
 
 Sequence library.
 <span id='seq'></span> This is probably the gnarliest part of Caterwaul, but in my opinion it's also the most useful. The sequence library provides a modifier called <code>seq</code> that
@@ -5651,12 +5707,11 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
 
   Alternatively, you can clone the <a href='http://github.com/spencertipping/caterwaul'>Caterwaul Github repo</a>, which contains up-to-date copies of the generated Javascript files, or
   download the files directly from here (though you probably won't want to link your pages to them, as these files will change frequently):
-  <ul>
-  <li><a href='build/caterwaul.js'>build/caterwaul.js</a></li>
-  <li><a href='build/caterwaul.node.js'>build/caterwaul.node.js</a></li>
-  <li><a href='build/extensions/std.pre.js'>build/extensions/std.pre.js</a></li>
-  <li><a href='build/extensions/dev.pre.js'>build/extensions/dev.pre.js</a></li>
-  <li><a href='build/extensions/ui.pre.js'>build/extensions/ui.pre.js</a></li></ul>
+  <ul><li><a href='build/caterwaul.js'>build/caterwaul.js</a></li>
+      <li><a href='build/caterwaul.node.js'>build/caterwaul.node.js</a></li>
+      <li><a href='build/extensions/std.pre.js'>build/extensions/std.pre.js</a></li>
+      <li><a href='build/extensions/dev.pre.js'>build/extensions/dev.pre.js</a></li>
+      <li><a href='build/extensions/ui.pre.js'>build/extensions/ui.pre.js</a></li></ul>
 
   Caterwaul in client code.
   The first step is to import the core Caterwaul compiler and any extensions you want to use (here I'm including the precompiled versions, since they load much more quickly):
