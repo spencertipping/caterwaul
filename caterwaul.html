@@ -5239,11 +5239,11 @@ The <code>structure</code> method gives you a string containing the syntax tree 
   safely [alert(e)] in undefined.bar
 
 Operator overloading.
-This gets a bad name not because it isn't useful, but because it's so devious. Does <code>x + y</code> involve overloaded operators? This depends on what <code>x</code> and <code>y</code> are,
-which blurs the line between the syntactic and semantic domains.
+This gets a bad name in most languages not because it isn't useful, but because it's so devious. Does <code>x + y</code> involve overloaded operators? This depends on what <code>x</code> and
+<code>y</code> are, which blurs the line between the syntactic and semantic domains.
 
-Caterwaul's operator overloading is entirely voluntary and tries not to be evil. Rather than enabling overloading for all operators, Caterwaul gives you an <code>overload</code> modifier that
-enables it only locally. This modifier rewrites its expression to use method calls in place of most operators. For example:
+Caterwaul's operator overloading is syntactically explicit and tries not to be evil. Rather than enabling overloading for all operators in your source code, Caterwaul gives you an
+<code>overload</code> modifier that enables it only locally. This modifier rewrites its expression to use method calls in place of most operators. For example:
 
 qse [x + y]
 
@@ -5253,6 +5253,14 @@ These operators are overloaded:
 <ul><li>Unary: <code>! ~ - + new void typeof</code></li>
     <li>Binary: <code>+ - * / % ^ & | << >> >>> in instanceof < > <= >= == != === !==</code></li>
     <li>Assignment <code>+= -= *= /= %= ^= &= |= <<= >>= >>>=</code></li></ul>
+
+These operators are not overloaded even though they theoretically could be:
+<ul><li>Invocation: <code>x(y)</code></li>
+    <li>Dereferencing: <code>x.y x[y]</code></li>
+    <li>Short-circuit: <code>&& ||</code></li>
+    <li>Assignment: <code>=</code></li>
+    <li><code>delete</code></li>
+    <li>Ternary: <code>x ? y : z</code></li></ul>
 
 Each overloaded operator is converted into a method call whose name is the same as the operator name, except for the unary <code>+</code>, <code>-</code>, <code>~</code>, and <code>!</code>,
 each of which is prefixed with a <code>u</code>; for instance:
