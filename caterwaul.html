@@ -1,6 +1,8 @@
 #!/usr/bin/perl
-# Open this file in a web browser for documentation.
-# <div id='cover' style='position: absolute; left: 0; top: 0; width: 100%; height: 10000px; background: #222'></div>
+# Run perldoc on this file for documentation.
+
+# For the benefit of HTML viewers:
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
 
 $|++;
 
@@ -19,7 +21,7 @@ sub meta::define_form {
     my ($name, $value, %options) = @_;
     chomp $value;
     $data{"${namespace}::$name"} = $value unless $options{no_binding};
-    $delegate->($name, $value) unless $options{no_delegate}}}
+    &$delegate($name, $value) unless $options{no_delegate}}}
 
 sub meta::eval_in {
   my ($what, $where) = @_;
@@ -164,6 +166,16 @@ meta::define_form 'inc', sub {
   }
 };
 __
+meta::meta('type::indicator', <<'__');
+# Shell indicator function. The output of each of these is automatically
+# appended to the shell prompt.
+
+meta::configure 'indicator', inherit => 1, extension => '.pl';
+meta::define_form 'indicator', sub {
+  my ($name, $value) = @_;
+  *{"indicator::$name"} = meta::eval_in("sub {\n$value\n}", "indicator::$name");
+};
+__
 meta::meta('type::internal_function', <<'__');
 meta::configure 'internal_function', extension => '.pl', inherit => 1;
 meta::define_form 'internal_function', sub {
@@ -231,7 +243,18 @@ meta::define_form 'template', sub {
   meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
 };
 __
+meta::meta('type::todo', <<'__');
+# Todo lists are special cases of SDoc syntax.
+meta::configure 'todo', inherit => 0, extension => '.sdoc';
+meta::define_form 'todo', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "todo::$name", sub {
+    return edit("todo::$name") if ! @_ || $_[0] eq 'edit';
+    &{'todo-summary'}("todo::$name") if $_[0] eq 'show'}};
+
+__
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
+meta::alias('bs', 'todo-summary note::bugs');
 meta::alias('cloc', 'loc js::core/caterwaul\\.');
 meta::alias('e', 'edit sdoc::js::core/caterwaul');
 meta::alias('ec', 'edit sdoc::js::core/caterwaul.compiler');
@@ -248,6 +271,7 @@ meta::alias('er', 'edit sdoc::js::core/caterwaul.precompile');
 meta::alias('es', 'edit sdoc::data::style.css');
 meta::alias('et', 'edit sdoc::js::core/caterwaul.tree');
 meta::alias('eu', 'edit sdoc::js::core/caterwaul.utilities');
+meta::alias('fs', 'todo-summary note::features');
 meta::alias('lsc', 'ls -a sdoc::js::core/');
 meta::alias('lse', 'ls -a sdoc::js::extensions/');
 meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
@@ -261,10 +285,10 @@ meta::bootstrap('html', <<'__');
 
 </script>
 <script>
-(function(a){return a(a,(function(b){return function(){return ++b}})(0))})(function(e,c,o){var ad=function(ak){return ak.split(/\s+/)},A=function(ak,al){return al&&al.call(ak,ak)||ak},n=function(ak){throw new Error(ak)},l=(function(am,ak,al){return function(){return[al,am,++ak]}})(+new Date(),Math.random()*(1<<30)>>>0,c()),U=function(al){var ak=l();return["gensym",al||"",ak[0].toString(36),ak[1].toString(36),ak[2].toString(36)].join("_")},H=function(){for(var an=[],am=0,al=arguments.length,ak;am<al;++am){(ak=arguments[am]) instanceof Array?an=an.concat(H.apply(this,ak)):an.push(ak)}return an},M=function(ao,al){for(var am=0,an=[],ak=al.length;am<ak;++am){an.push(ao(al[am],am))}return an},v=function(al,ak){return M(function(am){return am instanceof Array?v(al,am):al(am)})},ab=function(an){for(var am=0,al=ad(an),ao={},ak=al.length;am<ak;++am){ao[al[am]]=true}return r(ao)},Z=function(ao){for(var an=1,ak=arguments.length,am;an<ak;++an){if(am=arguments[an]){for(var al in am){f(am,al)&&(ao[al]=am[al])}}}return ao},Y=U("hash_annotation"),r=function(am){var ak=0;for(var al in am){j.call(am,al)&&(ak=al.length>ak?al.length:ak)}am[Y]=ak;return am},f=function(al,ak){return ak!=null&&!(ak.length>al[Y])&&j.call(al,ak)},j=Object.prototype.hasOwnProperty;var ac=function(){var ak=function(){return ak.init.apply(ak,arguments)};return ak},ae=typeof caterwaul==="undefined"?o:caterwaul,aj=ac();aj.deglobalize=function(){caterwaul=ae;return aj};aj.version=function(ak){return ak?(this._version=ak,ae&&ae.version()===ak?this.deglobalize():this):this._version};aj.reinitialize=function(ak){var al=(ak||function(am){return am})(this.initializer);return al(al,this.unique).version(this.version())};Z(aj,{merge:Z,map:M,rmap:v,flatten:H,gensym:U,unique:c,initializer:e,variadic:function(ak){return function(){for(var an=[],am=0,al=arguments.length;am<al;++am){an.push(ak.call(this,arguments[am]))}return an}},right_variadic:function(ak){return function(){for(var ao=[],an=0,am=arguments.length-1,al=arguments[am];an<am;++an){ao.push(ak.call(this,arguments[an],al))}return ao}}});var ai=ab(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),R=function(an){for(var am=0,al=[false];am<8;++am){al.push.apply(al,al)}for(var am=0,ak=an.length;am<ak;++am){al[an.charCodeAt(am)]=true}return al},ah=R(".0123456789"),T=R("0123456789"),x=R("0123456789abcdefABCDEFx"),K=R("eE"),h=R(" \n\r\t"),s=R("()[]{}"),q=R("([{"),w=R("+-*/%&|^!~=<>?:;.,"),I=R("\n\r"),i=R("gims"),N=R("'\"/"),m="/".charCodeAt(0),Q="*".charCodeAt(0),k="\\".charCodeAt(0),X="x".charCodeAt(0),L=".".charCodeAt(0),S="0".charCodeAt(0),ag=ab("++ --"),V=R("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),J=M(ab,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),F=ab("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),D=(function(am){for(var ao={},an=0,ak=am.length;an<ak;++an){for(var al in am[an]){f(am[an],al)&&(ao[al]=an)}}return r(ao)})(J),u=(function(am){for(var ao=[],ap=0,ak=am.length,an=null;an=am[ap],ao[ap]=true,ap<ak;++ap){for(var al in an){if(f(an,al)&&(ao[ap]=ao[ap]&&!f(F,al))){break}}}return ao})(J),z=ab("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),W=r({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),P=r({"if":"else","do":"while","catch":"finally","try":"catch"}),B=ab("[] ()"),af=ab("return throw break continue else"),C=ab("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),g=ab("; {"),aa=ab("i;"),G=ab("++ --"),p=r({"(":")","[":"]","{":"}","?":":"}),E=ab("[ ("),O=ab("?"),d=ab("function if for while catch void delete new typeof in instanceof"),y=ab("function");var t=aj.syntax_common={_replace:function(ak){return(ak.l=this.l)&&(this.l.r=ak),(ak.r=this.r)&&(this.r.l=ak),this},_append_to:function(ak){return ak&&ak._append(this),this},_reparent:function(ak){return this.p&&this.p[0]===this&&(this.p[0]=ak),this},_fold_l:function(ak){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(ak){return(this[this.length++]=ak)&&(ak.p=this),this},_fold_r:function(ak){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(ak){return ak.p=this.p,(this.r=ak).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(ak){return ak.p=this._replace(ak).p,this._reparent(ak),delete this.l,delete this.r,this._append_to(ak)},_unlink:function(ak){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(ak)},pop:function(){return --this.length,this},push:function(ak){return this[this.length++]=ak||a,this},id:function(){var ak=U("id");return(this.id=function(){return ak})()},each:function(am){for(var al=0,ak=this.length;al<ak;++al){am(this[al],al)}return this},map:function(am){for(var an=new this.constructor(this),al=0,ak=this.length;al<ak;++al){an.push(am(this[al],al)||this[al])}return an},reach:function(ak){ak(this);this.each(function(al){al.reach(ak)});return this},rmap:function(al){var ak=al(this);return !ak||ak===this?this.map(function(am){return am.rmap(al)}):ak.rmap===o?new this.constructor(ak):ak},clone:function(){return this.rmap(function(){return false})},collect:function(al){var ak=[];this.reach(function(am){al(am)&&ak.push(am)});return ak},replace:function(ak){var al;return j.call(ak,this.data)&&(al=ak[this.data])?al.constructor===String?A(this.map(function(am){return am.replace(ak)}),function(){this.data=al}):al:this.map(function(am){return am.replace(ak)})},repopulated_with:function(ak){return new this.constructor(this.data,ak)},change:function(al,ak){return A(new this.constructor(this.data,Array.prototype.slice.call(this)),function(am){am[al]=ak})},compose_single:function(ak,al){return this.change(ak,al(this[ak]))},traverse:function(ak){ak({entering:this});ak({exiting:this.each(function(al){al.traverse(ak)})});return this},flatten:function(ak){ak=ak||this.data;return ak!==this.data?this.as(ak):!(f(z,ak)&&this.length)?this:f(F,ak)?A(new this.constructor(ak),bind(function(am){for(var al=this;al&&al.data===ak;al=al[1]){am.push(al[0])}am.push(al)},this)):A(new this.constructor(ak),bind(function(an){for(var al=this,am=[];al.data===ak;al=al[0]){al[1]&&am.push(al[1])}am.push(al);for(al=am.length-1;al>=0;--al){an.push(am[al])}},this))},unflatten:function(){var al=this,ak=f(F,this.data);return this.length<=2?this:A(new this.constructor(this.data),function(ao){if(ak){for(var an=0,am=al.length-1;an<am;++an){ao=ao.push(al[an]).push(an<am-2?new al.constructor(al.data):al[an])[1]}}else{for(var an=al.length-1;an>=1;--an){ao=ao.push(an>1?new al.constructor(al.data):al[0]).push(al[an])[0]}}})},as:function(ak){return this.data===ak?this:new this.constructor(ak).push(this)},is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_wildcard:function(){return this.data.charCodeAt(0)===95},has_grouped_block:function(){return f(W,this.data)},is_block:function(){return f(g,this.data)},is_blockless_keyword:function(){return f(af,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return f(aa,this.data)},is_binary_operator:function(){return f(z,this.data)},is_prefix_unary_operator:function(){return f(C,this.data)},is_postfix_unary_operator:function(){return f(G,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(ak){return f(P,this.data)&&P[this.data]===(ak.data||ak)},bindings:function(al){var ak=al||{};this.reach(function(am){if(am.binds_a_value){ak[am.data]=am.value}});return ak},match:function(am,an){am=aj.ensure_syntax(am);an||(an={_:am});if(this.is_wildcard()){return an[this.data]=am,an}else{if(this.length===am.length&&this.data===am.data){for(var al=0,ak=this.length;al<ak;++al){if(!this[al].match(am[al],an)){return null}}return an}}},ends_with_block:function(){var ak=this[W[this.data]];return this.data==="{"||f(W,this.data)&&(this.data!=="function"||this.length===3)&&ak&&ak.ends_with_block()},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(M(function(ak){return ak.structure()},this)).join(" ")+")"}else{return this.data}},toString:function(){var ak=[""];this.serialize(ak);return ak.join("")},serialize:function(an){var al=this.length,ao=this.data,ak=";\n",am=function(ap){if(V[an[an.length-1].charCodeAt(0)]===V[ap.charCodeAt(0)]){an.push(" ",ap)}else{an.push(ap)}};switch(al){case 0:if(f(af,ao)){return am(ao.replace(/^u/,""))}else{if(f(p,ao)){return am(ao),am(p[ao])}else{return am(ao)}}case 1:if(f(C,ao)||f(af,ao)){return am(ao.replace(/^u/,"")),this[0].serialize(an)}else{if(f(p,ao)){return am(ao),this[0].serialize(an),am(p[ao])}else{if(f(z,ao)){return am("/* unary "+ao+" node */"),this[0].serialize(an)}else{return this[0].serialize(an),am(ao)}}}case 2:if(f(B,ao)){return this[0].serialize(an),am(ao.charAt(0)),this[1].serialize(an),am(ao.charAt(1))}else{if(f(W,ao)){return am(ao),this[0].serialize(an),this[1].serialize(an)}else{if(f(aa,ao)){return this[0].serialize(an),this[1].serialize(an)}else{if(ao===";"){return this[0].serialize(an),am(ak),this[1].serialize(an)}else{return this[0].serialize(an),am(ao),this[1].serialize(an)}}}}default:if(f(O,ao)){return this[0].serialize(an),am(ao),this[1].serialize(an),am(":"),this[2].serialize(an)}else{if(f(W,ao)){return this.accepts(this[2])&&!this[1].ends_with_block()?(am(ao),this[0].serialize(an),this[1].serialize(an),am(ak),this[2].serialize(an)):(am(ao),this[0].serialize(an),this[1].serialize(an),this[2].serialize(an))}else{return this.unflatten().serialize(an)}}}}};aj.ref=function(al,ak){if(al instanceof this.constructor){this.value=al.value,this.data=al.data}else{this.value=al,this.data=U(ak&&ak.constructor===String?ak:"ref")}};Z(aj.ref.prototype,t,{binds_a_value:true,length:0});aj.ref.prototype.replace=function(ak){var al;return j.call(ak,this.data)&&(al=ak[this.data])?al.constructor===String?A(new this.constructor(this.value),function(){this.data=al}):al:this};aj.syntax=function(ap){if(ap instanceof this.constructor){this.data=ap.data,this.length=0}else{this.data=ap&&ap.toString();this.length=0;for(var an=1,ak=arguments.length,am;am=arguments[an],an<ak;++an){for(var al=0,ar=am.length,ao,aq;am instanceof Array?(ao=am[al],al<ar):(ao=am,!al);++al){this._append((aq=ao.constructor)===String||aq===Number||aq===Boolean?new this.constructor(ao):ao)}}}};Z(aj.syntax.prototype,t);var a=aj.empty=new aj.syntax("");aj.parse=function(aB){var aE=aB.toString(),ay=0,aQ=0,aH=true,aR=false,aG=false,at=false,aF=0,aD="",aM=0,aK=aE.length,al=function(aU){return aE.charCodeAt(aU)},au=[],an=null,ak=null,ax=null,ap=M(function(){return[]},J),am=[],av=[a],aO=function(aU){return av.push(aU),aU},ar=function(aU){return ak?ak._sibling(ak=aU):(ak=aU._append_to(ax)),aO(aU)},aJ=this.syntax;if(aK===0){return a}while((ay=aM)<aK){while(h[aQ=al(aM)]&&aM<aK){ay=++aM}aR=at=aG=aD=false;if(s[aQ]){aD=!!++aM;aH=q[aQ]}else{if(aQ===m&&al(aM+1)===Q&&(aM+=2)){while(++aM<aK&&al(aM)!==m||al(aM-1)!==Q){}aD=!++aM}else{if(aQ===m&&al(aM+1)===m){while(++aM<aK&&!I[al(aM)]){}aD=false}else{if(N[aQ]&&(aF=aQ)&&aH&&!(aH=!(aD=aE.charAt(aM)))){while(++aM<aK&&(aQ=al(aM))!==aF||aR){aR=!aR&&aQ===k}while(++aM<aK&&i[al(aM)]){}aD=true}else{if(aQ===S&&x[al(aM+1)]){while(++aM<aK&&x[al(aM)]){}aH=!(aD=true)}else{if(ah[aQ]&&(aQ!==L||T[al(aM+1)])){while(++aM<aK&&(T[aQ=al(aM)]||(aG^(aG|=aQ===L))||(at^(at|=K[aQ]&&++aM)))){}while(aM<aK&&T[al(aM)]){++aM}aH=!(aD=true)}else{if(w[aQ]&&(aD=aH?"u":"",aH=true)){while(aM<aK&&w[al(aM)]&&f(ai,aD+aE.charAt(aM))){aD+=aE.charAt(aM++)}aH=!f(ag,aD)}else{while(++aM<aK&&V[al(aM)]){}aH=f(ai,aD=aE.substring(ay,aM))}}}}}}}if(aM===ay){throw new Error('Caterwaul lex error at "'+aE.substr(ay,40)+'" with leading context "'+aE.substr(ay-40,40)+'" (probably a Caterwaul bug)')}if(aD===false){continue}aD=aD===true?aE.substring(ay,aM):aD==="u;"?";":aD;aD===an?(au.pop(),an=au[au.length-1],ak=ak?ak.p:ax,ax=null):(f(p,aD)?(au.push(an=p[aD]),ax=ar(aO(new aJ(aD))),ak=null):ar(aO(new aJ(aD))),f(D,aD)&&ap[D[aD]].push(ak||ax));aH|=aD===")"&&ak.l&&f(W,ak.l.data)}for(var aM=0,aK=ap.length,az,aT;aT=ap[aM],az=u[aM],aM<aK;++aM){for(var aL=az?0:aT.length-1,aC=aT.length,aw=az?1:-1,aI,aS,aA;az?aL<aC:aL>=0;aL+=aw){if(f(z,aS=(aI=aT[aL]).data)){aI._fold_lr()}else{if(f(E,aS)&&aI.l&&!((aA=aI.l.l)&&f(W,aA.data))&&(aI.l.data==="."||(aI.l.data==="function"&&aI.l.length===2)||!(f(ai,aI.l.data)||f(d,aI.l.data)))){am.push(aI.l._wrap(aO(new aJ(aS+p[aS]))).p._fold_r())}else{if(f(G,aS)){aI._fold_l()}else{if(f(C,aS)){aI._fold_r()}else{if(f(O,aS)){aI._fold_lr();var aP=aI[1];aI[1]=aI[0];aI[0]=aP}else{if(f(W,aS)&&aI.r&&aI.r.data!==":"){for(var aq=0,aN=W[aS];aq<aN&&aI.r&&!f(g,aI.r.data);++aq){aI._fold_r()}aI.r&&(aI.r.data===";"?aI.push(a):aI._fold_r());if(f(P,aS)&&P[aS]===(aI.r&&aI.r.r&&aI.r.r.data)){aI._fold_r().pop()._fold_r()}else{if(f(P,aS)&&P[aS]===(aI.r&&aI.r.data)){aI._fold_r()}}}else{if(f(af,aS)){aI.r&&aI.r.data!==";"&&aI._fold_r()}}}}}}}}}for(var aM=av.length-1,aT;aM>=0;--aM){(aT=av[aM]).r&&aT._wrap(aO(new aJ("i;"))).p._fold_r()}for(var aM=0,aK=am.length,aT,ao;aM<aK;++aM){(ao=(aT=am[aM])[1]=aT[1][0]||a)&&(ao.p=aT)}while(ak.p){ak=ak.p}for(var aM=av.length-1,aT;aM>=0;--aM){delete (aT=av[aM]).p,delete aT.l,delete aT.r}return ak};(function(){var ak=aj.parse("var _bindings; return(_expression)"),am=aj.parse("_variable = _base._variable"),al=aj.parse("undefined = void(0)");aj.compile=function(ay,ar,ax){ax=Z({gensym_renaming:true},ax);var ao=Z({},this._environment||{},ar||{},ay.bindings()),au=[al],aw=U("base");for(var aq in ao){if(j.call(ao,aq)&&aq!=="this"){au.push(am.replace({_variable:aq,_base:aw}))}}var av=new this.syntax(",",au).unflatten(),an=ak.replace({_bindings:av,_expression:ay});if(ax.gensym_renaming){var ap=this.gensym_rename_table(an);for(var aq in ao){j.call(ao,aq)&&(ao[ap[aq]||aq]=ao[aq])}an=an.replace(ap);aw=ap[aw]}try{return(new Function(aw,an)).call(ao["this"],ao)}catch(at){throw new Error(at+" while compiling "+an)}};aj.gensym_rename_table=function(ax){var av={},at=[],aw=/^gensym_(.*)_\d+_[^_]+_[^_]+$/;ax.reach(function(ay){var az=ay.data;aw.test(az)&&(av[az]||at.push(az));av[az]=az.replace(aw,"$1")||"anon"});var an={},au=function(ay){if(!(ay in av)){return ay}var az=an[ay]||0;while(av[ay+(++az).toString(36)]){}return ay+(an[ay]=az).toString(36)};for(var ao={},aq=0,ap=at.length,ar;aq<ap;++aq){ao[ar=at[aq]]||(av[ao[ar]=au(av[ar])]=true)}return ao}})();aj.ensure_syntax=function(ak){return ak&&ak.constructor===String?this.parse(ak):ak};aj.ensure_pattern=function(ak){return ak.constructor===String?this.ensure_pattern(this.parse(ak)):ak.constructor===this.syntax?function(al){return ak.match(al)}:ak};aj.ensure_expander=function(ak){return ak.constructor===String?this.ensure_expander(this.parse(ak)):ak.constructor===this.syntax?function(al){return this.expand(ak.replace(al))}:ak};aj.macro=aj.right_variadic(function(al,an){var am=this.ensure_pattern(al),ak=this.ensure_expander(an);return A(function(ao){var ap=am.call(this,ao);return ap&&ak.call(this,ap)},function(){this.pattern=al,this.expander=an})});aj.macroexpand=function(al){for(var ap=arguments.length?[].concat(this._macros||[]):this._macros||[],ao=1,am=arguments.length,ak;ao<am;++ao){(ak=arguments[ao]) instanceof Array?ap.push.apply(ap,ak):ap.push(ak)}var an={caterwaul:this,macros:ap,expand:function(aq){return aq.rmap(function(at){for(var au=null,ar=ap.length-1;ar>=0;--ar){if(au=ap[ar].call(an,at)){return au}}})}};return an.expand(this.ensure_syntax(al))};var b={};aj.precompiled_internal=function(al){var ak=U("precompiled");return b[ak]=al,ak};aj.is_precompiled=function(ak){return ak.constructor===String&&b[ak]};aj.clone=function(ak){return A(this.merge(ac(),this,this.instance_methods(),{constructor:this}),function(){delete this._id,delete this._macros,delete this._environment})};aj.instance_methods=function(){return{compile:this.compile,parse:this.parse,macroexpand:this.macroexpand,syntax:this.syntax,ref:this.ref,id:this.syntax_common.id,gensym_rename_table:this.gensym_rename_table,init_function:this.init_function||this.macroexpand,instance_methods:this.instance_methods,ensure_syntax:this.ensure_syntax,ensure_pattern:this.ensure_pattern,ensure_expander:this.ensure_expander,environment:function(ak){return arguments.length?(this._environment=ak,this):this._environment},macros:function(){return arguments.length?(this._macros=this.flatten.apply(this,arguments),this):this._macros},toString:function(){return"[caterwaul instance "+this.id()+"]"},init:function(al,ak){return this.is_precompiled(al)||this.init_not_precompiled(al,ak)},init_not_precompiled:function(al,ak){return al.constructor===this.syntax?this.init_function(al):this.compile(this(this.parse(al)),ak)}}};return caterwaul=aj=aj.clone()});caterwaul.version("7304ebdcee83e6873b6c78f6260659d1");
+(function(a){return a(a,(function(b){return function(){return ++b}})(0))})(function(e,c,o){var ad=function(ak){return ak.split(/\s+/)},A=function(ak,al){return al&&al.call(ak,ak)||ak},n=function(ak){throw new Error(ak)},l=(function(am,ak,al){return function(){return[al,am,++ak]}})(+new Date(),Math.random()*(1<<30)>>>0,c()),U=function(al){var ak=l();return["gensym",al||"",ak[0].toString(36),ak[1].toString(36),ak[2].toString(36)].join("_")},H=function(){for(var an=[],am=0,al=arguments.length,ak;am<al;++am){(ak=arguments[am]) instanceof Array?an=an.concat(H.apply(this,ak)):an.push(ak)}return an},M=function(ao,al){for(var am=0,an=[],ak=al.length;am<ak;++am){an.push(ao(al[am],am))}return an},v=function(al,ak){return M(function(am){return am instanceof Array?v(al,am):al(am)})},ab=function(an){for(var am=0,al=ad(an),ao={},ak=al.length;am<ak;++am){ao[al[am]]=true}return r(ao)},Z=function(ao){for(var an=1,ak=arguments.length,am;an<ak;++an){if(am=arguments[an]){for(var al in am){f(am,al)&&(ao[al]=am[al])}}}return ao},Y=U("hash_annotation"),r=function(am){var ak=0;for(var al in am){j.call(am,al)&&(ak=al.length>ak?al.length:ak)}am[Y]=ak;return am},f=function(al,ak){return ak!=null&&!(ak.length>al[Y])&&j.call(al,ak)},j=Object.prototype.hasOwnProperty;var ac=function(){var ak=function(){return ak.init.apply(ak,arguments)};return ak},ae=typeof caterwaul==="undefined"?o:caterwaul,aj=ac();aj.deglobalize=function(){caterwaul=ae;return aj};aj.version=function(ak){return ak?(this._version=ak,ae&&ae.version()===ak?this.deglobalize():this):this._version};aj.reinitialize=function(ak){var al=(ak||function(am){return am})(this.initializer);return al(al,this.unique).version(this.version())};Z(aj,{merge:Z,map:M,rmap:v,flatten:H,gensym:U,unique:c,initializer:e,variadic:function(ak){return function(){for(var an=[],am=0,al=arguments.length;am<al;++am){an.push(ak.call(this,arguments[am]))}return an}},right_variadic:function(ak){return function(){for(var ao=[],an=0,am=arguments.length-1,al=arguments[am];an<am;++an){ao.push(ak.call(this,arguments[an],al))}return ao}}});var ai=ab(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),R=function(an){for(var am=0,al=[false];am<8;++am){al.push.apply(al,al)}for(var am=0,ak=an.length;am<ak;++am){al[an.charCodeAt(am)]=true}return al},ah=R(".0123456789"),T=R("0123456789"),x=R("0123456789abcdefABCDEFx"),K=R("eE"),h=R(" \n\r\t"),s=R("()[]{}"),q=R("([{"),w=R("+-*/%&|^!~=<>?:;.,"),I=R("\n\r"),i=R("gims"),N=R("'\"/"),m="/".charCodeAt(0),Q="*".charCodeAt(0),k="\\".charCodeAt(0),X="x".charCodeAt(0),L=".".charCodeAt(0),S="0".charCodeAt(0),ag=ab("++ --"),V=R("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),J=M(ab,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),F=ab("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),D=(function(am){for(var ao={},an=0,ak=am.length;an<ak;++an){for(var al in am[an]){f(am[an],al)&&(ao[al]=an)}}return r(ao)})(J),u=(function(am){for(var ao=[],ap=0,ak=am.length,an=null;an=am[ap],ao[ap]=true,ap<ak;++ap){for(var al in an){if(f(an,al)&&(ao[ap]=ao[ap]&&!f(F,al))){break}}}return ao})(J),z=ab("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),W=r({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),P=r({"if":"else","do":"while","catch":"finally","try":"catch"}),B=ab("[] ()"),af=ab("return throw break continue else"),C=ab("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),g=ab("; {"),aa=ab("i;"),G=ab("++ --"),p=r({"(":")","[":"]","{":"}","?":":"}),E=ab("[ ("),O=ab("?"),d=ab("function if for while catch void delete new typeof in instanceof"),y=ab("function");var t=aj.syntax_common={_replace:function(ak){return(ak.l=this.l)&&(this.l.r=ak),(ak.r=this.r)&&(this.r.l=ak),this},_append_to:function(ak){return ak&&ak._append(this),this},_reparent:function(ak){return this.p&&this.p[0]===this&&(this.p[0]=ak),this},_fold_l:function(ak){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(ak){return(this[this.length++]=ak)&&(ak.p=this),this},_fold_r:function(ak){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(ak){return ak.p=this.p,(this.r=ak).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(ak){return ak.p=this._replace(ak).p,this._reparent(ak),delete this.l,delete this.r,this._append_to(ak)},_unlink:function(ak){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(ak)},pop:function(){return --this.length,this},push:function(ak){return this[this.length++]=ak||a,this},id:function(){var ak=U("id");return(this.id=function(){return ak})()},each:function(am){for(var al=0,ak=this.length;al<ak;++al){am(this[al],al)}return this},map:function(am){for(var an=new this.constructor(this),al=0,ak=this.length;al<ak;++al){an.push(am(this[al],al)||this[al])}return an},reach:function(ak){ak(this);this.each(function(al){al.reach(ak)});return this},rmap:function(al){var ak=al(this);return !ak||ak===this?this.map(function(am){return am.rmap(al)}):ak.rmap===o?new this.constructor(ak):ak},clone:function(){return this.rmap(function(){return false})},collect:function(al){var ak=[];this.reach(function(am){al(am)&&ak.push(am)});return ak},replace:function(ak){var al;return j.call(ak,this.data)&&(al=ak[this.data])?al.constructor===String?A(this.map(function(am){return am.replace(ak)}),function(){this.data=al}):al:this.map(function(am){return am.replace(ak)})},repopulated_with:function(ak){return new this.constructor(this.data,ak)},change:function(al,ak){return A(new this.constructor(this.data,Array.prototype.slice.call(this)),function(am){am[al]=ak})},compose_single:function(ak,al){return this.change(ak,al(this[ak]))},traverse:function(ak){ak({entering:this});ak({exiting:this.each(function(al){al.traverse(ak)})});return this},flatten:function(ak){ak=ak||this.data;return ak!==this.data?this.as(ak):!(f(z,ak)&&this.length)?this:f(F,ak)?A(new this.constructor(ak),bind(function(am){for(var al=this;al&&al.data===ak;al=al[1]){am.push(al[0])}am.push(al)},this)):A(new this.constructor(ak),bind(function(an){for(var al=this,am=[];al.data===ak;al=al[0]){al[1]&&am.push(al[1])}am.push(al);for(al=am.length-1;al>=0;--al){an.push(am[al])}},this))},unflatten:function(){var al=this,ak=f(F,this.data);return this.length<=2?this:A(new this.constructor(this.data),function(ao){if(ak){for(var an=0,am=al.length-1;an<am;++an){ao=ao.push(al[an]).push(an<am-2?new al.constructor(al.data):al[an])[1]}}else{for(var an=al.length-1;an>=1;--an){ao=ao.push(an>1?new al.constructor(al.data):al[0]).push(al[an])[0]}}})},as:function(ak){return this.data===ak?this:new this.constructor(ak).push(this)},is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_wildcard:function(){return this.data.charCodeAt(0)===95},has_grouped_block:function(){return f(W,this.data)},is_block:function(){return f(g,this.data)},is_blockless_keyword:function(){return f(af,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return f(aa,this.data)},is_binary_operator:function(){return f(z,this.data)},is_prefix_unary_operator:function(){return f(C,this.data)},is_postfix_unary_operator:function(){return f(G,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(ak){return f(P,this.data)&&P[this.data]===(ak.data||ak)},bindings:function(al){var ak=al||{};this.reach(function(am){if(am.binds_a_value){ak[am.data]=am.value}});return ak},match:function(am,an){am=aj.ensure_syntax(am);an||(an={_:am});if(this.is_wildcard()){return an[this.data]=am,an}else{if(this.length===am.length&&this.data===am.data){for(var al=0,ak=this.length;al<ak;++al){if(!this[al].match(am[al],an)){return null}}return an}}},ends_with_block:function(){var ak=this[W[this.data]];return this.data==="{"||f(W,this.data)&&(this.data!=="function"||this.length===3)&&ak&&ak.ends_with_block()},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(M(function(ak){return ak.structure()},this)).join(" ")+")"}else{return this.data}},toString:function(){var ak=[""];this.serialize(ak);return ak.join("")},serialize:function(an){var al=this.length,ao=this.data,ak=";\n",am=function(ap){if(V[an[an.length-1].charCodeAt(0)]===V[ap.charCodeAt(0)]){an.push(" ",ap)}else{an.push(ap)}};switch(al){case 0:if(f(af,ao)){return am(ao.replace(/^u/,""))}else{if(f(p,ao)){return am(ao),am(p[ao])}else{return am(ao)}}case 1:if(f(C,ao)||f(af,ao)){return am(ao.replace(/^u/,"")),this[0].serialize(an)}else{if(f(p,ao)){return am(ao),this[0].serialize(an),am(p[ao])}else{if(f(z,ao)){return am("/* unary "+ao+" node */"),this[0].serialize(an)}else{return this[0].serialize(an),am(ao)}}}case 2:if(f(B,ao)){return this[0].serialize(an),am(ao.charAt(0)),this[1].serialize(an),am(ao.charAt(1))}else{if(f(W,ao)){return am(ao),this[0].serialize(an),this[1].serialize(an)}else{if(f(aa,ao)){return this[0].serialize(an),this[1].serialize(an)}else{if(ao===";"){return this[0].serialize(an),am(ak),this[1].serialize(an)}else{return this[0].serialize(an),am(ao),this[1].serialize(an)}}}}default:if(f(O,ao)){return this[0].serialize(an),am(ao),this[1].serialize(an),am(":"),this[2].serialize(an)}else{if(f(W,ao)){return this.accepts(this[2])&&!this[1].ends_with_block()?(am(ao),this[0].serialize(an),this[1].serialize(an),am(ak),this[2].serialize(an)):(am(ao),this[0].serialize(an),this[1].serialize(an),this[2].serialize(an))}else{return this.unflatten().serialize(an)}}}}};aj.ref=function(al,ak){if(al instanceof this.constructor){this.value=al.value,this.data=al.data}else{this.value=al,this.data=U(ak&&ak.constructor===String?ak:"ref")}};Z(aj.ref.prototype,t,{binds_a_value:true,length:0});aj.ref.prototype.replace=function(ak){var al;return j.call(ak,this.data)&&(al=ak[this.data])?al.constructor===String?A(new this.constructor(this.value),function(){this.data=al}):al:this};aj.syntax=function(ap){if(ap instanceof this.constructor){this.data=ap.data,this.length=0}else{this.data=ap&&ap.toString();this.length=0;for(var an=1,ak=arguments.length,am;am=arguments[an],an<ak;++an){for(var al=0,ar=am.length,ao,aq;am instanceof Array?(ao=am[al],al<ar):(ao=am,!al);++al){this._append((aq=ao.constructor)===String||aq===Number||aq===Boolean?new this.constructor(ao):ao)}}}};Z(aj.syntax.prototype,t);var a=aj.empty=new aj.syntax("");aj.parse=function(aB){var aE=aB.toString(),ay=0,aQ=0,aH=true,aR=false,aG=false,at=false,aF=0,aD="",aM=0,aK=aE.length,al=function(aU){return aE.charCodeAt(aU)},au=[],an=null,ak=null,ax=null,ap=M(function(){return[]},J),am=[],av=[a],aO=function(aU){return av.push(aU),aU},ar=function(aU){return ak?ak._sibling(ak=aU):(ak=aU._append_to(ax)),aO(aU)},aJ=this.syntax;if(aK===0){return a}while((ay=aM)<aK){while(h[aQ=al(aM)]&&aM<aK){ay=++aM}aR=at=aG=aD=false;if(s[aQ]){aD=!!++aM;aH=q[aQ]}else{if(aQ===m&&al(aM+1)===Q&&(aM+=2)){while(++aM<aK&&al(aM)!==m||al(aM-1)!==Q){}aD=!++aM}else{if(aQ===m&&al(aM+1)===m){while(++aM<aK&&!I[al(aM)]){}aD=false}else{if(N[aQ]&&(aF=aQ)&&aH&&!(aH=!(aD=aE.charAt(aM)))){while(++aM<aK&&(aQ=al(aM))!==aF||aR){aR=!aR&&aQ===k}while(++aM<aK&&i[al(aM)]){}aD=true}else{if(aQ===S&&x[al(aM+1)]){while(++aM<aK&&x[al(aM)]){}aH=!(aD=true)}else{if(ah[aQ]&&(aQ!==L||T[al(aM+1)])){while(++aM<aK&&(T[aQ=al(aM)]||(aG^(aG|=aQ===L))||(at^(at|=K[aQ]&&++aM)))){}while(aM<aK&&T[al(aM)]){++aM}aH=!(aD=true)}else{if(w[aQ]&&(aD=aH?"u":"",aH=true)){while(aM<aK&&w[al(aM)]&&f(ai,aD+aE.charAt(aM))){aD+=aE.charAt(aM++)}aH=!f(ag,aD)}else{while(++aM<aK&&V[al(aM)]){}aH=f(ai,aD=aE.substring(ay,aM))}}}}}}}if(aM===ay){throw new Error('Caterwaul lex error at "'+aE.substr(ay,40)+'" with leading context "'+aE.substr(ay-40,40)+'" (probably a Caterwaul bug)')}if(aD===false){continue}aD=aD===true?aE.substring(ay,aM):aD==="u;"?";":aD;aD===an?(au.pop(),an=au[au.length-1],ak=ak?ak.p:ax,ax=null):(f(p,aD)?(au.push(an=p[aD]),ax=ar(aO(new aJ(aD))),ak=null):ar(aO(new aJ(aD))),f(D,aD)&&ap[D[aD]].push(ak||ax));aH|=aD===")"&&ak.l&&f(W,ak.l.data)}for(var aM=0,aK=ap.length,az,aT;aT=ap[aM],az=u[aM],aM<aK;++aM){for(var aL=az?0:aT.length-1,aC=aT.length,aw=az?1:-1,aI,aS,aA;az?aL<aC:aL>=0;aL+=aw){if(f(z,aS=(aI=aT[aL]).data)){aI._fold_lr()}else{if(f(E,aS)&&aI.l&&!((aA=aI.l.l)&&f(W,aA.data))&&(aI.l.data==="."||(aI.l.data==="function"&&aI.l.length===2)||!(f(ai,aI.l.data)||f(d,aI.l.data)))){am.push(aI.l._wrap(aO(new aJ(aS+p[aS]))).p._fold_r())}else{if(f(G,aS)){aI._fold_l()}else{if(f(C,aS)){aI._fold_r()}else{if(f(O,aS)){aI._fold_lr();var aP=aI[1];aI[1]=aI[0];aI[0]=aP}else{if(f(W,aS)&&aI.r&&aI.r.data!==":"){for(var aq=0,aN=W[aS];aq<aN&&aI.r&&!f(g,aI.r.data);++aq){aI._fold_r()}aI.r&&(aI.r.data===";"?aI.push(a):aI._fold_r());if(f(P,aS)&&P[aS]===(aI.r&&aI.r.r&&aI.r.r.data)){aI._fold_r().pop()._fold_r()}else{if(f(P,aS)&&P[aS]===(aI.r&&aI.r.data)){aI._fold_r()}}}else{if(f(af,aS)){aI.r&&aI.r.data!==";"&&aI._fold_r()}}}}}}}}}for(var aM=av.length-1,aT;aM>=0;--aM){(aT=av[aM]).r&&aT._wrap(aO(new aJ("i;"))).p._fold_r()}for(var aM=0,aK=am.length,aT,ao;aM<aK;++aM){(ao=(aT=am[aM])[1]=aT[1][0]||a)&&(ao.p=aT)}while(ak.p){ak=ak.p}for(var aM=av.length-1,aT;aM>=0;--aM){delete (aT=av[aM]).p,delete aT.l,delete aT.r}return ak};(function(){var ak=aj.parse("var _bindings; return(_expression)"),am=aj.parse("_variable = _base._variable"),al=aj.parse("undefined = void(0)");aj.compile=function(ay,ar,ax){ax=Z({gensym_renaming:true},ax);var ao=Z({},this._environment||{},ar||{},ay.bindings()),au=[al],aw=U("base");for(var aq in ao){if(j.call(ao,aq)&&aq!=="this"){au.push(am.replace({_variable:aq,_base:aw}))}}var av=new this.syntax(",",au).unflatten(),an=ak.replace({_bindings:av,_expression:ay});if(ax.gensym_renaming){var ap=this.gensym_rename_table(an);for(var aq in ao){j.call(ao,aq)&&(ao[ap[aq]||aq]=ao[aq])}an=an.replace(ap);aw=ap[aw]}try{return(new Function(aw,an)).call(ao["this"],ao)}catch(at){throw new Error(at+" while compiling "+an)}};aj.gensym_rename_table=function(ax){var av={},at=[],aw=/^gensym_(.*)_\d+_[^_]+_[^_]+$/;ax.reach(function(ay){var az=ay.data;aw.test(az)&&(av[az]||at.push(az));av[az]=az.replace(aw,"$1")||"anon"});var an={},au=function(ay){if(!(ay in av)){return ay}var az=an[ay]||0;while(av[ay+(++az).toString(36)]){}return ay+(an[ay]=az).toString(36)};for(var ao={},aq=0,ap=at.length,ar;aq<ap;++aq){ao[ar=at[aq]]||(av[ao[ar]=au(av[ar])]=true)}return ao}})();aj.ensure_syntax=function(ak){return ak&&ak.constructor===String?this.parse(ak):ak};aj.ensure_pattern=function(ak){return ak.constructor===String?this.ensure_pattern(this.parse(ak)):ak.constructor===this.syntax?function(al){return ak.match(al)}:ak};aj.ensure_expander=function(ak){return ak.constructor===String?this.ensure_expander(this.parse(ak)):ak.constructor===this.syntax?function(al){return this.expand(ak.replace(al))}:ak};aj.macro=aj.right_variadic(function(al,an){var am=this.ensure_pattern(al),ak=this.ensure_expander(an);return A(function(ao){var ap=am.call(this,ao);return ap&&ak.call(this,ap)},function(){this.pattern=al,this.expander=an})});aj.macroexpand=function(al){for(var ap=arguments.length?[].concat(this._macros||[]):this._macros||[],ao=1,am=arguments.length,ak;ao<am;++ao){(ak=arguments[ao]) instanceof Array?ap.push.apply(ap,ak):ap.push(ak)}var an={caterwaul:this,macros:ap,expand:function(aq){return aq.rmap(function(at){for(var au=null,ar=ap.length-1;ar>=0;--ar){if(au=ap[ar].call(an,at)){return au}}})}};return an.expand(this.ensure_syntax(al))};var b={};aj.precompiled_internal=function(al){var ak=U("precompiled");return b[ak]=al,ak};aj.is_precompiled=function(ak){return ak.constructor===String&&b[ak]};aj.clone=function(ak){return A(this.merge(ac(),this,this.instance_methods(),{constructor:this}),function(){delete this._id,delete this._macros,delete this._environment})};aj.instance_methods=function(){return{compile:this.compile,parse:this.parse,macroexpand:this.macroexpand,syntax:this.syntax,ref:this.ref,id:this.syntax_common.id,gensym_rename_table:this.gensym_rename_table,init_function:this.init_function||this.macroexpand,instance_methods:this.instance_methods,ensure_syntax:this.ensure_syntax,ensure_pattern:this.ensure_pattern,ensure_expander:this.ensure_expander,environment:function(ak){return arguments.length?(this._environment=ak,this):this._environment},macros:function(){return arguments.length?(this._macros=this.flatten.apply(this,arguments),this):this._macros},toString:function(){return"[caterwaul instance "+this.id()+"]"},init:function(al,ak){return this.is_precompiled(al)||this.init_not_precompiled(al,ak)},init_not_precompiled:function(al,ak){return al.constructor===this.syntax?this.init_function(al):this.compile(this(this.parse(al)),ak)}}};return caterwaul=aj=aj.clone()});caterwaul.version("4b8cac35fdce9b46bbf8b5eacd1a3b6b");
 </script>
 <script>
-(function(a){a.anonymizer=function(){for(var d={},c=0,b=arguments.length;c<b;++c){d[arguments[c]]=a.gensym(arguments[c])}return function(e){return a.ensure_syntax(e).replace(d)}}})(caterwaul);(function(b){var a=b.anonymizer("i","l","xs","result");b.word_macros=function(c){return[c.modifier("qs",function(d){return new b.ref(d._expression,"qs")}),c.modifier("qse",function(d){return new b.ref(this.expand(d._expression),"qse")}),c.modifier("reexpand",function(d){return this.expand(this.expand(d._expression))}),c.modifier("noexpand",function(d){return d._expression}),c.modifier("wobbly","chuck","(function () {throw _expression}).call(this)"),c.parameterized_modifier("failover","safely","(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)"),c.parameterized_modifier("given","(function (_parameters) {return _expression})"),c.parameterized_modifier("bgiven","(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))"),c.parameterized_modifier("effect","se","(function (it) {return (_parameters), it}).call(this, (_expression))"),c.parameterized_modifier("then","re","returning","(function (it) {return (_parameters)}).call(this, (_expression))"),c.parameterized_modifier("where","bind","(function () {var _parameters; return (_expression)}).call(this)"),c.parameterized_modifier("when","((_parameters) && (_expression))"),c.parameterized_modifier("unless","(! (_parameters) && (_expression))"),c.parameterized_modifier("otherwise","((_expression) || (_parameters))"),c.parameterized_modifier("when_defined","((_parameters) != null && (_expression))"),c.parameterized_modifier("unless_defined","((_parameters) == null && (_expression))"),c.parameterized_modifier("over",a("(function () {for (var xs = (_parameters), result = [], i = 0, l = xs.length, it; i < l; ++i)it = xs[i], result.push(_expression); return result}).call(this)")),c.parameterized_modifier("over_keys",a("(function () {var x = (_parameters), result = []; for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)")),c.parameterized_modifier("over_values",a("(function () {var x = (_parameters), result = [], it; for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));return result}).call(this)")),c.parameterized_modifier("until",a("(function () {var result = []; while (! (_parameters)) result.push(_expression); return result}).call(this)"))]}})(caterwaul);(function(a){a.js=function(){var d=function(e,f){return function(g){return a.macro(a.parse(g).replace({_modifiers:a.parse(e)}),f)}};var c=function(e,f){return function(g){return b.modifier(a.parse(g).replace({_modifiers:a.parse(e)}),f)}};var b={modifier:this.right_variadic(function(e,f){return a.map(d(e,f),["_expression /_modifiers","_expression -_modifiers","_expression |_modifiers","_modifiers[_expression]","_modifiers in _expression","_expression, _modifiers"])}),parameterized_modifier:this.right_variadic(function(e,f){return[a.map(c(e,f),["_modifiers[_parameters]","_modifiers._parameters"]),a.map(d(e,f),["_expression <_modifiers> _parameters","_expression -_modifiers- _parameters"])]}),macros:[function(h){var t=h.data,e=t.charAt(0),k=a.syntax;if(e!=="'"&&e!=='"'||!/#\{[^\}]+\}/.test(t)){return false}for(var j=[],n=1,m=t.length-1,r=0,o=false,f=1,p;n<m;++n){if(r){if((p=t.charAt(n))==="}"){--r||j.push(t.substring(f,n))&&(f=n+1),o=false}else{r+=p==="{"}}else{if((p=t.charAt(n))==="#"){o=true}else{if(p==="{"&&o){j.push(t.substring(f,n-1)),f=n+1,++r}else{o=false}}}}j.push(t.substring(f,m));for(var g=new RegExp("\\\\"+e,"g"),n=0,m=j.length;n<m;++n){j[n]=n&1?this.expand(a.parse(j[n].replace(g,e)).as("(")):new k(e+j[n]+e)}return new k("+",j).unflatten().as("(")},this.macro("_left(_args) = _right","_left = (function (_args) {return _right})"),this.macro("_left(_var = arguments) = _right","_left = (function () {var _var = arguments; return _right})")]};return b}})(caterwaul);caterwaul.js_base=function(){var a=this.js();return this.clone().macros(this.word_macros(a),a.macros)};caterwaul.js_base()(caterwaul.precompiled_internal((function(){null;return(function(a){a.seq_macro=(function(b){return b.modifier("seq",(function(){var c=a.seq();return((function(d){return this.expand(c(d._expression))}))}).call(this))});a.seq=(function(){return(function(){var d=a.anonymizer("S"),e=(function(g,f){return a.macro(d(g),f.constructor===Function?(function(h){return this.expand(f.call(this,h))}):d(f))}),b=(function(){var t=(function(D,B,A,C){return(function(){var G=(function(H){return d(H).replace({"+":D})}),E=(function(I,H){return e(G(I),H.constructor===Function?H:G(H))}),F=[E("S[_xs +~[_f]]","S[_xs +[S[_f]]]"),E("S[_xs +~_var[_f]]","S[_xs +_var[S[_f]]]"),E("S[_xs +!~[_f]]","S[_xs +![S[_f]]]"),E("S[_xs +!~_var[_f]]","S[_xs +!_var[S[_f]]]"),E("S[_xs +~!~[_f]]","S[_xs +~![S[_f]]]"),E("S[_xs +~!~_var[_f]]","S[_xs +~!_var[S[_f]]]")];return((function(H){return(H.concat(F))}).call(this,((function(H){return(((C)&&(H.push(E("S[_xs +~![_f]]",C),E("S[_xs +~!_var[_f]]",C))))),H}).call(this,((function(H){return(((A)&&(H.push(E("S[_xs +![_f]]",A),E("S[_xs +!_var[_f]]",A))))),H}).call(this,((function(H){return(H.push(E("S[_xs +[_f]]",B),E("S[_xs +_var[_f]]",B))),H}).call(this,([])))))))))}).call(this)}),o=(function(B,A){return(function(){var C=(function(D){return d(D).replace({"+":B})});return(e(C("S[_xs + _ys]"),A))}).call(this)}),m=a.anonymizer("xs","ys","x","y","i","j","l","lj"),p=(function(A){return m(y(d(A)))}),g=d("(function (xs) {_body}).call(this, S[_xs])"),y=(function(A){return g.replace({_body:A})}),l=(function(A){return(function(){var B=p(A);return((function(C){return B.replace(s(C))}))}).call(this)}),w=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                          return ys"),j=l("for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                   return xs"),r=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f))); return ys"),n=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                    return ys"),i=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                    return ys"),f=l("for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);         return ys"),z=l("for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);              return _x"),u=l("for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);              return _x0"),q=l("for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false"),k=l("return xs.concat(S[_ys])"),v=l("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs"),h=l("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);return pairs"),s=(function(A){return a.merge({},A,x(A._var))}),x=(function(A){return(function(){var B=A&&A.data||"x";return({_x:B,_xi:(""+(B)+"i"),_xl:(""+(B)+"l"),_x0:(""+(B)+"0")})}).call(this)});return([e("S[_x]","_x"),e("S[_x, _y]","S[_x], S[_y]"),t("|",q),e("S[(_x)]","(S[_x])"),t("*",w,j,r),o("+",k),t("%",n,i,f),o("-",h),t("/",z,u),o("^",v)])}).call(this),c=(function(){var h=(function(n){return i.replace(a.merge({_lower:"0",_step:"1"},n))}),i=d("(function (i, u, s) {if ((u - i) * s <= 0) return [];for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))"),o=a.parse("(function () {_body}).call(this)"),k=(function(n){return o.replace({_body:n})}),g=(function(n){return(function(p){return k(d(n)).replace(p)})}),m=g("var ks = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks"),l=g("var vs = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs"),f=g("var ps = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps"),j=g("for (var o = {}, xs = S[_xs], i = 0, l = xs.length, x; i < l; ++i) x = xs[i], o[x[0]] = x[1]; return o");return([e("S[n[_upper]]",h),e("S[_o /keys]",m),e("S[n[_lower, _upper]]",h),e("S[_o /values]",l),e("S[n[_lower, _upper, _step]]",h),e("S[_o /pairs]",f),e("S[_xs |object]",j)])}).call(this);return((function(f){return(f.init_function=(function(g){return this.macroexpand(d("S[_x]").replace({_x:g}))})),f}).call(this,(a.clone().macros(b,c))))}).call(this)})})}).call(this)))(caterwaul);caterwaul.js_base()(caterwaul.precompiled_internal((function(){null;return(function(a){(function(){var f=(function(g){return a.macro((""+(g)+" _x"),('_x["'+(/[a-z]/.test(g)?g:"u"+g)+'"]()'))}),e=(function(g){return a.macro(("_x "+(g)+" _y"),('_x["'+(g)+'"](_y)'))}),c=(function(g){return g.split(/\s+/)}),d=(function(){for(var h=(c("! ~ + - new void typeof")),i=[],k=0,g=h.length,j;k<g;++k){j=h[k],i.push(f(j))}return i}).call(this),b=(function(){for(var h=(c("+ - * / % ^ | & << >> >>> += -= *= /= %= ^= |= &= <<= >>= >>>= == != === !== < > <= >= in instanceof")),i=[],k=0,g=h.length,j;k<g;++k){j=h[k],i.push(e(j))}return i}).call(this);return(a.overload_macro=(function(g){return g.modifier("overload",(function(){var h=a.overload();return((function(i){return this.expand(h(i._expression))}))}).call(this))}),a.overload=(function(){return a.clone().macros(d,b)}))}).call(this)})}).call(this)))(caterwaul);caterwaul.js_all=function(){var a=this.js();return this.clone().macros(this.word_macros(a),a.macros,this.overload_macro(a),this.seq_macro(a))};
+(function(a){a.anonymizer=function(){for(var d={},c=0,b=arguments.length;c<b;++c){d[arguments[c]]=a.gensym(arguments[c])}return function(e){return a.ensure_syntax(e).replace(d)}}})(caterwaul);(function(b){var a=b.anonymizer("i","l","xs","result");b.word_macros=function(c){return[c.modifier("qs",function(d){return new b.ref(d._expression,"qs")}),c.modifier("qse",function(d){return new b.ref(this.expand(d._expression),"qse")}),c.modifier("reexpand",function(d){return this.expand(this.expand(d._expression))}),c.modifier("noexpand",function(d){return d._expression}),c.modifier("wobbly","chuck","(function () {throw _expression}).call(this)"),c.parameterized_modifier("failover","safely","(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)"),c.parameterized_modifier("given","(function (_parameters) {return _expression})"),c.parameterized_modifier("bgiven","(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))"),c.parameterized_modifier("effect","se","(function (it) {return (_parameters), it}).call(this, (_expression))"),c.parameterized_modifier("then","re","returning","(function (it) {return (_parameters)}).call(this, (_expression))"),c.parameterized_modifier("where","bind","(function () {var _parameters; return (_expression)}).call(this)"),c.parameterized_modifier("when","((_parameters) && (_expression))"),c.parameterized_modifier("unless","(! (_parameters) && (_expression))"),c.parameterized_modifier("otherwise","((_expression) || (_parameters))"),c.parameterized_modifier("when_defined","((_parameters) != null && (_expression))"),c.parameterized_modifier("unless_defined","((_parameters) == null && (_expression))"),c.parameterized_modifier("over",a("(function () {for (var xs = (_parameters), result = [], i = 0, l = xs.length, it; i < l; ++i)it = xs[i], result.push(_expression); return result}).call(this)")),c.parameterized_modifier("over_keys",a("(function () {var x = (_parameters), result = []; for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)")),c.parameterized_modifier("over_values",a("(function () {var x = (_parameters), result = [], it; for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));return result}).call(this)")),c.parameterized_modifier("until",a("(function () {var result = []; while (! (_parameters)) result.push(_expression); return result}).call(this)"))]}})(caterwaul);(function(a){a.js=function(){var d=function(e,f){return function(g){return a.macro(a.parse(g).replace({_modifiers:a.parse(e)}),f)}};var c=function(e,f){return function(g){return b.modifier(a.parse(g).replace({_modifiers:a.parse(e)}),f)}};var b={modifier:this.right_variadic(function(e,f){return a.map(d(e,f),["_expression /_modifiers","_expression -_modifiers","_expression |_modifiers","_modifiers[_expression]","_modifiers in _expression","_expression, _modifiers"])}),parameterized_modifier:this.right_variadic(function(e,f){return[a.map(c(e,f),["_modifiers[_parameters]","_modifiers._parameters"]),a.map(d(e,f),["_expression <_modifiers> _parameters","_expression -_modifiers- _parameters"])]}),macros:[function(h){var t=h.data,e=t.charAt(0),k=a.syntax;if(e!=="'"&&e!=='"'||!/#\{[^\}]+\}/.test(t)){return false}for(var j=[],n=1,m=t.length-1,r=0,o=false,f=1,p;n<m;++n){if(r){if((p=t.charAt(n))==="}"){--r||j.push(t.substring(f,n))&&(f=n+1),o=false}else{r+=p==="{"}}else{if((p=t.charAt(n))==="#"){o=true}else{if(p==="{"&&o){j.push(t.substring(f,n-1)),f=n+1,++r}else{o=false}}}}j.push(t.substring(f,m));for(var g=new RegExp("\\\\"+e,"g"),n=0,m=j.length;n<m;++n){j[n]=n&1?this.expand(a.parse(j[n].replace(g,e)).as("(")):new k(e+j[n]+e)}return new k("+",j).unflatten().as("(")},this.macro("_left(_args) = _right","_left = (function (_args) {return _right})"),this.macro("_left(_var = arguments) = _right","_left = (function () {var _var = arguments; return _right})")]};return b}})(caterwaul);caterwaul.js_base=function(){var a=this.js();return this.clone().macros(this.word_macros(a),a.macros)};caterwaul.js_base()(caterwaul.precompiled_internal((function(){null;return(function(a){a.seq_macro=(function(b){return b.modifier("seq",(function(){var c=a.seq();return((function(d){return this.expand(c(d._expression))}))}).call(this))});a.seq=(function(){return(function(){var d=a.anonymizer("S"),e=(function(g,f){return a.macro(d(g),f.constructor===Function?(function(h){return this.expand(f.call(this,h))}):d(f))}),b=(function(){var t=(function(D,B,A,C){return(function(){var G=(function(H){return d(H).replace({"+":D})}),E=(function(I,H){return e(G(I),H.constructor===Function?H:G(H))}),F=[E("S[_xs +~[_f]]","S[_xs +[S[_f]]]"),E("S[_xs +~_var[_f]]","S[_xs +_var[S[_f]]]"),E("S[_xs +!~[_f]]","S[_xs +![S[_f]]]"),E("S[_xs +!~_var[_f]]","S[_xs +!_var[S[_f]]]"),E("S[_xs +~!~[_f]]","S[_xs +~![S[_f]]]"),E("S[_xs +~!~_var[_f]]","S[_xs +~!_var[S[_f]]]")];return((function(H){return(H.concat(F))}).call(this,((function(H){return(((C)&&(H.push(E("S[_xs +~![_f]]",C),E("S[_xs +~!_var[_f]]",C))))),H}).call(this,((function(H){return(((A)&&(H.push(E("S[_xs +![_f]]",A),E("S[_xs +!_var[_f]]",A))))),H}).call(this,((function(H){return(H.push(E("S[_xs +[_f]]",B),E("S[_xs +_var[_f]]",B))),H}).call(this,([])))))))))}).call(this)}),o=(function(B,A){return(function(){var C=(function(D){return d(D).replace({"+":B})});return(e(C("S[_xs + _ys]"),A))}).call(this)}),m=a.anonymizer("xs","ys","x","y","i","j","l","lj"),p=(function(A){return m(y(d(A)))}),g=d("(function (xs) {_body}).call(this, S[_xs])"),y=(function(A){return g.replace({_body:A})}),l=(function(A){return(function(){var B=p(A);return((function(C){return B.replace(s(C))}))}).call(this)}),w=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                          return ys"),j=l("for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                   return xs"),r=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f))); return ys"),n=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                    return ys"),i=l("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                    return ys"),f=l("for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);         return ys"),z=l("for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);              return _x"),u=l("for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);              return _x0"),q=l("for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false"),k=l("return xs.concat(S[_ys])"),v=l("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs"),h=l("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);return pairs"),s=(function(A){return a.merge({},A,x(A._var))}),x=(function(A){return(function(){var B=A&&A.data||"x";return({_x:B,_xi:(""+(B)+"i"),_xl:(""+(B)+"l"),_x0:(""+(B)+"0")})}).call(this)});return([e("S[_x]","_x"),e("S[_x, _y]","S[_x], S[_y]"),t("|",q),e("S[(_x)]","(S[_x])"),t("*",w,j,r),o("+",k),t("%",n,i,f),o("-",h),t("/",z,u),o("^",v)])}).call(this),c=(function(){var h=(function(n){return i.replace(a.merge({_lower:"0",_step:"1"},n))}),i=d("(function (i, u, s) {if ((u - i) * s <= 0) return [];for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))"),o=a.parse("(function () {_body}).call(this)"),k=(function(n){return o.replace({_body:n})}),g=(function(n){return(function(p){return k(d(n)).replace(p)})}),m=g("var ks = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks"),l=g("var vs = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs"),f=g("var ps = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps"),j=g("for (var o = {}, xs = S[_xs], i = 0, l = xs.length, x; i < l; ++i) x = xs[i], o[x[0]] = x[1]; return o");return([e("S[n[_upper]]",h),e("S[_o /keys]",m),e("S[_xs |object]",j),e("S[n[_lower, _upper]]",h),e("S[_o /values]",l),e("S[_xs -object]",j),e("S[n[_lower, _upper, _step]]",h),e("S[_o /pairs]",f),e("S[_xs /object]",j)])}).call(this);return((function(f){return(f.init_function=(function(g){return this.macroexpand(d("S[_x]").replace({_x:g}))})),f}).call(this,(a.clone().macros(b,c))))}).call(this)})})}).call(this)))(caterwaul);caterwaul.js_base()(caterwaul.precompiled_internal((function(){null;return(function(a){(function(){var f=(function(g){return a.macro((""+(g)+" _x"),('_x["'+(/[a-z]/.test(g)?g:"u"+g)+'"]()'))}),e=(function(g){return a.macro(("_x "+(g)+" _y"),('_x["'+(g)+'"](_y)'))}),c=(function(g){return g.split(/\s+/)}),d=(function(){for(var h=(c("! ~ + - new void typeof")),i=[],k=0,g=h.length,j;k<g;++k){j=h[k],i.push(f(j))}return i}).call(this),b=(function(){for(var h=(c("+ - * / % ^ | & << >> >>> += -= *= /= %= ^= |= &= <<= >>= >>>= == != === !== < > <= >= in instanceof")),i=[],k=0,g=h.length,j;k<g;++k){j=h[k],i.push(e(j))}return i}).call(this);return(a.overload_macro=(function(g){return g.modifier("overload",(function(){var h=a.overload();return((function(i){return this.expand(h(i._expression))}))}).call(this))}),a.overload=(function(){return a.clone().macros(d,b)}))}).call(this)})}).call(this)))(caterwaul);caterwaul.js_all=function(){var a=this.js();return this.clone().macros(this.word_macros(a),a.macros,this.overload_macro(a),this.seq_macro(a))};
 </script>
 <script>
 caterwaul.js_base()(caterwaul.precompiled_internal((function(){var a=new caterwaul.syntax("()",new caterwaul.syntax(".",new caterwaul.syntax("caterwaul"),new caterwaul.syntax("precompiled_internal")),new caterwaul.syntax("_x"));var c=new caterwaul.syntax("new",new caterwaul.syntax("()",new caterwaul.syntax(".",new caterwaul.syntax("caterwaul"),new caterwaul.syntax("syntax")),new caterwaul.syntax("_name")));var b=new caterwaul.syntax("new",new caterwaul.syntax("()",new caterwaul.syntax(".",new caterwaul.syntax("caterwaul"),new caterwaul.syntax("syntax")),new caterwaul.syntax(",",new caterwaul.syntax("_name"),new caterwaul.syntax("_children"))));return(function(d){d.precompile=(function(e){return(function(){var u=d.parse("function (_args) {_body}"),g=d.parse("function ()      {_body}"),D=d.parse("function (_args, _gensym) {_body}"),j=d.parse("function (_gensym)        {_body}"),B=D,h=j,w=(function(M){return(function(N){return(function(O){return(function(){var Q=d.gensym("mark"),P=M.replace({_args:O._args,_gensym:Q,_body:H(O._body,N)});return((function(R){return(N[Q]={tree:P}),R}).call(this,(P)))}).call(this)})})}),K=w(D),z=w(j),H=(function(M,N){return d.macroexpand(M,d.macro(g,z(N)),d.macro(u,K(N)))}),J=(function(M){return(function(){var N=B.match(M)||h.match(M);return(((N)&&(N._gensym.data)))}).call(this)}),L=(function(P,O,N,M){return((O&&P[O])&&((function(Q){return(P[O].compiled=N,P[O].environment=M),Q}).call(this,((function(Q){return(((P[O].compiled)&&((function(){throw new Error(("detected multiple compilations of "+(P[O].tree)+""))}).call(this)))),Q}).call(this,(P[O]))))))}),E=(function(N,M){return(function(P,O,Q){return(function(R){return(L(M,J(P),P,d.merge({},this._environment||{},O))),R}).call(this,(N.call(this,P,O,Q)))})}),o=(function(M){return a.replace({_x:M})}),t=d.parse("(function () {_vars; return (_value)}).call(this)"),I=d.parse("var _var = _value"),A=d.parse("null"),l=(function(M){return"'"+M.replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/'/g,"\\'")+"'"}),y=(function(M){return M.length===0?c.replace({_name:l(M.data)}):(function(){var N=new d.syntax(",",(function(){for(var P=(M),R=[],Q=0,O=P.length,S;Q<O;++Q){S=P[Q],R.push(y(S))}return R}).call(this)).unflatten();return(b.replace({_name:l(M.data),_children:N}))}).call(this)}),x=(function(O,N,M){return !O?(""+(O)+""):O.constructor===d.syntax?M[O.id()]||(function(P){return(y(O))}).call(this,((M[O.id()]=N))):(function(){throw new Error(("syntax ref value is not serializable: "+(O)+""))}).call(this)}),v=(function(M,N){return I.replace({_var:M,_value:N})}),f=(function(M){return(function(){var N=(M),O=[];for(var P in N){Object.prototype.hasOwnProperty.call(N,P)&&O.push(v(P,M[P]))}return O}).call(this)}),s=(function(M){return(function(){var O=[],N={};return((function(P){return(M.reach((function(Q){return((Q&&Q.binds_a_value)&&(O.push(v(Q.data,x(Q.value,Q.data,N)))))}))),P}).call(this,(O)))}).call(this)}),G=(function(N,M){return(function(){var O=f(M).concat(s(N));return(O.length?new d.syntax(";",O):A)}).call(this)}),r=(function(N,M){return t.replace({_vars:G(N,M),_value:N})}),p=(function(N,M){return o(r(N,M))}),k=(function(M){return(function(N){return(function(){var O=M[N._gensym.data];return(((O&&O.compiled)&&(p(O.compiled,O.environment))))}).call(this)})}),C=(function(N,M){return d.macroexpand(M,d.macro(h,B,k(N)))}),i=(function(N,M){return(function(){var O={_body:n(N,M._body),_args:M._args};return(M._args?u.replace(O):g.replace(O))}).call(this)}),q=(function(M){return(function(N){return(function(){var O=M[N._gensym.data];return(((O&&O.tree)&&(i(M,N))))}).call(this)})}),n=(function(N,M){return d.macroexpand(M,d.macro(h,B,q(N)))}),F=(function(M,N){return(function(O){return(O.compile=E(O.compile,N)),O}).call(this,(M.clone()))}),m=(function(M,N){return(function(){var P={},O=H(d.parse(N),P);return((function(Q){return(M.compile(O,{caterwaul:F(M,P)},{gensym_renaming:false})()),Q}).call(this,({references:P,annotated:O})))}).call(this)});return((function(){var M=m(this,e);return(this.compile(n(M.references,C(M.references,M.annotated))))}).call(this))}).call(this)})})}).call(this)))(caterwaul);caterwaul.js_base()(caterwaul.precompiled_internal((function(){null;return(function(a){a.tracer=(function(b,c){return(function(){var d=a.anonymizer("E","S","H","D","I"),f=(function(j,i){return a.macro(d(j),i.constructor===Function?(function(k){return this.expand(i.call(this,k))}):d(i))}),h=(function(){var i=(function(m){return(function(){var n=(function(p){return d(p).replace({"=":m})}),o=(function(p,q){return a.macro(n(p),n(q))});return([o("E[_x     = _y]","H[_, _x           = E[_y]]"),o("E[_x[_y] = _z]","H[_, E[_x][E[_y]] = E[_z]]"),o("E[_x._y  = _z]","H[_, E[_x]._y     = E[_z]]")])}).call(this)}),l=(function(m){return a.macro(d("E[_x + _y]").replace({"+":m}),d("H[_, E[_x] + E[_y]]").replace({"+":m}))}),j=(function(m){return a.macro(d("E[+_x]").replace({"u+":("u"+(m)+"")}),d("H[_, +E[_x]]").replace({"u+":("u"+(m)+"")}))}),k=(function(m){return m.split(/\s+/)});return([f("E[_x]","H[_, _x]"),f("E[]",""),(function(){for(var n=(k("= += -= *= /= %= &= |= ^= <<= >>= >>>=")),p=[],o=0,m=n.length,q;o<m;++o){q=n[o],p.push(i(q))}return p}).call(this),(function(){for(var n=(k("() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||")),p=[],o=0,m=n.length,q;o<m;++o){q=n[o],p.push(l(q))}return p}).call(this),(function(){for(var n=(k("+ - ! ~")),p=[],o=0,m=n.length,q;o<m;++o){q=n[o],p.push(j(q))}return p}).call(this),f("E[(_x)]","(E[_x])"),f("E[++_x]","H[_, ++_x]"),f("E[--_x]","H[_, --_x]"),f("E[_x++]","H[_, _x++]"),f("E[_x--]","H[_, _x--]"),f("E[_x, _y]","E[_x], E[_y]"),f("E[_x._y]","H[_, E[_x]._y]"),f("E[_o._m(_xs)]","D[_, E[_o], _m, [E[_xs]]]"),f("E[_o[_m](_xs)]","I[_, E[_o], E[_m], [E[_xs]]]"),f("E[typeof _x]","H[_, typeof _x]"),f("E[void _x]","H[_, void E[_x]]"),f("E[delete _x]","H[_, delete _x]"),f("E[delete _x._y]","H[_, delete E[_x]._y]"),f("E[delete _x[_y]]","H[_, delete E[_x][E[_y]]]"),f("E[new _x(_y)]","H[_, new H[_x, _x](E[_y])]"),f("E[{_ps}]","H[_, {E[_ps]}]"),f("E[_k: _v]","_k: E[_v]"),f("E[[_xs]]","H[_, [E[_xs]]]"),f("E[_x ? _y : _z]","H[_, E[_x] ? E[_y] : E[_z]]"),f("E[function ()    {_body}]","H[_, function ()    {S[_body]}]"),f("E[function (_xs) {_body}]","H[_, function (_xs) {S[_body]}]")])}).call(this),e=[f("S[_x]","E[_x]"),f("S[{_x}]","{S[_x]}"),f("S[{}]","{}"),f("S[_x; _y]","S[_x]; S[_y]"),f("S[_x _y]","S[_x] S[_y]"),f("S[break _label]","break _label"),f("S[for (_x) _y]","for (S[_x]) S[_y]"),f("S[break]","break"),f("S[for (_x; _y; _z) _body]","for (S[_x]; E[_y]; E[_z]) S[_body]"),f("S[while (_x) _y]","while (E[_x]) S[_y]"),f("S[_x, _y]","S[_x], S[_y]"),f("S[do _x; while (_y)]","do S[_x]; while (E[_y])"),f("S[_x = _y]","_x = E[_y]"),f("S[do {_x} while (_y)]","do {S[_x]} while (E[_y])"),f("V[_x]","_x"),f("V[_x = _y]","_x = E[_y]"),f("S[try {_x} catch (_e) {_y}]","try {S[_x]} catch (_e) {S[_y]}"),f("V[_x, _y]","V[_x], V[_y]"),f("S[try {_x} catch (_e) {_y} finally {_z}]","try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}"),f("S[var _xs]","var V[_xs]"),f("S[try {_x} finally {_y}]","try {S[_x]} finally {S[_y]}"),f("S[const _xs]","const V[_xs]"),f("S[function _f(_args) {_body}]","function _f(_args) {S[_body]}"),f("S[return _x]","return E[_x]"),f("S[function _f()      {_body}]","function _f()      {S[_body]}"),f("S[return]","return"),f("S[throw _x]","throw E[_x]"),f("S[if (_x) _y]","if (E[_x]) S[_y]"),f("S[if (_x) _y; else _z]","if (E[_x]) S[_y]; else S[_z]"),f("S[continue _label]","continue _label"),f("S[if (_x) {_y} else _z]","if (E[_x]) {S[_y]} else S[_z]"),f("S[continue]","continue"),f("S[switch (_c) {_body}]","switch (E[_c]) {S[_body]}"),f("S[_label: _stuff]","_label: S[_stuff]"),f("S[with (_x) _y]","with (E[_x]) S[_y]")],g=(function(){var o=(function(v){return((b)&&(b(v)))}),p=(function(v,w){return(function(x){return(w)}).call(this,(((c)&&(c(v,w)))))}),q=(function(v,w,y,x){return(function(){var z=w[y];return((function(A){return(p(v,z.apply(w,x)))}).call(this,((function(A){return(p(v[0],z))}).call(this,(o(v[0]))))))}).call(this)}),s=new a.ref(o,"hook"),n=new a.ref(p,"hook"),k=new a.ref(q,"hook"),u=(function(v){return('"'+(v.data.replace(/(")/g,"\\$1"))+'"')}),r=a.parse("(_before(_tree), _after(_tree, _expression))"),m=a.parse("(_before(_tree), _after(_tree, _object, _method, [_parameters]))"),l=(function(w,v){return r.replace({_before:s,_after:n,_tree:new a.ref(w,"tree"),_expression:v.as("(")})}),t=(function(v,w,y,x){return m.replace({_before:s,_after:k,_tree:new a.ref(v,"tree"),_object:w,_method:y,_parameters:x})}),j=(function(v,w){return t(v,w._object,u(w._method),w._parameters)}),i=(function(v,w){return t(v,w._object,w._method,w._parameters)});return([f("H[_tree, _x]",(function(v){return l(v._tree[1],v._x)})),f("D[_tree, _object, _method, [_parameters]]",(function(v){return j(v._tree[1],v)})),f("I[_tree, _object, _method, [_parameters]]",(function(v){return i(v._tree[1],v)}))])}).call(this);return((function(i){return(i.init_function=(function(j){return this.macroexpand(d("S[_x]").replace({_x:j}))})),i}).call(this,(a.clone().macros(h,e,g))))}).call(this)})})}).call(this)))(caterwaul);caterwaul.js_base()(caterwaul.precompiled_internal((function(){var a=new caterwaul.syntax("()",new caterwaul.syntax(".",new caterwaul.syntax(".",new caterwaul.syntax("caterwaul"),new caterwaul.syntax("assertions")),new caterwaul.syntax("_name")),new caterwaul.syntax(",",new caterwaul.syntax(",",new caterwaul.syntax("_expression"),new caterwaul.syntax("_parameters")),new caterwaul.syntax("_ref")));return(function(b){b.assert=(function(d,c){return d||(function(){throw new Error(c)}).call(this)});b.assertions={should_be:(function(d,c,e){return b.assert(d===c,(""+(e.toString())+": "+(d)+" !== "+(c)+""))}),should_not_be:(function(d,c,e){return b.assert(d!==c,(""+(e.toString())+": "+(d)+" === "+(c)+""))})};b.test_case_gensym=b.gensym();b.test_words=(function(c){return(function(){var d=(function(e){return c.parameterized_modifier(e,(function(f){return a.replace({_expression:f._expression,_parameters:f._parameters,_name:e,_ref:new b.ref(f._)})}))});return(b.map(d,["should_be","should_not_be"]))}).call(this)});b.test_base=(function(){return(function(c){return(c.macros((c.macros()||[]).concat(c.test_words(c.js())))),c}).call(this,(this.clone()))});b.test=(function(c){return this.test_base()(c)()})})}).call(this)))(caterwaul);
@@ -696,8 +720,10 @@ a:hover {color: #fa4}
 __
 meta::bootstrap('initialization', <<'__');
 #!/usr/bin/perl
-# Open this file in a web browser for documentation.
-# <div id='cover' style='position: absolute; left: 0; top: 0; width: 100%; height: 10000px; background: #222'></div>
+# Run perldoc on this file for documentation.
+
+# For the benefit of HTML viewers:
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
 
 $|++;
 
@@ -716,7 +742,7 @@ sub meta::define_form {
     my ($name, $value, %options) = @_;
     chomp $value;
     $data{"${namespace}::$name"} = $value unless $options{no_binding};
-    $delegate->($name, $value) unless $options{no_delegate}}}
+    &$delegate($name, $value) unless $options{no_delegate}}}
 
 sub meta::eval_in {
   my ($what, $where) = @_;
@@ -760,6 +786,7 @@ meta::cache('parent-identification', <<'__');
 notes a9e5975593ed5d90d943ad98405c71e5
 object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
+todo 62bc8a83ef5d4941cd2c1cdfb57a0320
 __
 meta::configuration('dependencies', <<'__');
 # Named dependencies:
@@ -827,7 +854,8 @@ meta::data('watching', '1');
 meta::function('alias', <<'__');
 my ($name, @stuff) = @_;
 return ls('-a', '^alias::') unless defined $name;
-@stuff ? around_hook('alias', @_, sub {associate("alias::$name", join ' ', @stuff)}) : retrieve("alias::$name") || "Undefined alias $name";
+@stuff ? around_hook('alias', @_, sub {associate("alias::$name", join(' ', @stuff), execute => 1)}) : retrieve("alias::$name") || "Undefined alias $name";
+
 __
 meta::function('b', <<'__');
 my @extensions = select_keys('--criteria' => "sdoc::js::extensions/(.*/)?$_[0]");
@@ -881,23 +909,7 @@ __
 meta::function('ct', 'create("sdoc::js::test/$_[0]");');
 meta::function('current-state', 'serialize(\'-pS\');');
 meta::function('disable', 'hook(\'disable\', chmod_self(sub {$_[0] & 0666}));');
-meta::function('dupdate', <<'__');
-# Update the repository based on the dependencies it lists.
-
-terminal::warning('dupdate has been commented out to remove LWP dependency');
-
-=ignore
-
-use LWP::Simple ();
-rm(grep /^cached_dependency::/, keys %data);
-my %dependencies = dependencies();
-
-for (keys %dependencies) {
-  terminal::info("Retrieving $dependencies{$_} as $_");
-  associate("cached_dependency::$_", LWP::Simple::get($dependencies{$_}))}
-
-=cut
-__
+meta::function('dupdate', '# This function has been removed to eliminate dependency on LWP::Simple.');
 meta::function('edit', <<'__');
 my ($name, %options) = @_;
 my $extension = extension_for($name);
@@ -906,8 +918,7 @@ die "$name is virtual or does not exist" unless exists $data{$name};
 die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || is($name, '-d') || exists $options{'-f'};
 
 around_hook('edit', @_, sub {
-  associate($name, invoke_editor_on($data{$name} || "# Attribute $name", %options, attribute => $name, extension => $extension),
-            execute => $name !~ /^bootstrap::/)});
+  associate($name, invoke_editor_on($data{$name} // '', %options, attribute => $name, extension => $extension), execute => 1)});
 save() unless $data{'data::edit::no-save'};
 '';
 __
@@ -1131,6 +1142,17 @@ create("note::$_[0]");
 __
 meta::function('notes', 'ls(\'-a\', \'^note::\');');
 meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
+meta::function('parse-todo', <<'__');
+# Takes a string of todo text and parses it. Multiple todo lists can be
+# combined, resulting in a longer list.
+my @todo_paragraphs = grep s/^\h*\|//, split /\n{2,}/, join "\n\n", retrieve(@_);
+my @todo_lines      = grep /^\h*\[[ \|]+\]\h*\w/, map split(/\n/), @todo_paragraphs;
+
+sub progress_of {my ($s) = @_; ($s =~ /^(\|*)/ and length $1) / length $s}
+
+map /^\s*\[([ \|]+)\]\h*(\H+)\h*(.*)$/ && {progress_meter => $1, progress => progress_of($1), category => $2, details => $3}, @todo_lines;
+
+__
 meta::function('perl', <<'__');
 my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
@@ -1419,6 +1441,21 @@ terminal::warning('running tests without rendering');
 node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
 gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
 __
+meta::function('todo-summary', <<'__');
+my @todo_items = &{'parse-todo'}(@_);
+my %categories;
+my %category_completion;
+
+push @{$categories{$_->{category}} ||= []}, $_         for @todo_items;
+$category_completion{$_->{category}} += $_->{progress} for @todo_items;
+
+# Adjust to represent averages rather than totals
+$category_completion{$_} /= @{$categories{$_}} for keys %categories;
+
+join "\n\n", map sprintf("%s: %4.2f%%\n%s", $_, $category_completion{$_} * 100,
+                         join "\n", map sprintf("%-8s %-16s %s", "[$_->{progress_meter}]", $_->{category}, $_->{details}), @{$categories{$_}}), sort keys %categories;
+
+__
 meta::function('touch', 'associate($_, \'\') for @_;');
 meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
 meta::function('update', '&{\'update-from\'}(@_, grep s/^parent:://o, sort keys %data);');
@@ -1520,6 +1557,17 @@ __
 meta::hook('after-render::tests', 'file::write(\'build/\' . attribute($_) . \'.js\', retrieve("pp::$_"), mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::test\\//, sort keys %data;');
 meta::hook('after-render::tools', 'file::write(\'build/tools/precompile.js\', retrieve(\'pp::js::tools/precompile\'), mkpath => 1);');
 meta::hook('before-save::bootstrap.html', '&{\'build-bootstrap-html\'}();');
+meta::hook('before-save::remove-lwp-dependency', <<'__');
+associate('function::dupdate', '# This function has been removed to eliminate dependency on LWP::Simple.');
+
+__
+meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
+meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
+meta::indicator('state', <<'__');
+my $state = $options{state} // state();
+my $color = $state ne $transient{initial} ? 33 : 30;
+"\033[1;${color}m" . substr($state, 0, 4) . "\033[0;0m";
+__
 meta::internal_function('around_hook', <<'__');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -1604,8 +1652,9 @@ __
 meta::internal_function('execute', <<'__');
 my ($name, %options) = @_;
 my $namespace = namespace($name);
-eval {&{"meta::$namespace"}(attribute($name), retrieve($name))};
+eval {&{$datatypes{$namespace}}(attribute($name), retrieve($name))};
 warn $@ if $@ && $options{'carp'};
+
 __
 meta::internal_function('exported', <<'__');
 # Allocates a temporary file containing the concatenation of attributes you specify,
@@ -1850,13 +1899,11 @@ sub run {execute(parse(tokenize(@_)))}
 
 sub prompt {
   my %options = @_;
-  my $name    = $options{name}  // ::name();
-  my $state   = $options{state} // ::state();
-  my $other   = $state ne $transient{initial} ? 33 : 30;
-  my $locked  = ::is_locked() ? "\033[1;31mlocked\033[0;0m" : '';
-  my $cc      = length ::retrieve('data::current-continuation') ? "\033[1;36mcc\033[0;0m" : '';
+  my $name    = $options{name} // ::name();
 
-  "\033[1;32m$name\033[1;${other}m" . substr($state, 0, 4) . "\033[0;0m$cc$locked\033[1;34m$options{stuff}\033[0;0m "}
+  my $indicators = join '', map &{"::$_"}(), ::select_keys('--namespace' => 'indicator');
+
+  "\033[1;32m$name\033[0;0m$indicators "}
 
 sub repl {
   my %options = @_;
@@ -1871,7 +1918,8 @@ sub repl {
   my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
   my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
 
-  &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
+  length $_ && &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
+
 __
 meta::library('terminal', <<'__');
 # Functions for nice-looking terminal output.
@@ -1892,6 +1940,11 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('bugs', <<'__');
+Bug list.
+As I find bugs I'll add them to this list. You can get a summary of known bugs by running 'bs'.
+
+__
 meta::note('core-caterwaul-simplicity', <<'__');
 Absence of a core object system.
 At first I tried to write caterwaul using an object system to represent its replicative nature, but this turned out to be a major pain. I guess I'm not very good at designing object systems.
@@ -1908,6 +1961,13 @@ Because this is such a common use case you can abbreviate it:
 | var my_caterwaul = caterwaul.macroexpander('standard_macros', 'html_macros');
 
 But that's it. No more named configurations, no tconfigure(), nothing like that. This has the advantage that no heavy-lifting object system is necessary.
+__
+meta::note('features', <<'__');
+Feature list.
+As I come up with enhancements that need to be made I'll add them to this list. You can get a summary by running 'fs'.
+
+| [|||] seq Allow for precedence closure with |object modifier in the /seq macro. That is, give the user choices about what precedence it should use.
+
 __
 meta::note('macroexpander-optimization', <<'__');
 Optimization constraints for macroexpansion.
@@ -2117,139 +2177,159 @@ Javascript arrays and objects in general.)
 
 It should be very easy to wrap standard data types however. So caterwaul provides a series of monads 
 __
+meta::parent('./sdoc', <<'__');
+function::sdoc                           4d33dcf625897e463bb30fc91cb94339
+function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
+function::sdocp                          c3d738d982ba87418a298ff58478a85b
+meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
+parent::/home/spencertipping/bin/object  d8afbb7286800b32bf2a9f20fb275d8e
+retriever::html-sdoc                     c98c4a902a9473df7c875bca9b90af31
+retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
+retriever::sdocp                         330694ea14a23bb04b65c761075cd946
+
+__
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
-meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
-parent::/home/spencertipping/bin/object  9088a9cf9c95b7c1184f1c3b528824ba
+meta::type::configuration                6a442b586820b0719ec533aa1aeec1d1
+parent::/home/spencertipping/bin/object  d8afbb7286800b32bf2a9f20fb275d8e
+
 __
 meta::parent('/home/spencertipping/bin/node-base', <<'__');
-function::loc                                               36e0cabf1fe1c1bcaa3c8c708bd82ca0
-function::node                                              3522fde8f76947a5f70bca33f1ee0016
-function::node-custom                                       c2f4063798c997ec7f78a3543b1240b3
-function::render                                            4962b4a2e6bc800fd5c11b97550b623e
-function::run-forever                                       76175932a2d2692fc802856c28d0848d
-internal_function::dep                                      bad9b934374b176318ed2295b63130bc
-message_color::test                                         14e993fdf2c62df353613c243dc9053b
-meta::type::js                                              f7a0080116fecebf7abb030b0156f44d
-parent::/home/spencertipping/bin/repository                 0d317b0c917f59703ee01bf3cf03ad13
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  e3fc5cfcb42fc929d07a588023f9be5d
+function::loc                                               6b2be2b7f7a9c0f524c3a6e9fad3daa3
+function::node                                              b0b71c40082dadf3ed4d8510534ff5cc
+function::node-custom                                       9ebcf90e9a7bb24e7611b98ae49e90fc
+function::render                                            48667802c456d49fdf63836f7994dfa7
+function::run-forever                                       e5b227e835b00b82d439dc24a1873622
+internal_function::dep                                      9f5c8b82af8796a0ef9909de9c28d56b
+message_color::test                                         03621cd6ac0b1a40d703f41e26c5807f
+meta::type::js                                              e292996c992f4bc110e9577266c94784
+parent::/home/spencertipping/bin/repository                 bd34ba1a0a1367bd24fd03bfe5470222
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  da86b523057ace1e04f19b72dc64dae6
+parent::notes                                               21e88a0094a3c33158395b487d90262c
+parent::preprocessor                                        ef5c5cab7e1fd48e2658187b10ed3204
+
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
-bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
-bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
-bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
-function::alias                         28744564997657da45ab16cd5b441104
-function::cat                           a19fdfda461f9a0aa01978dff2e2c2f7
-function::cc                            c4d52b1d8f52a480f07b81b93c3aac7b
-function::ccc                           2351344fc688518c75aa4ab3acec1c4a
-function::child                         f69646398c3123d3d939a7f2b3156606
-function::clone                         54e00ff2103e54423d4c9febb97ce063
-function::cp                            e5fee448a74ecbf4ae215e6b43dfc048
-function::create                        090c342a2dc304b39c643d53350474a0
-function::current-state                 48c98d3bd74f3ee14d358fd127a7867a
-function::disable                       49db26fcd680ca34c1f52629a7375d2f
-function::edit                          c31d73791820a10ec910af043f67d4eb
-function::enable                        37af2d2e603e2455be227ae3c5a42c3a
-function::export                        388e0cc60507443cb1c0cc3e2658cfef
-function::extern                        6a9fa8c2a8a4eaae9fe8d38e402145e4
-function::grep                          3ad630ca30f1abae3cf28ef6293f0e00
-function::hash                          7a903f90f2c8ed27af7e030f407d9f7b
-function::hook                          d74d8e2b611342af6a0897e0bd62e6e6
-function::hooks                         230122bdc8929884e45b2f78a7743e2e
-function::identity                      37106ce13a0200af001d361ce7e81e57
-function::import                        ac86cbe9c9fb12fc8cef2cc88e80c01e
-function::initial-state                 e21ba3519838b221a7b2d4e8a7544e7f
-function::is                            1d3401965e4720ed972470b54b447db0
-function::load-state                    ea18db867bd62a294e067f60e6975dcf
-function::lock                          9bf21fee2f0f809131d43553bde82fa5
-function::ls                            61a247f0a582f63d85b5d5a963a46893
-function::mv                            52e95180e3c7019116bd798e0da0fdda
-function::name                          6848cbc257e4b6d7441b25acb04e23c9
-function::parents                       f94c3a5addbc92fe7f90d198fa701484
-function::perl                          986a274c013b77fe08d29726ce3799fe
-function::reload                        c57ff432c3ffd91a5506cd3eb8bf50c9
-function::rm                            7cecfb1691a7bf86741f00058bcc54ca
-function::save                          181da4858ac39c157dbf38e6bac7a0d2
-function::save-state                    863e4d9fa75ca198ef7a755248d1002a
-function::serialize                     5148e8ca46eeb3e297f76d098e496bcf
-function::serialize_single              e7a22f806b580d5c63982ffc7f218a1a
-function::sh                            9647fa9227bef6c139a79d0dd4acc8b4
-function::shell                         dc8238ad70b1e02eaf230c4f1bd21690
-function::size                          140728e163286a0f3f514f468c475cfc
-function::snapshot                      d3d84a364524eeb8ee90623f545187e8
-function::state                         119111f84c3e32a5536838ac84bc6f10
-function::touch                         819878bc64df094d3323c7050f2c3e97
-function::unlock                        8fc9bd69f3466f0b54ee2c6965f68cea
-function::update                        4de1a6a4085836590a3b1ef997f9d5ea
-function::update-from                   beead29d50b0b204bc9a8dc6f07d0003
-function::usage                         b36ead828ad566c8e3919f3b40fb99e6
-function::verify                        d31b85fffd464ddf516d2afeb63dcbde
-internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
-internal_function::associate            fc4f785bcf3ffe3225a73a1fdd314703
-internal_function::attribute            62efb9f22157835940af1d5feae98d98
-internal_function::attribute_is         c88e0f87cf807ab0af73ca10032b54b2
-internal_function::cache                c119f9d7ea9a147c6d526a6283fb119a
-internal_function::chmod_self           b13487447c65f2dc790bd6b21dde89dd
-internal_function::dangerous            4b8343178d6d4d1b760d61b1cfda008c
-internal_function::debug_trace          77644ab45a770a6e172680f659911507
-internal_function::execute              4b4efc33bc6767a7aade7f427eedf83f
-internal_function::exported             27414e8f2ceeaef3555b9726e690eb0f
-internal_function::extension_for        65e48f50f20bc04aa561720b03bf494c
-internal_function::fast_hash            ac70f469e697725cfb87629833434ab1
-internal_function::file::read           186bbcef8f6f0dd8b72ba0fdeb1de040
-internal_function::file::write          eb7b1efebe0db73378b0cce46681788d
-internal_function::fnv_hash             8d001a3a7988631bab21a41cee559758
-internal_function::hypothetically       33ee2e1595d3877bd1d9accaa72305c8
-internal_function::internal::main       435a9e83ac803960745d9aa5aac6c75f
-internal_function::invoke_editor_on     1448132d5294a4b8390b4a684d8a78f9
-internal_function::is_locked            42c3c89625863a31105d1df49a2a762f
-internal_function::namespace            93213d60cafb9627e0736b48cd1f0760
-internal_function::parent_attributes    480776f176ab728c6b7450287be5782a
-internal_function::parent_ordering      87bee77390de5b9e9c6e07f9af9eb70a
-internal_function::retrieve             0b6f4342009684fdfa259f45ac75ae37
-internal_function::retrieve_with_hooks  5186a0343624789d08d1cc2084550f3d
-internal_function::select_keys          1cd075b241905d9ab3199e680e86dced
-internal_function::separate_options     d47e8ee23fe55e27bb523c9fcb2f5ca1
-internal_function::strip                4af6a470effeed94c0dd9800d01f7d66
-internal_function::table_display        8a6897e093f36bf05477a3889b84a61d
-internal_function::temporary_name       0fb1402061581b69822f913631b4a9d9
-internal_function::translate_backtrace  06fad3d85833a6484e426401b95e0206
-internal_function::with_exported        fc4f32c46d95c6deed0414364d1c7410
-library::shell                          528f486cc4d9eb390e4c350b8727c751
-library::terminal                       c52308d05ebb4ff61c5fc36e6d9c7a8a
-message_color::cc                       6249446f73b3c5af2404c322c150e57b
-message_color::state                    14e993fdf2c62df353613c243dc9053b
-message_color::states                   152a940086f7cee6110528a09af7dd78
-meta::configure                         25976e07665878d3fae18f050160343f
-meta::externalize                       9141b4e8752515391385516ae94b23b5
-meta::functor::editable                 e3d2ede6edf65ffe2123584b2bd5dab7
-meta::type::alias                       28fe15dd61f4902ed5180d8604d15d97
-meta::type::bootstrap                   297d03fb32df03b46ea418469fc4e49e
-meta::type::cache                       52eac0d7b550a358cc86803fe1a9d921
-meta::type::data                        58d8027f20099b28a159eaac67314051
-meta::type::function                    d93b3cc15693707dac518e3d6b1f5648
-meta::type::hook                        f55a3f728ddfb90204dff3fe5d86845c
-meta::type::inc                         c95915391b969734305f2f492d5ca8e3
-meta::type::internal_function           34abb44c67c7e282569e28ef6f4d62ab
-meta::type::library                     b6dd78120e6d787acdb5c1629f7f1896
-meta::type::message_color               794bf137c425293738f07636bcfb5c55
-meta::type::meta                        640f25635ce2365b0648962918cf9932
-meta::type::parent                      607e9931309b1b595424bedcee5dfa45
-meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
-meta::type::state                       c1f29670be26f1df6100ffe4334e1202
-retriever::file                         b8e7aefc98b8341260d91f21dc61d749
-retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
+bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
+bootstrap::initialization               7637e32ba308624d824eacc9337c2512
+bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
+function::alias                         fb63bb3836ab968de2ee93f33d1704ec
+function::cat                           f684de6c8776617a437b76009114f52e
+function::cc                            12ea9176e388400704d823433c209b7a
+function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
+function::child                         f5764adf0b4e892f147a9b6b68d4816f
+function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
+function::cp                            3fe69d1b58d90045ad520048977538c4
+function::create                        3010d55f4dfa59a998742e07823ed54d
+function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::disable                       53b449708cc2ffdefa352e53bb7d847d
+function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
+function::export                        2374cd1dbf7616cb38cafba4e171075d
+function::extern                        1290a5223e2824763eecfb3a54961eff
+function::grep                          55c3cea8ff4ec2403be2a9d948e59f14
+function::hash                          6ee131d093e95b80039b4df9c7c84a02
+function::hook                          675cdb98b5dd8567bdd5a02ead6184b5
+function::hooks                         3d989899c616f7440429a2d9bf1cc44b
+function::identity                      6523885762fcc2f354fc25cf6ed126ce
+function::import                        5d0f0634cbd01274f2237717507198a2
+function::initial-state                 03d8ed608855a723124e79ca184d8e73
+function::is                            ee26a8494ff12dc6df26e61ecd926302
+function::load-state                    2123ad2d7bfaf83c8959fa003d8c4ad4
+function::lock                          5d8db258704e6a8623fac796f62fac02
+function::ls                            0b310755e747c65bca09508fd9d841f0
+function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::name                          955ba2d1fe1d67cd78651a4042283b00
+function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
+function::perl                          a0f341ea54391b63b6195e7992b6a686
+function::reload                        1589f4cf8374e0011991cb8907afca3e
+function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::save-state                    a7d349c67a4be8fa9e81fe34b7a94cfd
+function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
+function::serialize_single              aa77af032272f5a2664e21713739a223
+function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
+function::shell                         c07f3725aa8e31ac5b55ffcf0f39bba1
+function::size                          6cd9a4dd17be87ea2962f8f566a97d11
+function::snapshot                      56939a47f2758421669641e15ebd66eb
+function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::touch                         3991b1b7c7187566f50e5e58ce01fa06
+function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
+function::update                        161a7afaf55c1268ffe82ab170ae27e1
+function::update-from                   66828c66a5510b916ab0e065d4e05110
+function::usage                         5bdd370f5a56cfbf199e08d398091444
+function::verify                        0c0cc1dfeab7d705919df122f7850a4f
+indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
+indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
+indicator::state                        7c9d42b8fcee852a80d61c4f119c1239
+internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
+internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
+internal_function::attribute_is         a33841586c7a83264ba2116937d1c5b6
+internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
+internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
+internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
+internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
+internal_function::execute              f0924e087d978ff2ab1e117124db3042
+internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
+internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
+internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
+internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
+internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
+internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
+internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
+internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
+internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
+internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
+internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
+internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
+internal_function::separate_options     da1c2a3a1e03faafe6b4446ebb6bad90
+internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
+internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
+internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
+internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
+library::shell                          378715d20a4a87ee305dd2c3cff1b588
+library::terminal                       7e2d045782405934a9614fe04bcfe559
+message_color::cc                       2218ef0f7425de5c717762ffb100eb43
+message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
+message_color::states                   ac66eeeff487b5f43f88a78ea18b3d56
+meta::configure                         69c2e727c124521d074fde21f8bbc4db
+meta::externalize                       7610c2983b848bfb93390b9e423373dd
+meta::functor::editable                 48246c608f363de66511400e00b26164
+meta::type::alias                       889d26d2df385e9ff8e2da7de4e48374
+meta::type::bootstrap                   51108ab2ddb8d966e927c8f62d9ef3e5
+meta::type::cache                       9267171f2eace476f64a1a670eaaf2c7
+meta::type::data                        120e1649a468d3b3fd3fb783b4168499
+meta::type::function                    8ea626198861dc59dd7f303eecb5ff88
+meta::type::hook                        ff92aef328b6bdc6f87ddd0821f3e42f
+meta::type::inc                         78e0375b6725487cb1f0deca41e96bbe
+meta::type::indicator                   feb54a2624e6983617685047c717427f
+meta::type::internal_function           eff3cf31e2635f51c83836f116c99d2f
+meta::type::library                     7622e8d65e03066668bade74715d65ad
+meta::type::message_color               557a1b44979cbf77a7251fbdc4c5b82c
+meta::type::meta                        c6250056816b58a9608dd1b2614246f8
+meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
+meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
+meta::type::state                       84da7d5220471307f1f990c5057d3319
+retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::id                           4da6080168d32445150cc4200af7af6e
+
 __
 meta::parent('/home/spencertipping/bin/repository', <<'__');
 function::dupdate                               1c0273217c5b9f2756bb14a4a00aa7e2
 meta::type::cached_dependency                   e9455b403cbff27bbcc41d917fef482f
-parent::/home/spencertipping/bin/configuration  e4d22dc2215115982f6b79ed0ce22a42
+parent::/home/spencertipping/bin/configuration  2db920adc83974d520292606a19e8a98
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
 function::sdoc                           060cfa349e629eb90a82b87a8ba00c1d
 function::sdoc-html                      4ec4c1710abddb753db5557d79e6b165
 function::sdocp                          8b7ed5bbd537234ae53c0691b6d02c97
 meta::type::sdoc                         392c65eddae300e2aa67014b85884979
-parent::/home/spencertipping/bin/object  9088a9cf9c95b7c1184f1c3b528824ba
+parent::/home/spencertipping/bin/object  4836750c5b8786c6af81b3bdb6a36cfe
 retriever::html-sdoc                     54d22ab83d9f3f2e27ef51033b4817a7
 retriever::sdoc                          6de8ec1f1436fb8e7477b533c321081b
 retriever::sdocp                         fef74cd94fa8761618662802f0bfc171
@@ -2258,124 +2338,143 @@ meta::parent('notes', <<'__');
 function::note    bcbfeac6dd2112f47296265444570a6e
 function::notes   15b3aca0cba3b327a984928154eda2b5
 meta::type::note  7ca6b375a66ecbfd14bef5bcefeb6643
-parent::object    9088a9cf9c95b7c1184f1c3b528824ba
+parent::object    4836750c5b8786c6af81b3bdb6a36cfe
 __
 meta::parent('object', <<'__');
-bootstrap::html                         9b839f4c0c8d6bb18bf6d9d0e670e497
-bootstrap::initialization               b39f25c213ceb0418551084d1bddeb20
-bootstrap::perldoc                      c63395cbc6f7160b603befbb2d9b6700
-function::alias                         28744564997657da45ab16cd5b441104
-function::cat                           a19fdfda461f9a0aa01978dff2e2c2f7
-function::cc                            c4d52b1d8f52a480f07b81b93c3aac7b
-function::ccc                           2351344fc688518c75aa4ab3acec1c4a
-function::child                         f69646398c3123d3d939a7f2b3156606
-function::clone                         54e00ff2103e54423d4c9febb97ce063
-function::cp                            e5fee448a74ecbf4ae215e6b43dfc048
-function::create                        090c342a2dc304b39c643d53350474a0
-function::current-state                 48c98d3bd74f3ee14d358fd127a7867a
-function::disable                       49db26fcd680ca34c1f52629a7375d2f
-function::edit                          c31d73791820a10ec910af043f67d4eb
-function::enable                        37af2d2e603e2455be227ae3c5a42c3a
-function::export                        388e0cc60507443cb1c0cc3e2658cfef
-function::extern                        6a9fa8c2a8a4eaae9fe8d38e402145e4
-function::grep                          3ad630ca30f1abae3cf28ef6293f0e00
-function::hash                          7a903f90f2c8ed27af7e030f407d9f7b
-function::hook                          d74d8e2b611342af6a0897e0bd62e6e6
-function::hooks                         230122bdc8929884e45b2f78a7743e2e
-function::identity                      37106ce13a0200af001d361ce7e81e57
-function::import                        ac86cbe9c9fb12fc8cef2cc88e80c01e
-function::initial-state                 e21ba3519838b221a7b2d4e8a7544e7f
-function::is                            1d3401965e4720ed972470b54b447db0
-function::load-state                    ea18db867bd62a294e067f60e6975dcf
-function::lock                          9bf21fee2f0f809131d43553bde82fa5
-function::ls                            61a247f0a582f63d85b5d5a963a46893
-function::mv                            52e95180e3c7019116bd798e0da0fdda
-function::name                          6848cbc257e4b6d7441b25acb04e23c9
-function::parents                       f94c3a5addbc92fe7f90d198fa701484
-function::perl                          986a274c013b77fe08d29726ce3799fe
-function::reload                        c57ff432c3ffd91a5506cd3eb8bf50c9
-function::rm                            7cecfb1691a7bf86741f00058bcc54ca
-function::save                          181da4858ac39c157dbf38e6bac7a0d2
-function::save-state                    863e4d9fa75ca198ef7a755248d1002a
-function::serialize                     5148e8ca46eeb3e297f76d098e496bcf
-function::serialize_single              e7a22f806b580d5c63982ffc7f218a1a
-function::sh                            9647fa9227bef6c139a79d0dd4acc8b4
-function::shell                         dc8238ad70b1e02eaf230c4f1bd21690
-function::size                          140728e163286a0f3f514f468c475cfc
-function::snapshot                      d3d84a364524eeb8ee90623f545187e8
-function::state                         119111f84c3e32a5536838ac84bc6f10
-function::touch                         819878bc64df094d3323c7050f2c3e97
-function::unlock                        8fc9bd69f3466f0b54ee2c6965f68cea
-function::update                        4de1a6a4085836590a3b1ef997f9d5ea
-function::update-from                   beead29d50b0b204bc9a8dc6f07d0003
-function::usage                         b36ead828ad566c8e3919f3b40fb99e6
-function::verify                        d31b85fffd464ddf516d2afeb63dcbde
-internal_function::around_hook          e1cd17b80d4e8165df9c94facd9f239b
-internal_function::associate            fc4f785bcf3ffe3225a73a1fdd314703
-internal_function::attribute            62efb9f22157835940af1d5feae98d98
-internal_function::attribute_is         c88e0f87cf807ab0af73ca10032b54b2
-internal_function::cache                c119f9d7ea9a147c6d526a6283fb119a
-internal_function::chmod_self           b13487447c65f2dc790bd6b21dde89dd
-internal_function::dangerous            4b8343178d6d4d1b760d61b1cfda008c
-internal_function::debug_trace          77644ab45a770a6e172680f659911507
-internal_function::execute              4b4efc33bc6767a7aade7f427eedf83f
-internal_function::exported             27414e8f2ceeaef3555b9726e690eb0f
-internal_function::extension_for        65e48f50f20bc04aa561720b03bf494c
-internal_function::fast_hash            ac70f469e697725cfb87629833434ab1
-internal_function::file::read           186bbcef8f6f0dd8b72ba0fdeb1de040
-internal_function::file::write          eb7b1efebe0db73378b0cce46681788d
-internal_function::fnv_hash             8d001a3a7988631bab21a41cee559758
-internal_function::hypothetically       33ee2e1595d3877bd1d9accaa72305c8
-internal_function::internal::main       435a9e83ac803960745d9aa5aac6c75f
-internal_function::invoke_editor_on     1448132d5294a4b8390b4a684d8a78f9
-internal_function::is_locked            42c3c89625863a31105d1df49a2a762f
-internal_function::namespace            93213d60cafb9627e0736b48cd1f0760
-internal_function::parent_attributes    480776f176ab728c6b7450287be5782a
-internal_function::parent_ordering      87bee77390de5b9e9c6e07f9af9eb70a
-internal_function::retrieve             0b6f4342009684fdfa259f45ac75ae37
-internal_function::retrieve_with_hooks  5186a0343624789d08d1cc2084550f3d
-internal_function::select_keys          1cd075b241905d9ab3199e680e86dced
-internal_function::separate_options     d47e8ee23fe55e27bb523c9fcb2f5ca1
-internal_function::strip                4af6a470effeed94c0dd9800d01f7d66
-internal_function::table_display        8a6897e093f36bf05477a3889b84a61d
-internal_function::temporary_name       0fb1402061581b69822f913631b4a9d9
-internal_function::translate_backtrace  06fad3d85833a6484e426401b95e0206
-internal_function::with_exported        fc4f32c46d95c6deed0414364d1c7410
-library::shell                          528f486cc4d9eb390e4c350b8727c751
-library::terminal                       c52308d05ebb4ff61c5fc36e6d9c7a8a
-message_color::cc                       6249446f73b3c5af2404c322c150e57b
-message_color::state                    14e993fdf2c62df353613c243dc9053b
-message_color::states                   152a940086f7cee6110528a09af7dd78
-meta::configure                         25976e07665878d3fae18f050160343f
-meta::externalize                       9141b4e8752515391385516ae94b23b5
-meta::functor::editable                 e3d2ede6edf65ffe2123584b2bd5dab7
-meta::type::alias                       28fe15dd61f4902ed5180d8604d15d97
-meta::type::bootstrap                   297d03fb32df03b46ea418469fc4e49e
-meta::type::cache                       52eac0d7b550a358cc86803fe1a9d921
-meta::type::data                        58d8027f20099b28a159eaac67314051
-meta::type::function                    d93b3cc15693707dac518e3d6b1f5648
-meta::type::hook                        f55a3f728ddfb90204dff3fe5d86845c
-meta::type::inc                         c95915391b969734305f2f492d5ca8e3
-meta::type::internal_function           34abb44c67c7e282569e28ef6f4d62ab
-meta::type::library                     b6dd78120e6d787acdb5c1629f7f1896
-meta::type::message_color               794bf137c425293738f07636bcfb5c55
-meta::type::meta                        640f25635ce2365b0648962918cf9932
-meta::type::parent                      607e9931309b1b595424bedcee5dfa45
-meta::type::retriever                   6e847a9d205e4a5589765a3366cdd115
-meta::type::state                       c1f29670be26f1df6100ffe4334e1202
-retriever::file                         b8e7aefc98b8341260d91f21dc61d749
-retriever::id                           a791a5735e9b4f2cb8b99fd39dc17bc3
+bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
+bootstrap::initialization               7637e32ba308624d824eacc9337c2512
+bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
+function::alias                         fb63bb3836ab968de2ee93f33d1704ec
+function::cat                           f684de6c8776617a437b76009114f52e
+function::cc                            12ea9176e388400704d823433c209b7a
+function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
+function::child                         f5764adf0b4e892f147a9b6b68d4816f
+function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
+function::cp                            3fe69d1b58d90045ad520048977538c4
+function::create                        3010d55f4dfa59a998742e07823ed54d
+function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::disable                       53b449708cc2ffdefa352e53bb7d847d
+function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
+function::export                        2374cd1dbf7616cb38cafba4e171075d
+function::extern                        1290a5223e2824763eecfb3a54961eff
+function::grep                          55c3cea8ff4ec2403be2a9d948e59f14
+function::hash                          6ee131d093e95b80039b4df9c7c84a02
+function::hook                          675cdb98b5dd8567bdd5a02ead6184b5
+function::hooks                         3d989899c616f7440429a2d9bf1cc44b
+function::identity                      6523885762fcc2f354fc25cf6ed126ce
+function::import                        5d0f0634cbd01274f2237717507198a2
+function::initial-state                 03d8ed608855a723124e79ca184d8e73
+function::is                            ee26a8494ff12dc6df26e61ecd926302
+function::load-state                    2123ad2d7bfaf83c8959fa003d8c4ad4
+function::lock                          5d8db258704e6a8623fac796f62fac02
+function::ls                            0b310755e747c65bca09508fd9d841f0
+function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::name                          955ba2d1fe1d67cd78651a4042283b00
+function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
+function::perl                          a0f341ea54391b63b6195e7992b6a686
+function::reload                        1589f4cf8374e0011991cb8907afca3e
+function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::save-state                    a7d349c67a4be8fa9e81fe34b7a94cfd
+function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
+function::serialize_single              aa77af032272f5a2664e21713739a223
+function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
+function::shell                         c07f3725aa8e31ac5b55ffcf0f39bba1
+function::size                          6cd9a4dd17be87ea2962f8f566a97d11
+function::snapshot                      56939a47f2758421669641e15ebd66eb
+function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::touch                         3991b1b7c7187566f50e5e58ce01fa06
+function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
+function::update                        161a7afaf55c1268ffe82ab170ae27e1
+function::update-from                   66828c66a5510b916ab0e065d4e05110
+function::usage                         5bdd370f5a56cfbf199e08d398091444
+function::verify                        0c0cc1dfeab7d705919df122f7850a4f
+indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
+indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
+indicator::state                        7c9d42b8fcee852a80d61c4f119c1239
+internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
+internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
+internal_function::attribute_is         a33841586c7a83264ba2116937d1c5b6
+internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
+internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
+internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
+internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
+internal_function::execute              f0924e087d978ff2ab1e117124db3042
+internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
+internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
+internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
+internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
+internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
+internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
+internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
+internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
+internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
+internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
+internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
+internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
+internal_function::separate_options     da1c2a3a1e03faafe6b4446ebb6bad90
+internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
+internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
+internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
+internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
+library::shell                          378715d20a4a87ee305dd2c3cff1b588
+library::terminal                       7e2d045782405934a9614fe04bcfe559
+message_color::cc                       2218ef0f7425de5c717762ffb100eb43
+message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
+message_color::states                   ac66eeeff487b5f43f88a78ea18b3d56
+meta::configure                         69c2e727c124521d074fde21f8bbc4db
+meta::externalize                       7610c2983b848bfb93390b9e423373dd
+meta::functor::editable                 48246c608f363de66511400e00b26164
+meta::type::alias                       889d26d2df385e9ff8e2da7de4e48374
+meta::type::bootstrap                   51108ab2ddb8d966e927c8f62d9ef3e5
+meta::type::cache                       9267171f2eace476f64a1a670eaaf2c7
+meta::type::data                        120e1649a468d3b3fd3fb783b4168499
+meta::type::function                    8ea626198861dc59dd7f303eecb5ff88
+meta::type::hook                        ff92aef328b6bdc6f87ddd0821f3e42f
+meta::type::inc                         78e0375b6725487cb1f0deca41e96bbe
+meta::type::indicator                   feb54a2624e6983617685047c717427f
+meta::type::internal_function           eff3cf31e2635f51c83836f116c99d2f
+meta::type::library                     7622e8d65e03066668bade74715d65ad
+meta::type::message_color               557a1b44979cbf77a7251fbdc4c5b82c
+meta::type::meta                        c6250056816b58a9608dd1b2614246f8
+meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
+meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
+meta::type::state                       84da7d5220471307f1f990c5057d3319
+retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::id                           4da6080168d32445150cc4200af7af6e
+
 __
 meta::parent('preprocessor', <<'__');
 function::preprocess           66e539d29e9afa903569efad0eb7c886
 meta::type::template           25f4d6eafb1d3eea6d5d3d9a71a5623e
-parent::object                 9088a9cf9c95b7c1184f1c3b528824ba
+parent::object                 4836750c5b8786c6af81b3bdb6a36cfe
 retriever::pp                  f4a8c288d69963d6ebc5ce0bf7794777
 template::comment              7f8e9be5cd7c865fa64efe3123f62b38
 template::eval                 eb0b1058649eb2d833f348540516b358
 template::failing_conditional  5c593329b434a7044f68cec4b77e8ed9
 template::include              e0624844a65ae41e0217dd871fc0dbfb
 template::pinclude             5ba61c3034a4b183881936aec30d2be9
+__
+meta::parent('todo', <<'__');
+function::parse-todo      1fce39b3caaeea235602a111c6032147
+function::todo-summary    1fe95bdf8a01882d7eefbddc7f317eba
+meta::type::todo          143fa39e155c81f4186aa53a947296ec
+parent::./sdoc            0cf5e33c9cfaeb79c64650bf10c89e73
+parent::vim-highlighters  0e38ef567b5c5457e50a0768f6be64eb
+
+__
+meta::parent('vim-highlighters', <<'__');
+function::vim                cf9e37026f6cd1499a6dd258fbbcd060
+meta::type::vim_highlighter  11a2d74eca3445ee1b7887a6f6370462
+parent::object               d8afbb7286800b32bf2a9f20fb275d8e
+
 __
 meta::retriever('crunch', <<'__');
 # Crunches the whitespace out of stuff.
@@ -4328,6 +4427,8 @@ Note that ^ has higher precedence than |, so we can use it in a sequence compreh
   Note that unlike regular modifiers you can't use a variety of operators with each word. Each one is defined for just one form. I may change this in the future, but I'm reluctant to start
   with it because it would remove a lot of syntactic flexibility.
 
+  Update: After using this in the field, I've found that the low-precedence |object form is kind of a pill. Now the sequence library supports several variants, /object, -object, and |object.
+
   Numbers.
   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macro
   available is n[], which generates finite sequences of evenly-spaced numbers:
@@ -4408,10 +4509,9 @@ caterwaul.js_base()(function ($) {
                              variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
                              prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p && p.data || 'x']],
 
-          word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',    keys),
-                             rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]',  values),
-                             rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',   pairs),
-                                                                      rule('S[_xs |object]', object)]
+          word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',    keys),    rule('S[_xs |object]', object),
+                             rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]',  values),  rule('S[_xs -object]', object),
+                             rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',   pairs),   rule('S[_xs /object]', object)]
 
                      -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
                              n_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
@@ -4426,6 +4526,7 @@ caterwaul.js_base()(function ($) {
                              pairs     = form('var ps = [], o = S[_o]; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
 
                              object    = form('for (var o = {}, xs = S[_xs], i = 0, l = xs.length, x; i < l; ++i) x = xs[i], o[x[0]] = x[1]; return o')]]})(caterwaul);
+
 __
 meta::sdoc('js::extensions/std/words', <<'__');
 Common adjectives and adverbs | Spencer Tipping
@@ -5433,15 +5534,19 @@ n[1, 11] *[x * x] /seq
 
   {foo: 'bar', bif: 'baz'} /pairs -seq
 
-  Its inverse is the <code>|object</code> operator, which turns an array of those pairs back into an object:
+  Its inverse is the <code>|object</code> operator (also can be written as <code>-object</code> or <code>/object</code>, depending on what kind of precedence you want), which turns an array of
+  those pairs back into an object:
 
   [['foo', 'bar'], ['bif', 'baz']] |object |seq
 
+  [['foo', 'bar'], ['bif', 'baz']] -object -seq
+
+  [['foo', 'bar'], ['bif', 'baz']] /object /seq
+
   Note the differing precedences of <code>/keys</code> etc. and <code>|object</code>. This is intentional. The rationale is that you rarely manipulate objects as objects in sequence
   comprehensions, since the sequence library has no useful operators for objects other than unpacking. Therefore, objects come from various other values and enter a sequence comprehension,
-  which may at the very end zip an intermediate result into a final object return value.
-
-  I may change this in the future as I use it more, but any changes will be backwards-compatible.
+  which may at the very end zip an intermediate result into a final object return value. The alternative higher-precedence forms of <code>object</code> didn't exist before, but after some
+  real-world use I've found it useful to be able to maintain a certain precedence level.
 
   Numerical iteration.
   Within a sequence comprehension you have access to the <code>n[]</code> operator, which generates arrays of evenly-spaced numbers. It has three uses. When invoked on one argument it returns
@@ -5453,6 +5558,10 @@ n[1, 11] *[x * x] /seq
   n[5, 8] -seq
 
   n[0, 1, 0.25] -seq
+
+  n[0, -1, 0.25] -seq
+
+  n[0, -1, -0.25] -seq
 
 DOM/jQuery driver.
 One of the benefits of promoting syntax into a first-class construct is that you can specialize certain syntactic constructs for library interoperation. Caterwaul provides a module that
@@ -5808,6 +5917,7 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
 
     Most of the extensions are designed to be runnable with or without precompilation. For instance, the code-trace extension will tolerate precompilation; it just prevents the tracing code
     from being generated at precompile-time. All of the macros in <code>std</code> and <code>ui</code> have deterministic, straightforward expansions that can be completely precompiled.
+
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
