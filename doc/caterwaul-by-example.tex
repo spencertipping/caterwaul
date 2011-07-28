@@ -1,0 +1,187 @@
+\documentclass{report}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,pxfonts,listings,color}
+\usepackage[colorlinks]{hyperref}
+\definecolor{gray}{rgb}{0.6,0.6,0.6}
+
+\usepackage{caption}
+\DeclareCaptionFormat{listing}{\llap{\color{gray}#1\hspace{10pt}}\tt{}#3}
+\captionsetup[lstlisting]{format=listing, singlelinecheck=false, margin=0pt, font={bf}}
+
+\lstset{columns=fixed,basicstyle={\tt},numbers=left,firstnumber=auto,basewidth=0.5em,showstringspaces=false,numberstyle={\color{gray}\scriptsize}}
+
+\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}
+
+\lstnewenvironment{asmcode}       {}{}
+\lstnewenvironment{cppcode}       {\lstset{language=c++}}{}
+\lstnewenvironment{javacode}      {\lstset{language=java}}{}
+\lstnewenvironment{javascriptcode}{}{}
+\lstnewenvironment{htmlcode}      {\lstset{language=html}}{}
+\lstnewenvironment{perlcode}      {\lstset{language=perl}}{}
+\lstnewenvironment{rubycode}      {\lstset{language=ruby}}{}
+
+\lstnewenvironment{resourcecode}{}{}
+
+\title{Caterwaul By Example}
+\author{Spencer Tipping}
+
+\begin{document}
+\maketitle{}
+\tableofcontents{}
+
+\chapter{List of Primes}\label{sec:list-of-primes}
+  It's rare that you actually need to generate a list of primes in production code, but this problem makes a good programming language example because of its heavy use of algorithms. The goal
+  here is to write a web page that ends up showing the user a list of primes below 10,000.
+
+\section{Preparing the HTML}
+    The first step, assuming that we want to iterate rapidly, is to create a basic HTML document that loads Caterwaul and our application source code:
+
+\lstset{caption={examples/primes/index.html},name={examples/primes/index.html}}\begin{resourcecode}
+<!doctype html>
+<html>
+  <head>
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.js'></script>
+  <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
+  <script src='primes.js'></script>
+  </head>
+  <body></body>
+</html> \end{resourcecode}
+
+    Caterwaul's core and the {\tt std} module don't depend on jQuery. I'm just including it here so that we can easily do things when the page is loaded.
+
+\section{Invoking Caterwaul}
+    Caterwaul is a Javascript compiler written in Javascript. So to use it, you just hand your function to Caterwaul and run the function it gives you back. Here's an example of this behavior:
+
+\begin{verbatim}
+// Use an unconfigured caterwaul compiler; this has no effect:
+var f = function (x) {return x + 1};
+var g = caterwaul(f);
+
+// Use all known Javascript extensions:
+var f2 = function (x) {return y, where[y = x + 1]};
+var c  = caterwaul.js_all();      // Returns a configured compiler
+var g2 = c(f2);
+\end{verbatim}
+
+    It's actually less clunky to use Caterwaul in most cases. Most Javascript apps have a surrounding lexical closure to create a local scope; all you have to do is transform this function
+    inline:
+
+\begin{verbatim}
+caterwaul.js_all()(function () {
+  // app code
+})();
+
+// If using jQuery:
+$(caterwaul.js_all()(function () {
+  // app code
+}));
+\end{verbatim}
+
+    We're using jQuery, so our app will look like the second function here.
+
+\section{Application code}
+    Here's a Caterwaul app that computes our list of primes and shows it to the user:
+
+\lstset{caption={examples/primes/primes-first.js},name={examples/primes/primes-first.js}}\begin{resourcecode}
+$(caterwaul.js_all()(function () {
+  var is_prime = function (x) {
+    for (var i = 2; i * i <= x; ++i)
+      if (x % i === 0)
+        return false;
+    return true;
+  };
+
+  var list = [];
+  for (var i = 2; i < 10000; ++i)
+    if (is_prime(i))
+      list.push(i);
+
+  $('body').text(list.join(', '));
+})); \end{resourcecode}
+
+    Caterwaul is a superset of Javascript, so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and refactoring a bit, we get
+    this:
+
+\lstset{caption={examples/primes/primes.js},name={examples/primes/primes.js}}\begin{resourcecode}
+$(caterwaul.js_all()(function () {
+  $('body').append(primes.join(', '))
+  -where [
+    composite(n) = n[2, Math.sqrt(n)] |[n % x === 0] |seq,
+    primes       = n[2, 10000] %[! composite(x)] -seq];
+})); \end{resourcecode}
+
+    This code probably looks like voodoo, but it's actually not that complicated. There are two things happening here that aren't in regular Javascript. First, the {\tt where[]} construct
+    binds variables within an expression. Second, the {\tt seq} modifier is deeply mysterious and somehow condenses five or six lines of code into two.
+
+    {\tt where[]} is used when you want to locally bind something. For example:
+
+\begin{verbatim}
+alert(x)     -where [x = 10];
+alert(f(10)) -where [f(x) = x + 1];
+\end{verbatim}
+
+    This is translated into a local function scope that gets called immediately:
+
+\begin{verbatim}
+(function () {
+  var x = 10;
+  return alert(x);
+})();
+
+(function () {
+  var f = function (x) {return x + 1};
+  return alert(f(10));
+})();
+\end{verbatim}
+
+    You'll notice that there's a little bit of magic going on to let you say {\tt f(x) = x + 1}. This is not explicitly handled by {\tt where[]}; instead, Caterwaul has a macro that rewrites
+    things that look like {\tt x(y) = z} into {\tt x = function (y) {return z}}. Because this rule is applied globally, you can use it to create methods:
+
+\begin{verbatim}
+jQuery.fn.size() = this.length;
+\end{verbatim}
+
+    You can also use it to create curried functions by providing multiple argument lists:
+
+\begin{verbatim}
+alert(f(1)(2)) -where [f(x)(y) = x + y];
+
+// Is compiled to:
+(function () {
+  var f = function (x) {
+    return function (y) {
+      return x + y;
+    };
+  };
+  return alert(f(1)(2));
+})();
+\end{verbatim}
+
+    A reasonable question is how {\tt where[]} knows how much code should be able to see the variables you're binding. The answer has to do with its prefix: {\tt where} is what's known as a
+    modifier, and all modifiers have an accompanying operator that has a precedence. For example, in the expression {\tt x * y -where[...]} the {\tt where} clause binds over the
+    multiplication, since the minus has lower precedence. Writing it as {\tt x + y /where[...]} causes only {\tt y} to have access to the {\tt where} variables.
+
+    {\tt seq} is the macro that is more interesting in this prime-generator example. It's a mechanism that writes all different kinds of {\tt for} loops. In this case we're using it in two
+    places. The first time is in the {\tt composite()} function, where we use it to detect factors:
+
+\begin{verbatim}
+composite(n) = n[2, Math.sqrt(n)] |[n % x === 0] |seq
+\end{verbatim}
+
+    First, we use {\tt n[]} to generate an array of numbers between 2 and {\tt Math.sqrt(n)}. {\tt n[]} (with square brackets) is a syntax form, not a function; so it won't collide with the
+    variable {\tt n} that we take as a parameter. The next piece, \verb+|[n % x === 0]+, has two parts. The pipe operator, which normally performs a bitwise-or, means ``there exists'' in
+    sequence context. Its body, \verb|n % x === 0|, is then evaluated for each element ({\tt seq} calls the element {\tt x}). So at this point we're asking, ``does there exist an integer {\tt
+    x} for which {\tt n \% x} is zero?'' We tack the \verb+|seq+ onto the end to cause the preceding expression (in this case, everything back to the {\tt =}) to be interpreted by the {\tt
+    seq} macro. {\tt seq} is a modifier just like {\tt where[]}, though {\tt seq} doesn't take parameters.
+
+    The other use of {\tt seq} is to retrieve all numbers that are not composite:
+
+\begin{verbatim}
+primes = n[2, 10000] %[! composite(x)] -seq
+\end{verbatim}
+
+    {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. I'm using a
+    higher-precedence prefix for {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
+
+\end{document}
