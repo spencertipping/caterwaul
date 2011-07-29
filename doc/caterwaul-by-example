@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.GQUs/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.AKY2/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1809,8 +1809,8 @@ exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
 meta::section('list-of-primes', <<'__');
 - sc List of Primes | sec:list-of-primes
-  It's rare that you actually need to generate a list of primes in production code, but this problem makes a good programming language example because of its heavy use of algorithms. The goal
-  here is to write a web page that ends up showing the user a list of primes below 10,000.
+  It's rare that you actually need to generate a list of primes in production code, but this problem makes a good programming language example. The goal here is to write a web page that ends
+  up showing the user a list of primes below 10,000.
 
   - s1 Preparing the HTML
     The first step, assuming that we want to iterate rapidly, is to create a basic HTML document that loads Caterwaul and our application source code:
@@ -1844,8 +1844,7 @@ meta::section('list-of-primes', <<'__');
       var g2 = c(f2);
     - end
 
-    It's actually less clunky to use Caterwaul in most cases. Most Javascript apps have a surrounding lexical closure to create a local scope; all you have to do is transform this function
-    inline:
+    Most Javascript apps have a surrounding lexical closure to create a local scope, so you can save some space by transforming the function inline:
 
     - verbatim << end
       caterwaul.js_all()(function () {
@@ -1918,13 +1917,13 @@ meta::section('list-of-primes', <<'__');
     - end
 
     You'll notice that there's a little bit of magic going on to let you say {\tt f(x) = x + 1}. This is not explicitly handled by {\tt where[]}; instead, Caterwaul has a macro that rewrites
-    things that look like {\tt x(y) = z} into {\tt x = function (y) {return z}}. Because this rule is applied globally, you can use it to create methods:
+    things that look like {\tt x(y) = z} into \verb|x = function (y) {return z}|. Because this rule is applied globally, you can also use it to create methods or reassign existing functions:
 
     - verbatim << end
       jQuery.fn.size() = this.length;
     - end
 
-    You can also use it to create curried functions by providing multiple argument lists:
+    Because it's recursive, you can create curried functions by providing multiple argument lists:
 
     - verbatim << end
       alert(f(1)(2)) -where [f(x)(y) = x + y];
