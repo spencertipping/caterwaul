@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.AKY2/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.P6N2/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1978,7 +1978,106 @@ meta::section('main', <<'__');
   - tableofcontents
 
   - include section::list-of-primes
+  - include section::phone-book
 - end
+
+__
+meta::section('phone-book', <<'__');
+- sc Phone Book | sec:phone-book
+  {\it Note: This section is under construction; as such, the example code doesn't work yet.}
+
+  Most capable functional languages can do relatively pure things like generating lists of prime numbers, but a more difficult challenge is creating a language that can adapt to impurities
+  imposed by interfacing with the real world. This is one place where Caterwaul can be very useful; it's relatively straightforward to write new modifiers that provide library-specific
+  functionality. One of these modules is called {\tt ui}, and it is included with the Caterwaul distribution.
+
+  This app is a small phone book that supports JSON serialization. The user can add new phone numbers and delete existing ones, and each phone number has a name associated with it.
+
+  - resource examples/phone-book/index.html << end
+    <!doctype html>
+    <html>
+      <head>
+      <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
+      <script src='http://caterwauljs.org/build/caterwaul.js'></script>
+      <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
+      <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
+      <script src='overloaded-val.js'></script>
+      <script src='phone-book.js'></script>
+      </head>
+      <body></body>
+    </html>
+  - end
+
+  - s1 Model code
+    I'm using the word ``model'' in an unusual way here. It will make more sense if I preface it by saying that we know a UI is going to exist for each person in the phone book, since it
+    wouldn't be very useful otherwise. So this code implements a ``model'' by providing a low-level data interface to that UI.
+
+    There are a couple of ways to do this. One is to use functional abstractions; e.g.~two functions, {\tt personToUI()} and {\tt personFromUI()}, that perform the conversions between DOM
+    objects and JSON. Another is to use object-oriented abstraction by overloading jQuery's {\tt val()} method to respond to JSON values. This second method scales better for larger
+    applications, so I'll use it here.\footnote{See \url{http://github.com/spencertipping/modus} for a more complete implementation of this concept.}
+
+    - resource examples/phone-book/overloaded-val.js << end
+      caterwaul.js_all()(function () {
+        var original = $.fn.val;
+        $.fn.overload_val(f) = this.data('overloaded-val', f);
+        $.fn.val() = (this.data('overloaded-val') || original).apply(this, arguments);
+      })();
+    - end
+
+    It's simpler to compose UI elements now that we can easily overload the {\tt val()} method.
+
+    - resource examples/phone-book/phone-book.js << end
+      $(caterwaul.js_ui(caterwaul.js_all())(function () {
+        $('body').append(phone_book()),
+
+        $('.phone-book .create button').live('click',
+          delay in phone_book.find('table tbody').append(person().val(
+                     {name: name.val(), phone: phone.val()}))
+                   -then- name.add(phone).val('')
+
+                   -where [phone_book = $(this).parents('.phone-book').first(),
+                           name       = phone_book.find('.create .name'),
+                           phone      = phone_book.find('.create .phone')]),
+
+        $('.phone-book .json button.save').live('click',
+          delay in textarea.val(phone_book.val())
+                   -where [phone_book = $(this).parents('.phone-book').first(),
+                           textarea   = phone_book.find('.json textarea')]),
+
+        $('.phone-book .json button.load').live('click',
+          delay in phone_book.val(textarea.val())
+                   -where [phone_book = $(this).parents('.phone-book').first(),
+                           textarea   = phone_book.find('.json textarea')]),
+
+        $('.phone-book table tr.person button').live('click',
+          delay in $(this).parents('.person').first().remove()
+                   -when- confirm('Are you sure you want to remove this person?')),
+
+        where [
+          phone_book() = phone_book_ui().overload_val(phone_book_json),
+          phone_book_ui() = jquery in div.phone_book(
+                              table(tbody(tr(th('Name'), th('Phone')))),
+                              div.create(input.name, input.phone, button('Add')),
+                              div.json(textarea, button.save('Save'), button.load('Load'))),
+
+          phone_book_json(json) =
+            arguments.length ?
+              this.find('table tr.person').remove()
+                -then- JSON.parse(json) *[person().val(x)] *![this.append(x)] /seq
+                -returning- this :
+              JSON.stringify(this.find('table tr.person') *[$(x).val()] -seq),
+
+          person() = person_ui().overload_val(person_json),
+          person_ui() = jquery [tr.person(td.name, td.phone, td(button('X')))],
+
+          person_json(person) =
+            arguments.length ?
+              this -effect- this.find('.name') .text(person.name)
+                   -effect- this.find('.phone').text(person.phone) :
+
+              {name:  this.find('.name').text(),
+               phone: this.find('.phone').text()}];
+      }));
+    - end
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');

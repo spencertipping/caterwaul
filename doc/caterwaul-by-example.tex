@@ -64,8 +64,7 @@ var c  = caterwaul.js_all();      // Returns a configured compiler
 var g2 = c(f2);
 \end{verbatim}
 
-    It's actually less clunky to use Caterwaul in most cases. Most Javascript apps have a surrounding lexical closure to create a local scope; all you have to do is transform this function
-    inline:
+    Most Javascript apps have a surrounding lexical closure to create a local scope, so you can save some space by transforming the function inline:
 
 \begin{verbatim}
 caterwaul.js_all()(function () {
@@ -136,13 +135,13 @@ alert(f(10)) -where [f(x) = x + 1];
 \end{verbatim}
 
     You'll notice that there's a little bit of magic going on to let you say {\tt f(x) = x + 1}. This is not explicitly handled by {\tt where[]}; instead, Caterwaul has a macro that rewrites
-    things that look like {\tt x(y) = z} into {\tt x = function (y) {return z}}. Because this rule is applied globally, you can use it to create methods:
+    things that look like {\tt x(y) = z} into \verb|x = function (y) {return z}|. Because this rule is applied globally, you can also use it to create methods or reassign existing functions:
 
 \begin{verbatim}
 jQuery.fn.size() = this.length;
 \end{verbatim}
 
-    You can also use it to create curried functions by providing multiple argument lists:
+    Because it's recursive, you can create curried functions by providing multiple argument lists:
 
 \begin{verbatim}
 alert(f(1)(2)) -where [f(x)(y) = x + y];
@@ -183,5 +182,98 @@ primes = n[2, 10000] %[! composite(x)] -seq
 
     {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. I'm using a
     higher-precedence prefix for {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
+
+\chapter{Phone Book}\label{sec:phone-book}
+  {\it Note: This section is under construction; as such, the example code doesn't work yet.}
+
+  Most capable functional languages can do relatively pure things like generating lists of prime numbers, but a more difficult challenge is creating a language that can adapt to impurities
+  imposed by interfacing with the real world. This is one place where Caterwaul can be very useful; it's relatively straightforward to write new modifiers that provide library-specific
+  functionality. One of these modules is called {\tt ui}, and it is included with the Caterwaul distribution.
+
+  This app is a small phone book that supports JSON serialization. The user can add new phone numbers and delete existing ones, and each phone number has a name associated with it.
+
+\lstset{caption={examples/phone-book/index.html},name={examples/phone-book/index.html}}\begin{resourcecode}
+<!doctype html>
+<html>
+  <head>
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.js'></script>
+  <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
+  <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
+  <script src='overloaded-val.js'></script>
+  <script src='phone-book.js'></script>
+  </head>
+  <body></body>
+</html> \end{resourcecode}
+
+\section{Model code}
+    I'm using the word ``model'' in an unusual way here. It will make more sense if I preface it by saying that we know a UI is going to exist for each person in the phone book, since it
+    wouldn't be very useful otherwise. So this code implements a ``model'' by providing a low-level data interface to that UI.
+
+    There are a couple of ways to do this. One is to use functional abstractions; e.g.~two functions, {\tt personToUI()} and {\tt personFromUI()}, that perform the conversions between DOM
+    objects and JSON. Another is to use object-oriented abstraction by overloading jQuery's {\tt val()} method to respond to JSON values. This second method scales better for larger
+    applications, so I'll use it here.\footnote{See \url{http://github.com/spencertipping/modus} for a more complete implementation of this concept.}
+
+\lstset{caption={examples/phone-book/overloaded-val.js},name={examples/phone-book/overloaded-val.js}}\begin{resourcecode}
+caterwaul.js_all()(function () {
+  var original = $.fn.val;
+  $.fn.overload_val(f) = this.data('overloaded-val', f);
+  $.fn.val() = (this.data('overloaded-val') || original).apply(this, arguments);
+})(); \end{resourcecode}
+
+    It's simpler to compose UI elements now that we can easily overload the {\tt val()} method.
+
+\lstset{caption={examples/phone-book/phone-book.js},name={examples/phone-book/phone-book.js}}\begin{resourcecode}
+$(caterwaul.js_ui(caterwaul.js_all())(function () {
+  $('body').append(phone_book()),
+
+  $('.phone-book .create button').live('click',
+    delay in phone_book.find('table tbody').append(person().val(
+               {name: name.val(), phone: phone.val()}))
+             -then- name.add(phone).val('')
+
+             -where [phone_book = $(this).parents('.phone-book').first(),
+                     name       = phone_book.find('.create .name'),
+                     phone      = phone_book.find('.create .phone')]),
+
+  $('.phone-book .json button.save').live('click',
+    delay in textarea.val(phone_book.val())
+             -where [phone_book = $(this).parents('.phone-book').first(),
+                     textarea   = phone_book.find('.json textarea')]),
+
+  $('.phone-book .json button.load').live('click',
+    delay in phone_book.val(textarea.val())
+             -where [phone_book = $(this).parents('.phone-book').first(),
+                     textarea   = phone_book.find('.json textarea')]),
+
+  $('.phone-book table tr.person button').live('click',
+    delay in $(this).parents('.person').first().remove()
+             -when- confirm('Are you sure you want to remove this person?')),
+
+  where [
+    phone_book() = phone_book_ui().overload_val(phone_book_json),
+    phone_book_ui() = jquery in div.phone_book(
+                        table(tbody(tr(th('Name'), th('Phone')))),
+                        div.create(input.name, input.phone, button('Add')),
+                        div.json(textarea, button.save('Save'), button.load('Load'))),
+
+    phone_book_json(json) =
+      arguments.length ?
+        this.find('table tr.person').remove()
+          -then- JSON.parse(json) *[person().val(x)] *![this.append(x)] /seq
+          -returning- this :
+        JSON.stringify(this.find('table tr.person') *[$(x).val()] -seq),
+
+    person() = person_ui().overload_val(person_json),
+    person_ui() = jquery [tr.person(td.name, td.phone, td(button('X')))],
+
+    person_json(person) =
+      arguments.length ?
+        this -effect- this.find('.name') .text(person.name)
+             -effect- this.find('.phone').text(person.phone) :
+
+        {name:  this.find('.name').text(),
+         phone: this.find('.phone').text()}];
+})); \end{resourcecode}
 
 \end{document}
