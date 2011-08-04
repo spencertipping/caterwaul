@@ -1978,7 +1978,8 @@ meta::section('main', <<'__');
   - tableofcontents
 
   - include section::list-of-primes
-  - include section::phone-book
+
+  - comment - include section::phone-book
 - end
 
 __
@@ -2053,7 +2054,7 @@ meta::section('phone-book', <<'__');
                    -when- confirm('Are you sure you want to remove this person?')),
 
         where [
-          phone_book() = phone_book_ui().overload_val(phone_book_json),
+          phone_book()    = phone_book_ui().overload_val(phone_book_json),
           phone_book_ui() = jquery in div.phone_book(
                               table(tbody(tr(th('Name'), th('Phone')))),
                               div.create(input.name, input.phone, button('Add')),
@@ -2066,7 +2067,7 @@ meta::section('phone-book', <<'__');
                 -returning- this :
               JSON.stringify(this.find('table tr.person') *[$(x).val()] -seq),
 
-          person() = person_ui().overload_val(person_json),
+          person()    = person_ui().overload_val(person_json),
           person_ui() = jquery [tr.person(td.name, td.phone, td(button('X')))],
 
           person_json(person) =

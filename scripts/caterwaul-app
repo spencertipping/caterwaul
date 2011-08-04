@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [[ -e index.html || -e style.css ]]; then
+  echo looks like you already have a page going.
+  echo cowardly refusing to overwrite index.html or style.css.
+  exit 1
+fi
+
+wget ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js -O jquery-1.6.2.js
+wget caterwauljs.org/build/caterwaul.js
+wget caterwauljs.org/build/extensions/std.pre.js -O caterwaul.std.js
+wget caterwauljs.org/build/extensions/ui.pre.js -O caterwaul.ui.js
+
+cat > style.css <<end
+body {font-family: sans-serif; font-size: 9pt}
+end
+
+cat > index.html <<end
+<!doctype html>
+<html>
+  <head>
+  <script src='jquery-1.6.2.js'></script>
+  <script src='caterwaul.js'></script>
+  <script src='caterwaul.std.js'></script>
+  <script src='caterwaul.ui.js'></script>
+
+  <link rel='stylesheet' href='style.css' />
+  </head>
+  <body></body>
+</html>
+end
