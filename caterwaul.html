@@ -1106,10 +1106,6 @@ join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @e
 
 __
 meta::function('ls-a', 'ls(\'-ad\', @_);');
-meta::function('m', <<'__');
-my @modules = select_keys('--criteria' => "sdoc::js::modules/caterwaul.$_[0]");
-edit($modules[0]);
-__
 meta::function('minify', <<'__');
 # Minify using YUI compressor
 my ($filename) = @_;
