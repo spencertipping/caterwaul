@@ -153,10 +153,10 @@ caterwaul.js_base()(function ($) {
                              n_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
                                                                    'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
 
-                             scope     = $.parse('(function (o) {_body}).call(this, (S[_o]))'),
+                             scope     = anon('(function (o) {_body}).call(this, (S[_o]))'),
                              scoped(t) = scope.replace({_body: t}),
 
-                             form(p)   = scoped(anon(p)).replace(match) -given.match,
+                             form(p)   = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
                              keys      = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
                              values    = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
                              pairs     = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
