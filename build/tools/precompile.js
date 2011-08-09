@@ -1132,8 +1132,8 @@ caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
 // Error handling.
 // Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
-  language.modifier('wobbly', 'chuck', 'raise', '(function () {throw _expression}).call(this)'),
-  language.parameterized_modifier('failover', 'safely', 'rescue', '(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+  language.modifier('raise', '(function () {throw _expression}).call(this)'),
+  language.parameterized_modifier('rescue', '(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
 
 // Scoping and referencing.
 // These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.

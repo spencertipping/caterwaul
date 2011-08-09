@@ -2045,6 +2045,11 @@ meta::section('quicksort', <<'__');
     - end
 
 __
+meta::section('ray-tracer', <<'__');
+- s1 Ray tracer | sec:ray-tracer
+  
+
+__
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
 my $result = eval $_[0];
