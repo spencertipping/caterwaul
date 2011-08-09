@@ -100,13 +100,14 @@ $(caterwaul.js_all()(function () {
 })); \end{resourcecode}
 
     Caterwaul is a superset of Javascript, so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and refactoring a bit, we get
-    this:
+    this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error since it stops before
+    reaching $\sqrt n$. It's necessary to add one to make sure that we include the square root as well as the other factors.}
 
 \lstset{caption={examples/primes/primes.js},name={examples/primes/primes.js}}\begin{resourcecode}
 $(caterwaul.js_all()(function () {
   $('body').append(primes.join(', '))
   -where [
-    composite(n) = n[2, Math.sqrt(n)] |[n % x === 0] |seq,
+    composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq,
     primes       = n[2, 10000] %[! composite(x)] -seq];
 })); \end{resourcecode}
 
@@ -183,16 +184,26 @@ primes = n[2, 10000] %[! composite(x)] -seq
     {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. I'm using a
     higher-precedence prefix for {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
 
-\chapter{Phone Book}\label{sec:phone-book}
-  {\it Note: This section is under construction; as such, the example code doesn't work yet.}
+\chapter{Quicksort}\label{sec:quicksort}
+  Every self-respecting functional language author must illustrate how to write an inefficient quicksort that conses up tons of memory. A trivial quicksort in Caterwaul looks like this:
 
-  Most capable functional languages can do relatively pure things like generating lists of prime numbers, but a more difficult challenge is creating a language that can adapt to impurities
-  imposed by interfacing with the real world. This is one place where Caterwaul can be very useful; it's relatively straightforward to write new modifiers that provide library-specific
-  functionality. One of these modules is called {\tt ui}, and it is included with the Caterwaul distribution.
+\begin{verbatim}
+quicksort(xs) = xs.length === 0 ? xs :
+                less + [pivot] + greater -seq
+                -where [pivot   = xs[0],
+                        rest    = xs.slice(1),
+                        less    = quicksort(rest %[x <  pivot] -seq),
+                        greater = quicksort(rest %[x >= pivot] -seq)];
+\end{verbatim}
 
-  This app is a small phone book that supports JSON serialization. The user can add new phone numbers and delete existing ones, and each phone number has a name associated with it.
+  That could be the end of the chapter, but if I stopped here then you wouldn't see the awesomeness that is Caterwaul's jQuery library. This app, rather than just sorting data, illustrates the
+  process by recording each step of the quicksort as it happens.
 
-\lstset{caption={examples/phone-book/index.html},name={examples/phone-book/index.html}}\begin{resourcecode}
+\section{HTML and CSS}
+    This is fairly routine. We need a page that includes jQuery, Caterwaul, the standard modules, and the Caterwaul future library.\footnote{The Caterwaul future library is on Github at
+    \url{http://github.com/spencertipping/caterwaul-futures}.}
+
+\lstset{caption={examples/quicksort/index.html},name={examples/quicksort/index.html}}\begin{resourcecode}
 <!doctype html>
 <html>
   <head>
@@ -200,80 +211,20 @@ primes = n[2, 10000] %[! composite(x)] -seq
   <script src='http://caterwauljs.org/build/caterwaul.js'></script>
   <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
   <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
-  <script src='overloaded-val.js'></script>
-  <script src='phone-book.js'></script>
+  <script src='http://spencertipping.com/caterwaul-futures/future.js'></script>
+  <script src='quicksort.js'></script>
+
+  <style>
+  body {font-family: sans-serif; font-size: 9pt}
+  .pivot {color: #f80}
+  .initial {background: #eee}
+  </style>
   </head>
   <body></body>
 </html> \end{resourcecode}
 
-\section{Model code}
-    I'm using the word ``model'' in an unusual way here. It will make more sense if I preface it by saying that we know a UI is going to exist for each person in the phone book, since it
-    wouldn't be very useful otherwise. So this code implements a ``model'' by providing a low-level data interface to that UI.
-
-    There are a couple of ways to do this. One is to use functional abstractions; e.g.~two functions, {\tt personToUI()} and {\tt personFromUI()}, that perform the conversions between DOM
-    objects and JSON. Another is to use object-oriented abstraction by overloading jQuery's {\tt val()} method to respond to JSON values. This second method scales better for larger
-    applications, so I'll use it here.\footnote{See \url{http://github.com/spencertipping/modus} for a more complete implementation of this concept.}
-
-\lstset{caption={examples/phone-book/overloaded-val.js},name={examples/phone-book/overloaded-val.js}}\begin{resourcecode}
-caterwaul.js_all()(function () {
-  var original = $.fn.val;
-  $.fn.overload_val(f) = this.data('overloaded-val', f);
-  $.fn.val() = (this.data('overloaded-val') || original).apply(this, arguments);
-})(); \end{resourcecode}
-
-    It's simpler to compose UI elements now that we can easily overload the {\tt val()} method.
-
-\lstset{caption={examples/phone-book/phone-book.js},name={examples/phone-book/phone-book.js}}\begin{resourcecode}
-$(caterwaul.js_ui(caterwaul.js_all())(function () {
-  $('body').append(phone_book()),
-
-  $('.phone-book .create button').live('click',
-    delay in phone_book.find('table tbody').append(person().val(
-               {name: name.val(), phone: phone.val()}))
-             -then- name.add(phone).val('')
-
-             -where [phone_book = $(this).parents('.phone-book').first(),
-                     name       = phone_book.find('.create .name'),
-                     phone      = phone_book.find('.create .phone')]),
-
-  $('.phone-book .json button.save').live('click',
-    delay in textarea.val(phone_book.val())
-             -where [phone_book = $(this).parents('.phone-book').first(),
-                     textarea   = phone_book.find('.json textarea')]),
-
-  $('.phone-book .json button.load').live('click',
-    delay in phone_book.val(textarea.val())
-             -where [phone_book = $(this).parents('.phone-book').first(),
-                     textarea   = phone_book.find('.json textarea')]),
-
-  $('.phone-book table tr.person button').live('click',
-    delay in $(this).parents('.person').first().remove()
-             -when- confirm('Are you sure you want to remove this person?')),
-
-  where [
-    phone_book() = phone_book_ui().overload_val(phone_book_json),
-    phone_book_ui() = jquery in div.phone_book(
-                        table(tbody(tr(th('Name'), th('Phone')))),
-                        div.create(input.name, input.phone, button('Add')),
-                        div.json(textarea, button.save('Save'), button.load('Load'))),
-
-    phone_book_json(json) =
-      arguments.length ?
-        this.find('table tr.person').remove()
-          -then- JSON.parse(json) *[person().val(x)] *![this.append(x)] /seq
-          -returning- this :
-        JSON.stringify(this.find('table tr.person') *[$(x).val()] -seq),
-
-    person() = person_ui().overload_val(person_json),
-    person_ui() = jquery [tr.person(td.name, td.phone, td(button('X')))],
-
-    person_json(person) =
-      arguments.length ?
-        this -effect- this.find('.name') .text(person.name)
-             -effect- this.find('.phone').text(person.phone) :
-
-        {name:  this.find('.name').text(),
-         phone: this.find('.phone').text()}];
-})); \end{resourcecode}
+\section{Javascript}
+    When the user first loads the page, they're presented with a randomly generated list of numbers and a button. When they click the button, the sort begins and they see the stages as they
+    happen. 
 
 \end{document}

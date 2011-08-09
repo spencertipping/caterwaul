@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.P6N2/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.NbZa/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1387,7 +1387,7 @@ sub repl {
   my $attribs = $term->Attribs;
   $attribs->{completion_entry_function} = $attribs->{list_completion_function};
 
-  my $autocomplete = $options{autocomplete} || sub {[sort keys %data, sort keys %externalized_functions]};
+  my $autocomplete = $options{autocomplete} || sub {[sort(keys %data), grep !/-/, sort keys %externalized_functions]};
   my $prompt       = $options{prompt}       || \&prompt;
   my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
   my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
@@ -1417,7 +1417,7 @@ function::sdoc                           4d33dcf625897e463bb30fc91cb94339
 function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
-parent::/home/spencertipping/bin/object  568b124735b8f6cd6d6f61add0bb9bad
+parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
@@ -1425,7 +1425,7 @@ retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 __
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                7f5ba514d47ac29a3c226d0e331d9da4
-parent::/home/spencertipping/bin/object  568b124735b8f6cd6d6f61add0bb9bad
+parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::parent('/home/spencertipping/bin/literate-project', <<'__');
@@ -1448,7 +1448,7 @@ meta::template::quotations     f76a27311c8a9d09550dd669e98f9a7f
 meta::template::sections       25cb0a42bf1c2f403f8f9c2e1c5e4105
 meta::type::resource           c521d2de1dcd7f9f7ec4df3557572009
 meta::type::section            fb3b53eaebc1a2433c1763eccdb781c4
-parent::development            35669329c3a6dc959eb972d874b79dfb
+parent::development            8098ec36fcef23cd0b973a03236d73c9
 resource::header               165b42e25edb90043f5d3b544adee521
 resource::header-languages     96d12558e40d0df64ff3176b767f4f3b
 resource::header-listings      712557f5989b12ca325bdd2cd36020ef
@@ -1546,7 +1546,7 @@ internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          378715d20a4a87ee305dd2c3cff1b588
+library::shell                          2c5e6663a8f672e2242a7d3ea3276f09
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -1580,19 +1580,19 @@ meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
 parent::/home/spencertipping/bin/object  293415c4d45c10239298fa46b01cff17
 __
 meta::parent('development', <<'__');
-parent::./sdoc            d504d844a950c8ced3002334f504531d
+parent::./sdoc            f938653251b89b98cbcc26c713a2dae7
 parent::configuration     835c872a2163166e001c4e07b5191353
-parent::notes             9238c2da0d54481608652084e0c0105b
-parent::preprocessor      610354a27d1239046ca99148a04cfc62
-parent::repository        e7c2dbd8563910cc28c3799f593f12e6
-parent::vim-highlighters  097470a72a1beb0416d40f752cab1f2e
+parent::notes             54c54ac22b6c221c7db37ee731b2be88
+parent::preprocessor      17671b2efb938883b4a94354e0cd7d64
+parent::repository        50b3981a563910cc2f2e206b17514504
+parent::vim-highlighters  5fa3c2b07b5c5457e50a07680a8da8a1
 
 __
 meta::parent('notes', <<'__');
 function::note    5e2737593e8d13fc43bb10e97603e53a
 function::notes   7229b326ac8686b2db6de98496bc7527
 meta::type::note  f81bea58841a438e4ee34608ab4f54c0
-parent::object    568b124735b8f6cd6d6f61add0bb9bad
+parent::object    97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::parent('object', <<'__');
@@ -1682,7 +1682,7 @@ internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          378715d20a4a87ee305dd2c3cff1b588
+library::shell                          2c5e6663a8f672e2242a7d3ea3276f09
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -1714,7 +1714,7 @@ __
 meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 568b124735b8f6cd6d6f61add0bb9bad
+parent::object                 97acda5f35b8f6cd6d6f61ad515f0d3e
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
@@ -1726,14 +1726,14 @@ __
 meta::parent('repository', <<'__');
 function::dupdate                               3203750417390913ae3892002b53bdc1
 meta::type::cached_dependency                   b9dc0b20c2d3af0deb3b835b20cac4a7
-parent::/home/spencertipping/bin/configuration  b5b7f51f30521904843ecdd3ac7194fb
+parent::/home/spencertipping/bin/configuration  6f3e18f610849f59cc500d1b9d9d4db0
 retriever::http                                 a23617a5787de41d1a89ad4496cacce3
 
 __
 meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
 meta::type::vim_highlighter  11a2d74eca3445ee1b7887a6f6370462
-parent::object               568b124735b8f6cd6d6f61add0bb9bad
+parent::object               97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::resource('header', <<'__');
@@ -1881,13 +1881,14 @@ meta::section('list-of-primes', <<'__');
     - end
 
     Caterwaul is a superset of Javascript, so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and refactoring a bit, we get
-    this:
+    this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error since it stops before
+    reaching $\sqrt n$. It's necessary to add one to make sure that we include the square root as well as the other factors.}
 
     - resource examples/primes/primes.js << end
       $(caterwaul.js_all()(function () {
         $('body').append(primes.join(', '))
         -where [
-          composite(n) = n[2, Math.sqrt(n)] |[n % x === 0] |seq,
+          composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq,
           primes       = n[2, 10000] %[! composite(x)] -seq];
       }));
     - end
@@ -1978,107 +1979,54 @@ meta::section('main', <<'__');
   - tableofcontents
 
   - include section::list-of-primes
-
-  - comment - include section::phone-book
+  - include section::quicksort
 - end
 
 __
-meta::section('phone-book', <<'__');
-- sc Phone Book | sec:phone-book
-  {\it Note: This section is under construction; as such, the example code doesn't work yet.}
+meta::section('quicksort', <<'__');
+- sc Quicksort | sec:quicksort
+  Every self-respecting functional language author must illustrate how to write an inefficient quicksort that conses up tons of memory. A trivial quicksort in Caterwaul looks like this:
 
-  Most capable functional languages can do relatively pure things like generating lists of prime numbers, but a more difficult challenge is creating a language that can adapt to impurities
-  imposed by interfacing with the real world. This is one place where Caterwaul can be very useful; it's relatively straightforward to write new modifiers that provide library-specific
-  functionality. One of these modules is called {\tt ui}, and it is included with the Caterwaul distribution.
-
-  This app is a small phone book that supports JSON serialization. The user can add new phone numbers and delete existing ones, and each phone number has a name associated with it.
-
-  - resource examples/phone-book/index.html << end
-    <!doctype html>
-    <html>
-      <head>
-      <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
-      <script src='http://caterwauljs.org/build/caterwaul.js'></script>
-      <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
-      <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
-      <script src='overloaded-val.js'></script>
-      <script src='phone-book.js'></script>
-      </head>
-      <body></body>
-    </html>
+  - verbatim << end
+    quicksort(xs) = xs.length === 0 ? xs :
+                    less + [pivot] + greater -seq
+                    -where [pivot   = xs[0],
+                            rest    = xs.slice(1),
+                            less    = quicksort(rest %[x <  pivot] -seq),
+                            greater = quicksort(rest %[x >= pivot] -seq)];
   - end
 
-  - s1 Model code
-    I'm using the word ``model'' in an unusual way here. It will make more sense if I preface it by saying that we know a UI is going to exist for each person in the phone book, since it
-    wouldn't be very useful otherwise. So this code implements a ``model'' by providing a low-level data interface to that UI.
+  That could be the end of the chapter, but if I stopped here then you wouldn't see the awesomeness that is Caterwaul's jQuery library. This app, rather than just sorting data, illustrates the
+  process by recording each step of the quicksort as it happens.
 
-    There are a couple of ways to do this. One is to use functional abstractions; e.g.~two functions, {\tt personToUI()} and {\tt personFromUI()}, that perform the conversions between DOM
-    objects and JSON. Another is to use object-oriented abstraction by overloading jQuery's {\tt val()} method to respond to JSON values. This second method scales better for larger
-    applications, so I'll use it here.\footnote{See \url{http://github.com/spencertipping/modus} for a more complete implementation of this concept.}
+  - s1 HTML and CSS
+    This is fairly routine. We need a page that includes jQuery, Caterwaul, the standard modules, and the Caterwaul future library.\footnote{The Caterwaul future library is on Github at
+    \url{http://github.com/spencertipping/caterwaul-futures}.}
 
-    - resource examples/phone-book/overloaded-val.js << end
-      caterwaul.js_all()(function () {
-        var original = $.fn.val;
-        $.fn.overload_val(f) = this.data('overloaded-val', f);
-        $.fn.val() = (this.data('overloaded-val') || original).apply(this, arguments);
-      })();
+    - resource examples/quicksort/index.html << end
+      <!doctype html>
+      <html>
+        <head>
+        <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
+        <script src='http://caterwauljs.org/build/caterwaul.js'></script>
+        <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
+        <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
+        <script src='http://spencertipping.com/caterwaul-futures/future.js'></script>
+        <script src='quicksort.js'></script>
+
+        <style>
+        body {font-family: sans-serif; font-size: 9pt}
+        .pivot {color: #f80}
+        .initial {background: #eee}
+        </style>
+        </head>
+        <body></body>
+      </html>
     - end
 
-    It's simpler to compose UI elements now that we can easily overload the {\tt val()} method.
-
-    - resource examples/phone-book/phone-book.js << end
-      $(caterwaul.js_ui(caterwaul.js_all())(function () {
-        $('body').append(phone_book()),
-
-        $('.phone-book .create button').live('click',
-          delay in phone_book.find('table tbody').append(person().val(
-                     {name: name.val(), phone: phone.val()}))
-                   -then- name.add(phone).val('')
-
-                   -where [phone_book = $(this).parents('.phone-book').first(),
-                           name       = phone_book.find('.create .name'),
-                           phone      = phone_book.find('.create .phone')]),
-
-        $('.phone-book .json button.save').live('click',
-          delay in textarea.val(phone_book.val())
-                   -where [phone_book = $(this).parents('.phone-book').first(),
-                           textarea   = phone_book.find('.json textarea')]),
-
-        $('.phone-book .json button.load').live('click',
-          delay in phone_book.val(textarea.val())
-                   -where [phone_book = $(this).parents('.phone-book').first(),
-                           textarea   = phone_book.find('.json textarea')]),
-
-        $('.phone-book table tr.person button').live('click',
-          delay in $(this).parents('.person').first().remove()
-                   -when- confirm('Are you sure you want to remove this person?')),
-
-        where [
-          phone_book()    = phone_book_ui().overload_val(phone_book_json),
-          phone_book_ui() = jquery in div.phone_book(
-                              table(tbody(tr(th('Name'), th('Phone')))),
-                              div.create(input.name, input.phone, button('Add')),
-                              div.json(textarea, button.save('Save'), button.load('Load'))),
-
-          phone_book_json(json) =
-            arguments.length ?
-              this.find('table tr.person').remove()
-                -then- JSON.parse(json) *[person().val(x)] *![this.append(x)] /seq
-                -returning- this :
-              JSON.stringify(this.find('table tr.person') *[$(x).val()] -seq),
-
-          person()    = person_ui().overload_val(person_json),
-          person_ui() = jquery [tr.person(td.name, td.phone, td(button('X')))],
-
-          person_json(person) =
-            arguments.length ?
-              this -effect- this.find('.name') .text(person.name)
-                   -effect- this.find('.phone').text(person.phone) :
-
-              {name:  this.find('.name').text(),
-               phone: this.find('.phone').text()}];
-      }));
-    - end
+  - s1 Javascript
+    When the user first loads the page, they're presented with a randomly generated list of numbers and a button. When they click the button, the sort begins and they see the stages as they
+    happen. 
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');

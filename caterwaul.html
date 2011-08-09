@@ -5915,13 +5915,13 @@ If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a
 
   The problem here is obvious if you inspect the syntax tree:
 
-  qs[jquery in div.foo[y] -where- [y = 'hi there']].structure()
+  qs[jquery in div.foo[y] -where [y = 'hi there']].structure()
 
   See how the node containing the <code>where</code> is a child of <code>jquery</code>? This means that the node is going to be modified by the jQuery driver, but unfortunately the jQuery
   driver doesn't know what to do with <code>-where[]</code>. As a result, the jQuery macro will stop macroexpanding stuff and give up too soon. Then the standard library will come through,
   expand the <code>where[]</code>, and you'll end up with this:
 
-  qse[jquery in div.foo[y] -where- [y = 'hi there']]
+  qse[jquery in div.foo[y] -where [y = 'hi there']]
 
     I have a problem; is Caterwaul broken?.
     Maybe. I've been using Caterwaul in production for about six months now and have run into between 20 and 50 bugs related to parsing and/or serialization. Most of these had to do with some
