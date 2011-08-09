@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.NbZa/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.d8df/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1948,14 +1948,14 @@ meta::section('list-of-primes', <<'__');
     places. The first time is in the {\tt composite()} function, where we use it to detect factors:
 
     - verbatim << end
-      composite(n) = n[2, Math.sqrt(n)] |[n % x === 0] |seq
+      composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq
     - end
 
-    First, we use {\tt n[]} to generate an array of numbers between 2 and {\tt Math.sqrt(n)}. {\tt n[]} (with square brackets) is a syntax form, not a function; so it won't collide with the
-    variable {\tt n} that we take as a parameter. The next piece, \verb+|[n % x === 0]+, has two parts. The pipe operator, which normally performs a bitwise-or, means ``there exists'' in
-    sequence context. Its body, \verb|n % x === 0|, is then evaluated for each element ({\tt seq} calls the element {\tt x}). So at this point we're asking, ``does there exist an integer {\tt
-    x} for which {\tt n \% x} is zero?'' We tack the \verb+|seq+ onto the end to cause the preceding expression (in this case, everything back to the {\tt =}) to be interpreted by the {\tt
-    seq} macro. {\tt seq} is a modifier just like {\tt where[]}, though {\tt seq} doesn't take parameters.
+    First, we use {\tt n[]} to generate an array of numbers between 2 and {\tt Math.sqrt(n)}, inclusive. {\tt n[]} (with square brackets) is a syntax form, not a function; so it won't collide
+    with the variable {\tt n} that we take as a parameter. The next piece, \verb+|[n % x === 0]+, has two parts. The pipe operator, which normally performs a bitwise-or, means ``there exists''
+    in sequence context. Its body, \verb|n % x === 0|, is then evaluated for each element ({\tt seq} calls the element {\tt x}). So at this point we're asking, ``does there exist an integer
+    {\tt x} for which {\tt n \% x} is zero?'' We tack the \verb+|seq+ onto the end to cause the preceding expression (in this case, everything back to the {\tt =}) to be interpreted by the
+    {\tt seq} macro. {\tt seq} is a modifier just like {\tt where[]}, though {\tt seq} doesn't take parameters.
 
     The other use of {\tt seq} is to retrieve all numbers that are not composite:
 
@@ -1996,12 +1996,26 @@ meta::section('quicksort', <<'__');
                             greater = quicksort(rest %[x >= pivot] -seq)];
   - end
 
-  That could be the end of the chapter, but if I stopped here then you wouldn't see the awesomeness that is Caterwaul's jQuery library. This app, rather than just sorting data, illustrates the
-  process by recording each step of the quicksort as it happens.
+  That could be the end of the chapter, but if I stopped here then you wouldn't see the awesomeness that is Caterwaul's jQuery library. This app, rather than just sorting data, makes the
+  process interactive by having the user resolve pieces of the sort.
 
   - s1 HTML and CSS
     This is fairly routine. We need a page that includes jQuery, Caterwaul, the standard modules, and the Caterwaul future library.\footnote{The Caterwaul future library is on Github at
     \url{http://github.com/spencertipping/caterwaul-futures}.}
+
+    There's an extra \verb|<script>| element here, just below \verb|<script src='quicksort.js'>|. I'm using this pattern because it makes it simpler to precompile things. If your main script
+    has this form:
+
+    - verbatim << end
+      $(caterwaul.js_all()(function () {...}));
+    - end
+
+    \noindent then it's impossible to precompile because \verb|$| won't be defined (precompilation executes your code so that it can perform value tracing). However, we can defer the jQuery
+    initializer call by pushing it into a non-Caterwaul script and just defining an {\tt initialize} function:
+
+    - verbatim << end
+      initialize = caterwaul.js_all()(function () {...});
+    - end
 
     - resource examples/quicksort/index.html << end
       <!doctype html>
@@ -2013,11 +2027,10 @@ meta::section('quicksort', <<'__');
         <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
         <script src='http://spencertipping.com/caterwaul-futures/future.js'></script>
         <script src='quicksort.js'></script>
+        <script>$(initialize)</script>
 
         <style>
         body {font-family: sans-serif; font-size: 9pt}
-        .pivot {color: #f80}
-        .initial {background: #eee}
         </style>
         </head>
         <body></body>
@@ -2026,7 +2039,10 @@ meta::section('quicksort', <<'__');
 
   - s1 Javascript
     When the user first loads the page, they're presented with a randomly generated list of numbers and a button. When they click the button, the sort begins and they see the stages as they
-    happen. 
+    happen. Internally this is achieved by using futures that later are resolved to the intermediate results. When the futures become decided, new UI elements are created to show the process.
+
+    - resource examples/quicksort/quicksort.js << end
+    - end
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
