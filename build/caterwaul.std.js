@@ -485,8 +485,9 @@ caterwaul.words(caterwaul.js())(function ($) {
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(anon(p), e.constructor === Function ? given.match in e.call(this, match) : anon(e)),
 
-         operator_macros = [rule('S[_x]', '_x'),         rule('S[_x[_y]]', 'S[_x][S[_y]]'),
-                            rule('S[(_x)]', '(S[_x])'),  rule('S[_x, _y]', 'S[_x], S[_y]'),
+         operator_macros = [rule('S[_x]', '_x'),
+                            rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][S[_y]]'),
+                            rule('S[[_x]]', '[S[_x]]'),  rule('S[_x, _y]', 'S[_x], S[_y]'),
 
                             operator('',  '|', {normal: exists}),
 
@@ -498,31 +499,29 @@ caterwaul.words(caterwaul.js())(function ($) {
                             operator('k', '*', {normal:  kmap,    bang:  keach}),                            operator('v', '*', {normal: vmap,    bang: veach}),
                             operator('k', '%', {normal:  kfilter, bang:  kfilter_not, tbang: kmap_filter}),  operator('v', '%', {normal: vfilter, bang: vfilter_not, tbang: vmap_filter})]
 
-                    -where [operator(prefix, op, forms) = []
-                              -se- it.push(trule(op, 'S[_xs #{p}*_f]',   'S[_xs #{p}*[_f(x)]]'))   /when [forms.normal || forms.inormal]
-                              -se- it.push(trule(op, 'S[_xs #{p}*!_f]',  'S[_xs #{p}*![_f(x)]]'))  /when [forms.bang   || forms.ibang]
-                              -se- it.push(trule(op, 'S[_xs #{p}*~!_f]', 'S[_xs #{p}*~![_f(x)]]')) /when [forms.tbang  || forms.itbang]
+                    -where [uses_x0 = {'/': true},
 
-                              -se- it.push(trule(op, 'S[_xs #{p}*[_f]]',          forms.normal),   trule(op, 'S[_xs #{p}*_var[_f]]',          forms.normal))  /when [forms.normal]
-                              -se- it.push(trule(op, 'S[_xs #{p}*![_f]]',         forms.bang),     trule(op, 'S[_xs #{p}*!_var[_f]]',         forms.bang))    /when [forms.bang]
-                              -se- it.push(trule(op, 'S[_xs #{p}*~![_f]]',        forms.tbang),    trule(op, 'S[_xs #{p}*~!_var[_f]]',        forms.tbang))   /when [forms.tbang]
+                            binary_operator(op, f)      = rule(anon('S[_xs #{op} _ys]'), f),
+                            operator(prefix, op, forms) = []
+                              -se- it.push(rule('S[_xs #{p}#{op}_f]',   'S[_xs #{p}#{op}[_f(x#{uses_x0[op] ? ", x0" : ""})]]'))   /when [forms.normal || forms.inormal]
+                              -se- it.push(rule('S[_xs #{p}#{op}!_f]',  'S[_xs #{p}#{op}![_f(x#{uses_x0[op] ? ", x0" : ""})]]'))  /when [forms.bang   || forms.ibang]
+                              -se- it.push(rule('S[_xs #{p}#{op}~!_f]', 'S[_xs #{p}#{op}~![_f(x#{uses_x0[op] ? ", x0" : ""})]]')) /when [forms.tbang  || forms.itbang]
 
-                              -se- it.push(trule(op, 'S[_xs #{p}*[_init][_f]]',   forms.inormal),  trule(op, 'S[_xs #{p}*_var[_init][_f]]',   forms.inormal)) /when [forms.inormal]
-                              -se- it.push(trule(op, 'S[_xs #{p}*![_init][_f]]',  forms.ibang),    trule(op, 'S[_xs #{p}*!_var[_init][_f]]',  forms.ibang))   /when [forms.ibang]
-                              -se- it.push(trule(op, 'S[_xs #{p}*~![_init][_f]]', forms.itbang),   trule(op, 'S[_xs #{p}*~!_var[_init][_f]]', forms.itbang))  /when [forms.itbang]
+                              -se- it.push(rule('S[_xs #{p}#{op}[_f]]',          forms.normal),   rule('S[_xs #{p}#{op}_var[_f]]',          forms.normal))  /when [forms.normal]
+                              -se- it.push(rule('S[_xs #{p}#{op}![_f]]',         forms.bang),     rule('S[_xs #{p}#{op}!_var[_f]]',         forms.bang))    /when [forms.bang]
+                              -se- it.push(rule('S[_xs #{p}#{op}~![_f]]',        forms.tbang),    rule('S[_xs #{p}#{op}~!_var[_f]]',        forms.tbang))   /when [forms.tbang]
+
+                              -se- it.push(rule('S[_xs #{p}#{op}[_init][_f]]',   forms.inormal),  rule('S[_xs #{p}#{op}_var[_init][_f]]',   forms.inormal)) /when [forms.inormal]
+                              -se- it.push(rule('S[_xs #{p}#{op}![_init][_f]]',  forms.ibang),    rule('S[_xs #{p}#{op}!_var[_init][_f]]',  forms.ibang))   /when [forms.ibang]
+                              -se- it.push(rule('S[_xs #{p}#{op}~![_init][_f]]', forms.itbang),   rule('S[_xs #{p}#{op}~!_var[_init][_f]]', forms.itbang))  /when [forms.itbang]
 
                               -re- it.concat(context_conversions(p, op))
 
-                              -where [p = prefix && '%#{prefix}'],
+                              -where [p = prefix && '%#{prefix}']]
 
-                            binary_operator(op, f)     = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})]]
-
-                    -where [template(op, p)            = anon(p).replace({'*': op}),
-                            trule(op, p, e)            = rule(template(op, p), e.constructor === Function ? e : template(op, e)),
-
-                            context_conversions(p, op) = [trule(op, 'S[_xs #{p}*~_body]',   'S[_xs #{p}*S[_body]]'),
-                                                          trule(op, 'S[_xs #{p}*!~_body]',  'S[_xs #{p}*!S[_body]]'),
-                                                          trule(op, 'S[_xs #{p}*~!~_body]', 'S[_xs #{p}*~!S[_body]]')],
+                    -where [context_conversions(p, op) = [rule('S[_xs #{p}#{op}~_body]',   'S[_xs #{p}#{op}S[_body]]'),
+                                                          rule('S[_xs #{p}#{op}!~_body]',  'S[_xs #{p}#{op}!S[_body]]'),
+                                                          rule('S[_xs #{p}#{op}~!~_body]', 'S[_xs #{p}#{op}~!S[_body]]')],
 
                             loop_anon                  = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
                             loop_form(x)               = loop_anon(scoped(anon(x))),
