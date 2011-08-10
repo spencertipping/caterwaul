@@ -262,7 +262,7 @@ meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch:
 meta::alias('bs', 'todo-summary note::bugs');
 meta::alias('cloc', 'loc js::core/caterwaul\\.');
 meta::alias('ec', 'edit sdoc::js::core/caterwaul.compiler');
-meta::alias('ecore', 'edit sdoc::js::core/caterwaul');
+meta::alias('ecore', 'edit sdoc::js::caterwaul');
 meta::alias('eg', 'edit sdoc::js::core/caterwaul.global');
 meta::alias('eh', 'edit data::bootstrap.html.sdoc');
 meta::alias('ei', 'edit sdoc::js::core/caterwaul.init');
@@ -1563,18 +1563,16 @@ edit($web[0]);
 __
 meta::hook('after-render::base-files', <<'__');
 terminal::info('creating base files');
-file::write(attribute($_) . '.js',      retrieve("pp::$_"),                 mkpath => 1) for grep s/^sdoc::js::/js::/ && /^js::(extensions|core)\//, sort keys %data;
-file::write(attribute($_) . '.js.sdoc', retrieve("pp::$_"),                 mkpath => 1) for grep  /^sdoc::js::(extensions|core)\//,                 sort keys %data;
-
-file::write('build/caterwaul.js',       retrieve('pp::js::caterwaul'),      mkpath => 1);
-file::write('build/caterwaul.node.js',  retrieve('pp::js::caterwaul.node'), mkpath => 1);
+file::write('build/caterwaul.js',      retrieve('pp::js::caterwaul'),      mkpath => 1);
+file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'), mkpath => 1);
 
 my @extensions = qw/std dev ui/;
 
-precompile("extensions/$_.js") for @extensions;
+terminal::info('creating extensions');
+file::write("build/caterwaul.$_.js", retrieve("pp::js::extensions/$_"), mkpath => 1);
+precompile("build/caterwaul.$_.js") for @extensions;
 
-rename "extensions/$_.pre.js", "build/caterwaul.$_.pre.js" for @extensions;
-
+terminal::info('minifying stuff');
 minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.pre.js", @extensions;
 
 __
@@ -3549,9 +3547,10 @@ parse step ahead of time:
 This informs my_caterwaul and my_other_caterwaul that your intent is just to macroexpand trees to trees, not transform functions into other functions.
 
   caterwaul_global.init = function (macroexpander) {
-    return function (f, environment, options) {
+    return se(function (f, environment, options) {
       return f.constructor === Function || f.constructor === String ? caterwaul_global.compile(macroexpander.call(this, caterwaul_global.parse(f)), environment, options) :
-                                                                      macroexpander.call(this, f)}};
+                                                                      macroexpander.call(this, f)},
+      function () {this.global = caterwaul_global})};
 
   return caterwaul = caterwaul_global});
 
@@ -4062,7 +4061,7 @@ caterwaul pre-1.0 had the problem of wildly divergent macros. The fn[] macro was
 In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
 pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
 
-  $.js = function (macroexpander) {
+  $.js = (function ($) {return function (macroexpander) {
 
 Javascript-specific shorthands.
 Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
@@ -4104,11 +4103,57 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
   inside the body of the function without worrying whether you'll lose the function context.
 
-    var function_rule      = $.replace('_left(_args) = _right',            '_left = (function (_args) {return _right})');
-    var function_args_rule = $.replace('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})');
+    var function_rule        = $.replacer('_left(_args) = _right',            '_left = (function (_args) {return _right})');
+    var function_args_rule   = $.replacer('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})');
 
-    var function_destructure = function (node) {
-      return function_rule.call(this, node) || function_args_rule.call(this, node)};
+    var function_destructure = function (node) {return function_args_rule.call(this, node) || function_rule.call(this, node)};
+
+  Modifier syntax.
+  These are the 'structured forms' I was talking about above. Prior to caterwaul 1.1 these were stored as individual pre-expanded macros. This had a number of problems, perhaps most notably
+  that it was extremely inefficient. I loaded up caterwaul in the REPL and found that caterwaul.js_ui(caterwaul.js_all()) had 329 macros installed. This meant 329 tree-match tests for every
+  function.
+
+  Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
+  fact match. However, there are only a few checks that need to happen before determining whether a modifier match is possible, unlike before.
+
+    var bracket_modifier_form = $.pattern('_modifier[_expression]'),              slash_modifier_form = $.pattern('_expression /_modifier'),
+        minus_modifier_form   = $.pattern('_expression -_modifier'),              in_modifier_form    = $.pattern('_modifier in _expression'),
+        pipe_modifier_form    = $.pattern('_expression |_modifier'),              comma_modifier_form = $.pattern('_expression, _modifier');
+
+    var dot_parameters        = $.pattern('_modifier._parameters'),               bracket_parameters  = $.pattern('_modifier[_parameters]');
+
+    var parameterized_wickets = $.pattern('_expression <_modifier> _parameters'), parameterized_minus = $.pattern('_expression -_modifier- _parameters');
+
+    var modifier = function (node) {var parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
+                                    var regular_match       = parameterized_match || bracket_modifier_form.call(this, node) || slash_modifier_form.call(this, node) ||
+                                                                                     minus_modifier_form  .call(this, node) || in_modifier_form   .call(this, node) ||
+                                                                                     pipe_modifier_form   .call(this, node) || comma_modifier_form.call(this, node);
+                                    if (! regular_match) return false;
+
+                                    var expanders = parameterized_match || (parameterized_match = dot_parameters    .call(this, regular_match._modifier) ||
+                                                                                                  bracket_parameters.call(this, regular_match._modifier)) ?
+
+                                                      (regular_match === parameterized_match || (regular_match._parameters = parameterized_match._parameters,
+                                                                                                 regular_match._modifier   = parameterized_match._modifier),
+                                                       this.parameterized_modifiers) :
+
+                                                      this.modifiers;
+
+                                    // Iterate backwards. This is a macro-author-friendly way to do things because it makes it easier to override functionality.
+                                    for (var i = expanders.length - 1, expansion; i >= 0; --i) if (expansion = expanders[i].call(this, regular_match)) return expansion;
+
+                                    return false};
+
+  Tying it all together.
+  This is where we write a big macroexpander to perform all of the tasks mentioned above. It just falls through cases, which is now a fairly standard pattern for macros. There is a high-level
+  optimization that we can perform: leaf nodes can only be expanded by the string interpolator, so we try this one first and reject any further matching attempts if the node has no children.
+  Because roughly half of the nodes will have no children, this saves on average 5 matching attempts per node.
+
+    var result = $(function (node) {return string_interpolator.call(this, node) || node.length && (macroexpander       .call(this, node) ||
+                                                                                                   modifier            .call(this, node) ||
+                                                                                                   function_destructure.call(this, node))});
+    result.modifiers               = [];
+    result.parameterized_modifiers = [];
 
     return result}})(caterwaul);
 
@@ -4122,13 +4167,13 @@ A macro is simply a partial function from source trees to source trees. It retur
 above). Because most macros end up replacing one pattern with another, caterwaul lets you use strings instead of requiring you to construct recognizer functions.
 
 (function ($) {
-  $.ensure_syntax   = function (thing)    {return thing && thing.constructor === String ? this.parse(thing) : thing};
+  $.ensure_syntax   = function (thing)             {return thing && thing.constructor === String ? this.parse(thing) : thing};
 
-  $.ensure_pattern  = function (pattern)  {return pattern.constructor  === String      ? this.ensure_pattern(this.parse(pattern)) :
-                                                  pattern.constructor  === this.syntax ? function (tree) {return pattern.match(tree)} : pattern};
+  $.ensure_pattern  = function (pattern)           {return pattern.constructor  === String      ? this.ensure_pattern(this.parse(pattern)) :
+                                                           pattern.constructor  === this.syntax ? function (tree) {return pattern.match(tree)} : pattern};
 
-  $.ensure_expander = function (expander) {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
-                                                  expander.constructor === this.syntax ? function (match) {return this.macroexpand(expander.replace(match))} : expander};
+  $.ensure_expander = function (expander)          {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
+                                                           expander.constructor === this.syntax ? function (match) {return this.macroexpand(expander.replace(match))} : expander};
 
   $.replacer        = function (pattern, expander) {var new_pattern = this.ensure_pattern(pattern), new_expander = this.ensure_expander(expander),
                                                              result = function (tree) {var match = new_pattern.call(this, tree); return match && new_expander.call(this, match)};
