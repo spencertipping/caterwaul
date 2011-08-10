@@ -1,0 +1,42 @@
+Global caterwaul variable.
+Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
+caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
+available only on the global caterwaul() function.
+
+  var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
+      original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+      caterwaul_global = calls_init();
+
+  caterwaul_global.deglobalize = function () {caterwaul = original_global; return caterwaul_global};
+
+  Version management and reinitialization.
+  There's an interesting case that comes up when loading a global caterwaul. If we detect that the caterwaul we just loaded has the same version as the one that's already there, we revert back
+  to the original. This is very important for precompilation and the reason for it is subtle. Precompilation relies on tracing to determine the compiled form of each function handed to
+  caterwaul, so if that caterwaul is replaced for any reason then the traces won't happen.
+
+  There is, of course, a pathological failure case in all of this. If you load three caterwauls [why?] and the second of the three has a different version than the other two, then you'll still
+  get precompiled erasure. I personally don't care about this case. You'd have to be insane to do crazy stuff like this and expect precompilation to work.
+
+  Bugfix in version 1.0.2: version() now works with older versions of caterwaul that didn't provide a version() function. This bug prevented you from using pre-1.0 versions of Caterwaul
+  alongside 1.0 and later versions. (This is normally possible by deglobalizing.)
+
+    caterwaul_global.version      = function (v) {return v ? (this._version = v, original_global && original_global.version && original_global.version.constructor === Function &&
+                                                                                 original_global.version() === v ? this.deglobalize() : this) : this._version};
+
+    caterwaul_global.reinitialize = function (transform) {var c = (transform || function (x) {return x})(this.initializer);
+                                                          return c(c, this.unique).version(this.version())};
+
+  Utility methods.
+  These are available for use by compiler functions or the end user.
+
+    merge(caterwaul_global, {
+      merge:          merge,
+      map:            map,
+      rmap:           rmap,
+      flatten:        flatten,
+      gensym:         gensym,
+      unique:         unique,
+      initializer:    initializer,
+
+      variadic:       function (f) {return function () {for (var r = [], i = 0, l = arguments.length;                       i < l; ++i) r.push(f.call(this, arguments[i]));    return r}},
+      right_variadic: function (f) {return function () {for (var r = [], i = 0, l = arguments.length - 1, x = arguments[l]; i < l; ++i) r.push(f.call(this, arguments[i], x)); return r}}});

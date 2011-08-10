@@ -1,0 +1,20 @@
+Macroexpansion.
+Caterwaul's main purpose is to transform your code, and the easiest way to transform things is through macroexpansion. The idea is to locate syntax nodes with a given pattern and rewrite them
+somehow. For example, suppose we wanted to define a macro to enable the postfix /log modifier. Here's how it might look:
+
+| x /log   ->   (function (it) {console.log(it); return it})(x)
+
+The macro needs to first identify things of the form '_something /log' and transform them accordingly. Here's a macro to do that:
+
+| var m = caterwaul.replacer('_something /log', '(function (it) {console.log(it); return it})(_something)');
+
+  Macroexpander logic.
+  Version 1.1 changes the macroexpander significantly. Before, macros were stored as arrays of functions, each one of which could transform the syntax tree. Now each caterwaul function has
+  only one macroexpander, which is a function. Macroexpanders use functional composition and have access to instance variables on the caterwaul function they belong to. The old behavior can be
+  emulated, but a much more performant approach is to explicitly factor out common patterns among different macros.
+
+  Caterwaul 1.1 also removes support for specifying custom macros on a per-invocation basis. This would no longer work because there is now no notion of implicit macro overloading.
+
+  The default macroexpander is now the identity function; this is equivalent to performing no transformation on the source tree.
+
+    caterwaul_global.macroexpand = function (tree) {return tree};

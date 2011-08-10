@@ -925,50 +925,19 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // The macro needs to first identify things of the form '_something /log' and transform them accordingly. Here's a macro to do that:
 
-// | var m = caterwaul.macro('_something /log', '(function (it) {console.log(it); return it})(_something)');
-
-//   Building macros.
-//   Caterwaul gives you several ways to build macros. The simplest is to use caterwaul.macro() as shown above. It will parse each string, using the first as a pattern and the second as a
-//   template. It then fills in the values on the right from the ones on the left and re-expands the result. In place of each string, caterwaul.macro() can take either a syntax tree or a
-//   function. The function on the left should take a syntax tree, try to match the pattern against it, and return either a match object or false. The function on the right should take a match
-//   object and return a new syntax tree. (It won't be invoked if the left function returned false.)
-
-//   Macro function internals.
-//   Caterwaul's macros are just functions from syntax to syntax. They return false if they don't match a particular node. So, for example, the macro '_x * 2' -> '_x << 1' would return 'a << 1'
-//   on 'a * 2', but would return false on 'a * 3'. The macroexpander knows to descend into child nodes when a macroexpander returns false. If a macroexpander returns a value then that value is
-//   taken and no further expansion is performed. (This is necessary if we want to implement literal macros -- that is, literal(x) -> x and x isn't macroexpanded further.)
-
-//   If a macro wants to re-expand stuff it should use 'this.expand', which invokes the macroexpander on a tree. Most of the time macros will do this, and it's done automatically by
-//   caterwaul.macro() when you use a string or a syntax tree as the expansion. You'll have to call this.expand() if you're using a function as an expander.
-
-    caterwaul_global.ensure_syntax   = function (thing)    {return thing && thing.constructor === String ? this.parse(thing) : thing};
-
-    caterwaul_global.ensure_pattern  = function (pattern)  {return pattern.constructor  === String      ? this.ensure_pattern(this.parse(pattern)) :
-                                                                   pattern.constructor  === this.syntax ? function (tree) {return pattern.match(tree)} : pattern};
-
-    caterwaul_global.ensure_expander = function (expander) {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
-                                                                   expander.constructor === this.syntax ? function (match) {return this.expand(expander.replace(match))} : expander};
-
-    caterwaul_global.macro = caterwaul_global.right_variadic(function (pattern, expander) {var new_pattern = this.ensure_pattern(pattern), new_expander = this.ensure_expander(expander);
-                                                               return se(function (tree) {var match = new_pattern.call(this, tree); return match && new_expander.call(this, match)},
-                                                                         function () {this.pattern = pattern, this.expander = expander})});
+// | var m = caterwaul.replacer('_something /log', '(function (it) {console.log(it); return it})(_something)');
 
 //   Macroexpander logic.
-//   This behaves just like the pre-1.0 macroexpander, except that the patterns and expanders are now fused. The macro functions are also evaluated under a different context; rather than being
-//   bound to the caterwaul function they came from, they are bound to a context object that gives them a way to re-expand stuff under the same set of macros. It also provides the caterwaul
-//   function that is performing the expansion. (Though you shouldn't modify the macro list from inside a macro -- this pre-1.0 feature is now removed.)
+//   Version 1.1 changes the macroexpander significantly. Before, macros were stored as arrays of functions, each one of which could transform the syntax tree. Now each caterwaul function has
+//   only one macroexpander, which is a function. Macroexpanders use functional composition and have access to instance variables on the caterwaul function they belong to. The old behavior can be
+//   emulated, but a much more performant approach is to explicitly factor out common patterns among different macros.
 
-//   Just like previous versions of caterwaul the macros are matched last-to-first. This means that the /last/ matching macro is used, allowing you to easily override stuff. Also, the
-//   macroexpand() function takes optional extra parameters; these are either macros or arrays of macros to be added to the macro list stored on the caterwaul function.
+//   Caterwaul 1.1 also removes support for specifying custom macros on a per-invocation basis. This would no longer work because there is now no notion of implicit macro overloading.
 
-    caterwaul_global.macroexpand = function (tree) {for (var macros = arguments.length ? [].concat(this._macros || []) : this._macros || [], i = 1, l = arguments.length, x; i < l; ++i)
-                                                      (x = arguments[i]) instanceof Array ? macros.push.apply(macros, x) : macros.push(x);
+//   The default macroexpander is now the identity function; this is equivalent to performing no transformation on the source tree.
 
-                                                    var context = {caterwaul: this, macros: macros, expand: function (tree) {
-                                                      return tree.rmap(function (node) {
-                                                        for (var new_node = null, i = macros.length - 1; i >= 0; --i) if (new_node = macros[i].call(context, node)) return new_node})}};
+    caterwaul_global.macroexpand = function (tree) {return tree};
 
-                                                    return context.expand(this.ensure_syntax(tree))};
 // Generated by SDoc 
 
 
@@ -1018,10 +987,6 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
               init_function:        this.init_function || this.macroexpand,
               instance_methods:     this.instance_methods,
 
-              ensure_syntax:        this.ensure_syntax,
-              ensure_pattern:       this.ensure_pattern,
-              ensure_expander:      this.ensure_expander,
-
               environment:          function (e) {return arguments.length ? (this._environment = e, this)                              : this._environment},
               macros:               function ()  {return arguments.length ? (this._macros = this.flatten.apply(this, arguments), this) : this._macros},
 
@@ -1029,6 +994,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
               init:                 function (f, environment) {return this.is_precompiled(f) || this.init_not_precompiled(f, environment)},
               init_not_precompiled: function (f, environment) {return f.constructor === this.syntax ? this.init_function(f) : this.compile(this(this.parse(f)), environment)}}};
+
 // Generated by SDoc 
 
 
@@ -1039,7 +1005,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 
 
-caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
+caterwaul.version('eafdb65619fcc27b909bc84e1b88f463');
 // Generated by SDoc 
 
 // Caterwaul standard library | Spencer Tipping
@@ -1080,12 +1046,13 @@ caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
 // (this process is non-destructive):
 
 // | var anonymize = caterwaul.anonymizer('X', 'Y', 'Z');
-//   var m = caterwaul.macro(anonymize('X[foo]'), ...);    // Matches against gensym_1_aj49Az0_885nr1q[foo]
+//   var m = caterwaul.replacer(anonymize('X[foo]'), ...);    // Matches against gensym_1_aj49Az0_885nr1q[foo]
 
 // Each anonymizer uses a separate symbol table. This means that two anonymizers that match against 'A' (or any other macro pattern) will always map them to different gensyms.
 
 (function ($) {$.anonymizer = function () {for (var translation_table = {}, i = 0, l = arguments.length; i < l; ++i) translation_table[arguments[i]] = $.gensym(arguments[i]);
                                            return function (node) {return $.ensure_syntax(node).replace(translation_table)}}})(caterwaul);
+
 // Generated by SDoc 
 
 
@@ -1112,7 +1079,6 @@ caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
 // In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
 
 (function ($) {
-  var loop_anon = $.anonymizer('i', 'l', 'xs', 'result');
   $.word_macros = function (language) {
     return [
 
@@ -1199,32 +1165,7 @@ caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
     language.parameterized_modifier('otherwise', '((_expression) || (_parameters))'),
 
     language.parameterized_modifier('when_defined',   '((_parameters) != null && (_expression))'),
-    language.parameterized_modifier('unless_defined', '((_parameters) == null && (_expression))'),
-
-//   Collection-based loops.
-//   These are compact postfix forms of common looping constructs. Rather than assuming a side-effect, each modifier returns an array of the results of the expression.
-
-//   | console.log(it), over[[1, 2, 3]]            // logs 1, then 2, then 3
-//     console.log(it), over_keys[{foo: 'bar'}]    // logs foo
-//     console.log(it), over_values[{foo: 'bar'}]  // logs bar
-
-
-    language.parameterized_modifier('over',        loop_anon('(function () {for (var xs = (_parameters), result = [], i = 0, l = xs.length, it; i < l; ++i)' +
-                                                               'it = xs[i], result.push(_expression); return result}).call(this)')),
-
-    language.parameterized_modifier('over_keys',   loop_anon('(function () {var x = (_parameters), result = []; ' +
-                                                               'for (var it in x) Object.prototype.hasOwnProperty.call(x, it) && result.push(_expression); return result}).call(this)')),
-
-    language.parameterized_modifier('over_values', loop_anon('(function () {var x = (_parameters), result = [], it; ' +
-                                                               'for (var k in x) Object.prototype.hasOwnProperty.call(x, k) && (it = x[k], result.push(_expression));' +
-                                                               'return result}).call(this)')),
-
-//   Condition-based loops.
-//   These iterate until something is true or false, collecting the results of the expression and returning them as an array. For example:
-
-//   | console.log(x), until[++x >= 10], where[x = 0]      // logs 1, 2, 3, 4, 5, 6, 7, 8, 9
-
-    language.parameterized_modifier('until', loop_anon('(function () {var result = []; while (! (_parameters)) result.push(_expression); return result}).call(this)'))]}})(caterwaul);
+    language.parameterized_modifier('unless_defined', '((_parameters) == null && (_expression))')]}})(caterwaul);
 
 // Generated by SDoc 
 
@@ -1425,6 +1366,7 @@ caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
 
 //   | *~! = flatmap         e.g. [1, 2, 3] *~![[x, x + 1]] |seq      ->  [1, 2, 2, 3, 3, 4]
 //     %~! = map/filter      e.g. [1, 2, 3] %~![x & 1 && x + 1] |seq  ->  [2, 4]
+//     /~! = unfold          e.g. 1 /~![x < 5 ? x + 1 : null] |seq    ->  [1, 2, 3, 4, 5]
 
 //   Variables.
 //   All of the variables from before are still available and the naming is still mostly the same. Each block has access to 'x', which is the immediate element. 'xi' is the index, and 'x0' is the
@@ -1475,9 +1417,31 @@ caterwaul.version('f9c2aab8c9ceb09bc04da8db47c5b208');
 //   | *~! = flatmap
 //     /   = foldl
 //     /!  = foldr
+//     /~! = unfold
 
 //   None of the binary operators (e.g. +, -, ^, etc) can be used with prefixes because of precedence. Any prefix would bind more strongly to the left operand than it would to the binary
 //   operator, which would disrupt the syntax tree.
+
+//   Folding prefixes.
+//   New in Caterwaul 1.0.4 is the ability to specify fold prefixes. This allows you to specify the initial element of a fold:
+
+//   | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
+//     xs /~[[]][x0 + [x, x + 1]] -seq     (equivalent to  xs *~![[x, x + 1]] -seq)
+
+//   Function promotion.
+//   Caterwaul 1.0.4 adds support for implicit function promotion of sequence block expressions:
+
+//   | f(x) = x + 1
+//     seq in [1, 2, 3] *f
+//     seq in [-1, 0, 1] %f
+
+//   You can use this to make method calls, which will remain bound to the original object even though the object expression is evaluated only once:
+
+//   | xs *foo.bar -seq            (equivalent to  xs *[foo.bar(x)] -seq)
+//     xs *(bar + bif).baz -seq    (equivalent to  xs *[temp.baz(x)] -seq -where [temp = bar + bif])
+
+//   The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
+//   context, since it is unclear what the intent would be.
 
 //   Numbers.
 //   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macro
@@ -1514,7 +1478,7 @@ caterwaul.js_base()(function ($) {
 
                              operator('', '*', map,    each,       flatmap),        binary_operator('+', concat),
                              operator('', '%', filter, filter_not, map_filter),     binary_operator('-', cross),
-                             operator('', '/', foldl,  foldr),                      binary_operator('^', zip),
+                             operator('', '/', foldl,  foldr,      unfold),         binary_operator('^', zip),
 
                              operator('k', '*', kmap,    keach),                    operator('v', '*', vmap,    veach),
                              operator('k', '%', kfilter, kfilter_not, kmap_filter), operator('v', '%', vfilter, vfilter_not, vmap_filter)]
@@ -1553,6 +1517,7 @@ caterwaul.js_base()(function ($) {
 
                              foldl       = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);                     return _x'),
                              foldr       = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
+                             unfold      = op_form('for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys'),
 
                              exists      = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false'),
 
@@ -1627,6 +1592,8 @@ caterwaul.js_base()(function ($) {
 // overloaded are &&, ||, or ?:; these could be meaningfully overloaded but their evaluation semantics would be lost.
 
 caterwaul.js_base()(function ($) {
+  var map = function (xs, f) {for (var ys = [], i = 0, l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys};
+
   $.overload_macro(language) = language.modifier('overload', this.expand(overload_expand(tree._expression)) -given.tree -where [overload_expand = $.overload()]),
   $.overload()               = $.clone().macros(unary_operators, binary_operators),
 
@@ -1634,8 +1601,9 @@ caterwaul.js_base()(function ($) {
          overload_binary(op) = $.macro('_x #{op} _y', '_x["#{op}"](_y)'),
 
          qw(s)               = s.split(/\s+/),
-         unary_operators     = overload_unary(it)  -over- qw('! ~ + - new void typeof'),
-         binary_operators    = overload_binary(it) -over- qw('+ - * / % ^ | & << >> >>> += -= *= /= %= ^= |= &= <<= >>= >>>= == != === !== < > <= >= in instanceof')]})(caterwaul);
+         unary_operators     = map(qw('! ~ + - new void typeof'),                                                                              overload_unary),
+         binary_operators    = map(qw('+ - * / % ^ | & << >> >>> += -= *= /= %= ^= |= &= <<= >>= >>>= == != === !== < > <= >= in instanceof'), overload_binary)]})(caterwaul);
+
 // Generated by SDoc 
 
 
