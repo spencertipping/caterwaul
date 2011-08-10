@@ -287,7 +287,7 @@ meta::bootstrap('html', <<'__');
 
 </script>
 <script>
-(function(a){return a(a,(function(b){return function(){return ++b}})(0))})(function(e,c,o){var ad=function(ak){return ak.split(/\s+/)},A=function(ak,al){return al&&al.call(ak,ak)||ak},n=function(ak){throw new Error(ak)},l=(function(am,ak,al){return function(){return[al,am,++ak]}})(+new Date(),Math.random()*(1<<30)>>>0,c()),U=function(al){var ak=l();return["gensym",al||"",ak[0].toString(36),ak[1].toString(36),ak[2].toString(36)].join("_")},H=function(){for(var an=[],am=0,al=arguments.length,ak;am<al;++am){(ak=arguments[am]) instanceof Array?an=an.concat(H.apply(this,ak)):an.push(ak)}return an},M=function(ao,al){for(var am=0,an=[],ak=al.length;am<ak;++am){an.push(ao(al[am],am))}return an},v=function(al,ak){return M(function(am){return am instanceof Array?v(al,am):al(am)})},ab=function(an){for(var am=0,al=ad(an),ao={},ak=al.length;am<ak;++am){ao[al[am]]=true}return r(ao)},Z=function(ao){for(var an=1,ak=arguments.length,am;an<ak;++an){if(am=arguments[an]){for(var al in am){f(am,al)&&(ao[al]=am[al])}}}return ao},Y=U("hash_annotation"),r=function(am){var ak=0;for(var al in am){j.call(am,al)&&(ak=al.length>ak?al.length:ak)}am[Y]=ak;return am},f=function(al,ak){return ak!=null&&!(ak.length>al[Y])&&j.call(al,ak)},j=Object.prototype.hasOwnProperty;var ac=function(){var ak=function(){return ak.init.apply(ak,arguments)};return ak},ae=typeof caterwaul==="undefined"?o:caterwaul,aj=ac();aj.deglobalize=function(){caterwaul=ae;return aj};aj.version=function(ak){return ak?(this._version=ak,ae&&ae.version&&ae.version.constructor===Function&&ae.version()===ak?this.deglobalize():this):this._version};aj.reinitialize=function(ak){var al=(ak||function(am){return am})(this.initializer);return al(al,this.unique).version(this.version())};Z(aj,{merge:Z,map:M,rmap:v,flatten:H,gensym:U,unique:c,initializer:e,variadic:function(ak){return function(){for(var an=[],am=0,al=arguments.length;am<al;++am){an.push(ak.call(this,arguments[am]))}return an}},right_variadic:function(ak){return function(){for(var ao=[],an=0,am=arguments.length-1,al=arguments[am];an<am;++an){ao.push(ak.call(this,arguments[an],al))}return ao}}});var ai=ab(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),R=function(an){for(var am=0,al=[false];am<8;++am){al.push.apply(al,al)}for(var am=0,ak=an.length;am<ak;++am){al[an.charCodeAt(am)]=true}return al},ah=R(".0123456789"),T=R("0123456789"),x=R("0123456789abcdefABCDEFx"),K=R("eE"),h=R(" \n\r\t"),s=R("()[]{}"),q=R("([{"),w=R("+-*/%&|^!~=<>?:;.,"),I=R("\n\r"),i=R("gims"),N=R("'\"/"),m="/".charCodeAt(0),Q="*".charCodeAt(0),k="\\".charCodeAt(0),X="x".charCodeAt(0),L=".".charCodeAt(0),S="0".charCodeAt(0),ag=ab("++ --"),V=R("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),J=M(ab,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),F=ab("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),D=(function(am){for(var ao={},an=0,ak=am.length;an<ak;++an){for(var al in am[an]){f(am[an],al)&&(ao[al]=an)}}return r(ao)})(J),u=(function(am){for(var ao=[],ap=0,ak=am.length,an=null;an=am[ap],ao[ap]=true,ap<ak;++ap){for(var al in an){if(f(an,al)&&(ao[ap]=ao[ap]&&!f(F,al))){break}}}return ao})(J),z=ab("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),W=r({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),P=r({"if":"else","do":"while","catch":"finally","try":"catch"}),B=ab("[] ()"),af=ab("return throw break continue else"),C=ab("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),g=ab("; {"),aa=ab("i;"),G=ab("++ --"),p=r({"(":")","[":"]","{":"}","?":":"}),E=ab("[ ("),O=ab("?"),d=ab("function if for while catch void delete new typeof in instanceof"),y=ab("function");var t=aj.syntax_common={_replace:function(ak){return(ak.l=this.l)&&(this.l.r=ak),(ak.r=this.r)&&(this.r.l=ak),this},_append_to:function(ak){return ak&&ak._append(this),this},_reparent:function(ak){return this.p&&this.p[0]===this&&(this.p[0]=ak),this},_fold_l:function(ak){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(ak){return(this[this.length++]=ak)&&(ak.p=this),this},_fold_r:function(ak){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(ak){return ak.p=this.p,(this.r=ak).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(ak){return ak.p=this._replace(ak).p,this._reparent(ak),delete this.l,delete this.r,this._append_to(ak)},_unlink:function(ak){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(ak)},pop:function(){return --this.length,this},push:function(ak){return this[this.length++]=ak||a,this},id:function(){var ak=U("id");return(this.id=function(){return ak})()},each:function(am){for(var al=0,ak=this.length;al<ak;++al){am(this[al],al)}return this},map:function(am){for(var an=new this.constructor(this),al=0,ak=this.length;al<ak;++al){an.push(am(this[al],al)||this[al])}return an},reach:function(ak){ak(this);this.each(function(al){al.reach(ak)});return this},rmap:function(al){var ak=al(this);return !ak||ak===this?this.map(function(am){return am.rmap(al)}):ak.rmap===o?new this.constructor(ak):ak},clone:function(){return this.rmap(function(){return false})},collect:function(al){var ak=[];this.reach(function(am){al(am)&&ak.push(am)});return ak},replace:function(ak){var al;return j.call(ak,this.data)&&(al=ak[this.data])?al.constructor===String?A(this.map(function(am){return am.replace(ak)}),function(){this.data=al}):al:this.map(function(am){return am.replace(ak)})},repopulated_with:function(ak){return new this.constructor(this.data,ak)},change:function(al,ak){return A(new this.constructor(this.data,Array.prototype.slice.call(this)),function(am){am[al]=ak})},compose_single:function(ak,al){return this.change(ak,al(this[ak]))},traverse:function(ak){ak({entering:this});ak({exiting:this.each(function(al){al.traverse(ak)})});return this},flatten:function(ak){ak=ak||this.data;return ak!==this.data?this.as(ak):!(f(z,ak)&&this.length)?this:f(F,ak)?A(new this.constructor(ak),bind(function(am){for(var al=this;al&&al.data===ak;al=al[1]){am.push(al[0])}am.push(al)},this)):A(new this.constructor(ak),bind(function(an){for(var al=this,am=[];al.data===ak;al=al[0]){al[1]&&am.push(al[1])}am.push(al);for(al=am.length-1;al>=0;--al){an.push(am[al])}},this))},unflatten:function(){var al=this,ak=f(F,this.data);return this.length<=2?this:A(new this.constructor(this.data),function(ao){if(ak){for(var an=0,am=al.length-1;an<am;++an){ao=ao.push(al[an]).push(an<am-2?new al.constructor(al.data):al[an])[1]}}else{for(var an=al.length-1;an>=1;--an){ao=ao.push(an>1?new al.constructor(al.data):al[0]).push(al[an])[0]}}})},as:function(ak){return this.data===ak?this:new this.constructor(ak).push(this)},is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_wildcard:function(){return this.data.charCodeAt(0)===95},has_grouped_block:function(){return f(W,this.data)},is_block:function(){return f(g,this.data)},is_blockless_keyword:function(){return f(af,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return f(aa,this.data)},is_binary_operator:function(){return f(z,this.data)},is_prefix_unary_operator:function(){return f(C,this.data)},is_postfix_unary_operator:function(){return f(G,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(ak){return f(P,this.data)&&P[this.data]===(ak.data||ak)},bindings:function(al){var ak=al||{};this.reach(function(am){if(am.binds_a_value){ak[am.data]=am.value}});return ak},match:function(am,an){am=aj.ensure_syntax(am);an||(an={_:am});if(this.is_wildcard()){return an[this.data]=am,an}else{if(this.length===am.length&&this.data===am.data){for(var al=0,ak=this.length;al<ak;++al){if(!this[al].match(am[al],an)){return null}}return an}}},ends_with_block:function(){var ak=this[W[this.data]];return this.data==="{"||f(W,this.data)&&(this.data!=="function"||this.length===3)&&ak&&ak.ends_with_block()},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(M(function(ak){return ak.structure()},this)).join(" ")+")"}else{return this.data}},toString:function(){var ak=[""];this.serialize(ak);return ak.join("")},serialize:function(an){var al=this.length,ao=this.data,ak=";\n",am=function(ap){if(V[an[an.length-1].charCodeAt(0)]===V[ap.charCodeAt(0)]){an.push(" ",ap)}else{an.push(ap)}};switch(al){case 0:if(f(af,ao)){return am(ao.replace(/^u/,""))}else{if(f(p,ao)){return am(ao),am(p[ao])}else{return am(ao)}}case 1:if(f(C,ao)||f(af,ao)){return am(ao.replace(/^u/,"")),this[0].serialize(an)}else{if(f(p,ao)){return am(ao),this[0].serialize(an),am(p[ao])}else{if(f(z,ao)){return am("/* unary "+ao+" node */"),this[0].serialize(an)}else{return this[0].serialize(an),am(ao)}}}case 2:if(f(B,ao)){return this[0].serialize(an),am(ao.charAt(0)),this[1].serialize(an),am(ao.charAt(1))}else{if(f(W,ao)){return am(ao),this[0].serialize(an),this[1].serialize(an)}else{if(f(aa,ao)){return this[0].serialize(an),this[1].serialize(an)}else{if(ao===";"){return this[0].serialize(an),am(ak),this[1].serialize(an)}else{return this[0].serialize(an),am(ao),this[1].serialize(an)}}}}default:if(f(O,ao)){return this[0].serialize(an),am(ao),this[1].serialize(an),am(":"),this[2].serialize(an)}else{if(f(W,ao)){return this.accepts(this[2])&&!this[1].ends_with_block()?(am(ao),this[0].serialize(an),this[1].serialize(an),am(ak),this[2].serialize(an)):(am(ao),this[0].serialize(an),this[1].serialize(an),this[2].serialize(an))}else{return this.unflatten().serialize(an)}}}}};aj.ref=function(al,ak){if(al instanceof this.constructor){this.value=al.value,this.data=al.data}else{this.value=al,this.data=U(ak&&ak.constructor===String?ak:"ref")}};Z(aj.ref.prototype,t,{binds_a_value:true,length:0});aj.ref.prototype.replace=function(ak){var al;return j.call(ak,this.data)&&(al=ak[this.data])?al.constructor===String?A(new this.constructor(this.value),function(){this.data=al}):al:this};aj.syntax=function(ap){if(ap instanceof this.constructor){this.data=ap.data,this.length=0}else{this.data=ap&&ap.toString();this.length=0;for(var an=1,ak=arguments.length,am;am=arguments[an],an<ak;++an){for(var al=0,ar=am.length,ao,aq;am instanceof Array?(ao=am[al],al<ar):(ao=am,!al);++al){this._append((aq=ao.constructor)===String||aq===Number||aq===Boolean?new this.constructor(ao):ao)}}}};Z(aj.syntax.prototype,t);var a=aj.empty=new aj.syntax("");aj.parse=function(aB){var aE=aB.toString(),ay=0,aQ=0,aH=true,aR=false,aG=false,at=false,aF=0,aD="",aM=0,aK=aE.length,al=function(aU){return aE.charCodeAt(aU)},au=[],an=null,ak=null,ax=null,ap=M(function(){return[]},J),am=[],av=[a],aO=function(aU){return av.push(aU),aU},ar=function(aU){return ak?ak._sibling(ak=aU):(ak=aU._append_to(ax)),aO(aU)},aJ=this.syntax;if(aK===0){return a}while((ay=aM)<aK){while(h[aQ=al(aM)]&&aM<aK){ay=++aM}aR=at=aG=aD=false;if(s[aQ]){aD=!!++aM;aH=q[aQ]}else{if(aQ===m&&al(aM+1)===Q&&(aM+=2)){while(++aM<aK&&al(aM)!==m||al(aM-1)!==Q){}aD=!++aM}else{if(aQ===m&&al(aM+1)===m){while(++aM<aK&&!I[al(aM)]){}aD=false}else{if(N[aQ]&&(aF=aQ)&&aH&&!(aH=!(aD=aE.charAt(aM)))){while(++aM<aK&&(aQ=al(aM))!==aF||aR){aR=!aR&&aQ===k}while(++aM<aK&&i[al(aM)]){}aD=true}else{if(aQ===S&&x[al(aM+1)]){while(++aM<aK&&x[al(aM)]){}aH=!(aD=true)}else{if(ah[aQ]&&(aQ!==L||T[al(aM+1)])){while(++aM<aK&&(T[aQ=al(aM)]||(aG^(aG|=aQ===L))||(at^(at|=K[aQ]&&++aM)))){}while(aM<aK&&T[al(aM)]){++aM}aH=!(aD=true)}else{if(w[aQ]&&(aD=aH?"u":"",aH=true)){while(aM<aK&&w[al(aM)]&&f(ai,aD+aE.charAt(aM))){aD+=aE.charAt(aM++)}aH=!f(ag,aD)}else{while(++aM<aK&&V[al(aM)]){}aH=f(ai,aD=aE.substring(ay,aM))}}}}}}}if(aM===ay){throw new Error('Caterwaul lex error at "'+aE.substr(ay,40)+'" with leading context "'+aE.substr(ay-40,40)+'" (probably a Caterwaul bug)')}if(aD===false){continue}aD=aD===true?aE.substring(ay,aM):aD==="u;"?";":aD;aD===an?(au.pop(),an=au[au.length-1],ak=ak?ak.p:ax,ax=null):(f(p,aD)?(au.push(an=p[aD]),ax=ar(aO(new aJ(aD))),ak=null):ar(aO(new aJ(aD))),f(D,aD)&&ap[D[aD]].push(ak||ax));aH|=aD===")"&&ak.l&&f(W,ak.l.data)}for(var aM=0,aK=ap.length,az,aT;aT=ap[aM],az=u[aM],aM<aK;++aM){for(var aL=az?0:aT.length-1,aC=aT.length,aw=az?1:-1,aI,aS,aA;az?aL<aC:aL>=0;aL+=aw){if(f(z,aS=(aI=aT[aL]).data)){aI._fold_lr()}else{if(f(E,aS)&&aI.l&&!((aA=aI.l.l)&&f(W,aA.data))&&(aI.l.data==="."||(aI.l.data==="function"&&aI.l.length===2)||!(f(ai,aI.l.data)||f(d,aI.l.data)))){am.push(aI.l._wrap(aO(new aJ(aS+p[aS]))).p._fold_r())}else{if(f(G,aS)){aI._fold_l()}else{if(f(C,aS)){aI._fold_r()}else{if(f(O,aS)){aI._fold_lr();var aP=aI[1];aI[1]=aI[0];aI[0]=aP}else{if(f(W,aS)&&aI.r&&aI.r.data!==":"){for(var aq=0,aN=W[aS];aq<aN&&aI.r&&!f(g,aI.r.data);++aq){aI._fold_r()}aI.r&&(aI.r.data===";"?aI.push(a):aI._fold_r());if(f(P,aS)&&P[aS]===(aI.r&&aI.r.r&&aI.r.r.data)){aI._fold_r().pop()._fold_r()}else{if(f(P,aS)&&P[aS]===(aI.r&&aI.r.data)){aI._fold_r()}}}else{if(f(af,aS)){aI.r&&aI.r.data!==";"&&aI._fold_r()}}}}}}}}}for(var aM=av.length-1,aT;aM>=0;--aM){(aT=av[aM]).r&&aT._wrap(aO(new aJ("i;"))).p._fold_r()}for(var aM=0,aK=am.length,aT,ao;aM<aK;++aM){(ao=(aT=am[aM])[1]=aT[1][0]||a)&&(ao.p=aT)}while(ak.p){ak=ak.p}for(var aM=av.length-1,aT;aM>=0;--aM){delete (aT=av[aM]).p,delete aT.l,delete aT.r}return ak};(function(){var ak=aj.parse("var _bindings; return(_expression)"),am=aj.parse("_variable = _base._variable"),al=aj.parse("undefined = void(0)");aj.compile=function(ay,ar,ax){ax=Z({gensym_renaming:true},ax);var ao=Z({},this._environment||{},ar||{},ay.bindings()),au=[al],aw=U("base");for(var aq in ao){if(j.call(ao,aq)&&aq!=="this"){au.push(am.replace({_variable:aq,_base:aw}))}}var av=new this.syntax(",",au).unflatten(),an=ak.replace({_bindings:av,_expression:ay});if(ax.gensym_renaming){var ap=this.gensym_rename_table(an);for(var aq in ao){j.call(ao,aq)&&(ao[ap[aq]||aq]=ao[aq])}an=an.replace(ap);aw=ap[aw]}try{return(new Function(aw,an)).call(ao["this"],ao)}catch(at){throw new Error(at+" while compiling "+an)}};aj.gensym_rename_table=function(ax){var av={},at=[],aw=/^gensym_(.*)_\d+_[^_]+_[^_]+$/;ax.reach(function(ay){var az=ay.data;aw.test(az)&&(av[az]||at.push(az));av[az]=az.replace(aw,"$1")||"anon"});var an={},au=function(ay){if(!(ay in av)){return ay}var az=an[ay]||0;while(av[ay+(++az).toString(36)]){}return ay+(an[ay]=az).toString(36)};for(var ao={},aq=0,ap=at.length,ar;aq<ap;++aq){ao[ar=at[aq]]||(av[ao[ar]=au(av[ar])]=true)}return ao}})();aj.macroexpand=function(ak){return ak};var b={};aj.precompiled_internal=function(al){var ak=U("precompiled");return b[ak]=al,ak};aj.is_precompiled=function(ak){return ak.constructor===String&&b[ak]};aj.clone=function(ak){return A(this.merge(ac(),this,this.instance_methods(),{constructor:this}),function(){delete this._id,delete this._macros,delete this._environment})};aj.instance_methods=function(){return{compile:this.compile,parse:this.parse,macroexpand:this.macroexpand,syntax:this.syntax,ref:this.ref,id:this.syntax_common.id,gensym_rename_table:this.gensym_rename_table,init_function:this.init_function||this.macroexpand,instance_methods:this.instance_methods,environment:function(ak){return arguments.length?(this._environment=ak,this):this._environment},macros:function(){return arguments.length?(this._macros=this.flatten.apply(this,arguments),this):this._macros},toString:function(){return"[caterwaul instance "+this.id()+"]"},init:function(al,ak){return this.is_precompiled(al)||this.init_not_precompiled(al,ak)},init_not_precompiled:function(al,ak){return al.constructor===this.syntax?this.init_function(al):this.compile(this(this.parse(al)),ak)}}};return caterwaul=aj=aj.clone()});caterwaul.version("eafdb65619fcc27b909bc84e1b88f463");
+
 </script>
 <script>
 
@@ -3042,7 +3042,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
-      match: function (target, variables) {target = caterwaul_global.ensure_syntax(target);
+      match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
                                            variables || (variables = {_: target});
                                            if (this.is_wildcard())                                          return variables[this.data] = target, variables;
                                       else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
@@ -3215,6 +3215,9 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   The input to the parse function can be anything whose toString() produces valid Javascript code.
 
     caterwaul_global.parse = function (input) {
+
+      // Caterwaul 1.1 revision: Allow the parse() function to be used as a 'make sure this thing is a syntax node' function.
+      if (input.constructor === caterwaul_global.syntax) return input;
 
     Lex variables.
     s, obviously, is the string being lexed. mark indicates the position of the stream, while i is used for lookahead. The difference is later read into a token and pushed onto the result. c
@@ -3581,11 +3584,6 @@ library. (The core caterwaul support for precompilation is rudimentary and very 
 
 - pinclude pp::js::extensions/dev/precompile
 
-Development tooling.
-These assist the development process. Tracing is useful for finding bugs (you normally wouldn't use it in production code), and unit testing has obvious benefits.
-
-- pinclude pp::js::extensions/dev/trace
-- pinclude pp::js::extensions/dev/unit
 __
 meta::sdoc('js::extensions/dev/precompile', <<'__');
 Caterwaul precompiler | Spencer Tipping
@@ -3759,7 +3757,7 @@ caterwaul.js_base()(function ($) {
                                                                 -where [children = new $.syntax(',', serialize_syntax(it) -over.value).unflatten()],
 
       serialize_ref(value, name, seen) = ! value                        ? '' + value :
-                                         value.constructor === $.syntax ? seen[value.id()] || (seen[value.id()] = name) -returning- serialize_syntax(value) :
+                                         value.constructor === $.syntax ? seen[value.id()] || (seen[value.id()] = name) -re- serialize_syntax(value) :
                                                                           raise [new Error('syntax ref value is not serializable: #{value}')],
 
     Variable table generation.
@@ -3808,174 +3806,6 @@ caterwaul.js_base()(function ($) {
                                                  -where [references = {}, annotated = annotate_functions_in($.parse(f), references)]]})(caterwaul);
 
 __
-meta::sdoc('js::extensions/dev/trace', <<'__');
-Code trace behavior | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-The 'tracer' function constructs a caterwaul compiler that invokes hooks before and after each expression. You can inspect the value after it is computed and can measure how long it takes to
-return (or whether it fails to return due to an exception being thrown). For example, here's a very simple profiler (it doesn't account for 'own time', just 'total time'):
-
-| var trace    = caterwaul.tracer(function (expression)        {timings[expression.id()] = timings[expression.id()] || 0; timers.push(+new Date())},
-                                  function (expression, value) {timings[expression.id()] += +new Date() - timers.pop()});
-  var timings  = {};
-  var timers   = [];
-  var profiled = trace(function () {...});      // Annotations inserted during macroexpansion
-  profiled();                                   // This run is measured
-
-Interface details.
-Tracing things involves modifying the generated expressions in a specific way. First, the tracer marks that an expression will be evaluated. This is done by invoking a 'start' function, which
-then alerts the before-evaluation listener. Then the tracer evaluates the original expression, capturing its output and alerting the listener in the process. Listeners are free to use and/or
-modify this value, but doing so may change how the program runs. (Note that value types are immutable, so in this case no modification will be possible.)
-
-There is currently no way to catch errors generated by the code. This requires a more aggressive and much slower method of tracing, and most external Javascript debuggers can give you a
-reasonable stack trace. (You can also deduce the error location by observing the discrepancy between before and after events.)
-
-Here is the basic transformation applied to each expression in the code (where qs[] indicates a reference to the syntax tree):
-
-| some_expression   ->  (before_hook(qs[some_expression]), after_hook(qs[some_expression], some_expression))
-
-Note that when you're building up a caterwaul function you'll probably want to trace the code last.
-
-The reason is that traced code isn't much like the code going in due to the way the transformation works. Another side-effect of tracing is that some of the functions you're tracing will have
-transformed source code. For example, suppose you're tracing this:
-
-| xs.map(function (x) {return x + 1});
-
-The sequence of values will include the trace-annotated version of function (x) {return x + 1}, and this function will be seriously gnarly. I've thought of ways to try to fix this, but I
-haven't come up with any good ones yet. If anyone finds one let me know.
-
-The hard part.
-If Javascript were any kind of sane language this module would be trivial to implement. Unfortunately, however, it is fairly challenging, primarily because of two factors. One is the role of
-statement-mode constructs, which can't be wrapped directly inside function calls. The other is method invocation binding, which requires either (1) no record of the value of the method itself,
-or (2) caching of the object. In this case I've written a special function to handle the caching to reduce the complexity of the generated code.
-
-caterwaul.js_base()(function ($) {
-  $.tracer(before, after) = $.clone().macros(expression_macros, statement_macros, hook_macros)
-                            -effect [it.init_function(tree) = this.macroexpand(anon('S[_x]').replace({_x: tree}))]
-
-  Expression-mode transformations.
-  Assuming that we're in expression context, here are the transforms that apply. Notationally, H[] means 'hook this', D[] means 'hook this direct method call', I[] means 'hook this indirect
-  method call', E[] means 'trace this expression recursively', and S[] means 'trace this statement recursively'. A special case V[] is used in conjunction with var statements (see the
-  statement-mode stuff below for a more complete explanation.) It's essentially a simple context-free grammar over tree expressions.
-
-  -where [anon              = $.anonymizer('E', 'S', 'H', 'D', 'I'),
-          rule(p, e)        = $.macro(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
-
-          expression_macros = [rule('E[_x]', 'H[_, _x]'),                                                             // Base case: identifier, literal, or empty function
-                               rule('E[]',   ''),                                                                     // Base case: oops, descended into nullary something
-
-                               assignment_operator(it) -over- qw('= += -= *= /= %= &= |= ^= <<= >>= >>>='),
-                               binary_operator(it)     -over- qw('() [] + - * / % < > <= >= == != === !== in instanceof ^ & | && ||'),
-                               unary_operator(it)      -over- qw('+ - ! ~'),
-
-                               rule('E[(_x)]', '(E[_x])'),                                                            // Destructuring of parens
-                               rule('E[++_x]', 'H[_, ++_x]'), rule('E[--_x]', 'H[_, --_x]'),                          // Increment/decrement (can't trace original value)
-                               rule('E[_x++]', 'H[_, _x++]'), rule('E[_x--]', 'H[_, _x--]'),
-
-                               rule('E[_x, _y]',                 'E[_x], E[_y]'),                                     // Preserve commas -- works in an argument list
-                               rule('E[_x._y]',                  'H[_, E[_x]._y]'),                                   // No tracing for constant attributes
-
-                               rule('E[_o._m(_xs)]',             'D[_, E[_o], _m, [E[_xs]]]'),                        // Use D[] to indicate direct method binding
-                               rule('E[_o[_m](_xs)]',            'I[_, E[_o], E[_m], [E[_xs]]]'),                     // Use I[] to indicate indirect method binding
-
-                               rule('E[typeof _x]',              'H[_, typeof _x]'),                                  // No tracing for typeof since the value may not exist
-                               rule('E[void _x]',                'H[_, void E[_x]]'),                                 // Normal tracing
-                               rule('E[delete _x]',              'H[_, delete _x]'),                                  // Lvalue, so no tracing for the original
-                               rule('E[delete _x._y]',           'H[_, delete E[_x]._y]'),
-                               rule('E[delete _x[_y]]',          'H[_, delete E[_x][E[_y]]]'),
-                               rule('E[new _x(_y)]',             'H[_, new H[_x, _x](E[_y])]'),                       // Hook the constructor to prevent method-handling from happening
-                               rule('E[{_ps}]',                  'H[_, {E[_ps]}]'),                                   // Hook the final object and distribute across k/v pairs (more)
-                               rule('E[_k: _v]',                 '_k: E[_v]'),                                        // Ignore keys (which are constant)
-                               rule('E[[_xs]]',                  'H[_, [E[_xs]]]'),                                   // Hook the final array and distribute across elements
-                               rule('E[_x ? _y : _z]',           'H[_, E[_x] ? E[_y] : E[_z]]'),
-                               rule('E[function ()    {_body}]', 'H[_, function ()    {S[_body]}]'),
-                               rule('E[function (_xs) {_body}]', 'H[_, function (_xs) {S[_body]}]')]                  // Trace body in statement mode rather than expression mode
-
-                       -where [assignment_operator(op) = [rule('E[_x     = _y]', 'H[_, _x           = E[_y]]'),
-                                                          rule('E[_x[_y] = _z]', 'H[_, E[_x][E[_y]] = E[_z]]'),
-                                                          rule('E[_x._y  = _z]', 'H[_, E[_x]._y     = E[_z]]')] -where [t(x)       = anon(x).replace({'=': op}),
-                                                                                                                        rule(x, y) = $.macro(t(x), t(y))],
-
-                               binary_operator(op)     = $.macro(anon('E[_x + _y]').replace({'+': op}),    anon('H[_, E[_x] + E[_y]]').replace({'+': op})),
-                               unary_operator(op)      = $.macro(anon('E[+_x]').replace({'u+': 'u#{op}'}), anon('H[_, +E[_x]]').replace({'u+': 'u#{op}'})),
-
-                               qw(s)                   = s.split(/\s+/)],
-
-  Statement-mode transformations.
-  A lot of the time this will drop back into expression mode. However, there are a few cases where we need disambiguation. One is the var statement, where we can't hook the result of the
-  assignment. Another is the {} construct, which can be either a block or an object literal.
-
-  There's some interesting stuff going on with = and commas. The reason is that sometimes you have var definitions, and they contain = and , trees that can't be traced quite the same way that
-  they are in expressions. For example consider this:
-
-  | var x = 5, y = 6;
-
-  In this case we can't evaluate 'x = 5, y = 6' in expression context; if we did, it would produce H[x = H[5]], H[y = H[6]], and this is not valid Javascript within a var statement. Instead,
-  we have to produce x = H[5], y = H[6]. The statement-mode comma and equals rules do exactly that. Note that we don't lose anything by doing this because in statement context the result of an
-  assignment is never used anyway.
-
-  There's another interesting case regarding var statements. Sometimes you have a var statement like this: 'var x = 5, y' -- in this case, we can't hook the y because it's technically in
-  assignment context. So we need to keep track of the fact that we're within a var statement by using the V[] modifier. (V[] is identical to S[], but used only inside vars.)
-
-          statement_macros = [rule('S[_x]',              'E[_x]'),
-                              rule('S[{_x}]',            '{S[_x]}'),
-                              rule('S[{}]',              '{}'),                 // Do nothing for an empty block. We know it's a block because it was in statement context.
-                              rule('S[_x; _y]',          'S[_x]; S[_y]'),
-                              rule('S[_x _y]',           'S[_x] S[_y]'),        // Invisible semicolon case; preserve invisibility.
-
-                              rule('S[break _label]',    'break _label'),       rule('S[for (_x) _y]',                           'for (S[_x]) S[_y]'),
-                              rule('S[break]',           'break'),              rule('S[for (_x; _y; _z) _body]',                'for (S[_x]; E[_y]; E[_z]) S[_body]'),
-                                                                                rule('S[while (_x) _y]',                         'while (E[_x]) S[_y]'),
-                              rule('S[_x, _y]',          'S[_x], S[_y]'),       rule('S[do _x; while (_y)]',                     'do S[_x]; while (E[_y])'),
-                              rule('S[_x = _y]',         '_x = E[_y]'),         rule('S[do {_x} while (_y)]',                    'do {S[_x]} while (E[_y])'),
-                              rule('V[_x]',              '_x'),
-                              rule('V[_x = _y]',         '_x = E[_y]'),         rule('S[try {_x} catch (_e) {_y}]',              'try {S[_x]} catch (_e) {S[_y]}'),
-                              rule('V[_x, _y]',          'V[_x], V[_y]'),       rule('S[try {_x} catch (_e) {_y} finally {_z}]', 'try {S[_x]} catch (_e) {S[_y]} finally {S[_z]}'),
-                              rule('S[var _xs]',         'var V[_xs]'),         rule('S[try {_x} finally {_y}]',                 'try {S[_x]} finally {S[_y]}'),
-                              rule('S[const _xs]',       'const V[_xs]'),
-                                                                                rule('S[function _f(_args) {_body}]',            'function _f(_args) {S[_body]}'),
-                              rule('S[return _x]',       'return E[_x]'),       rule('S[function _f()      {_body}]',            'function _f()      {S[_body]}'),
-                              rule('S[return]',          'return'),
-                              rule('S[throw _x]',        'throw E[_x]'),        rule('S[if (_x) _y]',                            'if (E[_x]) S[_y]'),
-                                                                                rule('S[if (_x) _y; else _z]',                   'if (E[_x]) S[_y]; else S[_z]'),
-                              rule('S[continue _label]', 'continue _label'),    rule('S[if (_x) {_y} else _z]',                  'if (E[_x]) {S[_y]} else S[_z]'),
-                              rule('S[continue]',        'continue'),
-                                                                                rule('S[switch (_c) {_body}]',                   'switch (E[_c]) {S[_body]}'),
-                              rule('S[_label: _stuff]',  '_label: S[_stuff]'),  rule('S[with (_x) _y]',                          'with (E[_x]) S[_y]')],
-
-  Hook generation.
-  Most of the actual hook generation code is fairly routine for JIT stuff. The patterns here don't actually expand into other state marker patterns; H, D, and I are all terminal. The [1]
-  subscript is a hack. We want to grab the un-annotated tree, but all of the patterns have state markers on them. So we subscript by [1] to get the child of that state annotation.
-
-          hook_macros      = [rule('H[_tree, _x]',                              expression_hook     (match._tree[1], match._x) -given.match),
-                              rule('D[_tree, _object, _method, [_parameters]]', direct_method_hook  (match._tree[1], match)    -given.match),
-                              rule('I[_tree, _object, _method, [_parameters]]', indirect_method_hook(match._tree[1], match)    -given.match)]
-
-                      -where [before_hook(tree)                                   = before(tree)       /when.before,
-                              after_hook(tree, value)                             = after(tree, value) /when.after -returning- value,
-                              after_method_hook(tree, object, method, parameters) = before_hook(tree[0]) -then- after_hook(tree[0], resolved) -then-
-                                                                                    after_hook(tree, resolved.apply(object, parameters)) -where[resolved = object[method]],
-
-                              before_hook_ref                                     = new $.ref(before_hook, 'hook'),
-                              after_hook_ref                                      = new $.ref(after_hook, 'hook'),
-                              after_method_hook_ref                               = new $.ref(after_method_hook, 'hook'),
-
-                              quote_method_name(node)                             = '"#{node.data.replace(/(")/g, "\\$1")}"',
-
-                              expression_hook_template                            = $.parse('(_before(_tree), _after(_tree, _expression))'),
-                              indirect_method_hook_template                       = $.parse('(_before(_tree), _after(_tree, _object, _method, [_parameters]))'),
-
-                              expression_hook(original, tree)                     = expression_hook_template.replace({_before: before_hook_ref, _after: after_hook_ref,
-                                                                                                                      _tree: new $.ref(original, 'tree'), _expression: tree.as('(')}),
-
-                              method_hook(tree, object, method, parameters)       = indirect_method_hook_template.replace({_before: before_hook_ref, _after: after_method_hook_ref,
-                                                                                                                           _tree: new $.ref(tree, 'tree'), _object: object, _method: method,
-                                                                                                                           _parameters: parameters}),
-
-                              direct_method_hook(tree, match)                     = method_hook(tree, match._object, quote_method_name(match._method), match._parameters),
-                              indirect_method_hook(tree, match)                   = method_hook(tree, match._object, match._method,                    match._parameters)]]})(caterwaul);
-__
 meta::sdoc('js::extensions/std', <<'__');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -3983,6 +3813,7 @@ Licensed under the terms of the MIT source code license
 Internal libraries.
 These operate on caterwaul in some way, but don't necessarily have an effect on generated code.
 
+- pinclude pp::js::extensions/std/macro
 - pinclude pp::js::extensions/std/anonymize
 
 Language specializations.
@@ -3995,18 +3826,15 @@ standard library.
 - pinclude pp::js::extensions/std/words
 - pinclude pp::js::extensions/std/js
 
-  caterwaul.js_base = function () {var js = this.js();
-                                   return this.clone().macros(this.word_macros(js), js.macros)};
+  caterwaul.js_base = function (macroexpander) {return this.words(this.js(macroexpander))};
 
 Libraries.
 These apply more advanced syntactic transforms to the code and can depend on everything above.
 
-- pinclude pp::js::extensions/std/inversion
 - pinclude pp::js::extensions/std/seq
-- pinclude pp::js::extensions/std/overload
 
-  caterwaul.js_all = function () {var js = this.js();
-                                  return this.clone().macros(this.word_macros(js), js.macros, this.overload_macro(js), this.seq_macro(js))};
+  caterwaul.js_all = function (macroexpander) {return this.seq(this.js_base(macroexpander))};
+
 __
 meta::sdoc('js::extensions/std/anonymize', <<'__');
 Symbol anonymization | Spencer Tipping
@@ -4044,7 +3872,7 @@ To anonymize a set of macros you first need to create an anonymizer. This is eas
 Each anonymizer uses a separate symbol table. This means that two anonymizers that match against 'A' (or any other macro pattern) will always map them to different gensyms.
 
 (function ($) {$.anonymizer = function () {for (var translation_table = {}, i = 0, l = arguments.length; i < l; ++i) translation_table[arguments[i]] = $.gensym(arguments[i]);
-                                           return function (node) {return $.ensure_syntax(node).replace(translation_table)}}})(caterwaul);
+                                           return function (node) {return $.parse(node).replace(translation_table)}}})(caterwaul);
 
 __
 meta::sdoc('js::extensions/std/js', <<'__');
@@ -4061,7 +3889,7 @@ caterwaul pre-1.0 had the problem of wildly divergent macros. The fn[] macro was
 In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
 pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
 
-  $.js = (function ($) {return function (macroexpander) {
+  $.js = function (macroexpander) {
 
 Javascript-specific shorthands.
 Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
@@ -4092,7 +3920,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
       pieces.push(s.substring(start, l));
 
-      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this.expand($.parse(pieces[i].replace(quoted, q)).as('(')) :
+      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this.macroexpand($.parse(pieces[i].replace(quoted, q)).as('(')) :
                                                                                                                new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')};
 
@@ -4103,10 +3931,10 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
   inside the body of the function without worrying whether you'll lose the function context.
 
-    var function_rule        = $.replacer('_left(_args) = _right',            '_left = (function (_args) {return _right})');
-    var function_args_rule   = $.replacer('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})');
+    var function_rule        = $.replacer('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
+        function_args_rule   = $.replacer('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})'),
 
-    var function_destructure = function (node) {return function_args_rule.call(this, node) || function_rule.call(this, node)};
+        function_destructure = function (node) {return function_args_rule.call(this, node) || function_rule.call(this, node)};
 
   Modifier syntax.
   These are the 'structured forms' I was talking about above. Prior to caterwaul 1.1 these were stored as individual pre-expanded macros. This had a number of problems, perhaps most notably
@@ -4116,15 +3944,15 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
   fact match. However, there are only a few checks that need to happen before determining whether a modifier match is possible, unlike before.
 
-    var bracket_modifier_form = $.pattern('_modifier[_expression]'),              slash_modifier_form = $.pattern('_expression /_modifier'),
-        minus_modifier_form   = $.pattern('_expression -_modifier'),              in_modifier_form    = $.pattern('_modifier in _expression'),
-        pipe_modifier_form    = $.pattern('_expression |_modifier'),              comma_modifier_form = $.pattern('_expression, _modifier');
+    var bracket_modifier_form = $.pattern('_modifier[_expression]'),               slash_modifier_form = $.pattern('_expression /_modifier'),
+        minus_modifier_form   = $.pattern('_expression -_modifier'),               in_modifier_form    = $.pattern('_modifier in _expression'),
+        pipe_modifier_form    = $.pattern('_expression |_modifier'),               comma_modifier_form = $.pattern('_expression, _modifier'),
 
-    var dot_parameters        = $.pattern('_modifier._parameters'),               bracket_parameters  = $.pattern('_modifier[_parameters]');
+        dot_parameters        = $.pattern('_modifier._parameters'),                bracket_parameters  = $.pattern('_modifier[_parameters]'),
 
-    var parameterized_wickets = $.pattern('_expression <_modifier> _parameters'), parameterized_minus = $.pattern('_expression -_modifier- _parameters');
+        parameterized_wickets = $.pattern('_expression <_modifier> _parameters'),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'),
 
-    var modifier = function (node) {var parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
+        modifier = function (node) {var parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
                                     var regular_match       = parameterized_match || bracket_modifier_form.call(this, node) || slash_modifier_form.call(this, node) ||
                                                                                      minus_modifier_form  .call(this, node) || in_modifier_form   .call(this, node) ||
                                                                                      pipe_modifier_form   .call(this, node) || comma_modifier_form.call(this, node);
@@ -4149,9 +3977,15 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   optimization that we can perform: leaf nodes can only be expanded by the string interpolator, so we try this one first and reject any further matching attempts if the node has no children.
   Because roughly half of the nodes will have no children, this saves on average 5 matching attempts per node.
 
-    var result = $(function (node) {return string_interpolator.call(this, node) || node.length && (macroexpander       .call(this, node) ||
-                                                                                                   modifier            .call(this, node) ||
-                                                                                                   function_destructure.call(this, node))});
+  I've got two closures here to avoid putting a conditional in either one of them. In particular, we know already whether we got a macroexpander, so there's no need to test it inside the
+  function (which will be called lots of times).
+
+    var result = macroexpander ? $(function (node) {return string_interpolator.call(this, node) || node.length && (macroexpander       .call(this, node) ||
+                                                                                                                   modifier            .call(this, node) ||
+                                                                                                                   function_destructure.call(this, node))}) :
+
+                                 $(function (node) {return string_interpolator.call(this, node) || node.length && (modifier            .call(this, node) ||
+                                                                                                                   function_destructure.call(this, node))});
     result.modifiers               = [];
     result.parameterized_modifiers = [];
 
@@ -4166,59 +4000,20 @@ Macro definitions.
 A macro is simply a partial function from source trees to source trees. It returns a falsy value if it cannot be applied to a given tree; otherwise it returns the replacement (as shown
 above). Because most macros end up replacing one pattern with another, caterwaul lets you use strings instead of requiring you to construct recognizer functions.
 
-(function ($) {
-  $.ensure_syntax   = function (thing)             {return thing && thing.constructor === String ? this.parse(thing) : thing};
+(function ($) {$.pattern  = function (pattern)           {return pattern.constructor === String      ? this.pattern(this.parse(pattern)) :
+                                                                 pattern.constructor === this.syntax ? function (tree) {return pattern.match(tree)} : pattern};
 
-  $.ensure_pattern  = function (pattern)           {return pattern.constructor  === String      ? this.ensure_pattern(this.parse(pattern)) :
-                                                           pattern.constructor  === this.syntax ? function (tree) {return pattern.match(tree)} : pattern};
+               $.expander = function (expander)          {if (expander.constructor === Array) {
+                                                            for (var i = 0, l = xs.length, ys = []; i < l; ++i) ys.push(this.expander(xs[i]));
+                                                            return function (tree) {for (var i = ys.length - 1, match; i >= 0; --i) if (match = ys[i].call(this, tree)) return match}}
 
-  $.ensure_expander = function (expander)          {return expander.constructor === String      ? this.ensure_expander(this.parse(expander)) :
-                                                           expander.constructor === this.syntax ? function (match) {return this.macroexpand(expander.replace(match))} : expander};
+                                                     else return expander.constructor === String      ? this.expander(this.parse(expander)) :
+                                                                 expander.constructor === this.syntax ? function (match) {return this.macroexpand(expander.replace(match))} : expander};
 
-  $.replacer        = function (pattern, expander) {var new_pattern = this.ensure_pattern(pattern), new_expander = this.ensure_expander(expander),
-                                                             result = function (tree) {var match = new_pattern.call(this, tree); return match && new_expander.call(this, match)};
-                                                    result.pattern = pattern, result.expander = expander;
-                                                    return result}})(caterwaul);
-
-
-__
-meta::sdoc('js::extensions/std/overload', <<'__');
-Operator overloading support | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-This gives you a simple way to overload operators in Javascript. Each operator invocation is translated into a method call on the left-hand operand (or the only operand in the case of unary
-operators). This is done by introducing a new modifier called 'overload'. For example:
-
-| overload in x + y     ->    x['+'](y)
-
-Unary operators are encoded like this:
-
-| overload in -x        ->    x['u-']()
-
-The following operators are overloaded when you use this modifier:
-
-| new void in instanceof typeof
-  u! u+ u- u~
-  + - * / % ^ | & << >> >>>
-  += -= *= /= %= ^= |= &= <<= >>= >>>=
-  == != === !== < > <= >=
-
-Notably not overloaded are function calls and dots/brackets. The reason for this is that it breaks idempotence; overloading the same expression twice would yield a different result. Also not
-overloaded are &&, ||, or ?:; these could be meaningfully overloaded but their evaluation semantics would be lost.
-
-caterwaul.js_base()(function ($) {
-  var map = function (xs, f) {for (var ys = [], i = 0, l = xs.length; i < l; ++i) ys.push(f(xs[i])); return ys};
-
-  $.overload_macro(language) = language.modifier('overload', this.expand(overload_expand(tree._expression)) -given.tree -where [overload_expand = $.overload()]),
-  $.overload()               = $.clone().macros(unary_operators, binary_operators),
-
-  where [overload_unary(op)  = $.macro('#{op} _x',    '_x["#{/[a-z]/.test(op) ? op : "u" + op}"]()'),
-         overload_binary(op) = $.macro('_x #{op} _y', '_x["#{op}"](_y)'),
-
-         qw(s)               = s.split(/\s+/),
-         unary_operators     = map(qw('! ~ + - new void typeof'),                                                                              overload_unary),
-         binary_operators    = map(qw('+ - * / % ^ | & << >> >>> += -= *= /= %= ^= |= &= <<= >>= >>>= == != === !== < > <= >= in instanceof'), overload_binary)]})(caterwaul);
+               $.replacer = function (pattern, expander) {var new_pattern = this.pattern(pattern), new_expander = this.expander(expander),
+                                                                   result = function (tree) {var match = new_pattern.call(this, tree); return match && new_expander.call(this, match)};
+                                                          result.pattern = pattern, result.expander = expander;
+                                                          return result}})(caterwaul);
 
 __
 meta::sdoc('js::extensions/std/seq', <<'__');
@@ -4320,13 +4115,13 @@ Note that ^ has higher precedence than |, so we can use it in a sequence compreh
   operator, which would disrupt the syntax tree.
 
   Folding prefixes.
-  New in Caterwaul 1.0.4 is the ability to specify fold prefixes. This allows you to specify the initial element of a fold:
+  New in Caterwaul 1.1 is the ability to specify fold prefixes. This allows you to specify the initial element of a fold:
 
   | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
     xs /~[[]][x0 + [x, x + 1]] -seq     (equivalent to  xs *~![[x, x + 1]] -seq)
 
   Function promotion.
-  Caterwaul 1.0.4 adds support for implicit function promotion of sequence block expressions:
+  Caterwaul 1.1 also adds support for implicit function promotion of sequence block expressions:
 
   | f(x) = x + 1
     seq in [1, 2, 3] *f
@@ -4361,102 +4156,103 @@ The seq library is theoretically portable to syntaxes besides JS, but you'll pro
 such (from a design perspective).
 
 caterwaul.js_base()(function ($) {
-  $.seq_macro(language) = language.modifier('seq', this.expand(seq_expand(tree._expression)) -given.tree -where [seq_expand = $.seq()]);
+  $.seq(caterwaul_function) = caterwaul_function -se-
+                              it.modifiers.push(given.match in this.macroexpand(seq_expand(anon_pattern.replace({_x: match._expression}))) -when [match._modifier.data === 'seq'])
 
-  $.seq() = $.clone().macros(operator_macros, word_macros)
-            -effect [it.init_function(tree) = this.macroexpand(anon('S[_x]').replace({_x: tree}))]
+                             -where [anon_pattern = anon('S[_x]'),
+                                     seq_expand   = $.expander_from_array(operator_macros.concat(word_macros))],
 
-  -where [anon            = $.anonymizer('S'),
-          rule(p, e)      = $.macro(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
+  where [anon            = $.anonymizer('S'),
+         rule(p, e)      = $.replacer(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
 
-          operator_macros = [rule('S[_x]', '_x'),
-                             rule('S[_x, _y]', 'S[_x], S[_y]'),                     operator('', '|', exists),
-                             rule('S[(_x)]', '(S[_x])'),
+         operator_macros = [rule('S[_x]', '_x'),
+                            rule('S[_x, _y]', 'S[_x], S[_y]'),                     operator('', '|', exists),
+                            rule('S[(_x)]', '(S[_x])'),
 
-                             operator('', '*', map,    each,       flatmap),        binary_operator('+', concat),
-                             operator('', '%', filter, filter_not, map_filter),     binary_operator('-', cross),
-                             operator('', '/', foldl,  foldr,      unfold),         binary_operator('^', zip),
+                            operator('', '*', map,    each,       flatmap),        binary_operator('+', concat),
+                            operator('', '%', filter, filter_not, map_filter),     binary_operator('-', cross),
+                            operator('', '/', foldl,  foldr,      unfold),         binary_operator('^', zip),
 
-                             operator('k', '*', kmap,    keach),                    operator('v', '*', vmap,    veach),
-                             operator('k', '%', kfilter, kfilter_not, kmap_filter), operator('v', '%', vfilter, vfilter_not, vmap_filter)]
+                            operator('k', '*', kmap,    keach),                    operator('v', '*', vmap,    veach),
+                            operator('k', '%', kfilter, kfilter_not, kmap_filter), operator('v', '%', vfilter, vfilter_not, vmap_filter)]
 
-                     -where [operator(prefix, op, normal, bang, tbang) = [] -effect- it.push(trule(op, 'S[_xs #{p}*[_f]]',   normal), trule(op, 'S[_xs #{p}*_var[_f]]',   normal))
-                                                                            -effect- it.push(trule(op, 'S[_xs #{p}*![_f]]',  bang),   trule(op, 'S[_xs #{p}*!_var[_f]]',  bang))   /when.bang
-                                                                            -effect- it.push(trule(op, 'S[_xs #{p}*~![_f]]', tbang),  trule(op, 'S[_xs #{p}*~!_var[_f]]', tbang))  /when.tbang
-                                                                         -returning- it.concat(context_conversions(p, op))
+                    -where [operator(prefix, op, normal, bang, tbang) = [] -effect- it.push(trule(op, 'S[_xs #{p}*[_f]]',   normal), trule(op, 'S[_xs #{p}*_var[_f]]',   normal))
+                                                                           -effect- it.push(trule(op, 'S[_xs #{p}*![_f]]',  bang),   trule(op, 'S[_xs #{p}*!_var[_f]]',  bang))   /when.bang
+                                                                           -effect- it.push(trule(op, 'S[_xs #{p}*~![_f]]', tbang),  trule(op, 'S[_xs #{p}*~!_var[_f]]', tbang))  /when.tbang
+                                                                        -returning- it.concat(context_conversions(p, op))
 
-                                                                         -where [p = prefix && '%#{prefix}'],
+                                                                        -where [p = prefix && '%#{prefix}'],
 
-                             binary_operator(op, f)                    = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})]]
+                            binary_operator(op, f)                    = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})]]
 
-                     -where [template(op, p)            = anon(p).replace({'*': op}),
-                             trule(op, p, e)            = rule(template(op, p), e.constructor === Function ? e : template(op, e)),
+                    -where [template(op, p)            = anon(p).replace({'*': op}),
+                            trule(op, p, e)            = rule(template(op, p), e.constructor === Function ? e : template(op, e)),
 
-                             context_conversions(p, op) = [trule(op, 'S[_xs #{p}*~[_f]]',   'S[_xs #{p}*[S[_f]]]'),   trule(op, 'S[_xs #{p}*~_var[_f]]',   'S[_xs #{p}*_var[S[_f]]]'),
-                                                           trule(op, 'S[_xs #{p}*!~[_f]]',  'S[_xs #{p}*![S[_f]]]'),  trule(op, 'S[_xs #{p}*!~_var[_f]]',  'S[_xs #{p}*!_var[S[_f]]]'),
-                                                           trule(op, 'S[_xs #{p}*~!~[_f]]', 'S[_xs #{p}*~![S[_f]]]'), trule(op, 'S[_xs #{p}*~!~_var[_f]]', 'S[_xs #{p}*~!_var[S[_f]]]')],
+                            context_conversions(p, op) = [trule(op, 'S[_xs #{p}*~[_f]]',   'S[_xs #{p}*[S[_f]]]'),   trule(op, 'S[_xs #{p}*~_var[_f]]',   'S[_xs #{p}*_var[S[_f]]]'),
+                                                          trule(op, 'S[_xs #{p}*!~[_f]]',  'S[_xs #{p}*![S[_f]]]'),  trule(op, 'S[_xs #{p}*!~_var[_f]]',  'S[_xs #{p}*!_var[S[_f]]]'),
+                                                          trule(op, 'S[_xs #{p}*~!~[_f]]', 'S[_xs #{p}*~![S[_f]]]'), trule(op, 'S[_xs #{p}*~!~_var[_f]]', 'S[_xs #{p}*~!_var[S[_f]]]')],
 
-                             loop_anon                  = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
-                             loop_form(x)               = loop_anon(scoped(anon(x))),
+                            loop_anon                  = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
+                            loop_form(x)               = loop_anon(scoped(anon(x))),
 
-                             scope                      = anon('(function (xs) {_body}).call(this, S[_xs])'),
-                             scoped(tree)               = scope.replace({_body: tree}),
+                            scope                      = anon('(function (xs) {_body}).call(this, S[_xs])'),
+                            scoped(tree)               = scope.replace({_body: tree}),
 
-                             op_form(pattern)           = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) -given.match,
+                            op_form(pattern)           = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) -given.match,
 
-                             map         = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                                 return ys'),
-                             each        = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                          return xs'),
-                             flatmap     = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f)));        return ys'),
+                            map         = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                                 return ys'),
+                            each        = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                          return xs'),
+                            flatmap     = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f)));        return ys'),
 
-                             filter      = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                           return ys'),
-                             filter_not  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                           return ys'),
-                             map_filter  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys'),
+                            filter      = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                           return ys'),
+                            filter_not  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                           return ys'),
+                            map_filter  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys'),
 
-                             foldl       = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);                     return _x'),
-                             foldr       = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
-                             unfold      = op_form('for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys'),
+                            foldl       = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);                     return _x'),
+                            foldr       = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
+                            unfold      = op_form('for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys'),
 
-                             exists      = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false'),
+                            exists      = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false'),
 
-                             concat      = op_form('return xs.concat(S[_ys])'),
-                             zip         = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
-                             cross       = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
-                                                     'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
+                            concat      = op_form('return xs.concat(S[_ys])'),
+                            zip         = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
+                            cross       = op_form('for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
+                                                    'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
 
-                             kmap        = op_form('var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) r[_f] = xs[_x];                        return r'),
-                             keach       = op_form('                   for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) _f;                                    return xs'),
+                            kmap        = op_form('var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) r[_f] = xs[_x];                        return r'),
+                            keach       = op_form('                   for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) _f;                                    return xs'),
 
-                             kfilter     = op_form('var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r'),
-                             kfilter_not = op_form('var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r'),
-                             kmap_filter = op_form('var r = {}, x;     for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r'),
+                            kfilter     = op_form('var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r'),
+                            kfilter_not = op_form('var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r'),
+                            kmap_filter = op_form('var r = {}, x;     for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r'),
 
-                             vmap        = op_form('var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], r[k] = (_f);                return r'),
-                             veach       = op_form('var _x;            for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], _f;                         return xs'),
+                            vmap        = op_form('var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], r[k] = (_f);                return r'),
+                            veach       = op_form('var _x;            for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], _f;                         return xs'),
 
-                             vfilter     = op_form('var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r'),
-                             vfilter_not = op_form('var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r'),
-                             vmap_filter = op_form('var r = {}, _x, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r'),
+                            vfilter     = op_form('var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r'),
+                            vfilter_not = op_form('var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r'),
+                            vmap_filter = op_form('var r = {}, _x, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r'),
 
-                             variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
-                             prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p && p.data || 'x']],
+                            variables_for(m) = $.merge({}, m, prefixed_hash(m._var)),
+                            prefixed_hash(p) = {_x: name, _xi: '#{name}i', _xl: '#{name}l', _x0: '#{name}0'} -where[name = p && p.data || 'x']],
 
-          word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),
-                             rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]', values),  rule('S[_o -object]', object),
-                             rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',  pairs),   rule('S[_o /object]', object)]
+         word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),
+                            rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]', values),  rule('S[_o -object]', object),
+                            rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',  pairs),   rule('S[_o /object]', object)]
 
-                     -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
-                             n_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
-                                                                   'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
+                    -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
+                            n_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                                  'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
 
-                             scope     = anon('(function (o) {_body}).call(this, (S[_o]))'),
-                             scoped(t) = scope.replace({_body: t}),
+                            scope     = anon('(function (o) {_body}).call(this, (S[_o]))'),
+                            scoped(t) = scope.replace({_body: t}),
 
-                             form(p)   = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
-                             keys      = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
-                             values    = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
-                             pairs     = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
+                            form(p)   = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
+                            keys      = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
+                            values    = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
+                            pairs     = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
 
-                             object    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r')]]})(caterwaul);
+                            object    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r')]]})(caterwaul);
 
 __
 meta::sdoc('js::extensions/std/words', <<'__');
@@ -4472,8 +4268,8 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
 
 (function ($) {
-  $.word_macros = function (caterwaul_function) {
-    var filtered_expander = function (word, expander) {return function (match) {return match._modifier === word && expander.call(this, match)}};
+  $.words = function (caterwaul_function) {
+    var filtered_expander = function (word, expander) {return function (match) {return match._modifier.data === word && expander.call(this, match)}};
 
     var modifier               = function (word, expander) {caterwaul_function.modifiers              .push(filtered_expander(word, expander))};
     var parameterized_modifier = function (word, expander) {caterwaul_function.parameterized_modifiers.push(filtered_expander(word, expander))};
