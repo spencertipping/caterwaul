@@ -281,10 +281,7 @@ meta::bootstrap('html', <<'__');
 (function(a){return a(a,(function(b){return function(){return ++b}})(0))})(function(d,b,n){var ab=function(ai){return ai.split(/\s+/)},z=function(ai,aj){return aj&&aj.call(ai,ai)||ai},m=function(ai){throw new Error(ai)},k=(function(ak,ai,aj){return function(){return[aj,ak,++ai]}})(+new Date(),Math.random()*(1<<30)>>>0,b()),S=function(aj){var ai=k();return["gensym",aj||"",ai[0].toString(36),ai[1].toString(36),ai[2].toString(36)].join("_")},K=function(am,aj){for(var ak=0,al=[],ai=aj.length;ak<ai;++ak){al.push(am(aj[ak],ak))}return al},u=function(aj,ai){return K(function(ak){return ak instanceof Array?u(aj,ak):aj(ak)})},Z=function(al){for(var ak=0,aj=ab(al),am={},ai=aj.length;ak<ai;++ak){am[aj[ak]]=true}return q(am)},X=function(am){for(var al=1,ai=arguments.length,ak;al<ai;++al){if(ak=arguments[al]){for(var aj in ak){e(ak,aj)&&(am[aj]=ak[aj])}}}return am},W=S("hash_annotation"),q=function(ak){var ai=0;for(var aj in ak){i.call(ak,aj)&&(ai=aj.length>ai?aj.length:ai)}ak[W]=ai;return ak},e=function(aj,ai){return ai!=null&&!(ai.length>aj[W])&&i.call(aj,ai)},i=Object.prototype.hasOwnProperty,aa=function(){var ai=function(){return ai.init.apply(ai,arguments)};return ai},ac=typeof caterwaul==="undefined"?n:caterwaul,ah=z(aa(),function(){this.deglobalize=function(){caterwaul=ac;return ah};X(this,{merge:X,map:K,unique:b,rmap:u,gensym:S})}),ag=Z(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),P=function(al){for(var ak=0,aj=[false];ak<8;++ak){aj.push.apply(aj,aj)}for(var ak=0,ai=al.length;ak<ai;++ak){aj[al.charCodeAt(ak)]=true}return aj},af=P(".0123456789"),R=P("0123456789"),w=P("0123456789abcdefABCDEFx"),I=P("eE"),g=P(" \n\r\t"),r=P("()[]{}"),p=P("([{"),v=P("+-*/%&|^!~=<>?:;.,"),G=P("\n\r"),h=P("gims"),L=P("'\"/"),l="/".charCodeAt(0),O="*".charCodeAt(0),j="\\".charCodeAt(0),V="x".charCodeAt(0),J=".".charCodeAt(0),Q="0".charCodeAt(0),ae=Z("++ --"),T=P("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),H=K(Z,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),E=Z("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),C=(function(ak){for(var am={},al=0,ai=ak.length;al<ai;++al){for(var aj in ak[al]){e(ak[al],aj)&&(am[aj]=al)}}return q(am)})(H),t=(function(ak){for(var am=[],an=0,ai=ak.length,al=null;al=ak[an],am[an]=true,an<ai;++an){for(var aj in al){if(e(al,aj)&&(am[an]=am[an]&&!e(E,aj))){break}}}return am})(H),y=Z("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),U=q({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),N=q({"if":"else","do":"while","catch":"finally","try":"catch"}),A=Z("[] ()"),ad=Z("return throw break continue else"),B=Z("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),f=Z("; {"),Y=Z("i;"),F=Z("++ --"),o=q({"(":")","[":"]","{":"}","?":":"}),D=Z("[ ("),M=Z("?"),c=Z("function if for while catch void delete new typeof in instanceof"),x=Z("function"),s=ah.syntax_common={_replace:function(ai){return(ai.l=this.l)&&(this.l.r=ai),(ai.r=this.r)&&(this.r.l=ai),this},_append_to:function(ai){return ai&&ai._append(this),this},_reparent:function(ai){return this.p&&this.p[0]===this&&(this.p[0]=ai),this},_fold_l:function(ai){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(ai){return(this[this.length++]=ai)&&(ai.p=this),this},_fold_r:function(ai){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(ai){return ai.p=this.p,(this.r=ai).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(ai){return ai.p=this._replace(ai).p,this._reparent(ai),delete this.l,delete this.r,this._append_to(ai)},_unlink:function(ai){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(ai)},pop:function(){return --this.length,this},push:function(ai){return this[this.length++]=ai||a,this},id:function(){var ai=S("id");return(this.id=function(){return ai})()},each:function(ak){for(var aj=0,ai=this.length;aj<ai;++aj){ak(this[aj],aj)}return this},map:function(ak){for(var al=new this.constructor(this),aj=0,ai=this.length;aj<ai;++aj){al.push(ak(this[aj],aj)||this[aj])}return al},reach:function(ai){ai(this);this.each(function(aj){aj.reach(ai)});return this},rmap:function(aj){var ai=aj(this);return !ai||ai===this?this.map(function(ak){return ak.rmap(aj)}):ai.rmap===n?new this.constructor(ai):ai},clone:function(){return this.rmap(function(){return false})},collect:function(aj){var ai=[];this.reach(function(ak){aj(ak)&&ai.push(ak)});return ai},replace:function(ai){var aj;return i.call(ai,this.data)&&(aj=ai[this.data])?aj.constructor===String?z(this.map(function(ak){return ak.replace(ai)}),function(){this.data=aj}):aj:this.map(function(ak){return ak.replace(ai)})},repopulated_with:function(ai){return new this.constructor(this.data,ai)},change:function(aj,ai){return z(new this.constructor(this.data,Array.prototype.slice.call(this)),function(ak){ak[aj]=ai})},compose_single:function(ai,aj){return this.change(ai,aj(this[ai]))},traverse:function(ai){ai({entering:this});ai({exiting:this.each(function(aj){aj.traverse(ai)})});return this},flatten:function(ai){ai=ai||this.data;return ai!==this.data?this.as(ai):!(e(y,ai)&&this.length)?this:e(E,ai)?z(new this.constructor(ai),bind(function(ak){for(var aj=this;aj&&aj.data===ai;aj=aj[1]){ak.push(aj[0])}ak.push(aj)},this)):z(new this.constructor(ai),bind(function(al){for(var aj=this,ak=[];aj.data===ai;aj=aj[0]){aj[1]&&ak.push(aj[1])}ak.push(aj);for(aj=ak.length-1;aj>=0;--aj){al.push(ak[aj])}},this))},unflatten:function(){var aj=this,ai=e(E,this.data);return this.length<=2?this:z(new this.constructor(this.data),function(am){if(ai){for(var al=0,ak=aj.length-1;al<ak;++al){am=am.push(aj[al]).push(al<ak-2?new aj.constructor(aj.data):aj[al])[1]}}else{for(var al=aj.length-1;al>=1;--al){am=am.push(al>1?new aj.constructor(aj.data):aj[0]).push(aj[al])[0]}}})},as:function(ai){return this.data===ai?this:new this.constructor(ai).push(this)},is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_wildcard:function(){return this.data.charCodeAt(0)===95},has_grouped_block:function(){return e(U,this.data)},is_block:function(){return e(f,this.data)},is_blockless_keyword:function(){return e(ad,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return e(Y,this.data)},is_binary_operator:function(){return e(y,this.data)},is_prefix_unary_operator:function(){return e(B,this.data)},is_postfix_unary_operator:function(){return e(F,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(ai){return e(N,this.data)&&N[this.data]===(ai.data||ai)},bindings:function(aj){var ai=aj||{};this.reach(function(ak){if(ak.binds_a_value){ai[ak.data]=ak.value}});return ai},match:function(ak,al){ak=ak.constructor===String?ah.parse(ak):ak;al||(al={_:ak});if(this.is_wildcard()){return al[this.data]=ak,al}else{if(this.length===ak.length&&this.data===ak.data){for(var aj=0,ai=this.length;aj<ai;++aj){if(!this[aj].match(ak[aj],al)){return null}}return al}}},ends_with_block:function(){var ai=this[U[this.data]];return this.data==="{"||e(U,this.data)&&(this.data!=="function"||this.length===3)&&ai&&ai.ends_with_block()},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(K(function(ai){return ai.structure()},this)).join(" ")+")"}else{return this.data}},toString:function(){var ai=[""];this.serialize(ai);return ai.join("")},serialize:function(al){var aj=this.length,am=this.data,ai=";\n",ak=function(an){if(T[al[al.length-1].charCodeAt(0)]===T[an.charCodeAt(0)]){al.push(" ",an)}else{al.push(an)}};switch(aj){case 0:if(e(ad,am)){return ak(am.replace(/^u/,""))}else{if(e(o,am)){return ak(am),ak(o[am])}else{return ak(am)}}case 1:if(e(B,am)||e(ad,am)){return ak(am.replace(/^u/,"")),this[0].serialize(al)}else{if(e(o,am)){return ak(am),this[0].serialize(al),ak(o[am])}else{if(e(y,am)){return ak("/* unary "+am+" node */"),this[0].serialize(al)}else{return this[0].serialize(al),ak(am)}}}case 2:if(e(A,am)){return this[0].serialize(al),ak(am.charAt(0)),this[1].serialize(al),ak(am.charAt(1))}else{if(e(U,am)){return ak(am),this[0].serialize(al),this[1].serialize(al)}else{if(e(Y,am)){return this[0].serialize(al),this[1].serialize(al)}else{if(am===";"){return this[0].serialize(al),ak(ai),this[1].serialize(al)}else{return this[0].serialize(al),ak(am),this[1].serialize(al)}}}}default:if(e(M,am)){return this[0].serialize(al),ak(am),this[1].serialize(al),ak(":"),this[2].serialize(al)}else{if(e(U,am)){return this.accepts(this[2])&&!this[1].ends_with_block()?(ak(am),this[0].serialize(al),this[1].serialize(al),ak(ai),this[2].serialize(al)):(ak(am),this[0].serialize(al),this[1].serialize(al),this[2].serialize(al))}else{return this.unflatten().serialize(al)}}}}};ah.ref=function(aj,ai){if(aj instanceof this.constructor){this.value=aj.value,this.data=aj.data}else{this.value=aj,this.data=S(ai&&ai.constructor===String?ai:"ref")}};X(ah.ref.prototype,s,{binds_a_value:true,length:0});ah.ref.prototype.replace=function(ai){var aj;return i.call(ai,this.data)&&(aj=ai[this.data])?aj.constructor===String?z(new this.constructor(this.value),function(){this.data=aj}):aj:this};ah.syntax=function(an){if(an instanceof this.constructor){this.data=an.data,this.length=0}else{this.data=an&&an.toString();this.length=0;for(var al=1,ai=arguments.length,ak;ak=arguments[al],al<ai;++al){for(var aj=0,ap=ak.length,am,ao;ak instanceof Array?(am=ak[aj],aj<ap):(am=ak,!aj);++aj){this._append((ao=am.constructor)===String||ao===Number||ao===Boolean?new this.constructor(am):am)}}}};X(ah.syntax.prototype,s);var a=ah.empty=new ah.syntax("");ah.parse=function(az){if(az.constructor===ah.syntax){return az}var aC=az.toString(),aw=0,aO=0,aF=true,aP=false,aE=false,aq=false,aD=0,aB="",aK=0,aI=aC.length,aj=function(aS){return aC.charCodeAt(aS)},ar=[],al=null,ai=null,av=null,an=K(function(){return[]},H),ak=[],at=[a],aM=function(aS){return at.push(aS),aS},ap=function(aS){return ai?ai._sibling(ai=aS):(ai=aS._append_to(av)),aM(aS)},aH=this.syntax;if(aI===0){return a}while((aw=aK)<aI){while(g[aO=aj(aK)]&&aK<aI){aw=++aK}aP=aq=aE=aB=false;if(r[aO]){aB=!!++aK;aF=p[aO]}else{if(aO===l&&aj(aK+1)===O&&(aK+=2)){while(++aK<aI&&aj(aK)!==l||aj(aK-1)!==O){}aB=!++aK}else{if(aO===l&&aj(aK+1)===l){while(++aK<aI&&!G[aj(aK)]){}aB=false}else{if(L[aO]&&(aD=aO)&&aF&&!(aF=!(aB=aC.charAt(aK)))){while(++aK<aI&&(aO=aj(aK))!==aD||aP){aP=!aP&&aO===j}while(++aK<aI&&h[aj(aK)]){}aB=true}else{if(aO===Q&&w[aj(aK+1)]){while(++aK<aI&&w[aj(aK)]){}aF=!(aB=true)}else{if(af[aO]&&(aO!==J||R[aj(aK+1)])){while(++aK<aI&&(R[aO=aj(aK)]||(aE^(aE|=aO===J))||(aq^(aq|=I[aO]&&++aK)))){}while(aK<aI&&R[aj(aK)]){++aK}aF=!(aB=true)}else{if(v[aO]&&(aB=aF?"u":"",aF=true)){while(aK<aI&&v[aj(aK)]&&e(ag,aB+aC.charAt(aK))){aB+=aC.charAt(aK++)}aF=!e(ae,aB)}else{while(++aK<aI&&T[aj(aK)]){}aF=e(ag,aB=aC.substring(aw,aK))}}}}}}}if(aK===aw){throw new Error('Caterwaul lex error at "'+aC.substr(aw,40)+'" with leading context "'+aC.substr(aw-40,40)+'" (probably a Caterwaul bug)')}if(aB===false){continue}aB=aB===true?aC.substring(aw,aK):aB==="u;"?";":aB;aB===al?(ar.pop(),al=ar[ar.length-1],ai=ai?ai.p:av,av=null):(e(o,aB)?(ar.push(al=o[aB]),av=ap(aM(new aH(aB))),ai=null):ap(aM(new aH(aB))),e(C,aB)&&an[C[aB]].push(ai||av));aF|=aB===")"&&ai.l&&e(U,ai.l.data)}for(var aK=0,aI=an.length,ax,aR;aR=an[aK],ax=t[aK],aK<aI;++aK){for(var aJ=ax?0:aR.length-1,aA=aR.length,au=ax?1:-1,aG,aQ,ay;ax?aJ<aA:aJ>=0;aJ+=au){if(e(y,aQ=(aG=aR[aJ]).data)){aG._fold_lr()}else{if(e(D,aQ)&&aG.l&&!((ay=aG.l.l)&&e(U,ay.data))&&(aG.l.data==="."||(aG.l.data==="function"&&aG.l.length===2)||!(e(ag,aG.l.data)||e(c,aG.l.data)))){ak.push(aG.l._wrap(aM(new aH(aQ+o[aQ]))).p._fold_r())}else{if(e(F,aQ)){aG._fold_l()}else{if(e(B,aQ)){aG._fold_r()}else{if(e(M,aQ)){aG._fold_lr();var aN=aG[1];aG[1]=aG[0];aG[0]=aN}else{if(e(U,aQ)&&aG.r&&aG.r.data!==":"){for(var ao=0,aL=U[aQ];ao<aL&&aG.r&&!e(f,aG.r.data);++ao){aG._fold_r()}aG.r&&(aG.r.data===";"?aG.push(a):aG._fold_r());if(e(N,aQ)&&N[aQ]===(aG.r&&aG.r.r&&aG.r.r.data)){aG._fold_r().pop()._fold_r()}else{if(e(N,aQ)&&N[aQ]===(aG.r&&aG.r.data)){aG._fold_r()}}}else{if(e(ad,aQ)){aG.r&&aG.r.data!==";"&&aG._fold_r()}}}}}}}}}for(var aK=at.length-1,aR;aK>=0;--aK){(aR=at[aK]).r&&aR._wrap(aM(new aH("i;"))).p._fold_r()}for(var aK=0,aI=ak.length,aR,am;aK<aI;++aK){(am=(aR=ak[aK])[1]=aR[1][0]||a)&&(am.p=aR)}while(ai.p){ai=ai.p}for(var aK=at.length-1,aR;aK>=0;--aK){delete (aR=at[aK]).p,delete aR.l,delete aR.r}return ai};(function(){var ai=ah.parse("var _bindings; return(_expression)"),ak=ah.parse("_variable = _base._variable"),aj=ah.parse("undefined = void(0)");ah.compile=function(aw,ap,av){av=X({gensym_renaming:true},av);var am=X({},this._environment||{},ap||{},aw.bindings()),ar=[aj],au=S("base");for(var ao in am){if(i.call(am,ao)&&ao!=="this"){ar.push(ak.replace({_variable:ao,_base:au}))}}var at=new this.syntax(",",ar).unflatten(),al=ai.replace({_bindings:at,_expression:aw});if(av.gensym_renaming){var an=this.gensym_rename_table(al);for(var ao in am){i.call(am,ao)&&(am[an[ao]||ao]=am[ao])}al=al.replace(an);au=an[au]}try{return(new Function(au,al)).call(am["this"],am)}catch(aq){throw new Error(aq+" while compiling "+al)}};ah.gensym_rename_table=function(av){var at={},aq=[],au=/^gensym_(.*)_\d+_[^_]+_[^_]+$/;av.reach(function(aw){var ax=aw.data;au.test(ax)&&(at[ax]||aq.push(ax));at[ax]=ax.replace(au,"$1")||"anon"});var al={},ar=function(aw){if(!(aw in at)){return aw}var ax=al[aw]||0;while(at[aw+(++ax).toString(36)]){}return aw+(al[aw]=ax).toString(36)};for(var am={},ao=0,an=aq.length,ap;ao<an;++ao){am[ap=aq[ao]]||(at[am[ap]=ar(at[ap])]=true)}return am}})();ah.precompiled={};ah.precompiled_internal=function(aj){var ai=S();this.precompiled[ai]=aj;return ai};ah.init=function(aj){var ai=function(am,ak,al){if(am.constructor===String&&am.length<100&&ai.precompiled[am]){return ai.precompiled[am]}return am.constructor===Function||am.constructor===String?ah.compile(ai.call(ai,ah.parse(am)),ak,al):aj?am.rmap(function(an){return aj.call(ai,an,ak,al)}):am};ai.global=ah;ai.macroexpander=aj;return ai};ah.initializer=d;ah.clone=function(){return z(d(d,b).deglobalize(),function(){for(var ai in ah){this[ai]||(this[ai]=ah[ai])}})};return caterwaul=ah});
 </script>
 <script>
-(function(c){var b=function(e){var d=function(f){if(f.constructor===Array){for(var h=0,g=f.length,j=[];h<g;++h){j.push(d(f[h]))}return function(k){for(var l=j.length-1,m;l>=0;--l){if(m=j[l].call(this,k)){return m}}}}else{return f.constructor===String?d(c.parse(f)):f.constructor===c.syntax?e.call(this,f):f}};return d};c.pattern=b(function(d){return function(e){return d.match(e)}});c.expander=b(function(d){return function(e){return d.replace(e)}});c.alternatives=b(function(d){throw new Error("must use replacer functions with caterwaul.alternatives()")});c.reexpander=function(f){var d=c.expander(f);return function(e){var g=d.call(this,e);this.constructor===Function||console.log(this);return g&&this(g)}};var a=function(d){return function(f,h){var g=c.pattern(f),e=d(h);return function(i){var j=g.call(this,i);return j&&e.call(this,j)}}};c.replacer=a(c.expander);c.rereplacer=a(c.reexpander);c.macroexpand=function(d){return c(c.alternatives(Array.prototype.slice.call(arguments,1)))(d)}})(caterwaul);(function(a){a.anonymizer=function(){for(var d={},c=0,b=arguments.length;c<b;++c){d[arguments[c]]=a.gensym(arguments[c])}return function(e){return a.parse(e).replace(d)}}})(caterwaul);(function(a){a.js=function(q){var g=function(w){var E=w.data,t=E.charAt(0),y=a.syntax;if(t!=="'"&&t!=='"'||!/#\{[^\}]+\}/.test(E)){return false}for(var x=[],A=1,z=E.length-1,D=0,B=false,u=1,C;A<z;++A){if(D){if((C=E.charAt(A))==="}"){--D||x.push(E.substring(u,A))&&(u=A+1),B=false}else{D+=C==="{"}}else{if((C=E.charAt(A))==="#"){B=true}else{if(C==="{"&&B){x.push(E.substring(u,A-1)),u=A+1,++D}else{B=false}}}}x.push(E.substring(u,z));for(var v=new RegExp("\\\\"+t,"g"),A=0,z=x.length;A<z;++A){x[A]=A&1?this(a.parse(x[A].replace(v,t)).as("(")):new y(t+x[A]+t)}return new y("+",x).unflatten().as("(")};var e=a.rereplacer("_left(_args) = _right","_left = (function (_args) {return _right})"),d=a.rereplacer("_left(_var = arguments) = _right","_left = (function () {var _var = arguments; return _right})"),i=function(s){return d.call(this,s)||e.call(this,s)};var j=a.pattern("_modifier[_expression]"),l=a.pattern("_expression /_modifier"),p=a.pattern("_expression -_modifier"),h=a.pattern("_modifier in _expression"),b=a.pattern("_expression |_modifier"),f=a.pattern("_expression, _modifier"),n=a.pattern("_modifier._parameters"),k=a.pattern("_modifier[_parameters]"),o=a.pattern("_expression <_modifier> _parameters"),m=a.pattern("_expression -_modifier- _parameters"),c=function(x){var s=o.call(this,x)||m.call(this,x);if(s){for(var y=this.parameterized_modifiers,v=y.length-1,w;v>=0;--v){if(w=y[v].call(this,s)){return w}}}var u=j.call(this,x)||l.call(this,x)||p.call(this,x)||h.call(this,x)||b.call(this,x)||f.call(this,x);if(u){var t=n.call(this,u._modifier)||k.call(this,u._modifier);if(t){u._modifier=t._modifier;u._parameters=t._parameters;for(var y=this.parameterized_modifiers,v=y.length-1,w;v>=0;--v){if(w=y[v].call(this,u)){return w}}}else{for(var y=this.modifiers,v=y.length-1,w;v>=0;--v){if(w=y[v].call(this,u)){return w}}}}};var r=q?a(function(s){return q.call(this,s)||g.call(this,s)||s.length&&(c.call(this,s)||i.call(this,s))}):a(function(s){return g.call(this,s)||s.length&&(c.call(this,s)||i.call(this,s))});r.modifiers=[];r.parameterized_modifiers=[];return r}})(caterwaul);(function(a){a.words=function(c){var e=function(f,g){return function(h){return h._modifier.data===f&&g.call(this,h)}},b=function(f,g){c.modifiers.push(e(f,g))},d=function(f,g){c.parameterized_modifiers.push(e(f,g))};b("qs",function(f){return new a.ref(f._expression,"qs")});b("qse",function(f){return new a.ref(this(f._expression),"qse")});b("reexpand",function(f){return this(this(f._expression))});b("noexpand",function(f){return f._expression});b("raise",a.reexpander("(function () {throw _expression}).call(this)"));d("rescue",a.reexpander("(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)"));d("given",a.reexpander("(function (_parameters) {return _expression})"));d("bgiven",a.reexpander("(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))"));b("delay",a.reexpander("(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))"));b("lazy",a.reexpander("(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))"));d("se",a.reexpander("(function (it) {return (_parameters), it}).call(this, (_expression))"));d("re",a.reexpander("(function (it) {return (_parameters)}).call(this, (_expression))"));d("where",a.reexpander("(function () {var _parameters; return (_expression)}).call(this)"));d("when",a.reexpander("((_parameters) && (_expression))"));d("unless",a.reexpander("(! (_parameters) && (_expression))"));return c}})(caterwaul);caterwaul.words(caterwaul.js())(caterwaul.precompiled_internal((function(){null;return(function(a){(function(){var d=a.anonymizer("S"),e=(function(g,f){return a.rereplacer(d(g),f.constructor===Function?(function(h){return f.call(this,h)}):d(f))}),b=(function(){var z=(function(M,N){return[e(("S[_xs "+(M)+""+(N)+"~_body]"),("S[_xs "+(M)+""+(N)+"S[_body]]")),e(("S[_xs "+(M)+""+(N)+"!~_body]"),("S[_xs "+(M)+""+(N)+"!S[_body]]")),e(("S[_xs "+(M)+""+(N)+"~!~_body]"),("S[_xs "+(M)+""+(N)+"~!S[_body]]"))]}),p=a.anonymizer("xs","ys","x","y","i","j","l","lj","r","o","k"),x=(function(M){return p(J(d(M)))}),g=d("(function (xs) {_body}).call(this, S[_xs])"),J=(function(M){return g.replace({_body:M})}),o=(function(M){return(function(){var N=x(M);return((function(O){return N.replace(C(O))}))}).call(this)}),H=o("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                                 return ys"),j=o("for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                          return xs"),B=o("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f)));        return ys"),r=o("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                           return ys"),i=o("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                           return ys"),f=o("for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys"),K=o("for (var _x0 = xs[0], _xi = 1, _xl = xs.length, _x;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                     return _x0"),E=o("for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xi], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0"),s=o("for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys"),D=o("for (var _x0 = (_init), _xi = 0, _xl = xs.length, _x;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                         return _x0"),A=o("for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init), _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                         return _x0"),y=o("for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false"),n=o("return xs.concat(S[_ys])"),F=o("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs"),h=o("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);return pairs"),G=o("var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) r[_f] = xs[_x];                        return r"),k=o("                   for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) _f;                                    return xs"),w=o("var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r"),m=o("var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r"),v=o("var r = {}, x;     for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r"),t=o("var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], r[k] = (_f);                return r"),L=o("var _x;            for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], _f;                         return xs"),q=o("var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r"),l=o("var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r"),u=o("var r = {}, _x, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r"),C=(function(M){return a.merge({},M,I(M._var))}),I=(function(M){return(function(){var N=M&&M.data||"x";return({_x:N,_xi:(""+(N)+"i"),_xl:(""+(N)+"l"),_x0:(""+(N)+"0")})}).call(this)});return((function(){var N={"/":true},O=(function(Q,P){return e(d(("S[_xs "+(Q)+" _ys]")),P)}),M=(function(Q,R,P){return(function(){var S=Q&&("%"+(Q)+"");return((function(T){return(T.concat(z(S,R)))}).call(this,((function(T){return(((P.itbang)&&(T.push(e(("S[_xs "+(S)+""+(R)+"~![_init][_f]]"),P.itbang),e(("S[_xs "+(S)+""+(R)+"~!_var[_init][_f]]"),P.itbang))))),T}).call(this,((function(T){return(((P.ibang)&&(T.push(e(("S[_xs "+(S)+""+(R)+"![_init][_f]]"),P.ibang),e(("S[_xs "+(S)+""+(R)+"!_var[_init][_f]]"),P.ibang))))),T}).call(this,((function(T){return(((P.inormal)&&(T.push(e(("S[_xs "+(S)+""+(R)+"[_init][_f]]"),P.inormal),e(("S[_xs "+(S)+""+(R)+"_var[_init][_f]]"),P.inormal))))),T}).call(this,((function(T){return(((P.tbang)&&(T.push(e(("S[_xs "+(S)+""+(R)+"~![_f]]"),P.tbang),e(("S[_xs "+(S)+""+(R)+"~!_var[_f]]"),P.tbang))))),T}).call(this,((function(T){return(((P.bang)&&(T.push(e(("S[_xs "+(S)+""+(R)+"![_f]]"),P.bang),e(("S[_xs "+(S)+""+(R)+"!_var[_f]]"),P.bang))))),T}).call(this,((function(T){return(((P.normal)&&(T.push(e(("S[_xs "+(S)+""+(R)+"[_f]]"),P.normal),e(("S[_xs "+(S)+""+(R)+"_var[_f]]"),P.normal))))),T}).call(this,((function(T){return(((P.tbang||P.itbang)&&(T.push(e(("S[_xs "+(S)+""+(R)+"~!_f]"),("S[_xs "+(S)+""+(R)+"~![_f(x"+(N[R]?", x0":"")+")]]")))))),T}).call(this,((function(T){return(((P.bang||P.ibang)&&(T.push(e(("S[_xs "+(S)+""+(R)+"!_f]"),("S[_xs "+(S)+""+(R)+"![_f(x"+(N[R]?", x0":"")+")]]")))))),T}).call(this,((function(T){return(((P.normal||P.inormal)&&(T.push(e(("S[_xs "+(S)+""+(R)+"_f]"),("S[_xs "+(S)+""+(R)+"[_f(x"+(N[R]?", x0":"")+")]]")))))),T}).call(this,([])))))))))))))))))))))}).call(this)});return([e("S[_x]","_x"),e("S[(_x)]","(S[_x])"),e("S[_x[_y]]","S[_x][S[_y]]"),e("S[[_x]]","[S[_x]]"),e("S[_x, _y]","S[_x], S[_y]"),M("","|",{normal:y}),M("","*",{normal:H,bang:j,tbang:B}),O("+",n),O("^",F),M("","%",{normal:r,bang:i,tbang:f}),O("-",h),M("","/",{normal:K,bang:E,tbang:s,inormal:D,ibang:A}),M("k","*",{normal:G,bang:k}),M("v","*",{normal:t,bang:L}),M("k","%",{normal:w,bang:m,tbang:v}),M("v","%",{normal:q,bang:l,tbang:u})])}).call(this))}).call(this),c=(function(){var h=(function(n){return i.replace(a.merge({_lower:"0",_step:"1"},n))}),i=d("(function (i, u, s) {if ((u - i) * s <= 0) return [];for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))"),o=d("(function (o) {_body}).call(this, (S[_o]))"),k=(function(n){return o.replace({_body:n})}),g=(function(n){return(function(){var p=k(d(n));return((function(q){return p.replace(q)}))}).call(this)}),m=g("var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks"),l=g("var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs"),f=g("var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps"),j=g("for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r");return([e("S[n[_upper]]",h),e("S[_o /keys]",m),e("S[_o |object]",j),e("S[n[_lower, _upper]]",h),e("S[_o /values]",l),e("S[_o -object]",j),e("S[n[_lower, _upper, _step]]",h),e("S[_o /pairs]",f),e("S[_o /object]",j)])}).call(this);return(a.seq=(function(f){return(function(){var h=d("S[_x]"),g=a(a.alternatives(b.concat(c)));return((function(i){return(i.modifiers.push((function(j){return((j._modifier.data==="seq")&&((function(k){return(((k)&&(this(k))))}).call(this,(g.call(g,h.replace({_x:j._expression}))))))}))),i}).call(this,(f)))}).call(this)}))}).call(this)})}).call(this)))(caterwaul);caterwaul.js_all=function(){return this.seq(this.words(this.js()))};
-</script>
-<script>
-
+(function(c){var b=function(g){var d=function(h){if(h.constructor===Array){for(var k=0,j=h.length,o=[];k<j;++k){o.push(d(h[k]))}return function(l){for(var q=o.length-1,s;q>=0;--q){if(s=o[q].call(this,l)){return s}}}}else{return h.constructor===String?d(c.parse(h)):h.constructor===c.syntax?g.call(this,h):h}};return d};c.pattern=b(function(d){return function(g){return d.match(g)}});c.expander=b(function(d){return function(g){return d.replace(g)}});c.alternatives=b(function(d){throw new Error("must use replacer functions with caterwaul.alternatives()")});c.reexpander=function(g){var d=c.expander(g);return function(h){var i=d.call(this,h);return i&&this(i)}};var a=function(d){return function(h,j){var i=c.pattern(h),g=d(j);return function(k){var l=i.call(this,k);return l&&g.call(this,l)}}};c.replacer=a(c.expander);c.rereplacer=a(c.reexpander);c.macroexpand=function(d){return c(c.alternatives(Array.prototype.slice.call(arguments,1)))(d)}})(caterwaul);(function(a){a.anonymizer=function(){for(var d={},c=0,b=arguments.length;c<b;++c){d[arguments[c]]=a.gensym(arguments[c])}return function(g){return a.parse(g).replace(d)}}})(caterwaul);(function(a){a.js=function(w){var i=function(C){var K=C.data,z=K.charAt(0),E=a.syntax;if(z!=="'"&&z!=='"'||!/#\{[^\}]+\}/.test(K)){return false}for(var D=[],G=1,F=K.length-1,J=0,H=false,A=1,I;G<F;++G){if(J){if((I=K.charAt(G))==="}"){--J||D.push(K.substring(A,G))&&(A=G+1),H=false}else{J+=I==="{"}}else{if((I=K.charAt(G))==="#"){H=true}else{if(I==="{"&&H){D.push(K.substring(A,G-1)),A=G+1,++J}else{H=false}}}}D.push(K.substring(A,F));for(var B=new RegExp("\\\\"+z,"g"),G=0,F=D.length;G<F;++G){D[G]=G&1?this(a.parse(D[G].replace(B,z)).as("(")):new E(z+D[G]+z)}return new E("+",D).unflatten().as("(")};var g=a.rereplacer("_left(_args) = _right","_left = (function (_args) {return _right})"),d=a.rereplacer("_left(_var = arguments) = _right","_left = (function () {var _var = arguments; return _right})"),k=function(z){return d.call(this,z)||g.call(this,z)};var l=a.pattern("_modifier[_expression]"),q=a.pattern("_expression /_modifier"),v=a.pattern("_expression -_modifier"),j=a.pattern("_modifier in _expression"),b=a.pattern("_expression |_modifier"),h=a.pattern("_expression, _modifier"),s=a.pattern("_modifier._parameters"),o=a.pattern("_modifier[_parameters]"),u=a.pattern("_expression <_modifier> _parameters"),r=a.pattern("_expression -_modifier- _parameters"),c=function(E){var z=u.call(this,E)||r.call(this,E);if(z){for(var F=this.parameterized_modifiers,C=F.length-1,D;C>=0;--C){if(D=F[C].call(this,z)){return D}}}var B=l.call(this,E)||q.call(this,E)||v.call(this,E)||j.call(this,E)||b.call(this,E)||h.call(this,E);if(B){var A=s.call(this,B._modifier)||o.call(this,B._modifier);if(A){B._modifier=A._modifier;B._parameters=A._parameters;for(var F=this.parameterized_modifiers,C=F.length-1,D;C>=0;--C){if(D=F[C].call(this,B)){return D}}}else{for(var F=this.modifiers,C=F.length-1,D;C>=0;--C){if(D=F[C].call(this,B)){return D}}}}};var y=w?a(function(z){return w.call(this,z)||i.call(this,z)||z.length&&(c.call(this,z)||k.call(this,z))}):a(function(z){return i.call(this,z)||z.length&&(c.call(this,z)||k.call(this,z))});y.modifiers=[];y.parameterized_modifiers=[];return y}})(caterwaul);(function(a){a.words=function(c){var g=function(h,i){return function(j){return j._modifier.data===h&&i.call(this,j)}},b=function(h,i){c.modifiers.push(g(h,i))},d=function(h,i){c.parameterized_modifiers.push(g(h,i))};b("qs",function(h){return new a.ref(h._expression,"qs")});b("qse",function(h){return new a.ref(this(h._expression),"qse")});b("reexpand",function(h){return this(this(h._expression))});b("noexpand",function(h){return h._expression});b("raise",a.reexpander("(function () {throw _expression}).call(this)"));d("rescue",a.reexpander("(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)"));d("given",a.reexpander("(function (_parameters) {return _expression})"));d("bgiven",a.reexpander("(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))"));b("delay",a.reexpander("(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))"));b("lazy",a.reexpander("(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))"));d("se",a.reexpander("(function (it) {return (_parameters), it}).call(this, (_expression))"));d("re",a.reexpander("(function (it) {return (_parameters)}).call(this, (_expression))"));d("where",a.reexpander("(function () {var _parameters; return (_expression)}).call(this)"));d("when",a.reexpander("((_parameters) && (_expression))"));d("unless",a.reexpander("(! (_parameters) && (_expression))"));return c}})(caterwaul);caterwaul.words(caterwaul.js())(function(a){a.seq(caterwaul_function)=caterwaul_function-se-it.modifiers.push(given.match in seq_expand.call(seq_expand,anon_pattern.replace({_x:match._expression}))-re-this(it)/when.it-when[match._modifier.data==="seq"])-where[anon_pattern=anon("S[_x]"),seq_expand=a(a.alternatives(operator_macros.concat(word_macros)))],where[anon=a.anonymizer("S"),rule(p,e)=a.rereplacer(anon(p),e.constructor===Function?given.match in e.call(this,match):anon(e)),operator_macros=[rule("S[_x]","_x"),rule("S[(_x)]","(S[_x])"),rule("S[_x[_y]]","S[_x][S[_y]]"),rule("S[[_x]]","[S[_x]]"),rule("S[_x, _y]","S[_x], S[_y]"),operator("","|",{normal:exists}),operator("","*",{normal:map,bang:each,tbang:flatmap}),binary_operator("+",concat),binary_operator("^",zip),operator("","%",{normal:filter,bang:filter_not,tbang:map_filter}),binary_operator("-",cross),operator("","/",{normal:foldl,bang:foldr,tbang:unfold,inormal:ifoldl,ibang:ifoldr}),operator("k","*",{normal:kmap,bang:keach}),operator("v","*",{normal:vmap,bang:veach}),operator("k","%",{normal:kfilter,bang:kfilter_not,tbang:kmap_filter}),operator("v","%",{normal:vfilter,bang:vfilter_not,tbang:vmap_filter})]-where[uses_x0={"/":true},binary_operator(op,f)=rule(anon("S[_xs #{op} _ys]"),f),operator(prefix,op,forms)=[]-se-it.push(rule("S[_xs #{p}#{op}_f]",'S[_xs #{p}#{op}[_f(x#{uses_x0[op] ? ", x0" : ""})]]'))/when[forms.normal||forms.inormal]-se-it.push(rule("S[_xs #{p}#{op}!_f]",'S[_xs #{p}#{op}![_f(x#{uses_x0[op] ? ", x0" : ""})]]'))/when[forms.bang||forms.ibang]-se-it.push(rule("S[_xs #{p}#{op}~!_f]",'S[_xs #{p}#{op}~![_f(x#{uses_x0[op] ? ", x0" : ""})]]'))/when[forms.tbang||forms.itbang]-se-it.push(rule("S[_xs #{p}#{op}[_f]]",forms.normal),rule("S[_xs #{p}#{op}_var[_f]]",forms.normal))/when[forms.normal]-se-it.push(rule("S[_xs #{p}#{op}![_f]]",forms.bang),rule("S[_xs #{p}#{op}!_var[_f]]",forms.bang))/when[forms.bang]-se-it.push(rule("S[_xs #{p}#{op}~![_f]]",forms.tbang),rule("S[_xs #{p}#{op}~!_var[_f]]",forms.tbang))/when[forms.tbang]-se-it.push(rule("S[_xs #{p}#{op}[_init][_f]]",forms.inormal),rule("S[_xs #{p}#{op}_var[_init][_f]]",forms.inormal))/when[forms.inormal]-se-it.push(rule("S[_xs #{p}#{op}![_init][_f]]",forms.ibang),rule("S[_xs #{p}#{op}!_var[_init][_f]]",forms.ibang))/when[forms.ibang]-se-it.push(rule("S[_xs #{p}#{op}~![_init][_f]]",forms.itbang),rule("S[_xs #{p}#{op}~!_var[_init][_f]]",forms.itbang))/when[forms.itbang]-re-it.concat(context_conversions(p,op))-where[p=prefix&&"%#{prefix}"]]-where[context_conversions(p,op)=[rule("S[_xs #{p}#{op}~_body]","S[_xs #{p}#{op}S[_body]]"),rule("S[_xs #{p}#{op}!~_body]","S[_xs #{p}#{op}!S[_body]]"),rule("S[_xs #{p}#{op}~!~_body]","S[_xs #{p}#{op}~!S[_body]]")],loop_anon=a.anonymizer("xs","ys","x","y","i","j","l","lj","r","o","k"),loop_form(x)=loop_anon(scoped(anon(x))),scope=anon("(function (xs) {_body}).call(this, S[_xs])"),scoped(tree)=scope.replace({_body:tree}),op_form(pattern)=form.replace(variables_for(match))-given.match-where[form=loop_form(pattern)],map=op_form("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                                 return ys"),each=op_form("for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                          return xs"),flatmap=op_form("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f)));        return ys"),filter=op_form("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                           return ys"),filter_not=op_form("for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                           return ys"),map_filter=op_form("for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys"),foldl=op_form("for (var _x0 = xs[0], _xi = 1, _xl = xs.length, _x;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                     return _x0"),foldr=op_form("for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xi], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0"),unfold=op_form("for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys"),ifoldl=op_form("for (var _x0 = (_init), _xi = 0, _xl = xs.length, _x;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                         return _x0"),ifoldr=op_form("for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init), _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                         return _x0"),exists=op_form("for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false"),concat=op_form("return xs.concat(S[_ys])"),zip=op_form("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs"),cross=op_form("for (var ys = S[_ys], pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);return pairs"),kmap=op_form("var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) r[_f] = xs[_x];                        return r"),keach=op_form("                   for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) _f;                                    return xs"),kfilter=op_form("var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r"),kfilter_not=op_form("var r = {};        for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r"),kmap_filter=op_form("var r = {}, x;     for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r"),vmap=op_form("var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], r[k] = (_f);                return r"),veach=op_form("var _x;            for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], _f;                         return xs"),vfilter=op_form("var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r"),vfilter_not=op_form("var r = {}, _x;    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r"),vmap_filter=op_form("var r = {}, _x, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r"),variables_for(m)=a.merge({},m,prefixed_hash(m._var)),prefixed_hash(p)={_x:name,_xi:"#{name}i",_xl:"#{name}l",_x0:"#{name}0"}-where[name=p&&p.data||"x"]],word_macros=[rule("S[n[_upper]]",n),rule("S[_o /keys]",keys),rule("S[_o |object]",object),rule("S[n[_lower, _upper]]",n),rule("S[_o /values]",values),rule("S[_o -object]",object),rule("S[n[_lower, _upper, _step]]",n),rule("S[_o /pairs]",pairs),rule("S[_o /object]",object)]-where[n(match)=n_pattern.replace(a.merge({_lower:"0",_step:"1"},match)),n_pattern=anon("(function (i, u, s) {if ((u - i) * s <= 0) return [];for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))"),scope=anon("(function (o) {_body}).call(this, (S[_o]))"),scoped(t)=scope.replace({_body:t}),form(p)=tree.replace(match)-given.match-where[tree=scoped(anon(p))],keys=form("var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks"),values=form("var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs"),pairs=form("var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps"),object=form("for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r")]]})(caterwaul);caterwaul.js_all=function(){return this.seq(this.words(this.js()))};
 </script>
 <script>
 caterwaul.words(caterwaul.js())(function(a){a.jquery(caterwaul_function)=caterwaul_function-se-it.modifiers.push(given.match in jquery_expand.call(jquery_expand,anon_pattern.replace({_x:match._expression}))-re-this(it)/when.it-when[match._modifier.data==="jquery"])-where[anon_pattern=anon("J[_x]"),jquery_expand=a(a.alternatives(jquery_macros.concat(string_macros).concat(search_macros)))],where[jq="jQuery",anon=a.anonymizer("J","TS","S","P","PS"),hyphenate(s)=s.replace(/_/g,"-"),rule(p,e)=a.rereplacer(anon(p),e.constructor===Function?e.call(this,match)-given.match:anon(e)),p=where[p_pattern=anon("P[_thing]")] in p_pattern.replace({_thing:node})-given.node,jquery_macros=[rule("J[_element]",given.match[match._element.is_constant()||match._element.length?wrap_in_jquery(match):become_dom_node(match)]),rule("J[_element._class]","J[_element].addClass(S[_class])"),rule("J[_element *_attr(_val)]","J[_element].attr(S[_attr], _val)"),rule("J[_element *!_name(_val)]","J[_element].data(S[_name], _val)"),rule("J[_element /_method(_args)]","J[_element]._method(_args)"),rule("J[_element /!_event(_args)]","J[_element].bind(S[_event], _args)"),rule("J[_element %_function]","_function(J[_element])"),rule("J[_element(_children)]","J[_element].append(J[_children])"),rule("J[_element[_children]]","J[_element].append(_children)"),rule("J[_element > _child]","J[_element].append(J[_child])"),rule("J[_element >= _child]","J[_element].append(_child)"),rule("J[_element1, _element2]","J[_element1].add(J[_element2])"),rule("J[_element1 + _element2]","J[_element1].add(J[_element2])"),rule("J[_element >> _pattern]","J[_element].filter(PS[_pattern])"),rule("J[_element >>> _pattern]","J[_element].find(PS[_pattern])"),rule("J[_element << _pattern]","J[_element].parents(PS[_pattern])"),rule("J[(_element)]","(J[_element])"),rule("J[[_element]]","[J[_element]]"),rule("J[+_expression]","_expression")]-where[dom_node_template=anon("#{jq}(TS[_element])"),jquery_template=anon('#{jq}("<span>" + (_element) + "</span>")'),become_dom_node(match)=dom_node_template.replace(match),wrap_in_jquery(match)=jquery_template.replace(match)],string_macros=[rule("TS[_identifier]",string("<#{hyphenate(match._identifier.data)}>")-given.match),rule("S[_identifier]",string(hyphenate(match._identifier.data))-given.match),rule("PS[_identifier]",string(expand(p(match._identifier)).data)-given.match)]-where[string(s)=new a.syntax('"'+s.replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"')],search_macros=[rule("P[_element]",new a.syntax(hyphenate(match._element.data-re[it==="_"?"*":it]))-given.match),rule("P[_element._class]",new a.syntax("#{this(p(match._element)).data}.#{hyphenate(match._class.data)}")-given.match),rule("P[_element[_attributes]]",new a.syntax("#{this(p(match._element)).data}[#{this(p(match._attributes))}]")-given.match),rule("P[_attribute = _value]",new a.syntax('#{this(p(match._attribute)).data}="#{'+interpolated(match._value)+'}"')-given.match),rule("P[(_element)]","P[_element]"),rule("P[_element1 +   _element2]",binary(", ")),rule("P[_element1,    _element2]",binary(", ")),rule("P[_element1 >>  _element2]",binary(" ")),rule("P[_element1 >>> _element2]",binary(" ")),rule("P[_element1 >   _element2]",binary(" > ")),rule("P[_element1(_element2)]",binary(" > ")),rule("P[_element /_selector]",new a.syntax("#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}")-given.match),rule("P[_element /_selector(_value)]",new a.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#{'+interpolated(match._value)+'}")')-given.match)]-where[interpolated(node)='(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',binary(op)(match)=new a.syntax("#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}")]]})(caterwaul);
@@ -799,9 +796,8 @@ meta::data('bootstrap.html.sdoc', <<'__');
   - head << end
     - script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js'
     - script-include build/caterwaul.min.js
-    - script-include build/caterwaul.std.pre.min.js
-    - script-include build/catrewaul.dev.pre.min.js
-    - script-include build/caterwaul.ui.pre.min.js
+    - script-include build/caterwaul.std.min.js
+    - script-include build/caterwaul.ui.min.js
     - script-include crunch::pp::js::web/main
 
     - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Neuton'
@@ -1012,6 +1008,10 @@ for ($line - 5 .. $line + 5) {
   printf "%04d: %s\n", $_, $lines[$_ - 1];
   print "\033[0;0m" if $_ == $line;
 }
+__
+meta::function('load-gjs', <<'__');
+gjs(['id::start = +new Date();', 'pp::js::caterwaul.all', 'id::print("caterwaul self-compiled in " + (+new Date() - start) + "ms");']);
+
 __
 meta::function('load-state', <<'__');
 around_hook('load-state', @_, sub {
@@ -1231,7 +1231,11 @@ meta::function('render', <<'__');
 hook('before-render');
 hook('after-render');
 __
-meta::function('repl', 'node([\'pp::js::caterwaul.all\', \'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul\']);');
+meta::function('repl', <<'__');
+node(['id::start = +new Date();', 'pp::js::caterwaul.all', 'id::console.log("caterwaul self-compiled in " + (+new Date() - start) + "ms");',
+      'id::require("repl").start("caterwaul> ").context.caterwaul = caterwaul']);
+
+__
 meta::function('replc', <<'__');
 node(['pp::js::caterwaul', 'id::require("repl").start("caterwaul core> ").context.caterwaul = caterwaul']);
 
@@ -1565,14 +1569,13 @@ terminal::info('creating base files');
 file::write('build/caterwaul.js',      retrieve('pp::js::caterwaul'),      mkpath => 1);
 file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'), mkpath => 1);
 
-my @extensions = qw/std dev ui/;
+my @extensions = qw/std ui/;
 
 terminal::info('creating extensions');
 file::write("build/caterwaul.$_.js", retrieve("pp::js::extensions/$_"), mkpath => 1) for @extensions;
-precompile("build/caterwaul.$_.js") for @extensions;
 
 terminal::info('minifying stuff');
-minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.pre.js", @extensions;
+minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.js", @extensions;
 
 __
 meta::hook('after-render::tools', 'file::write(\'build/tools/precompile.js\', retrieve(\'pp::js::tools/precompile\'), mkpath => 1);');
@@ -3574,8 +3577,8 @@ This file isn't rendered -- it's just used internally for node testing.
 
 - pinclude pp::js::caterwaul
 - pinclude pp::js::extensions/std
-- pinclude pp::js::extensions/dev
 - pinclude pp::js::extensions/ui
+
 __
 meta::sdoc('js::caterwaul.node', <<'__');
 CommonJS-compatible Caterwaul build | Spencer Tipping
@@ -3584,239 +3587,6 @@ Licensed under the terms of the MIT source code license
 - pinclude pp::js::caterwaul
 
 exports.caterwaul = caterwaul;
-__
-meta::sdoc('js::extensions/dev', <<'__');
-Caterwaul development extensions | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Process extensions.
-These apply to the development process somehow. Precompilation is here because it's something that you'd do at dev-time (pre-deploy) but not something that you have to include in the standard
-library. (The core caterwaul support for precompilation is rudimentary and very small.)
-
-- pinclude pp::js::extensions/dev/precompile
-
-__
-meta::sdoc('js::extensions/dev/precompile', <<'__');
-Caterwaul precompiler | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Precompilation logic.
-Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
-serialization of certain functions, significantly accelerating Caterwaul's loading speed.
-
-caterwaul.seq(caterwaul.words(caterwaul.js()))(function ($) {
-
-  Precompiled output format.
-  The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
-  function with an annotated copy of the caterwaul compiler, tracing calls to compile(). It assumes, incorrectly in pathological cases, that the macroexpansion step does not side-effect
-  against caterwaul or other escaping values. If it does, the precompiled code won't reflect those side-effects.
-
-  The output function performs side-effects necessary to emulate the behavior of your macroexpanded code. All other behavior performed by the precompiled function will be identical to the
-  original. Here's an example of how it is used:
-
-  | var f = caterwaul.precompile(function () {
-      alert('hi');
-      caterwaul.js_all()(function () {
-        console.log(x /given.y, qs[foo]);
-      })();
-      return 10;
-    });
-
-  After this statement, f.toString() will look something like this (except all mashed together, because Caterwaul doesn't format generated code):
-
-  | function () {
-      alert('hi');
-      caterwaul.js_all()(caterwaul.precompiled_internal((function () {
-        var gensym_1 = new caterwaul.syntax('foo');
-        return function () {
-          console.log(function (y) {return x}, gensym_1);
-        })()))();
-      return 10;
-    }
-
-  The precompiled_internal() function returns a reference that will inform Caterwaul not to operate on the function in question. You should (almost) never use this method! It will break all
-  kinds of stuff if you artificially mark functions as being precompiled when they are not.
-
-  There are some very important things to keep in mind when precompiling things:
-
-  | 1. Precompiling a function executes that function at compile time! This has some important consequences, perhaps most importantly that if you do something global, you could bork your
-       precompiling environment. The other important consequence is that if some code paths aren't run, those paths won't be precompiled. Caterwaul can only precompile paths that it has
-       traced.
-    2. Precompilation doesn't macroexpand the function being precompiled, even if the caterwaul function performing the precompilation has macros defined.
-    3. Most syntax tree refs can't be precompiled! If Caterwaul bumps into one it will throw an error. The only refs that it knows how to handle are (1) itself, and (2) references to syntax
-       trees that don't contain other refs. If you want it to handle other refs, you'll need to write a macro that transforms them into something else before the precompiler sees them.
-       (Actually, the standard library contains a fair amount of this kind of thing to avoid this very problem. Instead of using refs to generated values, it installs values onto the caterwaul
-       global and generates indirect references to them.)
-    4. Caterwaul assumes that compilation is completely deterministic. Any nondeterminism won't be reflected. This generally isn't a problem, it just means that your code may have
-       un-precompiled segments if the precompilation test run didn't cover all of those cases.
-
-  For most code these concerns won't be a problem at all. But if you're doing anything especially dynamic you might run into one of them.
-
-  Silliness of runtime precompilation.
-  Obviously it doesn't do much good to precompile stuff at runtime -- the point of precompilation is to save time, but it's too late if the code is already running on an end-user system.
-  Fortunately, precompilation is separable:
-
-  | // Inside the precompiler:
-    var f = caterwaul.precompile(first_code_chunk);
-    var g = caterwaul.precompile(second_code_chunk);
-    // Later, in end-user code:
-    f();
-    g();
-
-  As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
-  above).
-
-    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where [traced = trace_execution(this, f)]
-    -where [
-
-  Tracing function destinations.
-  This is more subtle than you might think. We need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul function delegates
-  macroexpansion to the original one but lets us know when anything is compiled.
-
-  When a parse() call happens, we'll have a reference to the function being parsed. We can identify which function it came from (in the original syntax tree that is) by marking each of the
-  initial functions with a unique gensym on the end of the parameter list:
-
-  | function (x, y, z, gensym_foo_bar_bif) {...}
-
-  This serves as a no-op that lets us track the function from its original parse tree into its final compiled state.
-
-  Next the function may be macroexpanded. If so, we make sure the gensym tag is on the macroexpanded output (if the output of macroexpansion isn't a function, then it's a side-effect and we
-  can't track it). Finally, the function will be compiled within some environment. This is where we go through the compilation bindings, serializing each one with the function. We then wrap
-  this in an immediately-invoked anonymous function (to create a new scope and to simulate the one created by compile()), and this becomes the output.
-
-  Note that for these patterns we need to use parse() because Spidermonkey optimizes away non-side-effectful function bodies.
-
-    nontrivial_function_pattern         = $.parse('function (_args) {_body}'),
-    trivial_function_pattern            = $.parse('function ()      {_body}'),
-    nontrivial_function_gensym_template = $.parse('function (_args, _gensym) {_body}'),
-    trivial_function_gensym_template    = $.parse('function (_gensym)        {_body}'),
-
-    nontrivial_gensym_detection_pattern = nontrivial_function_gensym_template,
-    trivial_gensym_detection_pattern    = trivial_function_gensym_template,
-
-    annotate_macro_generator(template)(references)(match) = result -se [references[s] = {tree: result}]
-                                                                   -where [s      = $.gensym('mark'),
-                                                                           result = template.replace({_args: match._args, _gensym: s, _body: annotate_functions_in(match._body, references)})],
-
-    mark_nontrivial_function_macro = annotate_macro_generator(nontrivial_function_gensym_template),
-    mark_trivial_function_macro    = annotate_macro_generator(trivial_function_gensym_template),
-
-  Macroexpansion for function origins.
-  The function annotation is done by a macro that matches against each embedded function. Only one level of precompilation is applied; if you have invocations of caterwaul from inside
-  transformed functions, these sub-functions won't be identified and thus won't be precompiled. (It's actually impossible to precompile them in the general case since we don't ultimately know
-  what part of the code they came from.)
-
-  Note that the ordering of trivial and nontrivial cases here is important. Later macros take precedence over earlier ones, so we use the most specific case last and let it fall back to the
-  more generic case.
-
-    annotate_functions_in(tree, references) = $.macroexpand(tree, $.replacer(trivial_function_pattern,    mark_trivial_function_macro(references)),
-                                                                  $.replacer(nontrivial_function_pattern, mark_nontrivial_function_macro(references))),
-
-  Also, an interesting failure case has to do with duplicate compilation:
-
-  | var f = function () {...};
-    caterwaul.js_all()(f);
-    caterwaul.js_ui(caterwaul.js_all())(f);
-
-  In this example, f() will be compiled twice under two different configurations. But because the replacement happens against the original function (!) due to lack of flow analysis, we won't
-  be able to substitute just one new function for the old one. In this case an error is thrown (see below).
-
-  Compilation wrapper.
-  Functions that get passed into compile() are assumed to be fully macroexpanded. If the function contains a gensym marker that we're familiar with, then we register the compiled function as
-  the final form of the original. Once the to-be-compiled function returns, we'll have a complete table of marked functions to be converted. We can then do a final pass over the original
-  source, replacing the un-compiled functions with compiled ones.
-
-    function_key(tree) = matches._gensym.data -when.matches -where [matches = nontrivial_gensym_detection_pattern.match(tree) ||
-                                                                              trivial_gensym_detection_pattern   .match(tree)],
-    mark_as_compiled(references, k, tree, environment) = references[k]
-                                                         -se- raise [new Error('detected multiple compilations of #{references[k].tree}')] /when [references[k].compiled]
-                                                         -se [references[k].compiled = tree, references[k].environment = environment] -when [k && references[k]],
-
-    wrapped_compile(original, references)(tree, environment, options) = original.call(this, tree, environment, options)
-                                                                        -se- mark_as_compiled(references, function_key(tree), tree, $.merge({}, this._environment || {}, environment)),
-
-  Generating compiled functions.
-  This involves a few steps, including (1) signaling to the caterwaul function that the function is precompiled and (2) reconstructing the list of syntax refs.
-
-    Already-compiled signaling.
-    We don't necessarily know /why/ a particular function is being compiled, so it's beyond the scope of this module to try to produce a method call that bypasses this step. Rather, we just
-    inform caterwaul that a function is going to be compiled ahead-of-time, and all caterwaul functions will bypass the compilation step automatically. To do this, we use the dangerous
-    precompiled_internal() method, which returns a placeholder.
-
-      signal_already_compiled(tree) = qs[caterwaul.precompiled_internal(_x)].replace({_x: tree}),
-
-    Syntax ref serialization.
-    This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
-    along with the compiled function, to simulate the closure capture performed by the compile() function.
-
-      closure_template                  = $.parse('(function () {_vars; return (_value)}).call(this)'),
-      closure_variable_template         = $.parse('var _var = _value'),
-      closure_null_template             = $.parse('null'),
-
-      escape_string(s)                  = '\'' + s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\'',
-
-    Detecting serializable values.
-    Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the pre-1.0 standard library apparently depends on it somehow.
-
-    There's a nice optimization we can make here. Rather than using parse() to reconstruct syntax trees, we can actually go a step further and build the constructor invocations that will build
-    them up from scratch. This should end up being just a bit faster than parsing, at the expense of larger code. (That said, the code should pack very well under gzip and/or minification.)
-    Another advantage of this optimization is that you can change caterwaul's parse() function without causing problems. This lets you use a caterwaul function as a cross-compiler from another
-    language without breaking native Javascript quotation.
-
-      serialize_syntax(value)          = value.length === 0 ? qs[new caterwaul.syntax(_name)].replace({_name: escape_string(value.data)}) :
-                                                              qs[new caterwaul.syntax(_name, _children)].replace({_name: escape_string(value.data), _children: children})
-                                                                -where [children = new $.syntax(',', value *serialize_syntax -seq).unflatten()],
-
-      serialize_ref(value, name, seen) = ! value                        ? '' + value :
-                                         value.constructor === $.syntax ? seen[value.id()] || (seen[value.id()] = name) -re- serialize_syntax(value) :
-                                                                          raise [new Error('syntax ref value is not serializable: #{value}')],
-
-    Variable table generation.
-    Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
-
-      single_variable(name, value)      = closure_variable_template.replace({_var: name, _value: value}),
-      names_and_values_for(environment) = environment /keys *[single_variable(x, environment[x])] -seq,
-
-      tree_variables(tree)              = vars -se- tree.reach(given.n in vars.push(single_variable(n.data, serialize_ref(n.value, n.data, seen))) -when [n && n.binds_a_value])
-                                               -where [vars = [], seen = {}],
-
-      variables_for(tree, environment)  = where [all_variables = names_and_values_for(environment).concat(tree_variables(tree))]
-                                                [all_variables.length ? new $.syntax(';', all_variables) : closure_null_template],
-
-    Closure state generation.
-    This is where it all comes together. Given an original function, we construct a replacement function that has been marked by caterwaul as being precompiled.
-
-      precompiled_closure(tree, environment)  = closure_template.replace({_vars: variables_for(tree, environment), _value: tree}),
-      precompiled_function(tree, environment) = signal_already_compiled(precompiled_closure(tree, environment)),
-
-  Substitution.
-  Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
-  precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
-
-    substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when [ref && ref.compiled] -where [ref = references[match._gensym.data]],
-
-    perform_substitution(references, tree)    = $.macroexpand(tree, $.replacer([trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern], substitute_precompiled(references))),
-
-    Gensym removal.
-    After we're done compiling we should nuke all of the gensyms we introduced to mark the functions. The remove_gensyms() function does this.
-
-      reconstruct_original(references, match)      = where [new_match = {_body: remove_gensyms(references, match._body), _args: match._args}]
-                                                           [match._args ? nontrivial_function_pattern.replace(new_match) : trivial_function_pattern.replace(new_match)],
-
-      remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when [ref && ref.tree] -where [ref = references[match._gensym.data]],
-
-      remove_gensyms(references, tree)             = $.macroexpand(tree, $.replacer([trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
-                                                                                    remove_referenced_gensyms(references))),
-
-  Tracing.
-  This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
-  builds references for us.
-
-    annotated_caterwaul(caterwaul, references) = caterwaul.clone() -se [it.compile = wrapped_compile(it.compile, references)],
-    trace_execution(caterwaul, f)              = {references: references, annotated: annotated}
-                                                 -se- caterwaul.compile(annotated, {caterwaul: annotated_caterwaul(caterwaul, references)}, {gensym_renaming: false})()
-                                                 -where [references = {}, annotated = annotate_functions_in($.parse(f), references)]]})(caterwaul);
-
 __
 meta::sdoc('js::extensions/std', <<'__');
 Caterwaul standard library | Spencer Tipping
@@ -4032,7 +3802,7 @@ build a function that runs backwards through the array, taking the last entry.
   $.alternatives = syntax_manipulator(function (alternative) {throw new Error('must use replacer functions with caterwaul.alternatives()')});
 
   $.reexpander   = function (expander) {var e = $.expander(expander);
-                                        return function (match) {var r = e.call(this, match); this.constructor === Function || console.log(this); return r && this(r)}};
+                                        return function (match) {var r = e.call(this, match); return r && this(r)}};
 
   var composer = function (expander_base_case) {
     return function (pattern, expander) {var new_pattern = $.pattern(pattern), new_expander = expander_base_case(expander);
@@ -4567,26 +4337,6 @@ caterwaul.words(caterwaul.js())(function ($) {
                   -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
                           binary(op)(match)  = new $.syntax('#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}')]]})(caterwaul);
 
-__
-meta::sdoc('js::precompile', <<'__');
-Offline precompilation.
-Uses caterwaul's precompile() method.
-
-var code = require('fs').readFileSync(process.argv[2], 'utf8');
-require('fs').writeFileSync(process.argv[2].replace(/\.js$/, '.pre.js'),
-                            caterwaul.precompile('function () {' + code + '}').toString().replace(/^[\s\n]*function\s*\([^)]*\)[\s\n]*\{((?:.|\n)*)\}[\s\n]*$/, '$1'), 'utf8');
-__
-meta::sdoc('js::tools/precompile', <<'__');
-Caterwaul precompiler | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Usage: node precompile.js file.js
-This will produce a precompiled file called 'file.pre.js'.
-
-- include pp::js::caterwaul
-- include pp::js::extensions/std
-- include pp::js::extensions/dev
-- include pp::js::precompile
 __
 meta::sdoc('js::web/code-snippets', <<'__');
 Code snippet initialization.

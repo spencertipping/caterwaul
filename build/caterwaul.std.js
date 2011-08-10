@@ -30,7 +30,7 @@
   $.alternatives = syntax_manipulator(function (alternative) {throw new Error('must use replacer functions with caterwaul.alternatives()')});
 
   $.reexpander   = function (expander) {var e = $.expander(expander);
-                                        return function (match) {var r = e.call(this, match); this.constructor === Function || console.log(this); return r && this(r)}};
+                                        return function (match) {var r = e.call(this, match); return r && this(r)}};
 
   var composer = function (expander_base_case) {
     return function (pattern, expander) {var new_pattern = $.pattern(pattern), new_expander = expander_base_case(expander);
