@@ -1329,10 +1329,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     seq in [1, 2, 3] *f
 //     seq in [-1, 0, 1] %f
 
-//   You can use this to make method calls, which will remain bound to the original object even though the object expression is evaluated only once:
+//   You can use this to make method calls, which will remain bound to the original object:
 
 //   | xs *foo.bar -seq            (equivalent to  xs *[foo.bar(x)] -seq)
-//     xs *(bar + bif).baz -seq    (equivalent to  xs *[temp.baz(x)] -seq -where [temp = bar + bif])
+//     xs *(bar + bif).baz -seq    (equivalent to  xs *[(bar + bif).baz(x)] -seq)
 
 //   The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
 //   context, since it is unclear what the intent would be.
@@ -1368,32 +1368,44 @@ caterwaul.words(caterwaul.js())(function ($) {
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(anon(p), e.constructor === Function ? given.match in e.call(this, match) : anon(e)),
 
-         operator_macros = [rule('S[_x]', '_x'),
-                            rule('S[_x, _y]', 'S[_x], S[_y]'),                     operator('', '|', exists),
-                            rule('S[(_x)]', '(S[_x])'),
+         operator_macros = [rule('S[_x]', '_x'),         rule('S[_x[_y]]', 'S[_x][S[_y]]'),
+                            rule('S[(_x)]', '(S[_x])'),  rule('S[_x, _y]', 'S[_x], S[_y]'),
 
-                            operator('', '*', map,    each,       flatmap),        binary_operator('+', concat),
-                            operator('', '%', filter, filter_not, map_filter),     binary_operator('-', cross),
-                            operator('', '/', foldl,  foldr,      unfold),         binary_operator('^', zip),
+                            operator('',  '|', {normal: exists}),
 
-                            operator('k', '*', kmap,    keach),                    operator('v', '*', vmap,    veach),
-                            operator('k', '%', kfilter, kfilter_not, kmap_filter), operator('v', '%', vfilter, vfilter_not, vmap_filter)]
+                            operator('',  '*', {normal:  map,     bang:  each,        tbang: flatmap}),      binary_operator('+', concat),  binary_operator('^', zip),
+                            operator('',  '%', {normal:  filter,  bang:  filter_not,  tbang: map_filter}),   binary_operator('-', cross),
+                            operator('',  '/', {normal:  foldl,   bang:  foldr,       tbang: unfold,
+                                                inormal: ifoldl,  ibang: ifoldr}),
 
-                    -where [operator(prefix, op, normal, bang, tbang) = [] -se- it.push(trule(op, 'S[_xs #{p}*[_f]]',   normal), trule(op, 'S[_xs #{p}*_var[_f]]',   normal))
-                                                                           -se- it.push(trule(op, 'S[_xs #{p}*![_f]]',  bang),   trule(op, 'S[_xs #{p}*!_var[_f]]',  bang))   /when.bang
-                                                                           -se- it.push(trule(op, 'S[_xs #{p}*~![_f]]', tbang),  trule(op, 'S[_xs #{p}*~!_var[_f]]', tbang))  /when.tbang
-                                                                           -re- it.concat(context_conversions(p, op))
+                            operator('k', '*', {normal:  kmap,    bang:  keach}),                            operator('v', '*', {normal: vmap,    bang: veach}),
+                            operator('k', '%', {normal:  kfilter, bang:  kfilter_not, tbang: kmap_filter}),  operator('v', '%', {normal: vfilter, bang: vfilter_not, tbang: vmap_filter})]
 
-                                                                        -where [p = prefix && '%#{prefix}'],
+                    -where [operator(prefix, op, forms) = []
+                              -se- it.push(trule(op, 'S[_xs #{p}*_f]',   'S[_xs #{p}*[_f(x)]]'))   /when [forms.normal || forms.inormal]
+                              -se- it.push(trule(op, 'S[_xs #{p}*!_f]',  'S[_xs #{p}*![_f(x)]]'))  /when [forms.bang   || forms.ibang]
+                              -se- it.push(trule(op, 'S[_xs #{p}*~!_f]', 'S[_xs #{p}*~![_f(x)]]')) /when [forms.tbang  || forms.itbang]
 
-                            binary_operator(op, f)                    = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})]]
+                              -se- it.push(trule(op, 'S[_xs #{p}*[_f]]',          forms.normal),   trule(op, 'S[_xs #{p}*_var[_f]]',          forms.normal))  /when [forms.normal]
+                              -se- it.push(trule(op, 'S[_xs #{p}*![_f]]',         forms.bang),     trule(op, 'S[_xs #{p}*!_var[_f]]',         forms.bang))    /when [forms.bang]
+                              -se- it.push(trule(op, 'S[_xs #{p}*~![_f]]',        forms.tbang),    trule(op, 'S[_xs #{p}*~!_var[_f]]',        forms.tbang))   /when [forms.tbang]
+
+                              -se- it.push(trule(op, 'S[_xs #{p}*[_init][_f]]',   forms.inormal),  trule(op, 'S[_xs #{p}*_var[_init][_f]]',   forms.inormal)) /when [forms.inormal]
+                              -se- it.push(trule(op, 'S[_xs #{p}*![_init][_f]]',  forms.ibang),    trule(op, 'S[_xs #{p}*!_var[_init][_f]]',  forms.ibang))   /when [forms.ibang]
+                              -se- it.push(trule(op, 'S[_xs #{p}*~![_init][_f]]', forms.itbang),   trule(op, 'S[_xs #{p}*~!_var[_init][_f]]', forms.itbang))  /when [forms.itbang]
+
+                              -re- it.concat(context_conversions(p, op))
+
+                              -where [p = prefix && '%#{prefix}'],
+
+                            binary_operator(op, f)     = rule(t('S[_xs + _ys]'), f) -where [t(pattern) = anon(pattern).replace({'+': op})]]
 
                     -where [template(op, p)            = anon(p).replace({'*': op}),
                             trule(op, p, e)            = rule(template(op, p), e.constructor === Function ? e : template(op, e)),
 
-                            context_conversions(p, op) = [trule(op, 'S[_xs #{p}*~[_f]]',   'S[_xs #{p}*[S[_f]]]'),   trule(op, 'S[_xs #{p}*~_var[_f]]',   'S[_xs #{p}*_var[S[_f]]]'),
-                                                          trule(op, 'S[_xs #{p}*!~[_f]]',  'S[_xs #{p}*![S[_f]]]'),  trule(op, 'S[_xs #{p}*!~_var[_f]]',  'S[_xs #{p}*!_var[S[_f]]]'),
-                                                          trule(op, 'S[_xs #{p}*~!~[_f]]', 'S[_xs #{p}*~![S[_f]]]'), trule(op, 'S[_xs #{p}*~!~_var[_f]]', 'S[_xs #{p}*~!_var[S[_f]]]')],
+                            context_conversions(p, op) = [trule(op, 'S[_xs #{p}*~_body]',   'S[_xs #{p}*S[_body]]'),
+                                                          trule(op, 'S[_xs #{p}*!~_body]',  'S[_xs #{p}*!S[_body]]'),
+                                                          trule(op, 'S[_xs #{p}*~!~_body]', 'S[_xs #{p}*~!S[_body]]')],
 
                             loop_anon                  = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
                             loop_form(x)               = loop_anon(scoped(anon(x))),
@@ -1411,9 +1423,12 @@ caterwaul.words(caterwaul.js())(function ($) {
                             filter_not  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                           return ys'),
                             map_filter  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys'),
 
-                            foldl       = op_form('for (var _x = xs[0], _xi = 1, _xl = xs.length, _x0;            _xi < _xl; ++_xi) _x0 = xs[_xi], _x = (_f);                     return _x'),
-                            foldr       = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xl], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
+                            foldl       = op_form('for (var _x0 = xs[0], _xi = 1, _xl = xs.length, _x;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
+                            foldr       = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xi], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
                             unfold      = op_form('for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys'),
+
+                            ifoldl      = op_form('for (var _x0 = (_init), _xi = 0, _xl = xs.length, _x;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                         return _x0'),
+                            ifoldr      = op_form('for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init), _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                         return _x0'),
 
                             exists      = op_form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (y = (_f)) return y} return false'),
 
