@@ -1359,13 +1359,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 caterwaul.words(caterwaul.js())(function ($) {
   $.seq(caterwaul_function) = caterwaul_function -se-
-                              it.modifiers.push(given.match in this(seq_expand(anon_pattern.replace({_x: match._expression}))) -when [match._modifier.data === 'seq'])
+                              it.modifiers.push(given.match in seq_expand(anon_pattern.replace({_x: match._expression})) -when [match._modifier.data === 'seq'])
 
                               -where [anon_pattern = anon('S[_x]'),
-                                      seq_expand   = $.expander(operator_macros.concat(word_macros))],
+                                      seq_expand   = $.reexpander(operator_macros.concat(word_macros))],
 
   where [anon            = $.anonymizer('S'),
-         rule(p, e)      = $.replacer(anon(p), e.constructor === Function ? given.match in this(e.call(this, match)) : anon(e)),
+         rule(p, e)      = $.rereplacer(anon(p), e.constructor === Function ? given.match in this(e.call(this, match)) : anon(e)),
 
          operator_macros = [rule('S[_x]', '_x'),
                             rule('S[_x, _y]', 'S[_x], S[_y]'),                     operator('', '|', exists),
@@ -1672,7 +1672,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 
     substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when[ref && ref.compiled] -where[ref = references[match._gensym.data]],
 
-    perform_substitution(references, tree)    = $.macroexpand(tree, $.replacer(trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern, substitute_precompiled(references))),
+    perform_substitution(references, tree)    = $.macroexpand(tree, $.replacer([trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern], substitute_precompiled(references))),
 
 //     Gensym removal.
 //     After we're done compiling we should nuke all of the gensyms we introduced to mark the functions. The remove_gensyms() function does this.
@@ -1682,7 +1682,8 @@ caterwaul.words(caterwaul.js())(function ($) {
 
       remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when[ref && ref.tree] -where[ref = references[match._gensym.data]],
 
-      remove_gensyms(references, tree)             = $.macroexpand(tree, $.replacer(trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern, remove_referenced_gensyms(references))),
+      remove_gensyms(references, tree)             = $.macroexpand(tree, $.replacer([trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
+                                                                                    remove_referenced_gensyms(references))),
 
 //   Tracing.
 //   This is where we build the references hash. To do this, we first annotate the functions, build a traced caterwaul, and then run the function that we want to precompile. The traced caterwaul
