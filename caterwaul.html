@@ -4472,27 +4472,31 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
 
 (function ($) {
-  $.word_macros = function (language) {
-    return [
+  $.word_macros = function (caterwaul_function) {
+    var filtered_expander = function (word, expander) {return function (match) {return match._modifier === word && expander.call(this, match)}};
 
-Quotation.
-qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant that
-macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro reuse.
+    var modifier               = function (word, expander) {caterwaul_function.modifiers              .push(filtered_expander(word, expander))};
+    var parameterized_modifier = function (word, expander) {caterwaul_function.parameterized_modifiers.push(filtered_expander(word, expander))};
 
-  language.modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')}),
-  language.modifier('qse', function (match) {return new $.ref(this.expand(match._expression), 'qse')}),
+  Quotation.
+  qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant
+  that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
+  reuse.
 
-Macroexpansion control.
-Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
+    modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')});
+    modifier('qse', function (match) {return new $.ref(this.expand(match._expression), 'qse')});
 
-  language.modifier('reexpand', function (match) {return this.expand(this.expand(match._expression))}),
-  language.modifier('noexpand', function (match) {return match._expression}),
+  Macroexpansion control.
+  Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
 
-Error handling.
-Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
+    modifier('reexpand', function (match) {return this.expand(this.expand(match._expression))});
+    modifier('noexpand', function (match) {return match._expression});
 
-  language.modifier('raise', '(function () {throw _expression}).call(this)'),
-  language.parameterized_modifier('rescue', '(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+  Error handling.
+  Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
+
+    modifier              ('raise',  '(function () {throw _expression}).call(this)');
+    parameterized_modifier('rescue', '(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)');
 
 Scoping and referencing.
 These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
@@ -4504,8 +4508,8 @@ These all impact scope or references somehow -- in other words, they create vari
   | var f = x + 1 |given[x];
     var f = x + 1 |given.x;
 
-    language.parameterized_modifier('given',  '(function (_parameters) {return _expression})'),
-    language.parameterized_modifier('bgiven', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
+    parameterized_modifier('given',  '(function (_parameters) {return _expression})');
+    parameterized_modifier('bgiven', '(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))');
 
   Nullary function words.
   These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
@@ -4522,18 +4526,18 @@ These all impact scope or references somehow -- in other words, they create vari
     g()         -> 13
     g()         -> 13
 
-    language.modifier('delay', '(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'),
-    language.modifier('lazy',  '(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'),
+    modifier('delay', '(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))');
+    modifier('lazy',  '(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))');
 
   Side-effecting.
-  The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /effect[] adverb, also written as /se[].
-  Older versions of caterwaul bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
+  The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /se[] adverb. Older versions of caterwaul
+  bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
 
-  | hash(k, v) = {} /effect[it[k] = v];
-    compose(f, g)(x) = g(x) -then- f(it);
+  | hash(k, v) = {} /se[it[k] = v];
+    compose(f, g)(x) = g(x) -re- f(it);
 
-    language.parameterized_modifier('effect', 'se',              '(function (it) {return (_parameters), it}).call(this, (_expression))'),
-    language.parameterized_modifier('then',   're', 'returning', '(function (it) {return (_parameters)}).call(this, (_expression))'),
+    parameterized_modifier('se', '(function (it) {return (_parameters), it}).call(this, (_expression))');
+    parameterized_modifier('re', '(function (it) {return (_parameters)}).call(this, (_expression))');
 
   Scoping.
   You can create local variables by using the where[] and bind[] adverbs. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -4542,23 +4546,21 @@ These all impact scope or references somehow -- in other words, they create vari
     alert(x), where[x = 10]
     bind[f(x) = x + 1] in alert(f(10))
 
-    language.parameterized_modifier('where', 'bind', '(function () {var _parameters; return (_expression)}).call(this)'),
+    parameterized_modifier('where', '(function () {var _parameters; return (_expression)}).call(this)');
 
 Control flow modifiers.
 These impact how something gets evaluated.
 
   Conditionals.
   These impact whether an expression gets evaluated. x /when[y] evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
-  true. A final option 'otherwise' is like || but can have different precedence:
+  truthy.
 
   | x = x /otherwise.y + z;
 
-    language.parameterized_modifier('when',      '((_parameters) && (_expression))'),
-    language.parameterized_modifier('unless',    '(! (_parameters) && (_expression))'),
-    language.parameterized_modifier('otherwise', '((_expression) || (_parameters))'),
+    parameterized_modifier('when',   '((_parameters) && (_expression))');
+    parameterized_modifier('unless', '(! (_parameters) && (_expression))');
 
-    language.parameterized_modifier('when_defined',   '((_parameters) != null && (_expression))'),
-    language.parameterized_modifier('unless_defined', '((_parameters) == null && (_expression))')]}})(caterwaul);
+    return caterwaul_function}})(caterwaul);
 
 __
 meta::sdoc('js::extensions/ui', <<'__');

@@ -8,8 +8,8 @@ fi
 
 wget ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js -O jquery-1.6.2.js
 wget caterwauljs.org/build/caterwaul.js
-wget caterwauljs.org/build/extensions/std.pre.js -O caterwaul.std.js
-wget caterwauljs.org/build/extensions/ui.pre.js -O caterwaul.ui.js
+wget caterwauljs.org/build/caterwaul.std.pre.js -O caterwaul.std.pre.js
+wget caterwauljs.org/build/caterwaul.ui.pre.js -O caterwaul.ui.pre.js
 
 cat > style.css <<end
 body {font-family: sans-serif; font-size: 9pt}
@@ -21,8 +21,8 @@ cat > index.html <<end
   <head>
   <script src='jquery-1.6.2.js'></script>
   <script src='caterwaul.js'></script>
-  <script src='caterwaul.std.js'></script>
-  <script src='caterwaul.ui.js'></script>
+  <script src='caterwaul.std.pre.js'></script>
+  <script src='caterwaul.ui.pre.js'></script>
 
   <link rel='stylesheet' href='style.css' />
   </head>
