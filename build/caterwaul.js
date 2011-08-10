@@ -841,6 +841,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       for (var renamed = {}, i = 0, l = gensyms.length, g; i < l; ++i) renamed[g = gensyms[i]] || (names[renamed[g] = next_unseen(names[g])] = true);
       return renamed}})();
 
+// Precompilation support.
+// Caterwaul functions support precompilation; this means that they convert functions to and from gensyms to mark them as already having been transformed. This is important for a couple of
+// reasons, but primarily it saves time and increases reliability for potentially nonconformant platforms.
+
+  caterwaul_global.precompiled = {};
+  caterwaul_global.precompiled_internal = function (f) {var name = gensym(); this.precompiled[name] = f; return name};
+
 // Initialization method.
 // Caterwaul 1.1 is a huge deviation from before. Now you don't use the global caterwaul as a compiler, because it isn't one. Rather, it's a compiler-generator. You pass in arguments to construct
 // the new function. So, for example:
@@ -861,6 +868,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   caterwaul_global.init = function (macroexpander) {
     var result = function (f, environment, options) {
+      if (f.constructor === String && f.length < 100 && result.precompiled[f]) return result.precompiled[f];
       return f.constructor === Function || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
                                                       macroexpander ? f.rmap(function (node) {return macroexpander.call(result, node, environment, options)}) : f};
     result.global        = caterwaul_global;
