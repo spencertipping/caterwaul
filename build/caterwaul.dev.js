@@ -14,7 +14,7 @@
 // Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 // serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-caterwaul.words(caterwaul.js())(function ($) {
+caterwaul.seq(caterwaul.words(caterwaul.js()))(function ($) {
 
 //   Precompiled output format.
 //   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -76,8 +76,8 @@ caterwaul.words(caterwaul.js())(function ($) {
 //   As a result, individual Javascript files can be precompiled separately, loaded separately, and run in their original order to perform their original behavior (minus pathological caveats
 //   above).
 
-    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where[traced = trace_execution(this, f)]
-    -where[
+    $.precompile(f) = this.compile(remove_gensyms(traced.references, perform_substitution(traced.references, traced.annotated))) -where [traced = trace_execution(this, f)]
+    -where [
 
 //   Tracing function destinations.
 //   This is more subtle than you might think. We need to construct a custom traced caterwaul function to pass into the function being precompiled. This caterwaul function delegates
@@ -159,11 +159,11 @@ caterwaul.words(caterwaul.js())(function ($) {
 //     This is the trickiest part. We have to identify ref nodes whose values we're familiar with and pull them out into their own gensym variables. We then create an anonymous scope for them,
 //     along with the compiled function, to simulate the closure capture performed by the compile() function.
 
-      closure_template                     = $.parse('(function () {_vars; return (_value)}).call(this)'),
-      closure_variable_template            = $.parse('var _var = _value'),
-      closure_null_template                = $.parse('null'),
+      closure_template                  = $.parse('(function () {_vars; return (_value)}).call(this)'),
+      closure_variable_template         = $.parse('var _var = _value'),
+      closure_null_template             = $.parse('null'),
 
-      escape_string(s)                     = '\'' + s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\'',
+      escape_string(s)                  = '\'' + s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/'/g, '\\\'') + '\'',
 
 //     Detecting serializable values.
 //     Because it's so trivial to handle falsy things (they're all primitives), I've included that case here. Also, the pre-1.0 standard library apparently depends on it somehow.
@@ -175,7 +175,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 
       serialize_syntax(value)          = value.length === 0 ? qs[new caterwaul.syntax(_name)].replace({_name: escape_string(value.data)}) :
                                                               qs[new caterwaul.syntax(_name, _children)].replace({_name: escape_string(value.data), _children: children})
-                                                                -where [children = new $.syntax(',', serialize_syntax(it) -over.value).unflatten()],
+                                                                -where [children = new $.syntax(',', value *serialize_syntax -seq).unflatten()],
 
       serialize_ref(value, name, seen) = ! value                        ? '' + value :
                                          value.constructor === $.syntax ? seen[value.id()] || (seen[value.id()] = name) -re- serialize_syntax(value) :
@@ -185,7 +185,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 //     Now we just dive through the syntax tree, find everything that binds a value, and install a variable for it.
 
       single_variable(name, value)      = closure_variable_template.replace({_var: name, _value: value}),
-      names_and_values_for(environment) = single_variable(it, environment[it]) -over_keys.environment,
+      names_and_values_for(environment) = environment /keys *[single_variable(x, environment[x])] -seq,
 
       tree_variables(tree)              = vars -se- tree.reach(given.n in vars.push(single_variable(n.data, serialize_ref(n.value, n.data, seen))) -when [n && n.binds_a_value])
                                                -where [vars = [], seen = {}],
@@ -203,7 +203,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 //   Once the reference table is fully populated, we perform a final macroexpansion pass against the initial source tree. This time, rather than annotating functions, we replace them with their
 //   precompiled versions. The substitute_precompiled() function returns a closure that expects to be used as a macroexpander whose pattern is gensym_detection_pattern.
 
-    substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when[ref && ref.compiled] -where[ref = references[match._gensym.data]],
+    substitute_precompiled(references)(match) = precompiled_function(ref.compiled, ref.environment) -when [ref && ref.compiled] -where [ref = references[match._gensym.data]],
 
     perform_substitution(references, tree)    = $.macroexpand(tree, $.replacer([trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern], substitute_precompiled(references))),
 
@@ -213,7 +213,7 @@ caterwaul.words(caterwaul.js())(function ($) {
       reconstruct_original(references, match)      = where [new_match = {_body: remove_gensyms(references, match._body), _args: match._args}]
                                                            [match._args ? nontrivial_function_pattern.replace(new_match) : trivial_function_pattern.replace(new_match)],
 
-      remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when[ref && ref.tree] -where[ref = references[match._gensym.data]],
+      remove_referenced_gensyms(references)(match) = reconstruct_original(references, match) -when [ref && ref.tree] -where [ref = references[match._gensym.data]],
 
       remove_gensyms(references, tree)             = $.macroexpand(tree, $.replacer([trivial_gensym_detection_pattern, nontrivial_gensym_detection_pattern],
                                                                                     remove_referenced_gensyms(references))),
