@@ -3546,7 +3546,8 @@ This informs my_caterwaul and my_other_caterwaul that your intent is just to mac
   caterwaul_global.init = function (macroexpander) {
     var result = function (f, environment, options) {
       return f.constructor === Function || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
-                                                                      f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
+                                                      macroexpander ? f.rmap(function (node) {return macroexpander.call(result, node, environment, options)}) :
+                                                                      f};
     result.global        = caterwaul_global;
     result.macroexpander = macroexpander;
     return result};
@@ -3591,7 +3592,7 @@ Precompilation logic.
 Even though Caterwaul operates as a runtime library, most of the time it will be used in a fairly static context. Precompilation can be done to bypass parsing, macroexpansion, and
 serialization of certain functions, significantly accelerating Caterwaul's loading speed.
 
-caterwaul.js_base()(function ($) {
+caterwaul.words(caterwaul.js())(function ($) {
 
   Precompiled output format.
   The goal of precompilation is to produce code whose behavior is identical to the original. Caterwaul can do this by taking a function whose behavior we want to emulate. It then executes the
@@ -3821,17 +3822,15 @@ caterwaul should be able to adapt to the syntactic limitations of generated code
 Also included is a standard set of words that can be combined with the Javascript forms to produce useful macros. Together these form a base language that is used by other parts of the
 standard library.
 
-- pinclude pp::js::extensions/std/words
 - pinclude pp::js::extensions/std/js
-
-  caterwaul.js_base = function (macroexpander) {return this.words(this.js(macroexpander))};
+- pinclude pp::js::extensions/std/words
 
 Libraries.
 These apply more advanced syntactic transforms to the code and can depend on everything above.
 
 - pinclude pp::js::extensions/std/seq
 
-  caterwaul.js_all = function (macroexpander) {return this.seq(this.js_base(macroexpander))};
+  caterwaul.js_all = function () {return this.seq(this.words(this.js()))};
 
 __
 meta::sdoc('js::extensions/std/anonymize', <<'__');
@@ -3984,6 +3983,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
                                  $(function (node) {return string_interpolator.call(this, node) || node.length && (modifier            .call(this, node) ||
                                                                                                                    function_destructure.call(this, node))});
+
     result.modifiers               = [];
     result.parameterized_modifiers = [];
 
@@ -4153,12 +4153,12 @@ Portability.
 The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
 such (from a design perspective).
 
-caterwaul.js_base()(function ($) {
+caterwaul.words(caterwaul.js())(function ($) {
   $.seq(caterwaul_function) = caterwaul_function -se-
-                              it.modifiers.push(given.match in this.macroexpand(seq_expand(anon_pattern.replace({_x: match._expression}))) -when [match._modifier.data === 'seq'])
+                              it.modifiers.push(given.match in this(seq_expand(anon_pattern.replace({_x: match._expression}))) -when [match._modifier.data === 'seq'])
 
-                             -where [anon_pattern = anon('S[_x]'),
-                                     seq_expand   = $.expander(operator_macros.concat(word_macros))],
+                              -where [anon_pattern = anon('S[_x]'),
+                                      seq_expand   = $.expander(operator_macros.concat(word_macros))],
 
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.replacer(anon(p), e.constructor === Function ? given.match in this.expand(e.call(this, match)) : anon(e)),
@@ -4174,10 +4174,10 @@ caterwaul.js_base()(function ($) {
                             operator('k', '*', kmap,    keach),                    operator('v', '*', vmap,    veach),
                             operator('k', '%', kfilter, kfilter_not, kmap_filter), operator('v', '%', vfilter, vfilter_not, vmap_filter)]
 
-                    -where [operator(prefix, op, normal, bang, tbang) = [] -effect- it.push(trule(op, 'S[_xs #{p}*[_f]]',   normal), trule(op, 'S[_xs #{p}*_var[_f]]',   normal))
-                                                                           -effect- it.push(trule(op, 'S[_xs #{p}*![_f]]',  bang),   trule(op, 'S[_xs #{p}*!_var[_f]]',  bang))   /when.bang
-                                                                           -effect- it.push(trule(op, 'S[_xs #{p}*~![_f]]', tbang),  trule(op, 'S[_xs #{p}*~!_var[_f]]', tbang))  /when.tbang
-                                                                        -returning- it.concat(context_conversions(p, op))
+                    -where [operator(prefix, op, normal, bang, tbang) = [] -se- it.push(trule(op, 'S[_xs #{p}*[_f]]',   normal), trule(op, 'S[_xs #{p}*_var[_f]]',   normal))
+                                                                           -se- it.push(trule(op, 'S[_xs #{p}*![_f]]',  bang),   trule(op, 'S[_xs #{p}*!_var[_f]]',  bang))   /when.bang
+                                                                           -se- it.push(trule(op, 'S[_xs #{p}*~![_f]]', tbang),  trule(op, 'S[_xs #{p}*~!_var[_f]]', tbang))  /when.tbang
+                                                                           -re- it.concat(context_conversions(p, op))
 
                                                                         -where [p = prefix && '%#{prefix}'],
 
@@ -4196,7 +4196,7 @@ caterwaul.js_base()(function ($) {
                             scope                      = anon('(function (xs) {_body}).call(this, S[_xs])'),
                             scoped(tree)               = scope.replace({_body: tree}),
 
-                            op_form(pattern)           = bind [form = loop_form(pattern)] in form.replace(variables_for(match)) -given.match,
+                            op_form(pattern)           = where [form = loop_form(pattern)] in form.replace(variables_for(match)) -given.match,
 
                             map         = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                                 return ys'),
                             each        = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                          return xs'),
@@ -4268,7 +4268,7 @@ In this case, given[] is registered as a postfix binary adverb. Any postfix bina
 (function ($) {
   $.words = function (caterwaul_function) {
     var filtered_expander = function (word, expander) {expander = $.expander(expander);
-                                                       return function (match) {return match._modifier.data === word && expander.call(this, match)}};
+                                                       return function (match) {return match._modifier.data === word && this(expander.call(this, match))}};
 
     var modifier               = function (word, expander) {caterwaul_function.modifiers              .push(filtered_expander(word, expander))};
     var parameterized_modifier = function (word, expander) {caterwaul_function.parameterized_modifiers.push(filtered_expander(word, expander))};
@@ -4279,12 +4279,12 @@ In this case, given[] is registered as a postfix binary adverb. Any postfix bina
   reuse.
 
     modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')});
-    modifier('qse', function (match) {return new $.ref(this.expand(match._expression), 'qse')});
+    modifier('qse', function (match) {return new $.ref(this(match._expression), 'qse')});
 
   Macroexpansion control.
   Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
 
-    modifier('reexpand', function (match) {return this.expand(this.expand(match._expression))});
+    modifier('reexpand', function (match) {return this.expand(this(match._expression))});
     modifier('noexpand', function (match) {return match._expression});
 
   Error handling.
@@ -4443,11 +4443,12 @@ Unlike the montenegro html[] macro, this one doesn't do any autodetection. The g
 
 | my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
 
-caterwaul.js_base()(function ($) {
-  $.jquery_macro(language, options) = language.modifier('jquery', this.expand(jquery_expand(match._expression)) -given.match -where [jquery_expand = $.jquery(options)]);
+caterwaul.words(caterwaul.js())(function ($) {
+  $.jquery(caterwaul_function) = caterwaul_function -se-
+                                 it.modifiers.push(given.match in this(jquery_expand(anon_pattern.replace({_x: match._expression}))) -when [match._modifier.data === 'jquery'])
 
-  $.jquery(options) = $.clone().macros(jquery_macros, string_macros, search_macros)
-                      -effect [it.init_function(tree) = this.macroexpand(anon('J[_x]').replace({_x: tree}))]
+                                 -where [anon_pattern  = anon('J[_x]'),
+                                         jquery_expand = $.expander(jquery_macros.concat(string_macros).concat(search_macros))],
 
   Transforms.
   There are a lot of stages here, but most of them are fairly trivial. The first, J[], is used to indicate that something needs to be expanded under the jquery grammar. This is responsible for
@@ -4457,76 +4458,76 @@ caterwaul.js_base()(function ($) {
   The small stages are S[], which just turns something into a string with underscore-to-dash conversion; TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>"); and PS[], which
   quotes a compiled pattern.
 
-             -where [jq            = options && options.jquery_name || 'jQuery',
-                     anon          = $.anonymizer('J', 'TS', 'S', 'P', 'PS'),
+  where [jq            = 'jQuery',
+         anon          = $.anonymizer('J', 'TS', 'S', 'P', 'PS'),
 
-                     rule(p, e)    = $.macro(anon(p), e.constructor === Function ? this.expand(e.call(this, match)) -given.match : anon(e)),
+         rule(p, e)    = $.replacer(anon(p), e.constructor === Function ? this(e.call(this, match)) -given.match : anon(e)),
 
-                     hyphenate(s)  = s.replace(/_/g, '-'),
+         hyphenate(s)  = s.replace(/_/g, '-'),
 
-                     p             = bind [p_pattern = anon('P[_thing]')] in p_pattern.replace({_thing: node}) -given.node,
+         p             = where [p_pattern = anon('P[_thing]')] in p_pattern.replace({_thing: node}) -given.node,
 
-                     jquery_macros = [rule('J[_element]',                 given.match [match._element.is_constant() || match._element.length ?
-                                                                                         wrap_in_jquery(match) :
-                                                                                         become_dom_node(match)]
+         jquery_macros = [rule('J[_element]',                 given.match [match._element.is_constant() || match._element.length ? wrap_in_jquery(match) :
+                                                                                                                                   become_dom_node(match)]
 
-                                                                          -where [dom_node_template      = anon('#{jq}(TS[_element])'),
-                                                                                  jquery_template        = anon('#{jq}("<span>" + (_element) + "</span>")'),
-                                                                                  become_dom_node(match) = dom_node_template.replace(match),
-                                                                                  wrap_in_jquery(match)  = jquery_template.replace(match)]),
+                                                              -where [dom_node_template      = anon('#{jq}(TS[_element])'),
+                                                                      jquery_template        = anon('#{jq}("<span>" + (_element) + "</span>")'),
+                                                                      become_dom_node(match) = dom_node_template.replace(match),
+                                                                      wrap_in_jquery(match)  = jquery_template.replace(match)]),
 
-                                      rule('J[_element._class]',          'J[_element].addClass(S[_class])'),
+                          rule('J[_element._class]',          'J[_element].addClass(S[_class])'),
 
-                                      rule('J[_element *_attr(_val)]',    'J[_element].attr(S[_attr], _val)'),
-                                      rule('J[_element *!_name(_val)]',   'J[_element].data(S[_name], _val)'),
-                                      rule('J[_element /_method(_args)]', 'J[_element]._method(_args)'),
-                                      rule('J[_element /!_event(_args)]', 'J[_element].bind(S[_event], _args)'),
-                                      rule('J[_element %_function]',      '_function(J[_element])'),
+                          rule('J[_element *_attr(_val)]',    'J[_element].attr(S[_attr], _val)'),
+                          rule('J[_element *!_name(_val)]',   'J[_element].data(S[_name], _val)'),
+                          rule('J[_element /_method(_args)]', 'J[_element]._method(_args)'),
+                          rule('J[_element /!_event(_args)]', 'J[_element].bind(S[_event], _args)'),
+                          rule('J[_element %_function]',      '_function(J[_element])'),
 
-                                      rule('J[_element(_children)]',      'J[_element].append(J[_children])'),
-                                      rule('J[_element[_children]]',      'J[_element].append(_children)'),
-                                      rule('J[_element > _child]',        'J[_element].append(J[_child])'),
-                                      rule('J[_element >= _child]',       'J[_element].append(_child)'),
+                          rule('J[_element(_children)]',      'J[_element].append(J[_children])'),
+                          rule('J[_element[_children]]',      'J[_element].append(_children)'),
+                          rule('J[_element > _child]',        'J[_element].append(J[_child])'),
+                          rule('J[_element >= _child]',       'J[_element].append(_child)'),
 
-                                      rule('J[_element1, _element2]',     'J[_element1].add(J[_element2])'),
-                                      rule('J[_element1 + _element2]',    'J[_element1].add(J[_element2])'),
+                          rule('J[_element1, _element2]',     'J[_element1].add(J[_element2])'),
+                          rule('J[_element1 + _element2]',    'J[_element1].add(J[_element2])'),
 
-                                      rule('J[_element >> _pattern]',     'J[_element].filter(PS[_pattern])'),
-                                      rule('J[_element >>> _pattern]',    'J[_element].find(PS[_pattern])'),
-                                      rule('J[_element << _pattern]',     'J[_element].parents(PS[_pattern])'),
+                          rule('J[_element >> _pattern]',     'J[_element].filter(PS[_pattern])'),
+                          rule('J[_element >>> _pattern]',    'J[_element].find(PS[_pattern])'),
+                          rule('J[_element << _pattern]',     'J[_element].parents(PS[_pattern])'),
 
-                                      rule('J[(_element)]',               '(J[_element])'),
-                                      rule('J[[_element]]',               '[J[_element]]'),
+                          rule('J[(_element)]',               '(J[_element])'),
+                          rule('J[[_element]]',               '[J[_element]]'),
 
-                                      rule('J[+_expression]',             '_expression')],
+                          rule('J[+_expression]',             '_expression')],
 
-                     string_macros = [rule('TS[_identifier]', string('<#{hyphenate(match._identifier.data)}>') -given.match),
-                                      rule('S[_identifier]',  string(    hyphenate(match._identifier.data))    -given.match),
-                                      rule('PS[_identifier]', string(this.expand(p(match._identifier)).data)   -given.match)]
+         string_macros = [rule('TS[_identifier]', string('<#{hyphenate(match._identifier.data)}>') -given.match),
+                          rule('S[_identifier]',  string(    hyphenate(match._identifier.data))    -given.match),
+                          rule('PS[_identifier]', string(     expand(p(match._identifier)).data)   -given.match)]
 
-                              -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
+                  -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
 
-                     search_macros = [rule('P[_element]',                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                              -given.match),
-                                      rule('P[_element._class]',             new $.syntax('#{this.expand(p(match._element)).data}.#{hyphenate(match._class.data)}')                -given.match),
+         search_macros = [rule('P[_element]',                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                       -given.match),
+                          rule('P[_element._class]',             new $.syntax('#{this(p(match._element)).data}.#{hyphenate(match._class.data)}')                -given.match),
 
-                                      rule('P[_element[_attributes]]',       new $.syntax('#{this.expand(p(match._element)).data}[#{this.expand(p(match._attributes))}]')          -given.match),
-                                      rule('P[_attribute = _value]',         new $.syntax('#{this.expand(p(match._attribute)).data}="#' + '{' + interpolated(match._value) + '}"') -given.match),
+                          rule('P[_element[_attributes]]',       new $.syntax('#{this(p(match._element)).data}[#{this.expand(p(match._attributes))}]')          -given.match),
+                          rule('P[_attribute = _value]',         new $.syntax('#{this(p(match._attribute)).data}="#' + '{' + interpolated(match._value) + '}"') -given.match),
 
-                                      rule('P[(_element)]',                 'P[_element]'),        // No paren support
+                          rule('P[(_element)]',                 'P[_element]'),        // No paren support
 
-                                      rule('P[_element1 +   _element2]',     binary(', ')),
-                                      rule('P[_element1,    _element2]',     binary(', ')),
-                                      rule('P[_element1 >>  _element2]',     binary(' ')),
-                                      rule('P[_element1 >>> _element2]',     binary(' ')),
-                                      rule('P[_element1 >   _element2]',     binary(' > ')),
-                                      rule('P[_element1(_element2)]',        binary(' > ')),
+                          rule('P[_element1 +   _element2]',     binary(', ')),
+                          rule('P[_element1,    _element2]',     binary(', ')),
+                          rule('P[_element1 >>  _element2]',     binary(' ')),
+                          rule('P[_element1 >>> _element2]',     binary(' ')),
+                          rule('P[_element1 >   _element2]',     binary(' > ')),
+                          rule('P[_element1(_element2)]',        binary(' > ')),
 
-                                      rule('P[_element /_selector]',         new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')             -given.match),
-                                      rule('P[_element /_selector(_value)]', new $.syntax('#{this.expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
-                                                                                          '{' + interpolated(match._value) + '}")')                                                -given.match)]
+                          rule('P[_element /_selector]',         new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')     -given.match),
+                          rule('P[_element /_selector(_value)]', new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
+                                                                              '{' + interpolated(match._value) + '}")')                                   -given.match)]
 
-                              -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
-                                      binary(op)(match)  = new $.syntax('#{this.expand(p(match._element1)).data}#{op}#{this.expand(p(match._element2)).data}')]]})(caterwaul);
+                  -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
+                          binary(op)(match)  = new $.syntax('#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}')]]})(caterwaul);
+
 __
 meta::sdoc('js::precompile', <<'__');
 Offline precompilation.
