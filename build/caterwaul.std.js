@@ -30,7 +30,7 @@
   $.alternatives = syntax_manipulator(function (alternative) {throw new Error('must use replacer functions with caterwaul.alternatives()')});
 
   $.reexpander   = function (expander) {var e = $.expander(expander);
-                                        return function (match) {var r = e.call(this, match); return r && this(r)}};
+                                        return function (match) {var r = e.call(this, match); this.constructor === Function || console.log(this); return r && this(r)}};
 
   var composer = function (expander_base_case) {
     return function (pattern, expander) {var new_pattern = $.pattern(pattern), new_expander = expander_base_case(expander);
@@ -476,13 +476,14 @@
 
 caterwaul.words(caterwaul.js())(function ($) {
   $.seq(caterwaul_function) = caterwaul_function -se-
-                              it.modifiers.push(given.match in seq_expand(anon_pattern.replace({_x: match._expression})) -when [match._modifier.data === 'seq'])
+                              it.modifiers.push(given.match in seq_expand.call(seq_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it
+                                                               -when [match._modifier.data === 'seq'])
 
                               -where [anon_pattern = anon('S[_x]'),
-                                      seq_expand   = $.reexpander(operator_macros.concat(word_macros))],
+                                      seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
 
   where [anon            = $.anonymizer('S'),
-         rule(p, e)      = $.rereplacer(anon(p), e.constructor === Function ? given.match in this(e.call(this, match)) : anon(e)),
+         rule(p, e)      = $.rereplacer(anon(p), e.constructor === Function ? given.match in e.call(this, match) : anon(e)),
 
          operator_macros = [rule('S[_x]', '_x'),
                             rule('S[_x, _y]', 'S[_x], S[_y]'),                     operator('', '|', exists),
