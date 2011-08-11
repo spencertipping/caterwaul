@@ -559,12 +559,6 @@ var shell = given.nothing in
 
 </script>
 
-<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Neuton'>
-
-</link>
-<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Ubuntu'>
-
-</link>
 <link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'>
 
 </link>
@@ -573,20 +567,7 @@ var shell = given.nothing in
 /* Caterwaul JS page style | Spencer Tipping*/
 /* Licensed under the terms of the MIT source code license*/
 
-body {font-family: 'Neuton', 'Garamond', serif; background: #111; margin: 0}
-
-a       {color: #aaa; text-decoration: none}
-a:hover {color: #fa4}
-
-.header * {background: rgba(17, 17, 17, 0.5)}
-
-.header .title {font-size: 20pt; text-transform: uppercase}
-.header .title .caterwaul {color: #fff; border-right: solid 4px #444; padding: 120px 10px 0 50px; z-index: 10}
-.header .title .js        {color: #aaa; padding: 120px 0 0 10px; text-transform: lowercase; font-size: 16pt; z-index: 5}
-
-.header {padding-bottom: 40px; margin-top: 100px}
-
-.accent {color: #fa4; z-index: 20}
+body {font-family: sans-serif; background: white; margin: 0}
 
 .identify {background: #752 !important}
 
@@ -595,109 +576,6 @@ a:hover {color: #fa4}
 
 #tutorial-page pre {white-space: pre-wrap; word-wrap: break-word}
 
-/* SDoc page styling.*/
-/* This is optimized for long lines and lots of text.*/
-
-#sdoc-page {padding-bottom: 100px; color: white; position: absolute; display: none}
-
-#sdoc-page a.back {font-size: 16pt; color: #999; display: block; text-transform: lowercase; text-decoration: none}
-#sdoc-page a.back:before {content: '<< '; color: #444}
-
-#sdoc-page a.back:hover {color: #ccc}
-#sdoc-page a.back:hover:before {content: '<< '; color: #fa4}
-
-#sdoc-page .file > h1                  {color: #999; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
-#sdoc-page .file > h1 .path            {color: #444}
-#sdoc-page .file > h1 .extension       {display: none; color: #444}
-
-#sdoc-page .file > h1:hover .path      {color: #ccc}
-#sdoc-page .file > h1:hover .extension {display: none; color: #ccc}
-
-#sdoc-page .file > h1:hover            {color: #ccc}
-#sdoc-page .file > h1:after            {content: ' >>'; color: #444}
-#sdoc-page .file > h1:hover:after      {content: ' >>'; color: #fa4}
-
-#sdoc-page .section {margin-top: 50px}
-
-#sdoc-page .section h1:before, #sdoc-page .section h2:before, #sdoc-page .section h3:before {content: '< '; color: #fa4}
-#sdoc-page .section h1:after,  #sdoc-page .section h2:after,  #sdoc-page .section h3:after  {content: ' >'; color: #fa4}
-
-#sdoc-page .section h4:before {content: '> '; color: #fa4}
-
-#sdoc-page .section h1 {font-size: 16pt}
-#sdoc-page .section h2 {font-size: 13pt}
-#sdoc-page .section h3 {font-size: 11pt}
-#sdoc-page .section h4 {font-size: 10pt}
-
-#sdoc-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#sdoc-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#sdoc-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
-#sdoc-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
-
-#sdoc-page p {color: #eee; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
-
-#sdoc-page pre.code {border: solid 1px #333; color: white; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; padding: 4px; background: black; white-space: pre; word-wrap: none}
-#sdoc-page pre.code {line-height: 1.8em}
-
-/* Tutorial page styling.*/
-/* These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.*/
-
-#tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
-
-#tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
-{color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
-
-#tutorial-page .toc h1:hover,       #tutorial-page .toc h2:hover,       #tutorial-page .toc h3:hover,       #tutorial-page .toc h4:hover       {color: #ccc}
-#tutorial-page .toc h1:after,       #tutorial-page .toc h2:after,       #tutorial-page .toc h3:after,       #tutorial-page .toc h4:after       {content: ' >>'; color: #444}
-#tutorial-page .toc h1:hover:after, #tutorial-page .toc h2:hover:after, #tutorial-page .toc h3:hover:after, #tutorial-page .toc h4:hover:after {content: ' >>'; color: #fa4}
-
-#tutorial-page .toc h1 {font-size: 16pt}
-#tutorial-page .toc h2 {font-size: 13pt; padding-left: 20px}
-#tutorial-page .toc h3 {font-size: 11pt; padding-left: 40px}
-#tutorial-page .toc h4 {font-size: 10pt; padding-left: 60px}
-
-#tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '< '; color: #fa4}
-#tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ' >'; color: #fa4}
-
-#tutorial-page .shell {position: fixed; border-radius: 0px; right: 50px; top: 0; bottom: 0; left: 600px; border: solid 2px #222; border-width: 0 1px; overflow-y: auto; overflow-x: hidden}
-#tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
-
-#tutorial-page .shell .prompt > span {margin: 4px}
-
-#tutorial-page .shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
-#tutorial-page .shell .input {font-size: 10pt; background: transparent; color: white}
-
-#tutorial-page .shell .input:focus {border: none !important; outline: none !important}
-
-#tutorial-page .shell .history {position: relative}
-#tutorial-page .shell .history pre {font-family: 'Droid Sans Mono', monospace; font-size: 10pt}
-#tutorial-page .shell .history .entry, .shell .history .result, .shell .history .error, .shell .history .log {margin: 4px}
-#tutorial-page .shell .history .entry  {color: white}
-#tutorial-page .shell .history .entry .command {margin-left: 4px}
-#tutorial-page .shell .history .result {color: #7bf}
-#tutorial-page .shell .history .log    {color: #7fb}
-#tutorial-page .shell .history .error  {color: #f87}
-
-#tutorial-page .shell .sandbox {font-family: 'Neuton', 'Garamond', serif; background: #222; color: #eee; padding: 10px; margin-top: 4px}
-
-#tutorial-page .section {margin-top: 50px}
-
-#tutorial-page .section h1 {font-size: 16pt}
-#tutorial-page .section h2 {font-size: 13pt}
-#tutorial-page .section h3 {font-size: 11pt}
-
-#tutorial-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
-#tutorial-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
-
-#tutorial-page p {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
-#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-
-#tutorial-page pre.code {cursor: pointer; padding: 10px 4px}
-#tutorial-page pre.code:before {content: '> '; color: #fa4}
-#tutorial-page pre.code:hover {background: #222; color: #fa4}
 /* Generated by SDoc */
 
 </style>
@@ -801,8 +679,6 @@ meta::data('bootstrap.html.sdoc', <<'__');
     - script-include build/caterwaul.ui.min.js
     - script-include crunch::pp::js::web/main
 
-    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Neuton'
-    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Ubuntu'
     - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'
 
     - style-include pp::data::style.css
@@ -2563,20 +2439,7 @@ meta::sdoc('data::style.css', <<'__');
 Caterwaul JS page style | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-body {font-family: 'Neuton', 'Garamond', serif; background: #111; margin: 0}
-
-a       {color: #aaa; text-decoration: none}
-a:hover {color: #fa4}
-
-.header * {background: rgba(17, 17, 17, 0.5)}
-
-.header .title {font-size: 20pt; text-transform: uppercase}
-.header .title .caterwaul {color: #fff; border-right: solid 4px #444; padding: 120px 10px 0 50px; z-index: 10}
-.header .title .js        {color: #aaa; padding: 120px 0 0 10px; text-transform: lowercase; font-size: 16pt; z-index: 5}
-
-.header {padding-bottom: 40px; margin-top: 100px}
-
-.accent {color: #fa4; z-index: 20}
+body {font-family: sans-serif; background: white; margin: 0}
 
 .identify {background: #752 !important}
 
@@ -2585,109 +2448,6 @@ A great article about this (and its cross-browser ramifications) at http://www.l
 
 #tutorial-page pre {white-space: pre-wrap; word-wrap: break-word}
 
-SDoc page styling.
-This is optimized for long lines and lots of text.
-
-#sdoc-page {padding-bottom: 100px; color: white; position: absolute; display: none}
-
-#sdoc-page a.back {font-size: 16pt; color: #999; display: block; text-transform: lowercase; text-decoration: none}
-#sdoc-page a.back:before {content: '<< '; color: #444}
-
-#sdoc-page a.back:hover {color: #ccc}
-#sdoc-page a.back:hover:before {content: '<< '; color: #fa4}
-
-#sdoc-page .file > h1                  {color: #999; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
-#sdoc-page .file > h1 .path            {color: #444}
-#sdoc-page .file > h1 .extension       {display: none; color: #444}
-
-#sdoc-page .file > h1:hover .path      {color: #ccc}
-#sdoc-page .file > h1:hover .extension {display: none; color: #ccc}
-
-#sdoc-page .file > h1:hover            {color: #ccc}
-#sdoc-page .file > h1:after            {content: ' >>'; color: #444}
-#sdoc-page .file > h1:hover:after      {content: ' >>'; color: #fa4}
-
-#sdoc-page .section {margin-top: 50px}
-
-#sdoc-page .section h1:before, #sdoc-page .section h2:before, #sdoc-page .section h3:before {content: '< '; color: #fa4}
-#sdoc-page .section h1:after,  #sdoc-page .section h2:after,  #sdoc-page .section h3:after  {content: ' >'; color: #fa4}
-
-#sdoc-page .section h4:before {content: '> '; color: #fa4}
-
-#sdoc-page .section h1 {font-size: 16pt}
-#sdoc-page .section h2 {font-size: 13pt}
-#sdoc-page .section h3 {font-size: 11pt}
-#sdoc-page .section h4 {font-size: 10pt}
-
-#sdoc-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#sdoc-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#sdoc-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
-#sdoc-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
-
-#sdoc-page p {color: #eee; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
-
-#sdoc-page pre.code {border: solid 1px #333; color: white; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; padding: 4px; background: black; white-space: pre; word-wrap: none}
-#sdoc-page pre.code {line-height: 1.8em}
-
-Tutorial page styling.
-These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.
-
-#tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
-
-#tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
-{color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
-
-#tutorial-page .toc h1:hover,       #tutorial-page .toc h2:hover,       #tutorial-page .toc h3:hover,       #tutorial-page .toc h4:hover       {color: #ccc}
-#tutorial-page .toc h1:after,       #tutorial-page .toc h2:after,       #tutorial-page .toc h3:after,       #tutorial-page .toc h4:after       {content: ' >>'; color: #444}
-#tutorial-page .toc h1:hover:after, #tutorial-page .toc h2:hover:after, #tutorial-page .toc h3:hover:after, #tutorial-page .toc h4:hover:after {content: ' >>'; color: #fa4}
-
-#tutorial-page .toc h1 {font-size: 16pt}
-#tutorial-page .toc h2 {font-size: 13pt; padding-left: 20px}
-#tutorial-page .toc h3 {font-size: 11pt; padding-left: 40px}
-#tutorial-page .toc h4 {font-size: 10pt; padding-left: 60px}
-
-#tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '< '; color: #fa4}
-#tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ' >'; color: #fa4}
-
-#tutorial-page .shell {position: fixed; border-radius: 0px; right: 50px; top: 0; bottom: 0; left: 600px; border: solid 2px #222; border-width: 0 1px; overflow-y: auto; overflow-x: hidden}
-#tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
-
-#tutorial-page .shell .prompt > span {margin: 4px}
-
-#tutorial-page .shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
-#tutorial-page .shell .input {font-size: 10pt; background: transparent; color: white}
-
-#tutorial-page .shell .input:focus {border: none !important; outline: none !important}
-
-#tutorial-page .shell .history {position: relative}
-#tutorial-page .shell .history pre {font-family: 'Droid Sans Mono', monospace; font-size: 10pt}
-#tutorial-page .shell .history .entry, .shell .history .result, .shell .history .error, .shell .history .log {margin: 4px}
-#tutorial-page .shell .history .entry  {color: white}
-#tutorial-page .shell .history .entry .command {margin-left: 4px}
-#tutorial-page .shell .history .result {color: #7bf}
-#tutorial-page .shell .history .log    {color: #7fb}
-#tutorial-page .shell .history .error  {color: #f87}
-
-#tutorial-page .shell .sandbox {font-family: 'Neuton', 'Garamond', serif; background: #222; color: #eee; padding: 10px; margin-top: 4px}
-
-#tutorial-page .section {margin-top: 50px}
-
-#tutorial-page .section h1 {font-size: 16pt}
-#tutorial-page .section h2 {font-size: 13pt}
-#tutorial-page .section h3 {font-size: 11pt}
-
-#tutorial-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
-#tutorial-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
-
-#tutorial-page p {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
-#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-
-#tutorial-page pre.code {cursor: pointer; padding: 10px 4px}
-#tutorial-page pre.code:before {content: '> '; color: #fa4}
-#tutorial-page pre.code:hover {background: #222; color: #fa4}
 __
 meta::sdoc('js::caterwaul', <<'__');
 Introduction.
@@ -4647,7 +4407,7 @@ The <code>structure</code> method gives you a string containing the syntax tree 
   <ol><li>The slash. For example, <code>log('hi') /when [true]</code>. I use this when I need something tighter than a minus.</li>
       <li>The minus. For example, <code>log('hi') -when [true]</code>. It also comes in another form: <code>log('hi') -when- true</code>. I use this most of the time because it seems easier to
           read.</li>
-      <li>The <code>in</code> operator. For example, <code>bind [x = 10] in x + 1</code>. <code>in</code> has the same precedence as <code><</code> and <code>></code>, which is lower
+      <li>The <code>in</code> operator. For example, <code>given [x] in x + 1</code>. <code>in</code> has the same precedence as <code><</code> and <code>></code>, which is lower
           than the arithmetic operators. As a result, it's useful when you're binding variables or creating functions around simple expressions.</li>
       <li>The <code><></code> operators. These are used around a modifier: <code>log('hi') <unless> no_logging</code>. This has the same precedence as <code>in</code> and other relational
           operators.
@@ -4656,7 +4416,7 @@ The <code>structure</code> method gives you a string containing the syntax tree 
       <li>The <code>,</code> operator. This is the lowest-precedence operator in Javascript. It can be dangerous to use because it left-associates; for example,
           <code>f(x, y, z, where [z = 10])</code> will invoke <code>f</code> on just one parameter, since the <code>where</code> gobbles everything to its left. (Using a <code>|</code> here
           would fix the problem.)</li>
-      <li>The <code>[]</code> operator. This starts the precedence hierarchy over by using explicit grouping. For example, <code>bind[x = 10][log(x)]</code>.</li></ol>
+      <li>The <code>[]</code> operator. This starts the precedence hierarchy over by using explicit grouping. For example, <code>where[x = 10][log(x)]</code>.</li></ol>
 
   Conditional modifiers.
   <code>when</code> is one of the five conditional modifiers you can use. The others are <code>unless</code>, <code>otherwise</code>, <code>when_defined</code>, and
@@ -4857,6 +4617,16 @@ n[1, 11] *[x * x] /seq
     seq in [[1], [2], [3]] *~y[y *[x + 1]]
 
     Note that you can't say <code>*y~[...]</code>, as this is invalid Javascript syntax (<code>~</code> is always a unary operator).
+
+    Function promotion.
+    Caterwaul 1.1 adds the ability to implicitly promote functions by using them instead of a <code>[]</code> block. For example:
+
+    seq in [1, 2, 3] *![log(x)]
+
+    seq in [1, 2, 3] *!log
+
+    Note that the function name is evaluated within the context of the loop, so it is re-evaluated each iteration. This could, in pathological cases, be beneficial; but mostly it's something
+    to watch out for. Generally you should only use local variables, or simple permutations of them, as functions. Function promotion applies to all operators that take blocks.
 
   Filtering.
   The filtering family of operators is denoted by <code>%</code>. For instance, here's a way to get multiples of three:
@@ -5105,205 +4875,6 @@ In this example, <code>jquery</code> is a modifier that interprets its code as H
   says(thing)(e) = e.text(thing)
 
   jquery in button %says('click me')
-
-Development tools.
-Most compilers operate offline; that is, they generate standalone code with no references back to the compiler. However, there are some cases where you want to interact with code as it's
-running. Caterwaul's tracing extension is one way to do this.
-
-The idea behind a trace is that you can observe when (1) an expression is about to be evaluated, and (2) the value it produced after evaluation. Caterwaul does this by inserting hook functions
-into your source; these functions ideally don't change any behavior (other than making your code a bit slower) and allow you to see what's happening. You get to determine what to do with the
-observed expressions and values.
-
-Here's an example of defining a function and then tracing it (note that Caterwaul doesn't provide the <code>trace()</code> function used here):
-
-f(n) = n ? n * f(n - 1) : 1
-
-f = trace(f)
-
-f(5)
-
-If you look at the source code of the traced <code>f()</code> you'll see a bunch of variables called <code>hook1</code>, <code>tree3</code>, etc. These are the hooks Caterwaul uses to monitor
-the function's execution, and they're bound in the compiling environment. Internally they were created by creating a new syntax ref node: <code>new caterwaul.ref(a_value)</code>.
-
-  Building your own tracer.
-  Sometimes you want to do something besides listing the expression values. Maybe you want to profile stuff, for example. To do this, you need to construct your own tracer. You do this by
-  calling <code>caterwaul.tracer()</code>, which takes two optional callbacks and returns a trace function. (The <code>trace()</code> function used above is the result of
-  <code>caterwaul.tracer()</code>.) The first callback, if it is defined, will be invoked on each syntax tree before that tree is evaluated. The second callback will be invoked on the syntax
-  tree and the value that it produced. Based on this information we can now construct a very simple profiler that counts the number of evaluations of each expression:
-
-  counts = {}, trees = {}
-
-  count(tree) = trees[tree.id()] = tree -effect [counts[tree.id()] = (counts[tree.id()] || 0) + 1]
-
-  profile = caterwaul.tracer(null, count)
-
-  Now let's profile something:
-
-  is_prime(n) = !(n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq)
-
-  takes_a_bit() = n[10000] %[is_prime(x)] /seq
-
-  profile(takes_a_bit)()
-
-  At this point the profiling data is in <code>counts</code> and <code>trees</code>. <code>counts</code> maps tree IDs to the number of times that tree was evaluated, and <code>trees</code>
-  maps tree IDs to the trees they represent. Let's stash the tree-count pair list into its own variable:
-
-  pairs = counts /pairs *[[trees[x[0]], x[1]]] /seq
-
-  This is a complete profile, but maybe we don't want that much information at once. Let's just look for trees that represent <code>push()</code> invocations:
-
-  pairs %[qs[_x.push(_y)].match(x[0])] /seq
-
-  Here we're using some methods provided by syntax trees. We first quote a pattern (which is an instance of Caterwaul's syntax tree class), and then we call its <code>match()</code> method on
-  another tree. <code>match()</code> returns an object if <code>x[0]</code> matches <code>qs[_x.push(_y)]</code> and <code>false</code> otherwise. For the purposes of matching, identifiers
-  that start with underscores can match against any expression. The object that <code>match()</code> returns maps the names of these wildcards to the trees they matched against.
-
-  Here are some other queries you could perform:
-
-  pairs %[qs[is_prime(_x)].match(x[0])] /seq
-
-  pairs %[x[1] > 5000] /seq
-
-Using Caterwaul.
-It's actually very easy to use Caterwaul with a project. It should work both on the client and on the server.
-
-The official source code is available <a href='http://github.com/spencertipping/caterwaul' target='_blank'>from Github</a> on the 1.0 branch. I'm writing <a
-href='doc/caterwaul-by-example.pdf'>guide</a> illustrating how to set up Caterwaul for a client-side app.
-
-If you are brave/crazy enough to actually use Caterwaul and run into trouble, <a href='mailto:spencer@spencertipping.com'>e-mail me</a> and I'll help you with your problem.
-
-  Common gotchas.
-  The biggest single gotcha I've hit so far is shooting myself in the foot by being too reliant on precedence. Some constructs, to me anyway, feel like they should have a different precedence
-  level than they actually do. For instance, I've typed this a few times:
-
-  jquery in div.foo[y] -where [y = 'hi there']
-
-  The problem here is obvious if you inspect the syntax tree:
-
-  qs[jquery in div.foo[y] -where [y = 'hi there']].structure()
-
-  See how the node containing the <code>where</code> is a child of <code>jquery</code>? This means that the node is going to be modified by the jQuery driver, but unfortunately the jQuery
-  driver doesn't know what to do with <code>-where[]</code>. As a result, the jQuery macro will stop macroexpanding stuff and give up too soon. Then the standard library will come through,
-  expand the <code>where[]</code>, and you'll end up with this:
-
-  qse[jquery in div.foo[y] -where [y = 'hi there']]
-
-    I have a problem; is Caterwaul broken?.
-    Maybe. I've been using Caterwaul in production for about six months now and have run into between 20 and 50 bugs related to parsing and/or serialization. Most of these had to do with some
-    pathological edge case on Firefox (which rewrites functions before Caterwaul can get to them).
-
-    If you have some problem that doesn't seem like it should be happening, one way to see what's going on is to log the syntax structure of something. This will tell you what Caterwaul saw
-    when it parsed your code. For example, this will produce different results on Chrome and Firefox:
-
-    (function () {return foo['bar']}).toString()
-
-    If you were using Caterwaul on this function, then, you might see two different macroexpansions. Where possible I've tried to design the standard macros such that you don't run into this
-    kind of thing, but it's worth being aware that it can happen anyway. (This is one reason you should precompile production code, discussed below.)
-
-    Regarding the question of whether Caterwaul is broken, I think the answer is that it's unlikely unless you're doing something very gnarly. The pieces of Caterwaul that could be broken,
-    from most to least likely, are:
-    <ol>
-    <li>The standard library macros -- these are written as tree-traversal grammars and it's totally possible I've left a case out, causing macroexpansion to suddenly stop.</li>
-    <li>The parser -- parsing Javascript is tricky, especially the way Caterwaul does it. The most likely area of failure would have to do with block constructs or implied semicolons.</li>
-    <li>The serializer -- maybe I've left out an edge case. Also, the syntax structure is loose enough for you to easily create invalid trees; you might want to compare against the output of
-        parsing a known-good function.</li>
-    <li>The macroexpander -- this is basically bulletproof. I've found maybe one bug relating to the macroexpander throughout all of Caterwaul's development. Things that appear to be
-        macroexpander bugs have, in my experience, been precedence/associativity issues.</li></ol>
-
-    That said, if you're running into something that doesn't make sense, <a href='mailto:spencer@spencertipping.com'>e-mail me</a> and I'll take a look.
-
-    Low-level functions.
-    This page doesn't really talk about how to write macros or use the options available for compiling expressions. That's all documented in the <a href='#annotated'>individual source
-    modules</a> that implement those features. So, for example, documentation about the <code>caterwaul.macro()</code> function is available in the <code>caterwaul.macroexpander</code> module.
-    The <code>caterwaul.compiler</code> module contains documentation about the <code>caterwaul.compile()</code> function.
-
-    If you intend to do this kind of hacking on Caterwaul, I recommend reading through all of the core modules, especially <code>caterwaul.init</code> and <code>caterwaul.tree</code>. Both of
-    these will make more sense with the context from <code>caterwaul</code> (which contains preprocessor directives to build <code>caterwaul.js</code>) and <code>caterwaul.utilities</code>.
-
-  Caterwaul and Coffeescript.
-  Why did I write Caterwaul knowing that Coffeescript was already out there? Caterwaul and Coffeescript exist to solve two different problems. Coffeescript enhances Javascript's syntax, while
-  Caterwaul enhances Javascript's semantics. In theory you could use the two together; I've actually been thinking a lot lately about how to do this productively, and would like to have
-  something working by version 1.2 or 1.3.
-
-  Most of Caterwaul's standard library is language-independent. Obviously it ultimately runs on Javascript, but all of the modifier operators are considered to be a parameter of the language
-  rather than intrinsic to each modifier. This is why there's a <code>js_</code> prefix on all of the configuration methods I've mentioned. (The Javascript stuff is defined in
-  <code>extensions/std/js</code> in the <a href='#annotated'>source</a>.)
-
-  Performance.
-  Code written in Caterwaul won't be significantly slower than regular Javascript most of the time. The largest performance impact of using Caterwaul is compiling your code, and the slowest
-  stage of that is macroexpanding the code. This delay can be eliminated by precompiling.
-
-  Depending on what you're doing, Caterwaul may or may not help you write really fast code. If you're doing sequence-related stuff, Caterwaul will certainly help. It compiles all of the
-  sequence macros into inline for-loops, which can be a bit faster than using a sequence library built on higher-order functions. (Whether or not it makes a difference depends on how good the
-  JS runtime is at inlining function calls.)
-
-  Sometimes Caterwaul produces code that isn't particularly efficient. Most of this has to do with binding variables and side-effecting. For instance, look at how it expands these:
-
-  qse[x -effect- it.f() -re- y]
-
-  qse[bind [x = 10] in x + 1]
-
-  Each of these creates at least one possibly-superfluous closure. If you were using one inside a big loop and had an uninsightful JS runtime you might feel a performance hit.
-
-  Caterwaul in node.js.
-  It's generally easy to use Caterwaul from node.js. Caterwaul comes with a build that contains the necessary <code>exports</code> interfacing to make this work. All you have to do is put
-  together a complete file consisting of this base plus any extensions you want to use. For instance, if you want to use <code>std</code>:
-
-  | $ cat build/caterwaul.node.js build/extensions/std.pre.js > caterwaul.std.node.js
-
-  Then inside Node you should be able to require it:
-
-  | $ node
-    > var caterwaul = require('./caterwaul.std.node.js').caterwaul;
-    > caterwaul('3 + 4')
-    7
-    >
-
-  Precompiling stuff.
-  This page, when used as a Perl file, has a method for precompiling things. To do this, you just point it at a file that uses Caterwaul in some way and it will create a new one with the code
-  already compiled. (If you are using custom libraries, you should probably check out the notes in the <a href='#annotated'>precompiler source code</a> about whether this transformation will
-  be a safe one.) For example, here's a trivial application:
-
-  | $ cat > my-app.js &lt;&lt;eof
-    var main_function = caterwaul.jquery(caterwaul.js_all())(function () {
-      $('body').append(jquery in div.foo('hi there'));
-    });
-    eof
-    $
-
-  And here's how to precompile it:
-
-  | $ ./caterwaul.html precompile my-app.js
-
-  There are just a couple of restrictions. First, the code you're precompiling can't make any toplevel references to variables that won't be defined within node.js. The reason for this is that
-  precompilation actually executes your code. Second, any custom Caterwaul extensions should be a part of the file that you're precompiling. This way Caterwaul can precompile with respect to
-  macros you've written. (By default it just uses its own standard library.)
-
-  The best way to make sure you have no toplevel references is to use one file to compile a main function, and run it from a file that doesn't refer to Caterwaul. In the example above, for
-  example, we defined a main function that can be used elsewhere. If this were a client application, then the total script list might look like this:
-
-  | &lt;script src='build/caterwaul.js'></script>
-    &lt;script src='build/extensions/std.pre.js'></script>
-    &lt;script src='build/extensions/ui.pre.js'></script>
-    &lt;script src='my-app.pre.js'></script>
-    &lt;script>
-      $(main_function);
-    &lt;/script>
-
-  Precompilation requires that a recent build of node.js is in your path and called <code>node</code>.
-
-    Benefits of precompilation.
-    There are two main benefits of precompilation. First, it removes any Caterwaul-induced browser-specific behavior. This shouldn't be there, but sometimes browsers mangle the function source
-    before it gets to Caterwaul, and this has caused some problems. Second, perhaps more importantly, it significantly reduces your app's loading time. Caterwaul's main performance bottleneck
-    is macroexpansion; by doing this up front you can basically eliminate the impact of using Caterwaul at all.
-
-    Limitations of precompilation.
-    The <a href='#annotated'>precompiler source</a> has a fairly detailed list of things that violate the constraints of precompilation, but the rule of thumb is that if there's ever any
-    interaction between the compiling environment and the compiled environment then precompilation won't be possible. Depending on how hopeless the situation is, Caterwaul will either (1)
-    leave a function un-precompiled (which means that your application will work as intended, but will be slower), or (2) throw an error at precompile-time.
-
-    Most of the extensions are designed to be runnable with or without precompilation. For instance, the code-trace extension will tolerate precompilation; it just prevents the tracing code
-    from being generated at precompile-time. All of the macros in <code>std</code> and <code>ui</code> have deterministic, straightforward expansions that can be completely precompiled.
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
