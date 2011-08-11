@@ -136,17 +136,17 @@
       var s = node.data, q = s.charAt(0), syntax = $.syntax;
       if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
 
-      for (var pieces = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
-        if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || pieces.push(s.substring(start, i)) && (start = i + 1), got_hash = false;
+      for (var pieces = [], is_code = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
+        if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || (pieces.push(s.substring(start, i)), is_code.push(true)) && (start = i + 1), got_hash = false;
                     else                                brace_depth += c === '{';
    else                  if ((c = s.charAt(i)) === '#') got_hash = true;
-                    else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), start = i + 1, ++brace_depth;
+                    else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), is_code.push(false), start = i + 1, ++brace_depth;
                     else                                got_hash = false;
 
-      pieces.push(s.substring(start, l));
+      pieces.push(s.substring(start, l)), is_code.push(false);
 
-      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = i & 1 ? this($.parse(pieces[i].replace(quoted, q)).as('(')) :
-                                                                                                               new syntax(q + pieces[i] + q);
+      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = is_code[i] ? this($.parse(pieces[i].replace(quoted, q)).as('(')) :
+                                                                                                                    new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')};
 
 //   Destructuring function creation.
@@ -483,53 +483,48 @@ caterwaul.words(caterwaul.js())(function ($) {
                                       seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
 
   where [anon            = $.anonymizer('S'),
-         rule(p, e)      = $.rereplacer(anon(p), e.constructor === Function ? given.match in e.call(this, match) : anon(e)),
+         rule(p, e)      = $.rereplacer(p.constructor === String ? anon(p) : p, e.constructor === String ? anon(e) : e),
 
          operator_macros = [rule('S[_x]', '_x'),
                             rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][S[_y]]'),
                             rule('S[[_x]]', '[S[_x]]'),  rule('S[_x, _y]', 'S[_x], S[_y]'),
 
-                            operator('',  '|', {normal: exists}),
+                            operator('',  '|', {'':  exists}),
 
-                            operator('',  '*', {normal:  map,     bang:  each,        tbang: flatmap}),      binary_operator('+', concat),  binary_operator('^', zip),
-                            operator('',  '%', {normal:  filter,  bang:  filter_not,  tbang: map_filter}),   binary_operator('-', cross),
-                            operator('',  '/', {normal:  foldl,   bang:  foldr,       tbang: unfold,
-                                                inormal: ifoldl,  ibang: ifoldr}),
+                            operator('',  '*', {'':  map,     '!':  each,        '~!': flatmap}),      binary_operator('+', concat),  binary_operator('^', zip),
+                            operator('',  '%', {'':  filter,  '!':  filter_not,  '~!': map_filter}),   binary_operator('-', cross),
+                            operator('',  '/', {'':  foldl,   '!':  foldr,       '~!': unfold,
+                                                'i': ifoldl,  'i!': ifoldr}),
 
-                            operator('k', '*', {normal:  kmap,    bang:  keach}),                            operator('v', '*', {normal: vmap,    bang: veach}),
-                            operator('k', '%', {normal:  kfilter, bang:  kfilter_not, tbang: kmap_filter}),  operator('v', '%', {normal: vfilter, bang: vfilter_not, tbang: vmap_filter})]
+                            operator('k', '*', {'':  kmap,    '!':  keach}),                           operator('v', '*', {'': vmap,    '!': veach}),
+                            operator('k', '%', {'':  kfilter, '!':  kfilter_not, '~1': kmap_filter}),  operator('v', '%', {'': vfilter, '!': vfilter_not, '~!': vmap_filter})]
 
                     -where [uses_x0 = {'/': true},
 
                             binary_operator(op, f)      = rule(anon('S[_xs #{op} _ys]'), f),
-                            operator(prefix, op, forms) = []
-                              -se- it.push(rule('S[_xs #{p}#{op}_f]',   'S[_xs #{p}#{op}[_f(x#{uses_x0[op] ? ", x0" : ""})]]'))   /when [forms.normal || forms.inormal]
-                              -se- it.push(rule('S[_xs #{p}#{op}!_f]',  'S[_xs #{p}#{op}![_f(x#{uses_x0[op] ? ", x0" : ""})]]'))  /when [forms.bang   || forms.ibang]
-                              -se- it.push(rule('S[_xs #{p}#{op}~!_f]', 'S[_xs #{p}#{op}~![_f(x#{uses_x0[op] ? ", x0" : ""})]]')) /when [forms.tbang  || forms.itbang]
 
-                              -se- it.push(rule('S[_xs #{p}#{op}[_f]]',          forms.normal),   rule('S[_xs #{p}#{op}_var[_f]]',          forms.normal))  /when [forms.normal]
-                              -se- it.push(rule('S[_xs #{p}#{op}![_f]]',         forms.bang),     rule('S[_xs #{p}#{op}!_var[_f]]',         forms.bang))    /when [forms.bang]
-                              -se- it.push(rule('S[_xs #{p}#{op}~![_f]]',        forms.tbang),    rule('S[_xs #{p}#{op}~!_var[_f]]',        forms.tbang))   /when [forms.tbang]
+                            operator(prefix, op, forms) = [generic(given.m in rule('S[_xs #{pop}#{m}_f]',  'S[_xs #{pop}#{m}[_f(#{args})]]')),
+                                                           generic(given.m in rule('S[_xs #{pop}#{m}~_f]',  e.replace({_body: this(wrap(match._f))})
+                                                                                                            -given.match
+                                                                                                            -where [wrapper = anon('S[_x]'),
+                                                                                                                    wrap(x) = wrapper.replace({_x: x}),
+                                                                                                                    e       = anon('S[_xs #{pop}#{m}_body]')])),
 
-                              -se- it.push(rule('S[_xs #{p}#{op}[_init][_f]]',   forms.inormal),  rule('S[_xs #{p}#{op}_var[_init][_f]]',   forms.inormal)) /when [forms.inormal]
-                              -se- it.push(rule('S[_xs #{p}#{op}![_init][_f]]',  forms.ibang),    rule('S[_xs #{p}#{op}!_var[_init][_f]]',  forms.ibang))   /when [forms.ibang]
-                              -se- it.push(rule('S[_xs #{p}#{op}~![_init][_f]]', forms.itbang),   rule('S[_xs #{p}#{op}~!_var[_init][_f]]', forms.itbang))  /when [forms.itbang]
+                                                           generic(given.m in rule([anon('S[_xs #{pop}#{m}[_f]'),        anon('S[_xs #{pop}#{m}_var[_f]]')],        forms[m]       || fail)),
+                                                           generic(given.m in rule([anon('S[_xs #{pop}#{m}[_init][_f]'), anon('S[_xs #{pop}#{m}_var[_init][_f]]')], forms['i#{m}'] || fail))]
 
-                              -re- it.concat(context_conversions(p, op))
+                              -where [generic(f) = [f(''), f('!'), f('~!')],
+                                      fail       = anon('(function () {throw new Error("undefined sequence form")})()'),
+                                      pop        = (prefix && '%#{prefix}') + op,
+                                      args       = uses_x0[op] ? 'x, x0' : 'x']]
 
-                              -where [p = prefix && '%#{prefix}']]
+                    -where [loop_anon        = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
+                            loop_form(x)     = loop_anon(scoped(anon(x))),
 
-                    -where [context_conversions(p, op) = [rule('S[_xs #{p}#{op}~_body]',   'S[_xs #{p}#{op}S[_body]]'),
-                                                          rule('S[_xs #{p}#{op}!~_body]',  'S[_xs #{p}#{op}!S[_body]]'),
-                                                          rule('S[_xs #{p}#{op}~!~_body]', 'S[_xs #{p}#{op}~!S[_body]]')],
+                            scope            = anon('(function (xs) {_body}).call(this, S[_xs])'),
+                            scoped(tree)     = scope.replace({_body: tree}),
 
-                            loop_anon                  = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
-                            loop_form(x)               = loop_anon(scoped(anon(x))),
-
-                            scope                      = anon('(function (xs) {_body}).call(this, S[_xs])'),
-                            scoped(tree)               = scope.replace({_body: tree}),
-
-                            op_form(pattern)           = form.replace(variables_for(match)) -given.match -where [form = loop_form(pattern)],
+                            op_form(pattern) = form.replace(variables_for(match)) -given.match -where [form = loop_form(pattern)],
 
                             map         = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                                 return ys'),
                             each        = op_form('for (var          _xi = 0, _xl = xs.length, _x; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                          return xs'),

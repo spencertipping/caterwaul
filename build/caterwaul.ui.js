@@ -138,11 +138,11 @@ caterwaul.words(caterwaul.js())(function ($) {
 
                   -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
 
-         search_macros = [rule('P[_element]',                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                       -given.match),
-                          rule('P[_element._class]',             new $.syntax('#{this(p(match._element)).data}.#{hyphenate(match._class.data)}')                -given.match),
+         search_macros = [rule('P[_element]',                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                  -given.match),
+                          rule('P[_element._class]',             new $.syntax('#{this(p(match._element)).data}.#{hyphenate(match._class.data)}')           -given.match),
 
-                          rule('P[_element[_attributes]]',       new $.syntax('#{this(p(match._element)).data}[#{this(p(match._attributes))}]')                 -given.match),
-                          rule('P[_attribute = _value]',         new $.syntax('#{this(p(match._attribute)).data}="#' + '{' + interpolated(match._value) + '}"') -given.match),
+                          rule('P[_element[_attributes]]',       new $.syntax('#{this(p(match._element)).data}[#{this(p(match._attributes))}]')            -given.match),
+                          rule('P[_attribute = _value]',         new $.syntax('#{this(p(match._attribute)).data}="#{' + interpolated(match._value) + '}"') -given.match),
 
                           rule('P[(_element)]',                 'P[_element]'),        // No paren support
 
