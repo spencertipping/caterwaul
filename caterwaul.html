@@ -2,7 +2,8 @@
 # Run perldoc on this file for documentation.
 
 # For the benefit of HTML viewers:
-# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+# >><div id='cover' style='position: absolute; z-index: 1; left: 0; top: 0; width: 10000px; height: 10000px; background: #111; font-family: sans-serif; color: #888; padding-left: 100px; padding-top: 100px'><span style='color: #fa4'>[</span> <span class='status'>loading</span> <span style='color: #fa4'>]</span></div>
+
 
 $|++;
 
@@ -277,6 +278,10 @@ meta::bootstrap('html', <<'__');
 <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js'>
 
 </script>
+<script >
+$('#cover .status').text('compiling caterwaul');
+</script>
+
 <script>
 (function(a){return a(a,(function(b){return function(){return ++b}})(0))})(function(d,b,n){var ab=function(ai){return ai.split(/\s+/)},z=function(ai,aj){return aj&&aj.call(ai,ai)||ai},m=function(ai){throw new Error(ai)},k=(function(ak,ai,aj){return function(){return[aj,ak,++ai]}})(+new Date(),Math.random()*(1<<30)>>>0,b()),S=function(aj){var ai=k();return["gensym",aj||"",ai[0].toString(36),ai[1].toString(36),ai[2].toString(36)].join("_")},K=function(am,aj){for(var ak=0,al=[],ai=aj.length;ak<ai;++ak){al.push(am(aj[ak],ak))}return al},u=function(aj,ai){return K(function(ak){return ak instanceof Array?u(aj,ak):aj(ak)})},Z=function(al){for(var ak=0,aj=ab(al),am={},ai=aj.length;ak<ai;++ak){am[aj[ak]]=true}return q(am)},X=function(am){for(var al=1,ai=arguments.length,ak;al<ai;++al){if(ak=arguments[al]){for(var aj in ak){e(ak,aj)&&(am[aj]=ak[aj])}}}return am},W=S("hash_annotation"),q=function(ak){var ai=0;for(var aj in ak){i.call(ak,aj)&&(ai=aj.length>ai?aj.length:ai)}ak[W]=ai;return ak},e=function(aj,ai){return ai!=null&&!(ai.length>aj[W])&&i.call(aj,ai)},i=Object.prototype.hasOwnProperty,aa=function(){var ai=function(){return ai.init.apply(ai,arguments)};return ai},ac=typeof caterwaul==="undefined"?n:caterwaul,ah=z(aa(),function(){this.deglobalize=function(){caterwaul=ac;return ah};X(this,{merge:X,map:K,unique:b,rmap:u,gensym:S})}),ag=Z(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),P=function(al){for(var ak=0,aj=[false];ak<8;++ak){aj.push.apply(aj,aj)}for(var ak=0,ai=al.length;ak<ai;++ak){aj[al.charCodeAt(ak)]=true}return aj},af=P(".0123456789"),R=P("0123456789"),w=P("0123456789abcdefABCDEFx"),I=P("eE"),g=P(" \n\r\t"),r=P("()[]{}"),p=P("([{"),v=P("+-*/%&|^!~=<>?:;.,"),G=P("\n\r"),h=P("gims"),L=P("'\"/"),l="/".charCodeAt(0),O="*".charCodeAt(0),j="\\".charCodeAt(0),V="x".charCodeAt(0),J=".".charCodeAt(0),Q="0".charCodeAt(0),ae=Z("++ --"),T=P("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),H=K(Z,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),E=Z("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),C=(function(ak){for(var am={},al=0,ai=ak.length;al<ai;++al){for(var aj in ak[al]){e(ak[al],aj)&&(am[aj]=al)}}return q(am)})(H),t=(function(ak){for(var am=[],an=0,ai=ak.length,al=null;al=ak[an],am[an]=true,an<ai;++an){for(var aj in al){if(e(al,aj)&&(am[an]=am[an]&&!e(E,aj))){break}}}return am})(H),y=Z("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),U=q({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),N=q({"if":"else","do":"while","catch":"finally","try":"catch"}),A=Z("[] ()"),ad=Z("return throw break continue else"),B=Z("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),f=Z("; {"),Y=Z("i;"),F=Z("++ --"),o=q({"(":")","[":"]","{":"}","?":":"}),D=Z("[ ("),M=Z("?"),c=Z("function if for while catch void delete new typeof in instanceof"),x=Z("function"),s=ah.syntax_common={_replace:function(ai){return(ai.l=this.l)&&(this.l.r=ai),(ai.r=this.r)&&(this.r.l=ai),this},_append_to:function(ai){return ai&&ai._append(this),this},_reparent:function(ai){return this.p&&this.p[0]===this&&(this.p[0]=ai),this},_fold_l:function(ai){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(ai){return(this[this.length++]=ai)&&(ai.p=this),this},_fold_r:function(ai){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(ai){return ai.p=this.p,(this.r=ai).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(ai){return ai.p=this._replace(ai).p,this._reparent(ai),delete this.l,delete this.r,this._append_to(ai)},_unlink:function(ai){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(ai)},pop:function(){return --this.length,this},push:function(ai){return this[this.length++]=ai||a,this},id:function(){var ai=S("id");return(this.id=function(){return ai})()},each:function(ak){for(var aj=0,ai=this.length;aj<ai;++aj){ak(this[aj],aj)}return this},map:function(ak){for(var al=new this.constructor(this),aj=0,ai=this.length;aj<ai;++aj){al.push(ak(this[aj],aj)||this[aj])}return al},reach:function(ai){ai(this);this.each(function(aj){aj.reach(ai)});return this},rmap:function(aj){var ai=aj(this);return !ai||ai===this?this.map(function(ak){return ak.rmap(aj)}):ai.rmap===n?new this.constructor(ai):ai},clone:function(){return this.rmap(function(){return false})},collect:function(aj){var ai=[];this.reach(function(ak){aj(ak)&&ai.push(ak)});return ai},replace:function(ai){var aj;return i.call(ai,this.data)&&(aj=ai[this.data])?aj.constructor===String?z(this.map(function(ak){return ak.replace(ai)}),function(){this.data=aj}):aj:this.map(function(ak){return ak.replace(ai)})},repopulated_with:function(ai){return new this.constructor(this.data,ai)},change:function(aj,ai){return z(new this.constructor(this.data,Array.prototype.slice.call(this)),function(ak){ak[aj]=ai})},compose_single:function(ai,aj){return this.change(ai,aj(this[ai]))},traverse:function(ai){ai({entering:this});ai({exiting:this.each(function(aj){aj.traverse(ai)})});return this},flatten:function(ai){ai=ai||this.data;return ai!==this.data?this.as(ai):!(e(y,ai)&&this.length)?this:e(E,ai)?z(new this.constructor(ai),bind(function(ak){for(var aj=this;aj&&aj.data===ai;aj=aj[1]){ak.push(aj[0])}ak.push(aj)},this)):z(new this.constructor(ai),bind(function(al){for(var aj=this,ak=[];aj.data===ai;aj=aj[0]){aj[1]&&ak.push(aj[1])}ak.push(aj);for(aj=ak.length-1;aj>=0;--aj){al.push(ak[aj])}},this))},unflatten:function(){var aj=this,ai=e(E,this.data);return this.length<=2?this:z(new this.constructor(this.data),function(am){if(ai){for(var al=0,ak=aj.length-1;al<ak;++al){am=am.push(aj[al]).push(al<ak-2?new aj.constructor(aj.data):aj[al])[1]}}else{for(var al=aj.length-1;al>=1;--al){am=am.push(al>1?new aj.constructor(aj.data):aj[0]).push(aj[al])[0]}}})},as:function(ai){return this.data===ai?this:new this.constructor(ai).push(this)},is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_wildcard:function(){return this.data.charCodeAt(0)===95},has_grouped_block:function(){return e(U,this.data)},is_block:function(){return e(f,this.data)},is_blockless_keyword:function(){return e(ad,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return e(Y,this.data)},is_binary_operator:function(){return e(y,this.data)},is_prefix_unary_operator:function(){return e(B,this.data)},is_postfix_unary_operator:function(){return e(F,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(ai){return e(N,this.data)&&N[this.data]===(ai.data||ai)},bindings:function(aj){var ai=aj||{};this.reach(function(ak){if(ak.binds_a_value){ai[ak.data]=ak.value}});return ai},match:function(ak,al){ak=ak.constructor===String?ah.parse(ak):ak;al||(al={_:ak});if(this.is_wildcard()){return al[this.data]=ak,al}else{if(this.length===ak.length&&this.data===ak.data){for(var aj=0,ai=this.length;aj<ai;++aj){if(!this[aj].match(ak[aj],al)){return null}}return al}}},ends_with_block:function(){var ai=this[U[this.data]];return this.data==="{"||e(U,this.data)&&(this.data!=="function"||this.length===3)&&ai&&ai.ends_with_block()},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(K(function(ai){return ai.structure()},this)).join(" ")+")"}else{return this.data}},toString:function(){var ai=[""];this.serialize(ai);return ai.join("")},serialize:function(al){var aj=this.length,am=this.data,ai=";\n",ak=function(an){if(T[al[al.length-1].charCodeAt(0)]===T[an.charCodeAt(0)]){al.push(" ",an)}else{al.push(an)}};switch(aj){case 0:if(e(ad,am)){return ak(am.replace(/^u/,""))}else{if(e(o,am)){return ak(am),ak(o[am])}else{return ak(am)}}case 1:if(e(B,am)||e(ad,am)){return ak(am.replace(/^u/,"")),this[0].serialize(al)}else{if(e(o,am)){return ak(am),this[0].serialize(al),ak(o[am])}else{if(e(y,am)){return ak("/* unary "+am+" node */"),this[0].serialize(al)}else{return this[0].serialize(al),ak(am)}}}case 2:if(e(A,am)){return this[0].serialize(al),ak(am.charAt(0)),this[1].serialize(al),ak(am.charAt(1))}else{if(e(U,am)){return ak(am),this[0].serialize(al),this[1].serialize(al)}else{if(e(Y,am)){return this[0].serialize(al),this[1].serialize(al)}else{if(am===";"){return this[0].serialize(al),ak(ai),this[1].serialize(al)}else{return this[0].serialize(al),ak(am),this[1].serialize(al)}}}}default:if(e(M,am)){return this[0].serialize(al),ak(am),this[1].serialize(al),ak(":"),this[2].serialize(al)}else{if(e(U,am)){return this.accepts(this[2])&&!this[1].ends_with_block()?(ak(am),this[0].serialize(al),this[1].serialize(al),ak(ai),this[2].serialize(al)):(ak(am),this[0].serialize(al),this[1].serialize(al),this[2].serialize(al))}else{return this.unflatten().serialize(al)}}}}};ah.ref=function(aj,ai){if(aj instanceof this.constructor){this.value=aj.value,this.data=aj.data}else{this.value=aj,this.data=S(ai&&ai.constructor===String?ai:"ref")}};X(ah.ref.prototype,s,{binds_a_value:true,length:0});ah.ref.prototype.replace=function(ai){var aj;return i.call(ai,this.data)&&(aj=ai[this.data])?aj.constructor===String?z(new this.constructor(this.value),function(){this.data=aj}):aj:this};ah.syntax=function(an){if(an instanceof this.constructor){this.data=an.data,this.length=0}else{this.data=an&&an.toString();this.length=0;for(var al=1,ai=arguments.length,ak;ak=arguments[al],al<ai;++al){for(var aj=0,ap=ak.length,am,ao;ak instanceof Array?(am=ak[aj],aj<ap):(am=ak,!aj);++aj){this._append((ao=am.constructor)===String||ao===Number||ao===Boolean?new this.constructor(am):am)}}}};X(ah.syntax.prototype,s);var a=ah.empty=new ah.syntax("");ah.parse=function(az){if(az.constructor===ah.syntax){return az}var aC=az.toString(),aw=0,aO=0,aF=true,aP=false,aE=false,aq=false,aD=0,aB="",aK=0,aI=aC.length,aj=function(aS){return aC.charCodeAt(aS)},ar=[],al=null,ai=null,av=null,an=K(function(){return[]},H),ak=[],at=[a],aM=function(aS){return at.push(aS),aS},ap=function(aS){return ai?ai._sibling(ai=aS):(ai=aS._append_to(av)),aM(aS)},aH=this.syntax;if(aI===0){return a}while((aw=aK)<aI){while(g[aO=aj(aK)]&&aK<aI){aw=++aK}aP=aq=aE=aB=false;if(r[aO]){aB=!!++aK;aF=p[aO]}else{if(aO===l&&aj(aK+1)===O&&(aK+=2)){while(++aK<aI&&aj(aK)!==l||aj(aK-1)!==O){}aB=!++aK}else{if(aO===l&&aj(aK+1)===l){while(++aK<aI&&!G[aj(aK)]){}aB=false}else{if(L[aO]&&(aD=aO)&&aF&&!(aF=!(aB=aC.charAt(aK)))){while(++aK<aI&&(aO=aj(aK))!==aD||aP){aP=!aP&&aO===j}while(++aK<aI&&h[aj(aK)]){}aB=true}else{if(aO===Q&&w[aj(aK+1)]){while(++aK<aI&&w[aj(aK)]){}aF=!(aB=true)}else{if(af[aO]&&(aO!==J||R[aj(aK+1)])){while(++aK<aI&&(R[aO=aj(aK)]||(aE^(aE|=aO===J))||(aq^(aq|=I[aO]&&++aK)))){}while(aK<aI&&R[aj(aK)]){++aK}aF=!(aB=true)}else{if(v[aO]&&(aB=aF?"u":"",aF=true)){while(aK<aI&&v[aj(aK)]&&e(ag,aB+aC.charAt(aK))){aB+=aC.charAt(aK++)}aF=!e(ae,aB)}else{while(++aK<aI&&T[aj(aK)]){}aF=e(ag,aB=aC.substring(aw,aK))}}}}}}}if(aK===aw){throw new Error('Caterwaul lex error at "'+aC.substr(aw,40)+'" with leading context "'+aC.substr(aw-40,40)+'" (probably a Caterwaul bug)')}if(aB===false){continue}aB=aB===true?aC.substring(aw,aK):aB==="u;"?";":aB;aB===al?(ar.pop(),al=ar[ar.length-1],ai=ai?ai.p:av,av=null):(e(o,aB)?(ar.push(al=o[aB]),av=ap(aM(new aH(aB))),ai=null):ap(aM(new aH(aB))),e(C,aB)&&an[C[aB]].push(ai||av));aF|=aB===")"&&ai.l&&e(U,ai.l.data)}for(var aK=0,aI=an.length,ax,aR;aR=an[aK],ax=t[aK],aK<aI;++aK){for(var aJ=ax?0:aR.length-1,aA=aR.length,au=ax?1:-1,aG,aQ,ay;ax?aJ<aA:aJ>=0;aJ+=au){if(e(y,aQ=(aG=aR[aJ]).data)){aG._fold_lr()}else{if(e(D,aQ)&&aG.l&&!((ay=aG.l.l)&&e(U,ay.data))&&(aG.l.data==="."||(aG.l.data==="function"&&aG.l.length===2)||!(e(ag,aG.l.data)||e(c,aG.l.data)))){ak.push(aG.l._wrap(aM(new aH(aQ+o[aQ]))).p._fold_r())}else{if(e(F,aQ)){aG._fold_l()}else{if(e(B,aQ)){aG._fold_r()}else{if(e(M,aQ)){aG._fold_lr();var aN=aG[1];aG[1]=aG[0];aG[0]=aN}else{if(e(U,aQ)&&aG.r&&aG.r.data!==":"){for(var ao=0,aL=U[aQ];ao<aL&&aG.r&&!e(f,aG.r.data);++ao){aG._fold_r()}aG.r&&(aG.r.data===";"?aG.push(a):aG._fold_r());if(e(N,aQ)&&N[aQ]===(aG.r&&aG.r.r&&aG.r.r.data)){aG._fold_r().pop()._fold_r()}else{if(e(N,aQ)&&N[aQ]===(aG.r&&aG.r.data)){aG._fold_r()}}}else{if(e(ad,aQ)){aG.r&&aG.r.data!==";"&&aG._fold_r()}}}}}}}}}for(var aK=at.length-1,aR;aK>=0;--aK){(aR=at[aK]).r&&aR._wrap(aM(new aH("i;"))).p._fold_r()}for(var aK=0,aI=ak.length,aR,am;aK<aI;++aK){(am=(aR=ak[aK])[1]=aR[1][0]||a)&&(am.p=aR)}while(ai.p){ai=ai.p}for(var aK=at.length-1,aR;aK>=0;--aK){delete (aR=at[aK]).p,delete aR.l,delete aR.r}return ai};(function(){var ai=ah.parse("var _bindings; return(_expression)"),ak=ah.parse("_variable = _base._variable"),aj=ah.parse("undefined = void(0)");ah.compile=function(aw,ap,av){av=X({gensym_renaming:true},av);var am=X({},this._environment||{},ap||{},aw.bindings()),ar=[aj],au=S("base");for(var ao in am){if(i.call(am,ao)&&ao!=="this"){ar.push(ak.replace({_variable:ao,_base:au}))}}var at=new this.syntax(",",ar).unflatten(),al=ai.replace({_bindings:at,_expression:aw});if(av.gensym_renaming){var an=this.gensym_rename_table(al);for(var ao in am){i.call(am,ao)&&(am[an[ao]||ao]=am[ao])}al=al.replace(an);au=an[au]}try{return(new Function(au,al)).call(am["this"],am)}catch(aq){throw new Error(aq+" while compiling "+al)}};ah.gensym_rename_table=function(av){var at={},aq=[],au=/^gensym_(.*)_\d+_[^_]+_[^_]+$/;av.reach(function(aw){var ax=aw.data;au.test(ax)&&(at[ax]||aq.push(ax));at[ax]=ax.replace(au,"$1")||"anon"});var al={},ar=function(aw){if(!(aw in at)){return aw}var ax=al[aw]||0;while(at[aw+(++ax).toString(36)]){}return aw+(al[aw]=ax).toString(36)};for(var am={},ao=0,an=aq.length,ap;ao<an;++ao){am[ap=aq[ao]]||(at[am[ap]=ar(at[ap])]=true)}return am}})();ah.init=function(aj){var ai=function(am,ak,al){return am.constructor===Function||am.constructor===String?ah.compile(ai.call(ai,ah.parse(am)),ak,al):aj?am.rmap(function(an){return aj.call(ai,an,ak,al)}):am};ai.global=ah;ai.macroexpander=aj;return ai};ah.initializer=d;ah.clone=function(){return z(d(d,b).deglobalize(),function(){for(var ai in ah){this[ai]||(this[ai]=ah[ai])}})};return caterwaul=ah});
 </script>
@@ -290,10 +295,16 @@ caterwaul.words(caterwaul.js())(function(a){a.jquery(caterwaul_function)=caterwa
 // Caterwaul JS web interface | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
+$('#cover .status').text('loading tutorial content');
+
 $(caterwaul.jquery(caterwaul.js_all())(function () {
  var original_html = $('body').html(),
  original_pages = $('#tutorial-page, #sdoc-page'),
  original_styles = $('style, link[rel="stylesheet"]');
+
+ $('#cover .status').text('parsing state');
+
+ setTimeout(function () {
 
 
 
@@ -337,25 +348,29 @@ var shell = given.nothing in
  context = {expand: given.nothing in shell.animate({left: 0, right: 0}, realign),
  collapse: given.nothing in shell.animate({left: 600, right: 50}, realign),
  clear: given.nothing in shell.children('.history').empty() -re- realign() -re- '',
- caterwaul: caterwaul.jquery(caterwaul.js_all()),
+ caterwaul: caterwaul.clone(),
  history: [],
- help: given.nothing in 'available variables:\n' + (context /pairs *['#{x[0]}: #{x[1] && x[1].description || ""}'] /seq).join("\n"),
+
+ help: given.nothing in 'available variables:\n' +
+ (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
+ -where [keys = context /keys -seq -re- it.sort(),
+ pairs = keys *[[x, context[x]]] -seq]).join("\n"),
+
  log: given.thing in log(history_log_for(thing)),
- trace: given.f in caterwaul.tracer(null, given[t, v] in context.log('#{t} = #{v}'))(f),
  it: null}
  -se [it.context = it]
+ -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
  -se [it.context.description = 'variables available to the shell',
  it.expand.description = 'expands the shell',
  it.collapse.description = 'collapses the shell',
  it.clear.description = 'clears old output',
- it.caterwaul.description = 'the caterwaul function that transforms shell input',
+ it.caterwaul.description = 'a copy of the caterwaul global',
+ it.compiler.description = 'the compiler for this shell',
  it.history.description = 'shell input history',
- it.description.description = 'this description message',
- it.log.description = 'logs a value to the shell',
- it.trace.description = 'inserts tracing annotations into a function'],
+ it.log.description = 'logs a value to the shell'],
 
  run_command(c) = log(history_entry_for(c))
- -re- log(history_result_for(context.it = context.caterwaul(c, context))) /rescue [log(history_error_for(context.it = e))],
+ -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
 
  shell_prompt = jquery [div.prompt[prompt, input]]
  -se- setTimeout(realign, 10)
@@ -561,7 +576,7 @@ var shell = given.nothing in
  $('head').append(jquery in title('caterwaul js'));
  $('body').empty().append(page_header, original_pages);
 
- original_styles.appendTo('head')}));
+ original_styles.appendTo('head')}, 0)}));
 
 // Generated by SDoc 
 
@@ -641,7 +656,7 @@ a {text-decoration: none}
 #sdoc-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
 #sdoc-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
 
-#sdoc-page p {color: #eee; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
+#sdoc-page p {color: #eee; font-family: 'Rosario', sans-serif; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
 
 #sdoc-page pre.code {border: solid 1px #333; color: white; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; padding: 4px; background: black; white-space: pre; word-wrap: none}
 #sdoc-page pre.code {line-height: 1.8em}
@@ -751,7 +766,8 @@ meta::bootstrap('initialization', <<'__');
 # Run perldoc on this file for documentation.
 
 # For the benefit of HTML viewers:
-# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+# >><div id='cover' style='position: absolute; z-index: 1; left: 0; top: 0; width: 10000px; height: 10000px; background: #111; font-family: sans-serif; color: #888; padding-left: 100px; padding-top: 100px'><span style='color: #fa4'>[</span> <span class='status'>loading</span> <span style='color: #fa4'>]</span></div>
+
 
 $|++;
 
@@ -828,6 +844,10 @@ meta::data('bootstrap.html.sdoc', <<'__');
 - html << end
   - head << end
     - script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js'
+    - script << end
+      $('#cover .status').text('compiling caterwaul');
+    - end
+
     - script-include build/caterwaul.min.js
     - script-include build/caterwaul.std.min.js
     - script-include build/caterwaul.ui.min.js
@@ -895,6 +915,23 @@ __
 meta::function('build-bootstrap-html', <<'__');
 # This is called automatically prior to saving.
 associate('bootstrap::html', retrieve('pp::data::bootstrap.html.sdoc'));
+
+# Long story about why we're corrupting the HTML this way, but basically it has
+# to do with giving the user a nicer experience as the page is loading.
+my $initialization = retrieve('bootstrap::initialization');
+my $new_div = <<EOF;
+>>&lt;div id='cover' style='position: absolute; z-index: 1; left: 0; top: 0; width: 10000px; height: 10000px; background: #111; font-family: sans-serif; color: #888; padding-left: 100px; padding-top: 100px'>
+  <span style='color: #fa4'>[</span> <span class='status'>loading</span> <span style='color: #fa4'>]</span>
+</div>
+EOF
+
+$new_div =~ s/\n\s*//mg;
+$new_div =~ s/&lt;/</g;
+
+$initialization =~ s/^# <div.*?<\/div>$/# $new_div/smg;
+
+associate('bootstrap::initialization', $initialization);
+
 __
 meta::function('cat', 'join "\\n", retrieve(@_);');
 meta::function('cc', <<'__');
@@ -1590,7 +1627,10 @@ minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.js", @extensions;
 
 __
 meta::hook('after-render::tools', 'file::write(\'build/tools/precompile.js\', retrieve(\'pp::js::tools/precompile\'), mkpath => 1);');
-meta::hook('before-save::bootstrap.html', '&{\'build-bootstrap-html\'}();');
+meta::hook('before-save::bootstrap.html', <<'__');
+build_bootstrap_html();
+
+__
 meta::hook('before-save::remove-lwp-dependency', <<'__');
 associate($_, '# This function has been removed to eliminate dependency on LWP::Simple.') for qw/function::dupdate retriever::http/;
 
@@ -2628,7 +2668,7 @@ This is optimized for long lines and lots of text.
 #sdoc-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
 #sdoc-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
 
-#sdoc-page p {color: #eee; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
+#sdoc-page p {color: #eee; font-family: 'Rosario', sans-serif; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
 
 #sdoc-page pre.code {border: solid 1px #333; color: white; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; padding: 4px; background: black; white-space: pre; word-wrap: none}
 #sdoc-page pre.code {line-height: 1.8em}
@@ -4378,10 +4418,16 @@ meta::sdoc('js::web/main', <<'__');
 Caterwaul JS web interface | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+$('#cover .status').text('loading tutorial content');
+
 $(caterwaul.jquery(caterwaul.js_all())(function () {
   var original_html     = $('body').html(),
       original_pages    = $('#tutorial-page, #sdoc-page'),
       original_styles   = $('style, link[rel="stylesheet"]');
+
+  $('#cover .status').text('parsing state');
+
+  setTimeout(function () {
 
   - pinclude pp::js::web/header
   - pinclude pp::js::web/shell
@@ -4396,7 +4442,7 @@ $(caterwaul.jquery(caterwaul.js_all())(function () {
   $('head').append(jquery in title('caterwaul js'));
   $('body').empty().append(page_header, original_pages);
 
-  original_styles.appendTo('head')}));
+  original_styles.appendTo('head')}, 0)}));
 
 __
 meta::sdoc('js::web/render-tutorial', <<'__');
@@ -4496,25 +4542,29 @@ var shell = given.nothing in
                     context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
                                              collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
                                              clear:     given.nothing in shell.children('.history').empty() -re- realign() -re- '',
-                                             caterwaul: caterwaul.jquery(caterwaul.js_all()),
+                                             caterwaul: caterwaul.clone(),
                                              history:   [],
-                                             help:      given.nothing in 'available variables:\n' + (context /pairs *['#{x[0]}: #{x[1] && x[1].description || ""}'] /seq).join("\n"),
+
+                                             help:      given.nothing in 'available variables:\n' +
+                                                                         (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
+                                                                          -where [keys  = context /keys -seq -re- it.sort(),
+                                                                                  pairs = keys *[[x, context[x]]] -seq]).join("\n"),
+
                                              log:       given.thing   in log(history_log_for(thing)),
-                                             trace:     given.f       in caterwaul.tracer(null, given[t, v] in context.log('#{t} = #{v}'))(f),
                                              it:        null}
                                             -se [it.context = it]
-                                            -se [it.context.description     = 'variables available to the shell',
-                                                 it.expand.description      = 'expands the shell',
-                                                 it.collapse.description    = 'collapses the shell',
-                                                 it.clear.description       = 'clears old output',
-                                                 it.caterwaul.description   = 'the caterwaul function that transforms shell input',
-                                                 it.history.description     = 'shell input history',
-                                                 it.description.description = 'this description message',
-                                                 it.log.description         = 'logs a value to the shell',
-                                                 it.trace.description       = 'inserts tracing annotations into a function'],
+                                            -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
+                                            -se [it.context.description   = 'variables available to the shell',
+                                                 it.expand.description    = 'expands the shell',
+                                                 it.collapse.description  = 'collapses the shell',
+                                                 it.clear.description     = 'clears old output',
+                                                 it.caterwaul.description = 'a copy of the caterwaul global',
+                                                 it.compiler.description  = 'the compiler for this shell',
+                                                 it.history.description   = 'shell input history',
+                                                 it.log.description       = 'logs a value to the shell'],
 
                     run_command(c)        = log(history_entry_for(c))
-                                            -re- log(history_result_for(context.it = context.caterwaul(c, context))) /rescue [log(history_error_for(context.it = e))],
+                                            -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
 
                     shell_prompt          = jquery [div.prompt[prompt, input]]
                                             -se- setTimeout(realign, 10)
@@ -4624,6 +4674,58 @@ A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>sh
 
 I've also started writing documentation in a more traditional form, available from <a href='doc/' target='_blank'>the documentation directory</a>. This is a great place to start if you're
 interested in using Caterwaul for production projects.
+
+  Using Caterwaul.
+  Caterwaul is pure Javascript, so you can integrate it into any web page without much effort. For example:
+
+  | <script src='http://caterwauljs.org/build/caterwaul.min.js'></script>
+    <script src='http://caterwauljs.org/build/caterwaul.std.min.js'></script>
+    <script src='http://caterwauljs.org/build/caterwaul.ui.min.js'></script>
+
+  The next step is to configure a compiler instance. Caterwaul provides a framework that you can use to build custom compilers, so this step tells Caterwaul what kind of macros you want to
+  expand. (This could include your own custom macros or third-party extensions.)
+
+  For example, here's how to get a compiler that compiles all of the macros discussed on this page:
+
+  | var compiler = caterwaul.jquery(caterwaul.js_all());
+
+  What we're saying here is "build a compiler with all Javascript core macros, then add jQuery support." A compiler is a function that recompiles any function you give it:
+
+  | var compiled = compiler(function () {alert(x) -where [x = 10]});
+
+  Generally you create the compiler inline and use it to transform your app's initialization function:
+
+  | // For jQuery apps:
+    $(caterwaul.jquery(caterwaul.js_all())(function () {
+      $('body').append(jquery in div('hi there!'));
+    }));
+
+  | // For non-jQuery apps, or libraries:
+    caterwaul.js_all()(function () {
+      // app code
+    })();
+
+  Check out <a href='doc/caterwaul-by-example.pdf'>Caterwaul by example</a> for a more detailed discussion about writing apps with Caterwaul.
+
+  Caterwaul in node.js.
+  It's really easy to use Caterwaul with <a href='http://nodejs.org'>node.js</a>. You just need to download <code>caterwaul.node.js</code> and whatever extensions you want to use (I'll assume
+  <code>caterwaul.std.js</code> for the purposes of this example), and concatenate them into one big file. On Mac or Linux the process looks like this:
+
+  | $ curl http://caterwauljs.org/build/caterwaul.{node,std}.js > caterwaul-custom.js
+    $ node
+    > var caterwaul = require('./caterwaul-custom.js').caterwaul;
+    > caterwaul.js_all()('[1, 2, 3] *[x + 1] -seq');
+    [ 2, 3, 4 ]
+    >
+
+  Because Caterwaul recompiles functions, you'll have to explicitly bind <code>require</code> if you want your app to have access to it. This can be done by specifying a hash of variable
+  bindings after the function you're compiling. For example:
+
+  | var main_function = function () {...};
+    caterwaul.js_all()(main_function, {require: require});
+
+  Doing this puts <code>require</code> into the local scope of the compiled function. (Unfortunately, Caterwaul has no way of doing this automatically, since all functions that it constructs
+  are created in the global scope and lexical scopes are not first-class in Javascript.)
 
 Javascript extensions.
 Caterwaul's core macro set starts by extending Javascript syntax in some helpful ways. In particular, it enables quick function assignment and Ruby-style string interpolation:
