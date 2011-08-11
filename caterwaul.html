@@ -928,7 +928,7 @@ EOF
 $new_div =~ s/\n\s*//mg;
 $new_div =~ s/&lt;/</g;
 
-$initialization =~ s/^# <div.*?<\/div>$/# $new_div/smg;
+$initialization =~ s/^# >><div.*?<\/div>$/# $new_div/smg;
 
 associate('bootstrap::initialization', $initialization);
 
