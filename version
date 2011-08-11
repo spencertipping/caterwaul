@@ -7,12 +7,9 @@ if [[ -d stable/$1 ]]; then
 fi
 
 ./caterwaul.html render || return 1
-./caterwaul.html test | tee .test-log
-
-grep 'Error' .test-log && return 1
 
 mkdir -p stable/$1
-cp -r build/* core caterwaul.html stable/$1/
+cp -r build/* caterwaul.html stable/$1/
 
 git add stable/$1
 git commit -am "Automatic commit for version $1"
