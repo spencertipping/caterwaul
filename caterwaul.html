@@ -5123,13 +5123,13 @@ n[1, 11] *[x * x] /seq
 
   Since <code>+</code> is associative it doesn't matter which direction the fold goes. It becomes obvious, however, if we interpolate the values into a string:
 
-  seq in [1, 2, 3] /['[#{x}, #{x0}]']
+  seq in [1, 2, 3] /['[#{x0}, #{x}]']
 
   seq in [1, 2, 3] /!['[#{x}, #{x0}]']
 
-  Notice that for folding we have a new variable <code>x0</code>. There are actually a few variables you have access to depending on what you're doing. Inside any block you'll have
-  <code>x</code>, <code>xi</code> (the current index), and <code>xl</code> (the length of the original sequence). <code>x0</code> is available only when folding. Each of these changes
-  uniformly if you rename the variable; so for instance:
+  Notice that for folding we have a new variable <code>x0</code>, which is available only when folding. <code>x0</code> is always used as the accumulator; that is, the inductive step is
+  <code>x0 = f(x0, x)</code>. There are actually a few variables you have access to depending on what you're doing. Inside any block you'll have <code>x</code>, <code>xi</code> (the current
+  index), and <code>xl</code> (the length of the original sequence). Each of these changes uniformly if you rename the variable; so for instance:
 
   seq in [1, 2, 3] /bar[bar + bar0 + bari + barl]
 
