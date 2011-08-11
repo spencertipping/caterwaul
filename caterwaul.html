@@ -1462,28 +1462,6 @@ meta::function('t', <<'__');
 my @tests = select_keys('--criteria' => "sdoc::js::test/(.*\/)?$_[0]");
 edit($tests[0]);
 __
-meta::function('test', <<'__');
-# Unit tests for caterwaul.
-# In the past this was done differently. It would run node once for each test, which involved a lot of startup overhead and took a while. Now the tests are all run in a single file, so node
-# gets run just once. This should be significantly faster.
-
-my ($options, @args) = separate_options(@_);
-my @tests            = grep s/^sdoc::js::test\//pp::js::test\//, sort keys %data;
-
-terminal::info('running ' . join(' ', @tests));
-my @extensions = qw/std dev ui/;
-
-terminal::info('un-precompiled');
-node(['pp::js::caterwaul', map("pp::js::extensions/$_", @extensions), @tests]) unless $$options{'-N'};
-gjs(['pp::js::caterwaul', map("pp::js::extensions/$_", @extensions), @tests]) if $$options{'-a'};
-
-if ($$options{'-p'}) {
-  terminal::info('with precompiled caterwaul');
-  render();
-  node(['caterwaul.js', map("build/extensions/$_.pre.js", @extensions), @tests]) unless $$options{'-N'};
-  gjs(['caterwaul.js', map("build/extensions/$_.pre.js", @extensions), @tests]) if $$options{'-a'};
-}
-__
 meta::function('testq-pre', <<'__');
 my ($options, @stuff) = separate_options(@_);
 my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*\\.?test");
