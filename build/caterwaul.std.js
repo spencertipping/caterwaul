@@ -503,12 +503,12 @@ caterwaul.words(caterwaul.js())(function ($) {
 
                             binary_operator(op, f)      = rule(anon('S[_xs #{op} _ys]'), f),
 
-                            operator(prefix, op, forms) = [generic(given.m in rule('S[_xs #{pop}#{m}_f]',  'S[_xs #{pop}#{m}[_f(#{args})]]')),
-                                                           generic(given.m in rule('S[_xs #{pop}#{m}~_f]',  e.replace({_body: this(wrap(match._f))})
-                                                                                                            -given.match
-                                                                                                            -where [wrapper = anon('S[_x]'),
-                                                                                                                    wrap(x) = wrapper.replace({_x: x}),
-                                                                                                                    e       = anon('S[_xs #{pop}#{m}_body]')])),
+                            operator(prefix, op, forms) = [generic(given.m in [rule('S[_xs #{pop}#{m}_f]',  'S[_xs #{pop}#{m}[_f(#{args})]]'),
+                                                                               rule('S[_xs #{pop}#{m}~_f]',  e.replace({_body: this(wrap(match._f))})
+                                                                                                             -given.match
+                                                                                                             -where [wrapper = anon('S[_x]'),
+                                                                                                                     wrap(x) = wrapper.replace({_x: x}),
+                                                                                                                     e       = anon('S[_xs #{pop}#{m}_body]')])]),
 
                                                            generic(given.m in rule([anon('S[_xs #{pop}#{m}[_f]'),        anon('S[_xs #{pop}#{m}_var[_f]]')],        forms[m]       || fail)),
                                                            generic(given.m in rule([anon('S[_xs #{pop}#{m}[_init][_f]'), anon('S[_xs #{pop}#{m}_var[_init][_f]]')], forms['i#{m}'] || fail))]
