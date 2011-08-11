@@ -573,6 +573,9 @@ var shell = given.nothing in
 <link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Neuton'>
 
 </link>
+<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Rosario'>
+
+</link>
 
 <style>
 /* Caterwaul JS page style | Spencer Tipping*/
@@ -580,8 +583,7 @@ var shell = given.nothing in
 
 body {font-family: 'Neuton', 'Garamond', serif; background: #111; margin: 0}
 
-a       {color: #aaa; text-decoration: none}
-a:hover {color: #fa4}
+a {text-decoration: none}
 
 .header * {background: rgba(17, 17, 17, 0.5)}
 
@@ -648,6 +650,15 @@ a:hover {color: #fa4}
 /* These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.*/
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
+
+#tutorial-page p {font-family: 'Rosario', sans-serif; font-size: 11pt}
+
+#tutorial-page p a              {color: #888; text-decoration: none}
+#tutorial-page p a:before       {content: '['; color: #444}
+#tutorial-page p a:after        {content: ']'; color: #444}
+#tutorial-page p a:hover        {color: #eee}
+#tutorial-page p a:hover:before {content: '['; color: #fa4}
+#tutorial-page p a:hover:after  {content: ']'; color: #fa4}
 
 #tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
 {color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
@@ -824,6 +835,7 @@ meta::data('bootstrap.html.sdoc', <<'__');
 
     - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'
     - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Neuton'
+    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Rosario'
 
     - style-include pp::data::style.css
   - end
@@ -2580,8 +2592,7 @@ Licensed under the terms of the MIT source code license
 
 body {font-family: 'Neuton', 'Garamond', serif; background: #111; margin: 0}
 
-a       {color: #aaa; text-decoration: none}
-a:hover {color: #fa4}
+a {text-decoration: none}
 
 .header * {background: rgba(17, 17, 17, 0.5)}
 
@@ -2648,6 +2659,15 @@ Tutorial page styling.
 These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
+
+#tutorial-page p {font-family: 'Rosario', sans-serif; font-size: 11pt}
+
+#tutorial-page p a              {color: #888; text-decoration: none}
+#tutorial-page p a:before       {content: '['; color: #444}
+#tutorial-page p a:after        {content: ']'; color: #444}
+#tutorial-page p a:hover        {color: #eee}
+#tutorial-page p a:hover:before {content: '['; color: #fa4}
+#tutorial-page p a:hover:after  {content: ']'; color: #fa4}
 
 #tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
 {color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
@@ -5119,7 +5139,7 @@ In this example, <code>jquery</code> is a modifier that interprets its code as H
   jquery in button['hi']
 
   You will get the undesirable outcome <code>&lt;button class='hi'></button></code> in the generated code on Firefox. As a result you are always better off using <code>()</code> when there is
-  text involved (as long as the text is a literal string, that is). (Alternatively you can precompile your code on a sane platform like V8 and not worry about it.)
+  text involved (as long as the text is a literal string, that is).
 
   Attributes and jQuery data.
   These can be setup by using the <code>*</code> operator. For example:
