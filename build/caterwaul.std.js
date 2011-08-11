@@ -456,6 +456,23 @@
 //   The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
 //   context, since it is unclear what the intent would be.
 
+//   Scope wrapping.
+//   Normally sequences use thin compilation; that is, the body of each sequence element is inserted directly into a for-loop. This increases performance by eliminating a function call, but it
+//   has the usual caveats about variable sharing. For instance:
+
+//   | fs = [1, 2, 3] *[delay in x] -seq
+//     fs[0]()                     -> 3  (counterintuitive)
+//     fs[1]()                     -> 3  (counterintuitive)
+//     fs[2]()                     -> 3  (expected)
+
+//   The problem is that all three closures get the same value of 'x', which is a single lexically-scoped variable. To fix this, caterwaul 1.1 introduces the unary + modifier on blocks. This
+//   wraps them in a closure to give each iteration its own lexical scope:
+
+//   | fs = [1, 2, 3] *+[delay in x] -seq
+//     fs[0]()                     -> 1
+//     fs[1]()                     -> 2
+//     fs[2]()                     -> 3
+
 //   Numbers.
 //   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macro
 //   available is n[], which generates finite sequences of evenly-spaced numbers:
@@ -505,20 +522,35 @@ caterwaul.words(caterwaul.js())(function ($) {
 
                             binary_operator(op, f)      = rule(anon('S[_xs #{op} _ys]'), f),
 
+                            seq_wrapper                 = anon('S[_x]'),
+                            fail                        = anon('(function () {throw new Error("undefined sequence form")})()'),
+                            variables_with_x0           = anon('_x, _x0, _xi, _xl'),
+                            variables_without_x0        = anon('_x, _xi, _xl'),
+                            function_frame              = anon('(function (_vars) {return _f}).call(this, _vars)'),
+
                             operator(prefix, op, forms) = [generic(given.m in [rule('S[_xs #{pop}#{m}_f]',  'S[_xs #{pop}#{m}[_f(#{args})]]'),
                                                                                rule('S[_xs #{pop}#{m}~_f]',  e.replace({_body: this(wrap(match._f))}).replace(match)
                                                                                                              -given.match
-                                                                                                             -where [wrapper = anon('S[_x]'),
-                                                                                                                     wrap(x) = wrapper.replace({_x: x}),
+                                                                                                             -where [wrap(x) = seq_wrapper.replace({_x: x}),
                                                                                                                      e       = anon('S[_xs #{pop}#{m}_body]')])]),
+
+                                                           generic(given.m in rule(from, to.replace({_f: function_frame.replace({_vars: vars.replace(prefixed_hash(match._var))})}).
+                                                                                                                        replace(match) -given.match)
+                                                                              -where [from = anon('S[_xs #{pop}#{m}+[_f]]'),
+                                                                                      to   = anon('S[_xs #{pop}#{m}[_f]]')]),
+
+                                                           generic(given.m in rule(from, to.replace({_f: function_frame.replace({_vars: vars.replace(prefixed_hash(match._var))})}).
+                                                                                                                        replace(match) -given.match)
+                                                                              -where [from = anon('S[_xs #{pop}#{m}+_var[_f]]'),
+                                                                                      to   = anon('S[_xs #{pop}#{m}_var[_f]]')]),
 
                                                            generic(given.m in rule([anon('S[_xs #{pop}#{m}[_f]'),        anon('S[_xs #{pop}#{m}_var[_f]]')],        forms[m]       || fail)),
                                                            generic(given.m in rule([anon('S[_xs #{pop}#{m}[_init][_f]'), anon('S[_xs #{pop}#{m}_var[_init][_f]]')], forms['i#{m}'] || fail))]
 
                               -where [generic(f) = [f(''), f('!'), f('~!')],
-                                      fail       = anon('(function () {throw new Error("undefined sequence form")})()'),
-                                      pop        = (prefix && '%#{prefix}') + op,
-                                      args       = uses_x0[op] ? 'x, x0' : 'x']]
+                                      vars       = uses_x0[op] ? variables_with_x0 : variables_without_x0,
+                                      args       = uses_x0[op] ? 'x, x0' : 'x',
+                                      pop        = (prefix && '%#{prefix}') + op]]
 
                     -where [loop_anon        = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
                             loop_form(x)     = loop_anon(scoped(anon(x))),
