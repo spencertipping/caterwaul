@@ -499,14 +499,14 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                 'i': ifoldl,  'i!': ifoldr}),
 
                             operator('k', '*', {'':  kmap,    '!':  keach}),                           operator('v', '*', {'': vmap,    '!': veach}),
-                            operator('k', '%', {'':  kfilter, '!':  kfilter_not, '~1': kmap_filter}),  operator('v', '%', {'': vfilter, '!': vfilter_not, '~!': vmap_filter})]
+                            operator('k', '%', {'':  kfilter, '!':  kfilter_not, '~!': kmap_filter}),  operator('v', '%', {'': vfilter, '!': vfilter_not, '~!': vmap_filter})]
 
                     -where [uses_x0 = {'/': true},
 
                             binary_operator(op, f)      = rule(anon('S[_xs #{op} _ys]'), f),
 
                             operator(prefix, op, forms) = [generic(given.m in [rule('S[_xs #{pop}#{m}_f]',  'S[_xs #{pop}#{m}[_f(#{args})]]'),
-                                                                               rule('S[_xs #{pop}#{m}~_f]',  e.replace({_body: this(wrap(match._f))})
+                                                                               rule('S[_xs #{pop}#{m}~_f]',  e.replace({_body: this(wrap(match._f))}).replace(match)
                                                                                                              -given.match
                                                                                                              -where [wrapper = anon('S[_x]'),
                                                                                                                      wrap(x) = wrapper.replace({_x: x}),
@@ -537,7 +537,7 @@ caterwaul.words(caterwaul.js())(function ($) {
                             map_filter  = op_form('for (var ys = [], _xi = 0, _xl = xs.length, _x, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys'),
 
                             foldl       = op_form('for (var _x0 = xs[0], _xi = 1, _xl = xs.length, _x;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
-                            foldr       = op_form('for (var _xl = xs.length - 1, _xi = _xl - 1, _x0 = xs[_xi], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
+                            foldr       = op_form('for (var _xl = xs.length, _xi = _xl - 2, _x0 = xs[_xl - 1], _x; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
                             unfold      = op_form('for (var ys = [], _x = xs, _xi = 0;                          _x !== null; ++_xi) ys.push(_x), _x = (_f);                       return ys'),
 
                             ifoldl      = op_form('for (var _x0 = (_init), _xi = 0, _xl = xs.length, _x;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                         return _x0'),
