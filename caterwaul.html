@@ -567,7 +567,7 @@ var shell = given.nothing in
 /* Caterwaul JS page style | Spencer Tipping*/
 /* Licensed under the terms of the MIT source code license*/
 
-body {font-family: sans-serif; background: white; margin: 0}
+body {position: relative; font-family: sans-serif; background: #eee; margin: 0; max-width: 900px}
 
 .identify {background: #752 !important}
 
@@ -1458,7 +1458,7 @@ __
 meta::hook('after-render::tools', 'file::write(\'build/tools/precompile.js\', retrieve(\'pp::js::tools/precompile\'), mkpath => 1);');
 meta::hook('before-save::bootstrap.html', '&{\'build-bootstrap-html\'}();');
 meta::hook('before-save::remove-lwp-dependency', <<'__');
-associate('function::dupdate', '# This function has been removed to eliminate dependency on LWP::Simple.');
+associate($_, '# This function has been removed to eliminate dependency on LWP::Simple.') for qw/function::dupdate retriever::http/;
 
 __
 meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
@@ -1814,7 +1814,7 @@ sub repl {
   my $attribs = $term->Attribs;
   $attribs->{completion_entry_function} = $attribs->{list_completion_function};
 
-  my $autocomplete = $options{autocomplete} || sub {[sort keys %data, sort keys %externalized_functions]};
+  my $autocomplete = $options{autocomplete} || sub {[sort(keys %data), grep !/-/, sort keys %externalized_functions]};
   my $prompt       = $options{prompt}       || \&prompt;
   my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
   my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
@@ -2084,7 +2084,7 @@ function::sdoc                           4d33dcf625897e463bb30fc91cb94339
 function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
-parent::/home/spencertipping/bin/object  568b124735b8f6cd6d6f61add0bb9bad
+parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
@@ -2092,7 +2092,7 @@ retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 __
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                7f5ba514d47ac29a3c226d0e331d9da4
-parent::/home/spencertipping/bin/object  568b124735b8f6cd6d6f61add0bb9bad
+parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::parent('/home/spencertipping/bin/node-base', <<'__');
@@ -2197,7 +2197,7 @@ internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          378715d20a4a87ee305dd2c3cff1b588
+library::shell                          2c5e6663a8f672e2242a7d3ea3276f09
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -2229,7 +2229,7 @@ __
 meta::parent('/home/spencertipping/bin/repository', <<'__');
 function::dupdate                               3203750417390913ae3892002b53bdc1
 meta::type::cached_dependency                   b9dc0b20c2d3af0deb3b835b20cac4a7
-parent::/home/spencertipping/bin/configuration  b5b7f51f30521904843ecdd3ac7194fb
+parent::/home/spencertipping/bin/configuration  6f3e18f610849f59cc500d1b9d9d4db0
 retriever::http                                 a23617a5787de41d1a89ad4496cacce3
 
 __
@@ -2238,7 +2238,7 @@ function::sdoc                           4d33dcf625897e463bb30fc91cb94339
 function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
-parent::/home/spencertipping/bin/object  568b124735b8f6cd6d6f61add0bb9bad
+parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
@@ -2248,7 +2248,7 @@ meta::parent('notes', <<'__');
 function::note    5e2737593e8d13fc43bb10e97603e53a
 function::notes   7229b326ac8686b2db6de98496bc7527
 meta::type::note  f81bea58841a438e4ee34608ab4f54c0
-parent::object    568b124735b8f6cd6d6f61add0bb9bad
+parent::object    97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::parent('object', <<'__');
@@ -2338,7 +2338,7 @@ internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          378715d20a4a87ee305dd2c3cff1b588
+library::shell                          2c5e6663a8f672e2242a7d3ea3276f09
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -2370,7 +2370,7 @@ __
 meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 568b124735b8f6cd6d6f61add0bb9bad
+parent::object                 97acda5f35b8f6cd6d6f61ad515f0d3e
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
@@ -2383,14 +2383,14 @@ meta::parent('todo', <<'__');
 function::parse-todo      c8247ece4f8ea189cd6523b0f94c7247
 function::todo-summary    1c986ec8c6efd4dfae2d3ba5e7ca64f2
 meta::type::todo          143fa39e155c81f4186aa53a947296ec
-parent::./sdoc            d504d844a950c8ced3002334f504531d
-parent::vim-highlighters  097470a72a1beb0416d40f752cab1f2e
+parent::./sdoc            f938653251b89b98cbcc26c713a2dae7
+parent::vim-highlighters  5fa3c2b07b5c5457e50a07680a8da8a1
 
 __
 meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
 meta::type::vim_highlighter  11a2d74eca3445ee1b7887a6f6370462
-parent::object               568b124735b8f6cd6d6f61add0bb9bad
+parent::object               97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::retriever('crunch', <<'__');
@@ -2406,12 +2406,7 @@ return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute}
 sdoc_html($attribute);
 
 __
-meta::retriever('http', <<'__');
-use LWP::Simple ();
-return undef unless $_[0] =~ /^(?:http:)?\/\/(\w+.*)$/;
-LWP::Simple::get("http://$1");
-
-__
+meta::retriever('http', '# This function has been removed to eliminate dependency on LWP::Simple.');
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('object', <<'__');
 # Fetch a property from another Perl object. This uses the 'cat' function.
@@ -2439,7 +2434,7 @@ meta::sdoc('data::style.css', <<'__');
 Caterwaul JS page style | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-body {font-family: sans-serif; background: white; margin: 0}
+body {position: relative; font-family: sans-serif; background: #eee; margin: 0; max-width: 900px}
 
 .identify {background: #752 !important}
 
