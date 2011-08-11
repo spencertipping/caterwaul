@@ -42,7 +42,7 @@
   <head>
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
   <script src='http://caterwauljs.org/build/caterwaul.js'></script>
-  <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.std.js'></script>
   <script src='primes.js'></script>
   </head>
   <body></body>
@@ -108,7 +108,7 @@ $(caterwaul.js_all()(function () {
   $('body').append(primes.join(', '))
   -where [
     composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq,
-    primes       = n[2, 10000] %[! composite(x)] -seq];
+    primes       = n[2, 10000] %!composite -seq];
 })); \end{resourcecode}
 
     This code probably looks like voodoo, but it's actually not that complicated. There are two things happening here that aren't in regular Javascript. First, the {\tt where[]} construct
@@ -178,11 +178,12 @@ composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq
     The other use of {\tt seq} is to retrieve all numbers that are not composite:
 
 \begin{verbatim}
-primes = n[2, 10000] %[! composite(x)] -seq
+primes = n[2, 10000] %!composite -seq
 \end{verbatim}
 
-    {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. I'm using a
-    higher-precedence prefix for {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
+    {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. The filter prefix is
+    \verb|%|, and the \verb|!| modifier negates the condition. Because there's already a function defined, I use that instead of writing out a block. I'm using a higher-precedence prefix for
+    {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
 
 \chapter{Quicksort}\label{sec:quicksort}
   Every self-respecting functional language author must illustrate how to write an inefficient quicksort that conses up tons of memory. A trivial quicksort in Caterwaul looks like this:
@@ -223,8 +224,8 @@ initialize = caterwaul.js_all()(function () {...});
   <head>
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
   <script src='http://caterwauljs.org/build/caterwaul.js'></script>
-  <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
-  <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.std.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.ui.js'></script>
   <script src='http://spencertipping.com/caterwaul-futures/future.js'></script>
   <script src='quicksort.js'></script>
   <script>$(initialize)</script>
