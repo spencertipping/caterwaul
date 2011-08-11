@@ -4994,8 +4994,8 @@ The <code>structure</code> method gives you a string containing the syntax tree 
 
   qse in noexpand [x -given.x]
 
-  Similar to <code>noexpand</code> is <code>reexpand</code>, which tells Caterwaul to re-expand the output of the first macroexpansion. Normally you don't need to use this because most macros
-  require only the initial expansion, though there is a use case that involves operator overloading (discussed below).
+  Similar to <code>noexpand</code> is <code>reexpand</code>, which tells Caterwaul to re-expand the output of the first macroexpansion. Normally you don't need to use this because all of the
+  standard macros re-expand their output automatically and therefore require only the initial expansion.
 
   Other modifiers.
   There are a few more modifiers that I threw in to the standard library to make some edge cases easier:
