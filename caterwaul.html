@@ -372,8 +372,9 @@ var shell = given.nothing in
  run_command(c) = log(history_entry_for(c))
  -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
 
- shell_prompt = jquery [div.prompt[prompt, input]]
+ shell_prompt = jquery [div.prompt[prompt, input, shadow]]
  -se- setTimeout(realign, 10)
+ -se- setInterval(update_shadow, 10)
 
  -se- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
 
@@ -384,6 +385,14 @@ var shell = given.nothing in
 
  -where [input = jquery in input.input,
  prompt = jquery in span.accent('&gt;'),
+ shadow = jquery in div.shadow,
+
+ last_shadow_text = null,
+ rename_gensyms_in(t) = t.replace(context.caterwaul.gensym_rename_table(t)),
+ update_shadow() = shadow.text(context.compiler(context.caterwaul.parse(last_shadow_text = input.val()))
+ -re- rename_gensyms_in(it).toString()
+ -rescue- e.toString())
+ -unless [input.val() === last_shadow_text],
 
  h_index = 0,
  history_prev() = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[--h_index]) -when [h_index > 0]
@@ -749,6 +758,9 @@ a {text-decoration: none}
 #tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
 
 #tutorial-page .shell .prompt > span {margin: 4px}
+
+#tutorial-page .shell .shadow {color: #888; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .shadow:before {color: #752; content: '>'}
 
 #tutorial-page .shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
 #tutorial-page .shell .input {font-size: 10pt; background: transparent; color: white}
@@ -2767,6 +2779,9 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page .shell .prompt > span {margin: 4px}
 
+#tutorial-page .shell .shadow {color: #888; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .shadow:before {color: #752; content: '>'}
+
 #tutorial-page .shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
 #tutorial-page .shell .input {font-size: 10pt; background: transparent; color: white}
 
@@ -4714,8 +4729,9 @@ var shell = given.nothing in
                     run_command(c)        = log(history_entry_for(c))
                                             -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
 
-                    shell_prompt          = jquery [div.prompt[prompt, input]]
+                    shell_prompt          = jquery [div.prompt[prompt, input, shadow]]
                                             -se- setTimeout(realign, 10)
+                                            -se- setInterval(update_shadow, 10)
 
                                             -se- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
 
@@ -4724,22 +4740,30 @@ var shell = given.nothing in
                                                                                             history_next() /se [e.preventDefault()] /when [e.which === 40] ||
                                                                                             run_it()       /se [e.preventDefault()] /when [e.which === 13] || true] -given.e), 0)
 
-                                            -where [input           = jquery in input.input,
-                                                    prompt          = jquery in span.accent('&gt;'),
+                                            -where [input                = jquery in input.input,
+                                                    prompt               = jquery in span.accent('&gt;'),
+                                                    shadow               = jquery in div.shadow,
 
-                                                    h_index         = 0,
-                                                    history_prev()  = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[--h_index]) -when [h_index > 0]
-                                                                      -where [h = context.history],
+                                                    last_shadow_text     = null,
+                                                    rename_gensyms_in(t) = t.replace(context.caterwaul.gensym_rename_table(t)),
+                                                    update_shadow()      = shadow.text(context.compiler(context.caterwaul.parse(last_shadow_text = input.val()))
+                                                                                       -re- rename_gensyms_in(it).toString()
+                                                                                       -rescue- e.toString())
+                                                                           -unless [input.val() === last_shadow_text],
 
-                                                    history_next()  = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[++h_index]) -when [h_index < history_n]
-                                                                      -where [h = context.history],
+                                                    h_index              = 0,
+                                                    history_prev()       = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[--h_index]) -when [h_index > 0]
+                                                                           -where [h = context.history],
 
-                                                    history_add(s)  = history_n = h_index = context.history.push(s),
+                                                    history_next()       = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[++h_index]) -when [h_index < history_n]
+                                                                           -where [h = context.history],
 
-                                                    scroll_to_end() = setTimeout(shell.scrollTop(shell.children(':last') -re [shell.scrollTop() + it.position().top + it.height()])
-                                                                                 -given.nothing, 0),
+                                                    history_add(s)       = history_n = h_index = context.history.push(s),
 
-                                                    run_it()        = history_add(t) -re- run_command(t) -re- input.val('') -re- scroll_to_end() -when.t -where [t = input.val()]]];
+                                                    scroll_to_end()      = setTimeout(shell.scrollTop(shell.children(':last') -re [shell.scrollTop() + it.position().top + it.height()])
+                                                                                      -given.nothing, 0),
+
+                                                    run_it()             = history_add(t) -re- run_command(t) -re- input.val('') -re- scroll_to_end() -when.t -where [t = input.val()]]];
 
 __
 meta::sdoc('js::web/source', <<'__');
@@ -4953,14 +4977,10 @@ The <code>structure</code> method gives you a string containing the syntax tree 
       <li>The <code>[]</code> operator. This starts the precedence hierarchy over by using explicit grouping. For example, <code>where[x = 10][log(x)]</code>.</li></ol>
 
   Conditional modifiers.
-  <code>when</code> is one of the five conditional modifiers you can use. The others are <code>unless</code>, <code>otherwise</code>, <code>when_defined</code>, and
-  <code>unless_defined</code>. The semantics and return values are:
+  <code>when</code> and <code>unless</code> are used to make conditionals more flexible. The semantics and return values are:
 
   | x -when- y           -> y && x
     x -unless- y         -> !y && x
-    x -otherwise- y      -> x || y
-    x -when_defined- y   -> y != null && x
-    x -unless_defined- y -> y == null && x
 
   Binding modifiers.
   These let you define locally-scoped variables. There is in fact only one such modifier, <code>where</code>:
