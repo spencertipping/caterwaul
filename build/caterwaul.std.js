@@ -507,74 +507,81 @@ caterwaul.words(caterwaul.js())(function ($) {
          operator_macros = [rule('S[_x]', '_x'),  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][S[_y]]'),  rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),
                                                   rule('S[[_x]]', '[S[_x]]'),  rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs - _ys]', cross),
 
-                                                  rule('S[_xs %_thing]', handle_filter_forms),  rule('S[_xs %k*_thing]', handle_kmap_forms),
-                                                  rule('S[_xs *_thing]', handle_map_forms),     rule('S[_xs %k%_thing]', handle_kfilter_forms),
-                                                  rule('S[_xs /_thing]', handle_fold_forms),
-                                                                                                rule('S[_xs %v*_thing]', handle_vmap_forms),
-                                                  rule('S[_xs |_thing]', handle_exists_forms),  rule('S[_xs %v%_thing]', handle_vfilter_forms)]
+                                                  rule('S[_xs %_thing]',   handle_filter_forms),   rule('S[_xs *_thing]',   handle_map_forms),
+                                                  rule('S[_xs /_thing]',   handle_fold_forms),     rule('S[_xs |_thing]',   handle_exists_forms),
+
+                                                  rule('S[_xs %k*_thing]', handle_kmap_forms),     rule('S[_xs %v*_thing]', handle_vmap_forms),
+                                                  rule('S[_xs %k%_thing]', handle_kfilter_forms),  rule('S[_xs %v%_thing]', handle_vfilter_forms)]
 
                     -where [// High-level form specializations
-                            unrecognized(reason)()               = anon('(function () {throw new Error("#{reason}")})()'),
-                            use_form(form, xs, body, init, vars) = form ? form.replace({_f: body, _init: init, _xs: xs, _x: vars._x, _x0: vars._x0, _xi: vars._xi, _xl: vars._xl}) :
-                                                                          unrecognized('unsupported sequence operator or modifiers used on #{body}'),
+                            unrecognized(reason)()                 = anon('(function () {throw new Error("#{reason}")})()'),
+                            use_form(form, xs, body, init, vars)   = form ? form.replace({_f: body, _init: init}).replace($.merge({_xs: xs}, vars)) :
+                                                                            unrecognized('unsupported sequence operator or modifiers used on #{body}'),
 
-                            operator_case(forms)(match)          = parse_modifiers(match._thing,
-                                                                                   use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
+                            operator_case(forms)(match)            = parse_modifiers(match._thing,
+                                                                                     use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
 
-                                                                   -where [xs                               = match._xs,
-                                                                           expander                         = this,
-                                                                           form_function(body, vars)        = use_form(form, xs, body, null, vars),
-                                                                           iform_function(body, init, vars) = use_form(form, xs, body, init, vars),
-                                                                           use(form, iform)(body)       = parse_body(body, expander, form_function, iform_function)],
+                                                                     -where [xs                                     = match._xs,
+                                                                             expander                               = this,
+                                                                             form_function(form)(body, vars)        = use_form(form, xs, body, null, vars),
+                                                                             iform_function(form)(body, init, vars) = use_form(form, xs, body, init, vars),
+                                                                             use(form, iform)(body)                 = parse_body(body, expander, form_function(form), iform_function(iform))],
 
-                            handle_map_forms                     = operator_case({normal: map,     bang: each,        tbang: flatmap}),
-                            handle_filter_forms                  = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter}),
-                            handle_fold_forms                    = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl,  ibang: ifoldr}),
+                            handle_map_forms                       = operator_case({normal: map,     bang: each,        tbang: flatmap}),
+                            handle_filter_forms                    = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter}),
+                            handle_fold_forms                      = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl,  ibang: ifoldr}),
 
-                            handle_kmap_forms                    = operator_case({normal: kmap,    bang: keach}),
-                            handle_kfilter_forms                 = operator_case({normal: kfilter, bang: kfilter_not}),
-                            handle_vmap_forms                    = operator_case({normal: vmap,    bang: veach}),
-                            handle_vfilter_forms                 = operator_case({normal: vfilter, bang: vfilter_not}),
+                            handle_kmap_forms                      = operator_case({normal: kmap,    bang: keach}),
+                            handle_kfilter_forms                   = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
+                            handle_vmap_forms                      = operator_case({normal: vmap,    bang: veach}),
+                            handle_vfilter_forms                   = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
 
-                            handle_exists_forms                  = operator_case({normal: exists}),
+                            handle_exists_forms                    = operator_case({normal: exists}),
 
                             // Body parsing
-                            block               = anon('[_x]'),
-                            block_with_init     = anon('[_init][_x]'),
-                            block_with_variable = anon('_var[_x]'),
-                            block_with_closure  = anon('+_x'),
-                            block_with_seq      = anon('~_x'),
+                            block                                  = anon('[_x]'),
+                            block_with_variable                    = anon('_var[_x]'),
+                            block_with_init                        = anon('[_init][_x]'),
+                            block_with_variable_and_init           = anon('_var[_init][_x]'),
 
-                            standard_names      = {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl'},
-                            prefixed_names(p)   = {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l'},
+                            block_with_closure                     = anon('+_x'),
+                            block_with_seq                         = anon('~_x'),
 
-                            function_promotion  = anon('_f(_x, _x0, _xi, _xl)'),
-                            promote_function(f) = function_promotion.replace({_f: f}),
+                            standard_names                         = {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl'},
+                            prefixed_names(p)                      = {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l'},
 
-                            closure_wrapper     = anon('(function (_x, _x0, _xi, _xl) {return _f}).call(this, _x, _x0, _xi, _xl)'),
-                            close_body(f)       = closure_wrapper.replace({_f: f}),
+                            function_promotion                     = anon('_f(_x, _x0, _xi, _xl)'),
+                            promote_function(f)                    = function_promotion.replace({_f: f}),
 
-                            parse_body(tree, expand, normal, init) = ((r = block_with_seq.match(tree))      ? parse_body(expand.call(expand, r._x), expand, normal, init) :
-                                                                      (r = block_with_closure.match(tree))  ? parse_body(r._x, expand, wrapping_normal,         wrapping_init) :
-                                                                      (r = block_with_variable.match(tree)) ? parse_body(r._x, expand, renaming_normal(r._var), renaming_init(r._var)) :
+                            closure_wrapper                        = anon('(function (_x, _x0, _xi, _xl) {return _f}).call(this, _x, _x0, _xi, _xl)'),
+                            close_body(vars, f)                    = closure_wrapper.replace(vars).replace({_f: f}),
 
-                                                                      (r = block_with_init.match(tree))     ? init(r._x, r._init, standard_names) :
-                                                                      (r = block.match(tree))               ? normal(r._x, standard_names) :
-                                                                                                              normal(promote_function(r._x), standard_names))
+                            seq_pattern                            = anon('S[_x]'),
+                            promote_seq(f)                         = seq_pattern.replace({_x: f}),
 
-                                                                     -where [wrapping_normal(f, names)           = normal(close_body(f), names),
-                                                                             wrapping_init(f, init, names)       = init(close_body(f), init, names),
+                            parse_body(tree, expand, normal, init) = ((r = block_with_seq.match(tree))               ? parse_body(r._x, expand, sequence_context_normal, init) :
+                                                                      (r = block_with_closure.match(tree))           ? parse_body(r._x, expand, wrapping_normal, wrapping_init) :
 
-                                                                             renaming_normal(vars)(f, names)     = normal(f, vars),
-                                                                             renaming_init(vars)(f, init, names) = init(f, init, vars),
+                                                                      (r = block_with_variable_and_init.match(tree)) ? init(r._x, r._init, prefixed_names(r._var)) :
+                                                                      (r = block_with_init.match(tree))              ? init(r._x, r._init, standard_names) :
 
-                                                                             r                                   = null],
+                                                                      (r = block_with_variable.match(tree))          ? normal(r._x, prefixed_names(r._var)) :
+                                                                      (r = block.match(tree))                        ? normal(r._x, standard_names) :
+                                                                                                                       normal(promote_function(tree), standard_names))
+
+                                                                     -where [in_sequence_context(f)                   = expand.call(expand, promote_seq(f)),
+                                                                             sequence_context_normal(f, names)        = normal(in_sequence_context(f), names),
+
+                                                                             wrapping_normal(f, names)                = normal(close_body(names, f), names),
+                                                                             wrapping_init(f, init_expression, names) = init  (close_body(names, f), init_expression, names),
+
+                                                                             r                                        = null],
                             // Modifier parsing
                             tbang_modifier = anon('~!_x'),
                             bang_modifier  = anon('!_x'),
 
                             parse_modifiers(tree, normal, bang, tbang) = ((result = tbang_modifier.match(tree)) ? tbang(result._x) :
-                                                                          (result =  bang_modifier.match(tree)) ?  bang(result._x) : normal(result._x)) -where [result = null]]
+                                                                          (result =  bang_modifier.match(tree)) ?  bang(result._x) : normal(tree)) -where [result = null]]
 
                     -where [// Setup for form definitions (see below)
                             loop_anon   = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
