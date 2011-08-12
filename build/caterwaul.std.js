@@ -522,7 +522,7 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                   rule('S[_xs %k%_thing]', handle_kfilter_forms),  rule('S[_xs %v%_thing]', handle_vfilter_forms)]
 
                     -where [// High-level form specializations
-                            unrecognized(reason)()                 = anon('(function () {throw new Error("#{reason}")})()'),
+                            unrecognized(reason)                   = raise [new Error(reason)],
                             use_form(form, xs, body, init, vars)   = form ? form.replace({_f: body, _init: init}).replace($.merge({_xs: xs}, vars)) :
                                                                             unrecognized('unsupported sequence operator or modifiers used on #{body}'),
 
