@@ -356,7 +356,7 @@ var shell = given.nothing in
  -where [keys = context /keys -seq -re- it.sort(),
  pairs = keys *[[x, context[x]]] -seq]).join("\n"),
 
- log: given.thing in log(history_log_for(thing)),
+ log: given.thing in log(history_log_for(thing)) -re- thing,
  it: null}
  -se [it.context = it]
  -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
@@ -759,8 +759,9 @@ a {text-decoration: none}
 
 #tutorial-page .shell .prompt > span {margin: 4px}
 
-#tutorial-page .shell .shadow {color: #888; display: block; margin: 4px; padding: 4px 0}
-#tutorial-page .shell .shadow:before {color: #752; content: '>'}
+#tutorial-page .shell .shadow              {color: #888; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .shadow:before       {color: #752; content: '>'; padding-right: 4px}
+#tutorial-page .shell .shadow:hover:before {color: #888; content: 'compiled: '; padding-right: 4px}
 
 #tutorial-page .shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
 #tutorial-page .shell .input {font-size: 10pt; background: transparent; color: white}
@@ -775,6 +776,8 @@ a {text-decoration: none}
 #tutorial-page .shell .history .result {color: #7bf}
 #tutorial-page .shell .history .log    {color: #7fb}
 #tutorial-page .shell .history .error  {color: #f87}
+
+#tutorial-page .shell .history .log:hover:before {color: #888; content: 'log: '}
 
 #tutorial-page .shell .sandbox {font-family: 'Neuton', 'Garamond', serif; background: #222; color: #eee; padding: 10px; margin-top: 4px}
 
@@ -2779,8 +2782,9 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page .shell .prompt > span {margin: 4px}
 
-#tutorial-page .shell .shadow {color: #888; display: block; margin: 4px; padding: 4px 0}
-#tutorial-page .shell .shadow:before {color: #752; content: '>'}
+#tutorial-page .shell .shadow              {color: #888; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .shadow:before       {color: #752; content: '>'; padding-right: 4px}
+#tutorial-page .shell .shadow:hover:before {color: #888; content: 'compiled: '; padding-right: 4px}
 
 #tutorial-page .shell .input {font-family: 'Droid Sans Mono', monospace; padding: 0; margin: 0; border: none !important; outline: none !important}
 #tutorial-page .shell .input {font-size: 10pt; background: transparent; color: white}
@@ -2795,6 +2799,8 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page .shell .history .result {color: #7bf}
 #tutorial-page .shell .history .log    {color: #7fb}
 #tutorial-page .shell .history .error  {color: #f87}
+
+#tutorial-page .shell .history .log:hover:before {color: #888; content: 'log: '}
 
 #tutorial-page .shell .sandbox {font-family: 'Neuton', 'Garamond', serif; background: #222; color: #eee; padding: 10px; margin-top: 4px}
 
@@ -4713,7 +4719,7 @@ var shell = given.nothing in
                                                                           -where [keys  = context /keys -seq -re- it.sort(),
                                                                                   pairs = keys *[[x, context[x]]] -seq]).join("\n"),
 
-                                             log:       given.thing   in log(history_log_for(thing)),
+                                             log:       given.thing   in log(history_log_for(thing)) -re- thing,
                                              it:        null}
                                             -se [it.context = it]
                                             -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
