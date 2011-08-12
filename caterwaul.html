@@ -501,14 +501,17 @@ var shell = given.nothing in
  var attributes = perl_attributes(original_html.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
 
  $('#sdoc-page').append(sections) -where[sdocs = attributes %[x.namespace === 'sdoc' && /^js::/.test(x.attribute)] -seq,
- core = sdocs %[/core\//.test(x.attribute)] -seq,
+ core = sdocs %[/^js::caterwaul/.test(x.attribute)] -seq,
  extension = sdocs %[/extensions\//.test(x.attribute)] -seq,
  web = sdocs %[/web\//.test(x.attribute)] -seq,
 
  back_link = jquery in a.back('Back to tutorial') *href('#tutorial'),
 
- title(a) = jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
+ title(a) = /\//.test(a) ? jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
  span.name[a.replace(/.*\//, '')],
+ span.extension('.js')] :
+
+ jquery [span.name[a.replace(/^js::/, '')],
  span.extension('.js')],
 
  section(x) = jquery [div.file(h1[title(x.attribute)], div.contents)]
@@ -516,9 +519,9 @@ var shell = given.nothing in
  -se- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
  sections = jquery [div *id('annotated') >= back_link >= core_sections >= extension_sections >= web_sections]
- -where [core_sections = $([]) -se- core *~!section *!it.push /seq,
- extension_sections = $([]) -se- extension *~!section *!it.push /seq,
- web_sections = $([]) -se- web *~!section *!it.push /seq]];
+ -where [core_sections = $([]) -se- core *~!section *![it.push(x)] /seq,
+ extension_sections = $([]) -se- extension *~!section *![it.push(x)] /seq,
+ web_sections = $([]) -se- web *~!section *![it.push(x)] /seq]];
 
  setInterval(check_for_destination, 50)
  -where [viewing_annotated_source = false,
@@ -4066,6 +4069,14 @@ Note that ^ has higher precedence than |, so we can use it in a sequence compreh
   The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
   context, since it is unclear what the intent would be.
 
+    Calling convention.
+    All functions you promote will always be called with these arguments, in this order:
+
+    | f(x, x0, xi, xl)
+
+    This may seem strange, since x0 may or may not be defined. I chose this setup to simplify code generation, even if it is a bit redundant. If x0 isn't provided by the current operator, then
+    its value will be undefined.
+
   Scope wrapping.
   Normally sequences use thin compilation; that is, the body of each sequence element is inserted directly into a for-loop. This increases performance by eliminating a function call, but it
   has the usual caveats about variable sharing. For instance:
@@ -4779,24 +4790,27 @@ This is just a matter of finding the right SDoc sources and tying them together.
   var attributes = perl_attributes(original_html.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
 
   $('#sdoc-page').append(sections) -where[sdocs      = attributes %[x.namespace === 'sdoc' && /^js::/.test(x.attribute)] -seq,
-                                          core       = sdocs %[/core\//.test(x.attribute)] -seq,
+                                          core       = sdocs %[/^js::caterwaul/.test(x.attribute)] -seq,
                                           extension  = sdocs %[/extensions\//.test(x.attribute)] -seq,
                                           web        = sdocs %[/web\//.test(x.attribute)] -seq,
 
                                           back_link  = jquery in a.back('Back to tutorial') *href('#tutorial'),
 
-                                          title(a)   = jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
-                                                               span.name[a.replace(/.*\//, '')],
-                                                               span.extension('.js')],
+                                          title(a)   = /\//.test(a) ? jquery [span.path[a.replace(/^js::(.*\/).*/, '$1')],
+                                                                              span.name[a.replace(/.*\//, '')],
+                                                                              span.extension('.js')] :
+
+                                                                      jquery [span.name[a.replace(/^js::/, '')],
+                                                                              span.extension('.js')],
 
                                           section(x) = jquery [div.file(h1[title(x.attribute)], div.contents)]
                                                        -se- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
                                                        -se- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
                                           sections   = jquery [div *id('annotated') >= back_link >= core_sections >= extension_sections >= web_sections]
-                                                       -where [core_sections      = $([]) -se- core      *~!section *!it.push /seq,
-                                                               extension_sections = $([]) -se- extension *~!section *!it.push /seq,
-                                                               web_sections       = $([]) -se- web       *~!section *!it.push /seq]];
+                                                       -where [core_sections      = $([]) -se- core      *~!section *![it.push(x)] /seq,
+                                                               extension_sections = $([]) -se- extension *~!section *![it.push(x)] /seq,
+                                                               web_sections       = $([]) -se- web       *~!section *![it.push(x)] /seq]];
 
   setInterval(check_for_destination, 50)
   -where [viewing_annotated_source = false,

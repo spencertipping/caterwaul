@@ -456,6 +456,14 @@
 //   The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
 //   context, since it is unclear what the intent would be.
 
+//     Calling convention.
+//     All functions you promote will always be called with these arguments, in this order:
+
+//     | f(x, x0, xi, xl)
+
+//     This may seem strange, since x0 may or may not be defined. I chose this setup to simplify code generation, even if it is a bit redundant. If x0 isn't provided by the current operator, then
+//     its value will be undefined.
+
 //   Scope wrapping.
 //   Normally sequences use thin compilation; that is, the body of each sequence element is inserted directly into a for-loop. This increases performance by eliminating a function call, but it
 //   has the usual caveats about variable sharing. For instance:
