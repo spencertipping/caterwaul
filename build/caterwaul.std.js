@@ -482,12 +482,16 @@
 //     fs[2]()                     -> 3
 
 //   Numbers.
-//   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macro
-//   available is n[], which generates finite sequences of evenly-spaced numbers:
+//   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macros
+//   available are n[] and ni[], which generate finite sequences of evenly-spaced numbers. The only difference between n[] and ni[] is that ni[] uses an inclusive upper bound, whereas n[] is
+//   exclusive.
 
-//   | n[1, 10] |seq               ->  [1, 2, 3, 4, 5, 6, 7, 8, 9]
-//     n[10] |seq                  ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-//     n[0, 10, 2] |seq            ->  [0, 2, 4, 6, 8]
+//   | n[1, 10] -seq               ->  [1, 2, 3, 4, 5, 6, 7, 8, 9]
+//   | ni[1, 10] -seq              ->  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+//     n[10] -seq                  ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+//     ni[10] -seq                 ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+//     n[0, 10, 2] -seq            ->  [0, 2, 4, 6, 8]
+//     ni[0, 10, 2] -seq           ->  [0, 2, 4, 6, 8, 10]
 
 // Generated code.
 // Previously the code was factored into separate methods that took callback functions. (Basically the traditional map/filter/each arrangement in functional languages.) However, now the library
@@ -635,23 +639,28 @@ caterwaul.words(caterwaul.js())(function ($) {
                             vfilter_not = form('var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r'),
                             vmap_filter = form('var r = {}, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r')],
 
-         word_macros     = [rule('S[n[_upper]]',                n),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),
-                            rule('S[n[_lower, _upper]]',        n),  rule('S[_o /values]', values),  rule('S[_o -object]', object),
-                            rule('S[n[_lower, _upper, _step]]', n),  rule('S[_o /pairs]',  pairs),   rule('S[_o /object]', object)]
+         word_macros     = [rule('S[n[_upper]]',                n),  rule('S[ni[_upper]]',                ni),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),
+                            rule('S[n[_lower, _upper]]',        n),  rule('S[ni[_lower, _upper]]',        ni),  rule('S[_o /values]', values),  rule('S[_o -object]', object),
+                            rule('S[n[_lower, _upper, _step]]', n),  rule('S[ni[_lower, _upper, _step]]', ni),  rule('S[_o /pairs]',  pairs),   rule('S[_o /object]', object)]
 
-                    -where [n(match)  = n_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
-                            n_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
-                                                                  'for (var r = [], d = u - i; d > 0 ? i < u : i > u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
+                    -where [n(match)   = n_pattern .replace($.merge({_lower: '0', _step: '1'}, match)),
+                            ni(match)  = ni_pattern.replace($.merge({_lower: '0', _step: '1'}, match)),
 
-                            scope     = anon('(function (o) {_body}).call(this, (S[_o]))'),
-                            scoped(t) = scope.replace({_body: t}),
+                            n_pattern  = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                                   'for (var r = [], d = u - i; d > 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
 
-                            form(p)   = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
-                            keys      = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
-                            values    = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
-                            pairs     = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
+                            ni_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                                   'for (var r = [], d = u - i; d > 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_lower), (_upper), (_step))'),
 
-                            object    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r')]]})(caterwaul);
+                            scope      = anon('(function (o) {_body}).call(this, (S[_o]))'),
+                            scoped(t)  = scope.replace({_body: t}),
+
+                            form(p)    = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
+                            keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
+                            values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
+                            pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
+
+                            object     = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r')]]})(caterwaul);
 
 // Generated by SDoc 
 
