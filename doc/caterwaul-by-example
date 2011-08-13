@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.Wr22/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.9wsn/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1882,13 +1882,13 @@ meta::section('list-of-primes', <<'__');
 
     Caterwaul is a superset of Javascript, so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and refactoring a bit, we get
     this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error since it stops before
-    reaching $\sqrt n$. It's necessary to add one to make sure that we include the square root as well as the other factors.}
+    reaching $\sqrt n$. It's necessary to use an inclusive upper bound to make sure that we get squares as well as other factors.}
 
     - resource examples/primes/primes.js << end
       $(caterwaul.js_all()(function () {
         $('body').append(primes.join(', '))
         -where [
-          composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq,
+          composite(n) = ni[2, Math.sqrt(n)] |[n % x === 0] |seq,
           primes       = n[2, 10000] %!composite -seq];
       }));
     - end
@@ -1948,10 +1948,10 @@ meta::section('list-of-primes', <<'__');
     places. The first time is in the {\tt composite()} function, where we use it to detect factors:
 
     - verbatim << end
-      composite(n) = n[2, Math.sqrt(n) + 1] |[n % x === 0] |seq
+      composite(n) = ni[2, Math.sqrt(n)] |[n % x === 0] |seq
     - end
 
-    First, we use {\tt n[]} to generate an array of numbers between 2 and {\tt Math.sqrt(n)}, inclusive. {\tt n[]} (with square brackets) is a syntax form, not a function; so it won't collide
+    First, we use {\tt ni[]} to generate an array of numbers between 2 and {\tt Math.sqrt(n)}, inclusive. {\tt ni[]} (with square brackets) is a syntax form, not a function; so it won't collide
     with the variable {\tt n} that we take as a parameter. The next piece, \verb+|[n % x === 0]+, has two parts. The pipe operator, which normally performs a bitwise-or, means ``there exists''
     in sequence context. Its body, \verb|n % x === 0|, is then evaluated for each element ({\tt seq} calls the element {\tt x}). So at this point we're asking, ``does there exist an integer
     {\tt x} for which {\tt n \% x} is zero?'' We tack the \verb+|seq+ onto the end to cause the preceding expression (in this case, everything back to the {\tt =}) to be interpreted by the
@@ -1980,75 +1980,195 @@ meta::section('main', <<'__');
   - tableofcontents
 
   - include section::list-of-primes
-  - include section::quicksort
+  - include section::this-is-hideous
 - end
-
-__
-meta::section('quicksort', <<'__');
-- sc Quicksort | sec:quicksort
-  Every self-respecting functional language author must illustrate how to write an inefficient quicksort that conses up tons of memory. A trivial quicksort in Caterwaul looks like this:
-
-  - verbatim << end
-    quicksort(xs) = xs.length === 0 ? xs :
-                    less + [pivot] + greater -seq
-                    -where [pivot   = xs[0],
-                            rest    = xs.slice(1),
-                            less    = quicksort(rest %[x <  pivot] -seq),
-                            greater = quicksort(rest %[x >= pivot] -seq)];
-  - end
-
-  That could be the end of the chapter, but if I stopped here then you wouldn't see the awesomeness that is Caterwaul's jQuery library. This app, rather than just sorting data, makes the
-  process interactive by having the user resolve pieces of the sort.
-
-  - s1 HTML and CSS
-    This is fairly routine. We need a page that includes jQuery, Caterwaul, the standard modules, and the Caterwaul future library.\footnote{The Caterwaul future library is on Github at
-    \url{http://github.com/spencertipping/caterwaul-futures}.}
-
-    There's an extra \verb|<script>| element here, just below \verb|<script src='quicksort.js'>|. I'm using this pattern because it makes it simpler to precompile things. If your main script
-    has this form:
-
-    - verbatim << end
-      $(caterwaul.js_all()(function () {...}));
-    - end
-
-    \noindent then it's impossible to precompile because \verb|$| won't be defined (precompilation executes your code so that it can perform value tracing). However, we can defer the jQuery
-    initializer call by pushing it into a non-Caterwaul script and just defining an {\tt initialize} function:
-
-    - verbatim << end
-      initialize = caterwaul.js_all()(function () {...});
-    - end
-
-    - resource examples/quicksort/index.html << end
-      <!doctype html>
-      <html>
-        <head>
-        <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
-        <script src='http://caterwauljs.org/build/caterwaul.js'></script>
-        <script src='http://caterwauljs.org/build/caterwaul.std.js'></script>
-        <script src='http://caterwauljs.org/build/caterwaul.ui.js'></script>
-        <script src='http://spencertipping.com/caterwaul-futures/future.js'></script>
-        <script src='quicksort.js'></script>
-        <script>$(initialize)</script>
-
-        <style>
-        body {font-family: sans-serif; font-size: 9pt}
-        </style>
-        </head>
-        <body></body>
-      </html>
-    - end
-
-  - s1 Javascript
-    When the user first loads the page, they're presented with a randomly generated list of numbers and a button. When they click the button, the sort begins and they see the stages as they
-    happen. Internally this is achieved by using futures that later are resolved to the intermediate results. When the futures become decided, new UI elements are created to show the process.
-
-    - resource examples/quicksort/quicksort.js << end
-    - end
 
 __
 meta::section('ray-tracer', <<'__');
 - s1 Ray tracer | sec:ray-tracer
   
+
+__
+meta::section('this-is-hideous', <<'__');
+- sc This is Hideous! | sec:this-is-hideous
+  - quote << end
+    \verb|o %k%~!f %v*!~[x /!g] -seq|
+    \hfill \textit{-- valid Caterwaul code}
+  - end
+
+  A fair point. I certainly didn't design Caterwaul to look nice.\footnote{Otherwise it would be called something besides Caterwaul.}
+
+  - s1 Linear edits
+    Seek time is a large burden for programmers, just as it is for mechanical hard drives. Programmers are extremely productive when they are able to type a continuous stream of text without
+    jumping around. For instance, consider the amount of programmer-effort required to implement this edit:
+
+    - verbatim << end
+      // Update this function to log the square of the distance:
+      var distance = function (x1, x2, y1, y2) {
+        var dx = x1 - x2;
+        var dy = y1 - y2;
+        return Math.sqrt(dx*dx + dy*dy);
+      };
+    - end
+
+    This is a moderate-effort change. The expression {\tt dx*dx + dy*dy} must be factored into a variable, then the variable must be typed twice, and logging code must be added. The steps
+    probably look about like this:
+
+    - verbatim << end
+      return Math.sqrt(dx*dx + dy*dy);
+                       ^-----------^    <- select this region and cut
+
+      var d = <paste>;                  <- type this, with a paste
+
+      console.log(d);                   <- type this on a new line
+
+      return Math.sqrt(d);              <- navigate to sqrt() and type 'd'
+    - end
+
+    If you time yourself making this edit, I'm guessing it will take on the order of five or ten seconds. I doubt that it would ever become a one or two second edit even with practice. Now
+    consider what this edit looks like using Caterwaul:
+
+    - verbatim << end
+      return Math.sqrt(dx*dx + dy*dy);
+                                    ^   <- move insertion point here
+
+      -se- console.log(it)              <- type this
+    - end
+
+    This edit can easily be made in about two seconds because it is mostly linear. This is really important! It isn't just about saving a few seconds here and there; every jump and every
+    keystroke is a potential point of failure within the edit process. If, for example, you had ended up making this edit the first time (I've done things like this on many occasions without
+    thinking):
+
+    - verbatim << end
+      var distance = function (x1, x2, y1, y2) {
+        var dx = x1 - x2;
+        var dy = y1 - y2;
+        var d = dx*dx + dy*dy;
+        console.log(d);
+        return Math.sqrt(dx);
+      };
+    - end
+
+    You might then be wondering why the function was returning bad results despite logging the right thing. It could easily turn into a 60 or 120-second bug-hunt. This is the kind of thing
+    that saps productivity and demoralizes programmers, and this is exactly what Caterwaul was designed to overcome.
+
+    - s2 How Caterwaul does this
+      I thought a lot about this problem before deciding on the current notation. Infix operators are obviously a step in the right direction (the worst offender is Lisp, which requires at
+      least one jump for every significant edit). These operators are organized by common-use precedence, since it was far more common to add products than to multiply sums, for instance. In a
+      sense, this is a very ergonomic Huffman-style coding of common practice.
+
+      Perhaps a less commonly recognized feature of infix operators is that you can easily determine how much code to grab with one continuous edit. For example, support I'm editing the code
+      below and want to conditionalize the side effect on truthiness:
+
+      - verbatim << end
+        foo() -se- console.log(it)
+              -re- it.bar()
+      - end
+
+      I don't want to use short-circuit logic, since this has far lower precedence than minus. I also don't want to use a minus, since it left-associates (meaning that any modifier I used
+      would grab everything back to the {\tt foo()} invocation). Rather, I need a {\tt /} prefix, which will modify only the log expression:
+
+      - verbatim << end
+        foo() -se- console.log(it) /when.it
+              -re- it.bar()
+      - end
+
+      The alternative to choosing an operator is to add explicit grouping. This, however, requires a jump and decreases readability, which I complain about in more detail in the next section:
+
+      - verbatim << end
+        foo() -se- (it && console.log(it))
+                   ^-----^               ^      <- two edit points
+      - end
+
+  - s1 Silly parentheses
+    - quote << end
+      {\tt ... get)) add) button)))))))))))}
+      \hfill \textit{-- Lisp}
+    - end
+
+    Relying on operator precedence for grouping has another beneficial side effect: It reduces the infamous Lisp problem of trailing parentheses.
+
+    Parentheses and other grouping constructs are hard for humans to parse unless they have some other kind of reinforcement such as indentation or differentiated brackets. For example, this
+    code requires a lot of effort to understand:
+
+    - verbatim << end
+      sum(product(join(x, y)), fix(z(t), z()), a(b(c), d, e))
+    - end
+
+    I think this has something to do with our natural language being primarily infix: subject-verb-object. Infix is simple because there is an implicit limit to how much stuff you can group
+    together. If you're adding stuff, all you have to worry about is multiplication and more addition. You don't have to count parentheses to keep track of when an expression ends.
+
+    So while parentheses and other explicit grouping constructs are more versatile and computationally pure, they can impose a lot of conceptual overhead. This, along with the ergonomic
+    advantage of infix operators, was a large influence on Caterwaul's macro design.
+
+  - s1 Keystrokes
+    Some things are easier to type than others. For example, it's far easier to type a dot than it is to type a caret. Part of it is frequency of use, but another part of it is layout.
+    Caterwaul is optimized to avoid using the shift key for common cases, since this is a large cause of typos (for me, anyway). This is why it uses \verb|/| and \verb|-| instead of \verb|*|
+    and \verb|+|.
+
+    This is also why all of its identifiers use lowercase and generally avoid underscores. The shift key produces its own set of typos, including:
+
+    - verbatim << end
+      aNameWithcaps             <- missed shift
+      aNAmeWithCaps             <- doubled shift
+    - end
+
+    There's another issue though. The shift key generally occupies the hand opposite of the one typing the character. So, for instance, typing a {\tt +} or a {\tt *} would use the right
+    index/middle or ring/pinky along with the left pinky on the shift. However, most Caterwaul modifiers begin with a letter typed by the left hand:
+
+    - verbatim << end
+      where
+      se
+      re
+      seq
+      when
+      raise
+      rescue
+      given
+      delay
+    - end
+
+    So it's useful to have the left hand available for the character immediately following the modifier operator. In this case, that means using unshifted variants of {\tt +} and {\tt *},
+    which, naturally enough, are {\tt -} and {\tt /}.
+
+  - s1 Aesthetics
+    - quote << end
+      - verbatim << end
+        log(factorial(5)),
+        where [factorial(x) = x ? x * factorial(x - 1) : 1]
+      - end
+      \hfill \textit{-- not the ugliest code out there}
+    - end
+
+    Caterwaul won't win any beauty contests, but I've tried to make design choices that keep it visually out of the way. This is another reason I chose {\tt -}, {\tt /}, and {\tt |} as
+    modifier prefixes: they are all straight lines and don't introduce intersections into a stream of text.\footnote{I have no idea whether this actually matters, but I noticed that I
+    preferred operators with simple linear forms to operators with more complex forms.}
+
+    Also, Caterwaul gives you the flexibility to write code that looks very nice. Consider this numerical integration function, for instance:
+
+    - verbatim << end
+      integrate(f, a, b, h) = sum(moments)
+                              -where [sum(xs) = xs /[x + x0] -seq,
+                                      moments = n[a, b, h] *[f(x) * h] -seq]
+    - end
+
+    The definition of integration is clearly visible, and the implementation details follow as an afterthought. Most Javascript code requires that the implementation details come first,
+    followed by the high-level description at the end:
+
+    - verbatim << end
+      function integrate(f, a, b, h) {
+        var sum = 0;
+        for (var x = a; x < b; x += h)
+          sum += f(x) * h;
+        return sum;
+      }
+    - end
+
+    This imperative definition is simpler, but at the cost of eliding the {\tt moments} variable. We can do the same with the Caterwaul definition, though it loses some readability:
+
+    - verbatim << end
+      integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x) * h] -seq
+    - end
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
