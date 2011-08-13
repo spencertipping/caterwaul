@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.9wsn/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.kZiV/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -2095,7 +2095,7 @@ meta::section('this-is-hideous', <<'__');
       sum(product(join(x, y)), fix(z(t), z()), a(b(c), d, e))
     - end
 
-    I think this has something to do with our natural language being primarily infix: subject-verb-object. Infix is simple because there is an implicit limit to how much stuff you can group
+    I think this has something to do with our natural language being primarily infix:~subject-verb-object. Infix is simple because there is an implicit limit to how much stuff you can group
     together. If you're adding stuff, all you have to worry about is multiplication and more addition. You don't have to count parentheses to keep track of when an expression ends.
 
     So while parentheses and other explicit grouping constructs are more versatile and computationally pure, they can impose a lot of conceptual overhead. This, along with the ergonomic
