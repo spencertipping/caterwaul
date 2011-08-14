@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.5iCi/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.0sqd/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1901,7 +1901,212 @@ meta::section('game-of-life', <<'__');
     - end
 
   - s1 What's going on here?
-    {\em [Todo]}
+    This code is reasonably well front-loaded,\footnote{Meaning that higher-level things precede lower-level ones.} so I'll explain the code from the top down.
+
+    First off, there are two separate {\tt where[]} blocks operating at the top level. This is totally ok because all of the operators used to modify things are left-associative. This means
+    that the syntax tree will end up parsing like this:
+
+    - verbatim << end
+      ($('body').append(...) -where [...]) -where [...]
+    - end
+
+    This wouldn't be possible if {\tt -} were right-associative; in that case, you'd have:
+
+    - verbatim << end
+      $('body').append(...) -(where [...] -where [...])
+    - end
+
+    Caterwaul always follows Javascript's precedence and associativity, and it's helpful to be familiar with the nuances of Javascript's grammar when writing Caterwaul code.
+
+    - s2 UI code
+      The first part sets up the UI and appends it to the body:
+
+      - verbatim << end
+        $('body').append(top_button_row, board.div)
+        -where [
+          board           = life_board(30, 30),
+          interval        = null,
+          run_or_stop()   = interval ? stop_running()  -se- $(this).text('Run') :
+                                       start_running() -se- $(this).text('Stop'),
+          start_running() = interval = setInterval(board.step, 100),
+          stop_running()  = clearInterval(interval) -se [interval = null],
+          top_button_row  = jquery in div(
+                              button.step('Step') /click(board.step),
+                              button.run('Run')   /click(run_or_stop))]
+      - end
+
+      This is all grouped into a single {\tt where[]} block because it's all UI-related. Grouping things like this limits the amount of interaction that can happen between any two components.
+
+      An English-like description of each function and variable would be something like this:
+
+      - enumerate << end
+        - item[] {\tt board}
+          The model for the simulation. This provides a UI, step function, and nested cell arrays.
+
+        - item[] {\tt interval}
+          The interval timer used to run the simulation. When the simulation is running, this will hold the result of {\tt setInterval()}; otherwise it will be {\tt null}.
+
+        - item[] {\tt run\_or\_stop()}
+          If the simulation is running, then stop it and set the button text to {\tt Run}. Otherwise, start the simulation and set the button text to {\tt Stop}.
+
+        - item[] {\tt start\_running()}
+          Creates and stores an interval timer that steps the simulation every 100ms.
+
+        - item[] {\tt stop\_running()}
+          Stops the (presumably running) interval timer and clears the {\tt interval} variable to indicate that nothing is running.
+
+        - item[] {\tt top\_button\_row}
+          This is just a \verb|<div>| that contains the two buttons. Each one has a click handler; the step button delegates directly to {\tt board.step()} (which is safe because {\tt
+          board.step} doesn't rely on any parameters or the value of {\tt this}), and the run button references {\tt run\_or\_stop} directly.
+      - end
+
+    - s2 Model code
+      The model is a little unusual in that it stores its data directly on DOM elements. I did it this way to keep the example simple; it's more difficult (though often more scalable and
+      performant) to maintain a purely logical data structure and keep it synchronized with a view layer of DOM nodes. The exact structure used is this:
+
+      - verbatim << end
+        cells = [[cell_11, cell_12, cell_13, ..., cell_1n],
+                 [cell_21, cell_22, cell_23, ..., cell_2n],
+                 ...
+                 [cell_m1, cell_m2, cell_m3, ..., cell_mn]]
+      - end
+
+      \noindent where {\tt m} is the number of columns (!) and {\tt n} is the number of rows. So the cells are stored in column-major order if you're looking at it from the user's point of
+      view. I didn't have a particularly compelling reason to do it this way, other than the fact that it seems more intuitive to first iterate over {\tt x} and then {\tt y}. (The outer loop
+      is over {\tt y} when using row-major order.)
+
+      There are two major pieces of code for the model. The first is the board setup code:
+
+      - verbatim << end
+        life_board(x, y)    = {cells: cells,
+                               div:   div_for(cells),
+                               step:  step_function(cells)}
+                              -where [cells = cells_for(x, y)],
+
+        cells_for(x, y)     = n[x] *~[n[y] *y[cell_for(x, y)]] -seq,
+        cell_for(x, y)      = jquery in div.cell *!x(x) *!y(y) %position(x, y)
+                                                               %invert_on_click,
+        position(x, y)(e)   = e.css({position: 'absolute',
+                                     left: x * 12, width:  10,
+                                     top:  y * 12, height: 10}),
+
+        invert_on_click(e)  = e.mousedown($(this).toggleClass('on') -given.e),
+        div_for(cs)         = jquery [div.board]
+                              -se- cs *!~[x *![it.append(x)]] /seq
+      - end
+
+      Here's what each variable/function does:
+
+      - enumerate << end
+        - item[] {\tt life\_board(x, y)}
+          Creates a board, which is the top-level model element. A board consists of cells, a display \verb|<div>|, and a public {\tt step()} method that advances its state by one generation.
+          Normally a model wouldn't expose DOM elements, but this one does because of the DOM-data coupling.
+
+          The {\tt div} and {\tt step} attributes aren't linked to the board object itself, but they are linked to the cell array. This is useful from an API design perspective:~it lets users
+          call the {\tt step} method without setting the context. (Which is what we did by using the {\tt step()} method as the click handler in the previous section.) The simplest way to
+          create unbound functions such as \verb|step_function| is to use currying, and this is how \verb|step_function| is defined.
+
+        - item[] {\tt cells\_for(x, y)}
+          This constructs a column-major nested array of cell \verb|<div>| elements. Each of these \verb|<div>|s keeps track of its state by either having or not having the {\tt on} class.
+          Elements with the {\tt on} class set are drawn with a dark background; this behavior is governed by the stylesheet. (This prevents the Javascript from knowing too much about the UI
+          presentation.)
+
+          - verbatim << end
+            n[x] *~[n[y] *y[cell_for(x, y)]] -seq
+          - end
+
+          The sequence comprehension is a bit gnarly, but here's what each piece of it means:
+
+          - enumerate << end
+            - item[] {\tt n[x]}
+              Construct an array of numbers {\tt [0, 1, 2, ..., x - 1]}.
+
+            - item[] {\tt *\textasciitilde[...]}
+              Map over a block, and interpret the contents of the block in sequence context (that is, as if the {\tt -seq} modifier had been applied to the body of the block). The {\tt *}
+              operator signifies mapping, and the {\tt \textasciitilde} indicates sequence context.
+
+              Because no variable was named, the block will receive {\tt x}, {\tt xi}, and {\tt xl} as lexically-scoped variables. This inner {\tt x} shadows the {\tt x} passed into
+              \verb|cells_for()| within the context of the block.
+
+              The result of this inner block, which is an array of cells, will become a single entry in the final array returned by \verb|cells_for()|. This outer map operation constructs the
+              array of all columns (each column is constructed by the logic below).
+
+            - item[] {\tt n[y]}
+              Construct an array of numbers {\tt [0, 1, 2, ..., y - 1]}.
+
+            - item[] {\tt *y[...]}
+              Map over another block, this time interpreted as a regular Javascript expression. The {\tt y} immediately preceding the block causes the loop variables to be renamed to {\tt y},
+              {\tt yi}, and {\tt yl} instead of the default {\tt x}, {\tt xi}, and {\tt xl}. The inner {\tt y} created for this block will shadow the one passed into \verb|cells_for()|.
+
+              This map operation constructs a column of cells.
+
+            - item[] {\tt cell\_for(x, y)}
+              Construct a single cell at the coordinates $(x, y)$. Because this is the result of mapping, the cell will be added to the column array.
+
+            - item[] {\tt -seq}
+              This causes the entire preceding expression (in this case, everything back to the {\tt =}, which has lower precedence than the {\tt -} on the front of {\tt seq}) to be treated as
+              a sequence comprehension. This is what causes {\tt *} to be interpreted as a map operation, {\tt n[]} to be interpreted as an array constructor, etc.
+
+              {\tt seq} is a modifier just like {\tt jquery} and {\tt where[]}, so it could be written several different ways. I generally like to use {\tt -} because it's a medium-precedence
+              operator that easily combines with things like {\tt -se-} and {\tt -re-}.
+          - end
+
+        - item[] {\tt cell\_for(x, y)}
+          Constructs and returns a single cell, which is a jQuery-wrapped \verb|<div>|. Each cell has some data associated with it. It has two jQuery {\tt data()} properties to store its {\tt
+          x} and {\tt y} coordinates, and it tracks its on/off state using the {\tt on} CSS class.
+
+          - verbatim << end
+            jquery in div.cell *!x(x) *!y(y) %position(x, y) %invert_on_click
+          - end
+
+          Here's what the {\tt jquery} modifier is doing:
+
+          - enumerate << end
+            - item[] {\tt jquery in}
+              Causes the following expression to be interpreted in jQuery context. This enables the transformations described below. {\tt in} has the same precedence as {\tt <}, {\tt >}, {\tt
+              <=}, and {\tt >=} and is left-associative. This means that all of the usual arithmetic operators will still be in jQuery context, but any relational or lower-precedence operators
+              will escape.
+
+            - item[] {\tt div.cell}
+              In jQuery context this constructs a \verb|<div>| element with CSS class {\tt cell}. Specifically, it expands to \verb|jQuery("<div>").addClass("cell")|.
+
+            - item[] {\tt *!x(x) *!y(y)}
+              This looks a bit tricky, but there isn't anything particularly magical happening. The {\tt *!}~prefix, when interpreted by the {\tt jquery} modifier, refers to a jQuery {\tt
+              data} property. So in general, things of the form \verb|a *!b(c)| will expand to \verb|a.data("b", c)|, and that's exactly what's happening here. In this case, the resulting code
+              is \verb|.data("x", x).data("y", y)|, which sets two data properties and returns the original jQuery selector.
+
+            - item[] {\tt \%position(x, y)}
+              This is interesting. First, it calls {\tt position()} on the current {\tt x} and {\tt y} coordinates, then it calls that result on the current element. In general, \verb|a %b|
+              is expanded into \verb|b(a)|. Because applying {\tt position} to {\tt (x, y)} has higher precedence than the \verb|%| operator, the resulting expansion is
+              \verb|position(x, y)(...)|, where {\tt ...}~is the aforementioned element constructed by {\tt div.cell}.
+
+            - item[] {\tt \%invert\_on\_click}
+              The same thing as \verb|%position(x, y)|, but this function isn't curried. \verb|%| left associates, so the overall parse order is \verb|(... %position(x, y)) %invert_on_click|.
+              By the rule described above, then, the whole expansion would be \verb|invert_on_click(position(x, y)(...))|. You can see this happening using the interactive shell on
+              \url{http://caterwauljs.org}.
+          - end
+
+        - item[] {\tt position(x, y)(e)}
+          This is one of the functions used in the jQuery comprehension in the previous step. It's responsible for visually positioning each cell on the board. I've hard-coded some numbers
+          here; basically, each cell is $10\times 10$ pixels and has a 2-pixel margin.
+
+          Importantly, this function returns {\tt e} (indirectly, since jQuery's {\tt css()} method returns the original element when used as a setter). This matters because the {\tt jquery}
+          modifier lets you change the return value from a \verb|%| function. For example, suppose we had written this:
+
+          - verbatim << end
+            position(x, y)(e) = e.css({...}) -re- false
+          - end
+
+          Then the {\tt jquery} comprehension would end up passing {\tt false} to \verb|invert_on_click|, with unfortunate consequences. Generally, functions used with \verb|%| should return
+          the element they're given to avoid confusion.
+
+        - item[] {\tt invert\_on\_click(e)}
+          This function is generally unremarkable. The only interesting thing about it is that it uses an inline {\tt -given} modifier, which converts its expression into a function. The {\tt
+          .e} on the end of {\tt given} is a shorthand to indicate that {\tt e} is the function's only parameter. (If we wanted a function that took multiple parameters, we'd write something
+          like {\tt -given[e, x, y]}.)
+
+          Like {\tt position(x, y)}, \verb|invert_on_click| returns the element it modifies. That is, besides the fact that it is side-effecting, it behaves like the identity function.
+      - end
 
 __
 meta::section('list-of-primes', <<'__');
