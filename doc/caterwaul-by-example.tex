@@ -662,4 +662,76 @@ position(x, y)(e) = e.css({...}) -re- false
   Like {\tt position(x, y)}, \verb|invert_on_click| returns the element it modifies. That is, besides the fact that it is side-effecting, it behaves like the identity function.
 \end{enumerate}
 
+\subsection{Simulation code}
+      This is the most complex bit of the program. It contains logic to count the neighbors of each cell, compute an array of new states, and update each cell to reflect its new state.
+
+\begin{verbatim}
+step_function(cs)() =
+  cs *!~[x *!update] -seq
+  -where [
+    new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
+                                 count(x, y) === 3,
+    count(x, y)     = adjacent(x, y) /[x + x0] -seq,
+    adjacent(x, y)  = ni[x - 1, x + 1] *~!~xn[ni[y - 1, y + 1]
+                        %yn[x !== xn || y !== yn]
+                        *yn[+on(xn, yn)]] -seq,
+    cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
+    wrap(x, xs)     = (x + xs.length) % xs.length,
+    on(x, y)        = cell(x, y).hasClass('on'),
+
+    new_states      = cs *~[x *y[new_state(xi, yi)]] -seq,
+    update(cell)    = cell.toggleClass('on',
+                        new_states[cell.data('x')][cell.data('y')])]
+\end{verbatim}
+
+      The first thing to notice is that this function is curried; it takes a cell array called {\tt cs}, and expects to be invoked again before doing anything. This is an easy way to store
+      temporary data using Caterwaul. I've curried this function because it ends up being invoked as the click handler of the step button. The click handler won't receive a reference to the
+      board, so the function will need to have one already available. In this sense the function is behaving more like a callable object, and in fact currying can be a good substitute for
+      immutable object-oriented data structures.
+
+      The other unusual thing about \verb|step_function| is that it has a bunch of variables defined in a sub-{\tt where[]}. These variables are re-created on each invocation of
+      \verb|step_function()()|.
+
+      Like other functions, this one is front-loaded; here's a breakdown of what's happening.
+
+\begin{enumerate}
+\item[{\tt cs *!\textasciitilde[x *!update] -seq}]
+  This just runs through the two-dimensional array, calling {\tt update()} on each cell \verb|<div>|. Cells know their own coordinates, so we don't need to pass the array indexes into
+  the {\tt update()} function; it will obtain the coordinates directly from the cell object's {\tt data} properties.
+
+  The sequence comprehension here consists of:
+
+\begin{enumerate}
+\item[{\tt cs *!\textasciitilde[...]}]
+  A foreach operation on {\tt cs}. This invokes the block, in sequence context due to the tilde, on each element of {\tt cs}. Each element of {\tt cs} is itself an array. The
+  block's result isn't stored because it is used in a foreach rather than a map operation. (For this reason, foreach has less overhead than map.)
+
+\item[{\tt x *!update}]
+  This block takes {\tt x}, which is one of the arrays in {\tt cs}, and invokes {\tt update} on each element. In this case, {\tt update} appears where a block would normally go.
+  {\tt seq} handles this by turning it into this block: {\tt [update(x, x0, xi, xl)]}. It's safe to use {\tt update()} this way because it uses only its first parameter. It isn't
+  safe to use a function such as {\tt Array.prototype.push} in this context, however, as it will push each item you pass it (which probably isn't what you would want to do).
+
+\item[{\tt -seq}]
+  Modifies the preceding expression by interpreting it in sequence context. It's ok to use {\tt -} here because of left-associativity.
+\end{enumerate}
+
+\item[{\tt new\_state(x, y)}]
+  Returns a boolean specifying whether the cell at position $(x, y)$ will be activated in the next generation. The rules for this depend on the current state of the cell. If the cell
+  is currently on and has 2 or 3 active neighbors, then it will remain activated. A cell that is currently off and has 3 active neighbors will become activated.
+
+  As might be expected, {\tt on(x, y)} returns a boolean indicating whether the cell at $(x, y)$ is presently activated.
+
+  The {\tt -re[]} expression is being used to bind a temporary variable. This is useful when you don't want to go to the trouble of setting up a {\tt -where[]} block or when you need
+  to box up low-precedence operators such as {\tt \&\&}. It's similar to the linguistic construct people would use when saying something like ``if the neighbor count of $(x, y)$ is at
+  least 2 and it's at most 3, then ...'', though Caterwaul's construct is a bit clunkier, requiring both uses to be referred to as {\tt it}.
+
+\item[{\tt count(x, y)}]
+  Returns the number of active neighbors of the cell at $(x, y)$. This is done by retrieving the active-status of each adjacent cell (returned by {\tt adjacent(x, y)}), and folding
+  over addition. A less efficient but equivalent way to do it would be to use filtering: \verb|adjacent(x, y) %[x] -seq -re- it.length|. Conceptually, I think folding communicates the
+  intention more clearly.
+
+\item[{\tt adjacent(x, y)}]
+  This is a fun one, and it's where most of the heavy lifting happens.
+\end{enumerate}
+
 \end{document}
