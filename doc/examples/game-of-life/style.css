@@ -1,0 +1,6 @@
+.cell          {background: #eee}
+.cell:hover    {background: #ccc}
+.cell.on       {background: #444}
+.cell.on:hover {background: #555}
+
+.board {position: relative}

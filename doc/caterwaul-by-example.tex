@@ -365,4 +365,96 @@ function integrate(f, a, b, h) {
 integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x) * h] -seq
 \end{verbatim}
 
+\chapter{Game of Life}\label{sec:game-of-life}
+  This example is more interesting than the prime list because it makes use of Caterwaul's jQuery macros. These macros, along with the sequence library, can significantly change the way
+  Javascript programs are structured. As a twist, this game of life is implemented on a toroidal map; that is, both the horizontal and vertical edges wrap around to the opposite side.
+
+\section{HTML structure}
+    Like other Caterwaul applications, this one is built on a minimal HTML file that pulls in various scripts.
+
+\lstset{caption={examples/game-of-life/index.html},name={examples/game-of-life/index.html}}\begin{resourcecode}
+<!doctype html>
+<html>
+  <head>
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.std.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.ui.js'></script>
+  <script src='life.js'></script>
+  <link rel='stylesheet' href='style.css'/>
+  </head>
+  <body></body>
+</html> \end{resourcecode}
+
+\lstset{caption={examples/game-of-life/style.css},name={examples/game-of-life/style.css}}\begin{resourcecode}
+.cell          {background: #eee}
+.cell:hover    {background: #ccc}
+.cell.on       {background: #444}
+.cell.on:hover {background: #555}
+
+.board {position: relative} \end{resourcecode}
+
+\section{UI structure}
+    One of the tricky things about the game of life is linking the cells together. This is especially true when, as is the case here, we use the DOM as a data model (thus removing the usual
+    layer of indirection that causes all sorts of synchronization bugs).
+
+    The key in this case is to build up arrays of elements first, establishing their visual position as a separate step. This avoids tricky reliance on DOM-level navigation and sibling
+    checking. There are a couple of ways to represent the elements. One is to use a single long array and use modular access, but I'm going to use multiple nested arrays to illustrate some
+    less commonly used features of the sequence library.
+
+    Above the board, which is contained within a single \verb|<div>|, is a button to step the simulation.
+
+\section{Javascript code}
+    Normally I write Caterwaul with 192-column wrapping. This makes it easier to write multiple layers of {\tt where[]} modifiers without running out of horizontal space. (This, in turn, keeps
+    the left margin relatively clean by moving lower-level details off to the right.) However, this code is wrapped at under 100 columns to be readable in the PDF.
+
+\lstset{caption={examples/game-of-life/life.js},name={examples/game-of-life/life.js}}\begin{resourcecode}
+$(caterwaul.jquery(caterwaul.js_all())(function () {
+  $('body').append(top_button_row, board.div)
+  -where [
+    board           = life_board(30, 30),
+    interval        = null,
+    run_or_stop()   = interval ? stop_running()  -se- $(this).text('Run') :
+                                 start_running() -se- $(this).text('Stop'),
+    start_running() = interval = setInterval(board.step, 100),
+    stop_running()  = clearInterval(interval) -se [interval = null],
+    top_button_row  = jquery in div(
+                        button.step('Step') /click(board.step),
+                        button.run('Run')   /click(run_or_stop))]
+  -where [
+    life_board(x, y)    = {cells: cells,
+                           div:   div_for(cells),
+                           step:  step_function(cells)}
+                          -where [cells = cells_for(x, y)],
+
+    cells_for(x, y)     = n[x] *~[n[y] *y[cell_for(x, y)]] -seq,
+    cell_for(x, y)      = jquery in div.cell *!x(x) *!y(y) %position(x, y)
+                                                           %invert_on_click,
+    position(x, y)(e)   = e.css({position: 'absolute',
+                                 left: x * 12, width:  10,
+                                 top:  y * 12, height: 10}),
+
+    invert_on_click(e)  = e.mousedown($(this).toggleClass('on') -given.e),
+    div_for(cs)         = jquery [div.board]
+                          -se- cs *!~[x *![it.append(x)]] /seq,
+    step_function(cs)() =
+      cs *!~[x *!update] -seq
+      -where [
+        new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
+                                     count(x, y) === 3,
+        count(x, y)     = adjacent(x, y) /[x + x0] -seq,
+        adjacent(x, y)  = ni[x - 1, x + 1] *~!~xn[ni[y - 1, y + 1]
+                            %yn[x !== xn || y !== yn]
+                            *yn[+on(xn, yn)]] -seq,
+        cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
+        wrap(x, xs)     = (x + xs.length) % xs.length,
+        on(x, y)        = cell(x, y).hasClass('on'),
+
+        new_states      = cs *~[x *y[new_state(xi, yi)]] -seq,
+        update(cell)    = cell.toggleClass('on',
+                            new_states[cell.data('x')][cell.data('y')])]]})); \end{resourcecode}
+
+\section{What's going on here?}
+    {\em [Todo]}
+
 \end{document}
