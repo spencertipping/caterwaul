@@ -32,9 +32,9 @@ $(caterwaul.jquery(caterwaul.js_all())(function () {
         new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
                                      count(x, y) === 3,
         count(x, y)     = adjacent(x, y) /[x + x0] -seq,
-        adjacent(x, y)  = ni[x - 1, x + 1] *~!~xn[ni[y - 1, y + 1]
-                            %yn[x !== xn || y !== yn]
-                            *yn[+on(xn, yn)]] -seq,
+        adjacent(x, y)  = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
+                            %p[p[0] !== x || p[1] !== y]
+                            *[+on(x[0], x[1])] -seq,
         cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
         wrap(x, xs)     = (x + xs.length) % xs.length,
         on(x, y)        = cell(x, y).hasClass('on'),

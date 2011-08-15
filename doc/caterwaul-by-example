@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.oc9R/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.XaIv/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1888,9 +1888,9 @@ meta::section('game-of-life', <<'__');
               new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
                                            count(x, y) === 3,
               count(x, y)     = adjacent(x, y) /[x + x0] -seq,
-              adjacent(x, y)  = ni[x - 1, x + 1] *~!~xn[ni[y - 1, y + 1]
-                                  %yn[x !== xn || y !== yn]
-                                  *yn[+on(xn, yn)]] -seq,
+              adjacent(x, y)  = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
+                                  %p[p[0] !== x || p[1] !== y]
+                                  *[+on(x[0], x[1])] -seq,
               cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
               wrap(x, xs)     = (x + xs.length) % xs.length,
               on(x, y)        = cell(x, y).hasClass('on'),
@@ -1915,8 +1915,6 @@ meta::section('game-of-life', <<'__');
     - verbatim << end
       $('body').append(...) -(where [...] -where [...])
     - end
-
-    Caterwaul always follows Javascript's precedence and associativity, and it's helpful to be familiar with the nuances of Javascript's grammar when writing Caterwaul code.
 
     - s2 UI code
       The first part sets up the UI and appends it to the body:
@@ -2118,9 +2116,9 @@ meta::section('game-of-life', <<'__');
             new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
                                          count(x, y) === 3,
             count(x, y)     = adjacent(x, y) /[x + x0] -seq,
-            adjacent(x, y)  = ni[x - 1, x + 1] *~!~xn[ni[y - 1, y + 1]
-                                %yn[x !== xn || y !== yn]
-                                *yn[+on(xn, yn)]] -seq,
+            adjacent(x, y)  = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
+                                %p[p[0] !== x || p[1] !== y]
+                                *[+on(x[0], x[1])] -seq,
             cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
             wrap(x, xs)     = (x + xs.length) % xs.length,
             on(x, y)        = cell(x, y).hasClass('on'),
@@ -2162,6 +2160,11 @@ meta::section('game-of-life', <<'__');
           - end
 
         - item[] {\tt new\_state(x, y)}
+          - verbatim << end
+            = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
+                         count(x, y) === 3
+          - end
+
           Returns a boolean specifying whether the cell at position $(x, y)$ will be activated in the next generation. The rules for this depend on the current state of the cell. If the cell
           is currently on and has 2 or 3 active neighbors, then it will remain activated. A cell that is currently off and has 3 active neighbors will become activated.
 
@@ -2172,13 +2175,93 @@ meta::section('game-of-life', <<'__');
           least 2 and it's at most 3, then ...'', though Caterwaul's construct is a bit clunkier, requiring both uses to be referred to as {\tt it}.
 
         - item[] {\tt count(x, y)}
+          - verbatim << end
+            = adjacent(x, y) /[x + x0] -seq
+          - end
+
           Returns the number of active neighbors of the cell at $(x, y)$. This is done by retrieving the active-status of each adjacent cell (returned by {\tt adjacent(x, y)}), and folding
           over addition. A less efficient but equivalent way to do it would be to use filtering: \verb|adjacent(x, y) %[x] -seq -re- it.length|. Conceptually, I think folding communicates the
           intention more clearly.
 
         - item[] {\tt adjacent(x, y)}
-          This is a fun one, and it's where most of the heavy lifting happens.
+          - verbatim << end
+            = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
+                %p[p[0] !== x || p[1] !== y]
+                *[+on(x[0], x[1])] -seq
+          - end
+
+          This is a fun one, and it's where most of the heavy lifting happens. The idea is to come up with an array of numerical active-statuses, each one either a 1 (active) or a 0
+          (inactive). The {\tt count()} function can then sum that array with minimal effort.
+
+          - enumerate << end
+            - item[] {\tt (ni[...]~- ni[...])}
+              This constructs a single array of {\tt [x, y]} pairings within the $3\times 3$ rectangle around $(x, y)$. If {\tt x} is 4 and {\tt y} is 10, for example, then this expression
+              returns {\tt [[3, 9], [3, 10], [3, 11], [4, 9], [4, 10], [4, 11], [5, 9], [5, 10], [5, 11]]}. This behavior is primarily governed by {\tt -}, which in sequence context computes
+              the cartesian product of its operands. (Because {\tt -} has lower precedence than most sequence operators, it must be parenthesized as shown here.)
+
+            - item[] {\tt \%p[p[0] !== x \char `\| \char `\|~p[1] !== y]}
+              Here we're removing the {\tt [x, y]} pair representing the original cell. Each pair is called {\tt p} to avoid shadowing {\tt x} or {\tt y} (both of which are required inside the
+              block). The resulting array contains eight pairs, each one of which represents a cell that's adjacent but not the original.
+
+            - item[] {\tt *[+on(x[0], x[1])]}
+              Now we transform coordinate pairs into numbers. The map, hopefully, is not mysterious at all by now; but the block is a bit unusual. {\tt on()} returns a boolean, which I'm
+              coercing into a number using Javascript's unary {\tt +} operator. The block is being interpreted in regular context, so this isn't transformed by {\tt seq} in any way.
+
+            - item[] {\tt -seq}
+              Wrapping up the sequence comprehension by transforming everything back to {\tt =}. The return value of this sequence comprehension is an array of eight numbers, each a 1 or a 0,
+              describing the activation states of the cells surrounding $(x, y)$.
+          - end
+
+        - item[] {\tt cell(x, y)}
+          - verbatim << end
+            = cs[wrap(x, cs)] -re- it[wrap(y, it)]
+          - end
+
+          Normally I wouldn't factor this into its own function, since indexing twice into {\tt cs[]} isn't a big deal. But this life game is in toroidal space, which requires wraparound
+          logic. So the {\tt cell()} function has to transform the array indexes as well as dereference stuff.
+
+          I'm using {\tt -re-} here because we need two references to {\tt cs[wrap(x)]}. The first one, obviously, provides the cell within the column. The second one is passed into {\tt
+          wrap()} to provide the wrapping length. I could bind a local variable or duplicate a subexpression, but {\tt -re-} is very short to type so I've used that instead.
+
+        - item[] {\tt wrap(x, xs)}
+          - verbatim << end
+            = (x + xs.length) % xs.length
+          - end
+
+          This wraps the index around the beginning or end of the array and returns the new transformed index. It takes the array so that it can retrieve its length.
+
+        - item[] {\tt on(x, y)}
+          - verbatim << end
+            = cell(x, y).hasClass('on')
+          - end
+
+          A trivial function to concisely represent the activation state of the given cell.
+
+        - item[] {\tt new\_states}
+          - verbatim << end
+            = cs *~[x *y[new_state(xi, yi)]] -seq
+          - end
+
+          This is an array like {\tt cs} that contains the new state of each cell. We have to store these before updating the individual cell elements because otherwise we would lose
+          information; future computations depend on the old state of each cell.
+
+          My API is a bit suboptimal for this case.\footnote{Actually, a lot of the factoring here is suboptimal. But I'm resisting my OCD and leaving it this way for now.} I end up throwing
+          away the actual elements of {\tt cs} and just using their indexes as positional coordinates. The first map preserves sequence context for its block to make the inner map more
+          convenient. I rename the inner variable to have access to both {\tt xi} and {\tt yi} at the same time.
+
+          {\tt new\_states} is a variable, so its value is computed eagerly after the functions above it have been created. However, it has no access to {\tt update}, which is defined below.
+
+        - item[] {\tt update(cell)}
+          - verbatim << end
+            = cell.toggleClass('on',
+                new_states[cell.data('x')][cell.data('y')])
+          - end
+
+          By the time {\tt update()} is called, {\tt new\_states} is fully populated. All we have to do is store the new state back onto the DOM element, which happens using {\tt
+          toggleClass()}. As usual, jQuery makes this trivially easy.
       - end
+
+      And there you have it! That's the entirety of this 41-SLOC implementation of the game of life.
 
 __
 meta::section('list-of-primes', <<'__');
