@@ -29,6 +29,77 @@
 \maketitle{}
 \tableofcontents{}
 
+\chapter{Introduction}\label{sec:introduction}
+  Caterwaul streamlines Javascript. It was designed both to minimize the ergonomic overhead associated with common edits, and to make it possible to express complex algorithms in a reasonable
+  amount of space. It uses several ideas foreign to Javascript, some of which I've never seen used elsewhere:
+
+\begin{enumerate}
+\item{High reliance on operator precedence and associativity as a form of general-purpose grouping.}
+\begin{verbatim}
+jquery [div.foo]
+-se- it.addClass('bar') /when.bif
+
+//   ^----------------^ <- scope of /when.bif due to operator precedence
+\end{verbatim}
+
+\item{Edit-conscious design that minimizes the number of jumps for common editing patterns.}
+\begin{verbatim}
+return Math.abs(x - y -se- console.log(it));
+
+//                    ^------------------^
+// one continuous editing motion to introduce a side-effect on this
+// subexpression
+\end{verbatim}
+
+\item{Compact function definition syntax that encourages granular abstraction.}
+\begin{verbatim}
+log(level, message) = console.log('#{new Date} #{level}: #{message}'),
+info(message)       = log('INFO', message),
+debug(message)      = log('DEBUG', message),
+error(message)      = log('ERROR', message)
+\end{verbatim}
+
+\item{Front-focusing constructs such as {\tt where[]} that allow the implementation to follow the definition.}
+\begin{verbatim}
+choose(n, k) = fact(n) / (fact(k) * fact(n - k))
+               -where [fact(x) = x ? x * fact(x - 1) : 1]
+\end{verbatim}
+\end{enumerate}
+
+  Because Caterwaul is written as a pure Javascript library, it maintains complete compatibility with Javascript as a language. Most of the reason for this is that Caterwaul is a syntactic
+  transform only; specifically, it is a function over Javascript functions:
+
+\begin{verbatim}
+var my_compiler = caterwaul();
+var f = function () {...};
+var g = caterwaul(f);
+g();
+\end{verbatim}
+
+  While being compatible in a technical sense, however, Caterwaul also changes the difficulty of various tasks with respect to one another; the result, in my experience, is that Javascript is
+  written very differently.
+
+\section{How's the learning curve?}
+    Caterwaul is relatively straightforward, certainly much simpler than complex functional languages such as Scala, OCaml, Haskell, Clojure, or others. However, it is also subtle and requires
+    a fairly solid knowledge of Javascript's expression grammar. It's for this reason that I characterize the learning curve as being similar to Lisp or first-class
+    continuations:\footnote{This is a reference to something a professor said in college. When asked about Lisp, he said ``the learning curve is an overhang.''}
+
+\begin{verbatim}
+                  _______________
+                  \
+                   \_  Caterwaul
+                     \
+                      \
+                      |
+                  ?   \
+                _O_    \
+Programmer ->    |      \
+                / \      |
+\end{verbatim}
+
+    It's not actually quite this bad. It took me about two weeks to understand how to use Caterwaul after I wrote it. The benefit of using it on a regular basis is that I now have a much
+    greater understanding and appreciation for Javascript, and it's significantly changed the way I see programming languages. I imagine the same would be true of anyone who learns Caterwaul.
+
 \chapter{List of Primes}\label{sec:list-of-primes}
   It's rare that you actually need to generate a list of primes in production code, but this problem makes a good programming language example. The goal here is to write a web page that ends
   up showing the user a list of primes below 10,000.

@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.XaIv/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.6WQt/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -2264,6 +2264,79 @@ meta::section('game-of-life', <<'__');
       And there you have it! That's the entirety of this 41-SLOC implementation of the game of life.
 
 __
+meta::section('introduction', <<'__');
+- sc Introduction | sec:introduction
+  Caterwaul streamlines Javascript. It was designed both to minimize the ergonomic overhead associated with common edits, and to make it possible to express complex algorithms in a reasonable
+  amount of space. It uses several ideas foreign to Javascript, some of which I've never seen used elsewhere:
+
+  - enumerate << end
+    - item High reliance on operator precedence and associativity as a form of general-purpose grouping.
+      - verbatim << end
+        jquery [div.foo]
+        -se- it.addClass('bar') /when.bif
+
+        //   ^----------------^ <- scope of /when.bif due to operator precedence
+      - end
+
+    - item Edit-conscious design that minimizes the number of jumps for common editing patterns.
+      - verbatim << end
+        return Math.abs(x - y -se- console.log(it));
+
+        //                    ^------------------^
+        // one continuous editing motion to introduce a side-effect on this
+        // subexpression
+      - end
+
+    - item Compact function definition syntax that encourages granular abstraction.
+      - verbatim << end
+        log(level, message) = console.log('#{new Date} #{level}: #{message}'),
+        info(message)       = log('INFO', message),
+        debug(message)      = log('DEBUG', message),
+        error(message)      = log('ERROR', message)
+      - end
+
+    - item Front-focusing constructs such as {\tt where[]} that allow the implementation to follow the definition.
+      - verbatim << end
+        choose(n, k) = fact(n) / (fact(k) * fact(n - k))
+                       -where [fact(x) = x ? x * fact(x - 1) : 1]
+      - end
+  - end
+
+  Because Caterwaul is written as a pure Javascript library, it maintains complete compatibility with Javascript as a language. Most of the reason for this is that Caterwaul is a syntactic
+  transform only; specifically, it is a function over Javascript functions:
+
+  - verbatim << end
+    var my_compiler = caterwaul();
+    var f = function () {...};
+    var g = caterwaul(f);
+    g();
+  - end
+
+  While being compatible in a technical sense, however, Caterwaul also changes the difficulty of various tasks with respect to one another; the result, in my experience, is that Javascript is
+  written very differently.
+
+  - s1 How's the learning curve?
+    Caterwaul is relatively straightforward, certainly much simpler than complex functional languages such as Scala, OCaml, Haskell, Clojure, or others. However, it is also subtle and requires
+    a fairly solid knowledge of Javascript's expression grammar. It's for this reason that I characterize the learning curve as being similar to Lisp or first-class
+    continuations:\footnote{This is a reference to something a professor said in college. When asked about Lisp, he said ``the learning curve is an overhang.''}
+
+    - verbatim << end
+                        _______________
+                        \
+                         \_  Caterwaul
+                           \
+                            \
+                            |
+                        ?   \
+                      _O_    \
+      Programmer ->    |      \
+                      / \      |
+    - end
+
+    It's not actually quite this bad. It took me about two weeks to understand how to use Caterwaul after I wrote it. The benefit of using it on a regular basis is that I now have a much
+    greater understanding and appreciation for Javascript, and it's significantly changed the way I see programming languages. I imagine the same would be true of anyone who learns Caterwaul.
+
+__
 meta::section('list-of-primes', <<'__');
 - sc List of Primes | sec:list-of-primes
   It's rare that you actually need to generate a list of primes in production code, but this problem makes a good programming language example. The goal here is to write a web page that ends
@@ -2436,6 +2509,7 @@ meta::section('main', <<'__');
   - maketitle
   - tableofcontents
 
+  - include section::introduction
   - include section::list-of-primes
   - include section::this-is-hideous
   - include section::game-of-life
