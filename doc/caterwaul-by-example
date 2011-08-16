@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.6WQt/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.P8zX/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -2410,13 +2410,14 @@ meta::section('list-of-primes', <<'__');
       }));
     - end
 
-    Caterwaul is a superset of Javascript, so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and refactoring a bit, we get
-    this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error since it stops before
-    reaching $\sqrt n$. It's necessary to use an inclusive upper bound to make sure that we get squares as well as other factors.}
+    Caterwaul is a superset of Javascript,\footnote{Not technically true, but this is generally the case in practice. Caterwaul's syntax makes use of the uncommon edge cases of Javascript
+    syntax, so it is unlikely to collide with regular code.} so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and
+    refactoring a bit, we get this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error
+    since it stops before reaching $\sqrt n$. It's necessary to use an inclusive upper bound to make sure that we get squares as well as other factors.}
 
     - resource examples/primes/primes.js << end
       $(caterwaul.js_all()(function () {
-        $('body').append(primes.join(', '))
+        $('body').text(primes.join(', '))
         -where [
           composite(n) = ni[2, Math.sqrt(n)] |[n % x === 0] |seq,
           primes       = n[2, 10000] %!composite -seq];
@@ -2493,9 +2494,9 @@ meta::section('list-of-primes', <<'__');
       primes = n[2, 10000] %!composite -seq
     - end
 
-    {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. The filter prefix is
-    \verb|%|, and the \verb|!| modifier negates the condition. Because there's already a function defined, I use that instead of writing out a block. I'm using a higher-precedence prefix for
-    {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
+    {\tt n[]} is doing the same thing as {\tt ni[]}, but doesn't include its upper bound. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which
+    are not composite. The filter prefix is \verb|%|, and the \verb|!| modifier negates the condition. Because there's already a function defined, I use that instead of writing out a block.
+    I'm using a higher-precedence prefix for {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
 
 __
 meta::section('main', <<'__');
@@ -2700,6 +2701,12 @@ meta::section('this-is-hideous', <<'__');
 
     - verbatim << end
       integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x) * h] -seq
+    - end
+
+    Or, moving the multiplication out of the loop by the distributive property:
+
+    - verbatim << end
+      integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x)] -seq -re- it * h
     - end
 
 __

@@ -170,13 +170,14 @@ $(caterwaul.js_all()(function () {
   $('body').text(list.join(', '));
 })); \end{resourcecode}
 
-    Caterwaul is a superset of Javascript, so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and refactoring a bit, we get
-    this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error since it stops before
-    reaching $\sqrt n$. It's necessary to use an inclusive upper bound to make sure that we get squares as well as other factors.}
+    Caterwaul is a superset of Javascript,\footnote{Not technically true, but this is generally the case in practice. Caterwaul's syntax makes use of the uncommon edge cases of Javascript
+    syntax, so it is unlikely to collide with regular code.} so this example behaves exactly as we'd expect. However, it doesn't look particularly special. Using Caterwaul idioms and
+    refactoring a bit, we get this:\footnote{Thanks to Jeff Simpson for pointing out a bug here! I had previously written {\tt composite(n) = n[2, Math.sqrt(n)]}, which has an off-by-one error
+    since it stops before reaching $\sqrt n$. It's necessary to use an inclusive upper bound to make sure that we get squares as well as other factors.}
 
 \lstset{caption={examples/primes/primes.js},name={examples/primes/primes.js}}\begin{resourcecode}
 $(caterwaul.js_all()(function () {
-  $('body').append(primes.join(', '))
+  $('body').text(primes.join(', '))
   -where [
     composite(n) = ni[2, Math.sqrt(n)] |[n % x === 0] |seq,
     primes       = n[2, 10000] %!composite -seq];
@@ -252,9 +253,9 @@ composite(n) = ni[2, Math.sqrt(n)] |[n % x === 0] |seq
 primes = n[2, 10000] %!composite -seq
 \end{verbatim}
 
-    {\tt n[]} is doing the same thing as before. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which are not composite. The filter prefix is
-    \verb|%|, and the \verb|!| modifier negates the condition. Because there's already a function defined, I use that instead of writing out a block. I'm using a higher-precedence prefix for
-    {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
+    {\tt n[]} is doing the same thing as {\tt ni[]}, but doesn't include its upper bound. After it is {\tt \%}, which is the filter operator. So we're filtering down to only the elements which
+    are not composite. The filter prefix is \verb|%|, and the \verb|!| modifier negates the condition. Because there's already a function defined, I use that instead of writing out a block.
+    I'm using a higher-precedence prefix for {\tt seq} as a matter of convention; I default to using a minus unless there's a reason to use something else.
 
 \chapter{This is Hideous!}\label{sec:this-is-hideous}
 \begin{quote}
@@ -434,6 +435,12 @@ function integrate(f, a, b, h) {
 
 \begin{verbatim}
 integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x) * h] -seq
+\end{verbatim}
+
+    Or, moving the multiplication out of the loop by the distributive property:
+
+\begin{verbatim}
+integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x)] -seq -re- it * h
 \end{verbatim}
 
 \chapter{Game of Life}\label{sec:game-of-life}
