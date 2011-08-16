@@ -1735,7 +1735,6 @@ terminal::info('minifying stuff');
 minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.js", @extensions;
 
 __
-meta::hook('after-render::tools', 'file::write(\'build/tools/precompile.js\', retrieve(\'pp::js::tools/precompile\'), mkpath => 1);');
 meta::hook('before-save::bootstrap.html', <<'__');
 build_bootstrap_html();
 
