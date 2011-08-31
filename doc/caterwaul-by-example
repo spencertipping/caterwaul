@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.P8zX/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.Ibuv/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -2324,13 +2324,13 @@ meta::section('introduction', <<'__');
                         _______________
                         \
                          \_  Caterwaul
-                           \
-                            \
+                           \  learning
+                            \    curve
                             |
                         ?   \
                       _O_    \
       Programmer ->    |      \
-                      / \      |
+                      / \ _____|
     - end
 
     It's not actually quite this bad. It took me about two weeks to understand how to use Caterwaul after I wrote it. The benefit of using it on a regular basis is that I now have a much
