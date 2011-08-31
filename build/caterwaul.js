@@ -295,38 +295,6 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
       as: function (d) {return this.data === d ? this : new this.constructor(d).push(this)},
 
-//     Type detection and retrieval.
-//     These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
-//     otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
-
-//     Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
-//     eta-reduced (if it were, then the 'this' binding would be lost).
-
-//     Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
-//     than a string comparison. The ASCII value for underscore is 95.
-
-               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
-               is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
-              is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
-               is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
-
-             is_wildcard: function () {return this.data.charCodeAt(0) === 95},
-
-       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
-    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
-
-             is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
-          left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
-                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
-         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
-           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
-
-            is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
-is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
-       is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
-
-                 accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)},
-
 //     Value construction.
 //     Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
 //     need a mapping of symbols to these references, which is what the bindings() method returns. (It also collects references for all descendant nodes.) It takes an optional argument to
@@ -360,10 +328,60 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                                                             return variables}},
 
 //     Inspection and syntactic serialization.
-//     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). Each representation captures stray links via the 'r'
-//     pointer. In the serialized representation, it is shown as a comment /* -> */ containing the serialization of whatever is to the right. This has the property that it will break tests but
-//     won't necessarily break code (though if it happens in the field then it's certainly a bug).
+//     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). In the past, stray 'r' links were serialized as block
+//     comments. Now they are folded into implied semicolons by the parser, so they should never appear by the time serialization happens.
 
+      structure: function () {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
+                              else             return this.data}};
+
+//   Syntax node subclassing.
+//   Caterwaul 1.1.1 generalizes the variadic syntax node model to support arbitrary subclasses. This is useful when defining syntax trees for languages other than Javascript. Note that this
+//   method is destructive to your constructor; it adds a bunch of methods to the prototype automatically.
+
+    caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1);
+                                                        merge.apply(this, [ctor.prototype, syntax_common].concat(extensions));
+                                                        ctor.prototype.constructor = ctor;
+                                                        return ctor};
+
+//   Type detection and retrieval.
+//   These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
+//   otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
+
+//   Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
+//   eta-reduced (if it were, then the 'this' binding would be lost).
+
+//   Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
+//   than a string comparison. The ASCII value for underscore is 95.
+
+    caterwaul_global.javascript_tree_type_methods = {
+               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+               is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
+              is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
+               is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+
+             is_wildcard: function () {return this.data.charCodeAt(0) === 95},
+
+       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
+
+             is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
+          left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
+                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
+         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
+           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
+
+            is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
+       is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
+
+                 accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
+
+//   Javascript-specific serialization.
+//   These methods are specific to the Javascript language. Other languages will have different serialization logic.
+
+    caterwaul_global.javascript_tree_serialization_methods = {
+
+//     Block detection.
 //     Block detection is required for multi-level if/else statements. Consider this code:
 
 //     | if (foo) for (...) {}
@@ -396,9 +414,6 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 //     Nodes might be flattened, so we can't assume any upper bound on the arity regardless of what kind of operator it is. Realistically you shouldn't hand flattened nodes over to the compile()
 //     function, but it isn't the end of the world if you do.
-
-      structure: function () {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
-                              else             return this.data},
 
       toString:  function ()   {var xs = ['']; this.serialize(xs); return xs.join('')},
       serialize: function (xs) {var l = this.length, d = this.data, semi = ';\n',
@@ -437,31 +452,37 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Caterwaul 1.0 adds named gensyms, and one of the things you can do is name your refs accordingly. If you don't name one it will just be called 'ref', but you can make it more descriptive by
 //   passing in a second constructor argument. This name will automatically be wrapped in a gensym, but that gensym will be removed at compile-time unless you specify not to rename gensyms.
 
-    caterwaul_global.ref = function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
-                                                   else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')};
+    caterwaul_global.ref = caterwaul_global.syntax_subclass(
+                             function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
+                                                     else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')},
 
-    merge(caterwaul_global.ref.prototype, syntax_common, {binds_a_value: true, length: 0});
+                             caterwaul_global.javascript_tree_type_methods,
+                             caterwaul_global.javascript_tree_serialization_methods,
+
+                             {binds_a_value: true, length: 0},
 
 //   Reference replace() support.
 //   Refs aren't normal nodes; in particular, invoking the constructor as we do in replace() will lose the ref's value and cause all kinds of problems. In order to avoid this we override the
 //   replace() method for syntax refs to behave more sensibly. Note that you can't replace a ref with a syntax 
 
-    caterwaul_global.ref.prototype.replace = function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
-                                                                                      r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) : r :
-                                                                                      this};
+                             {replace: function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
+                                                                                r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) : r :
+                                                                                this}});
 
 //   Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
 //   to be used.
 
-    caterwaul_global.syntax = function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
-                                               else {this.data = data && data.toString(); this.length = 0;
-                                                 for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                   for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                     this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}};
+    caterwaul_global.syntax = caterwaul_global.syntax_subclass(
+                                function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                 else {this.data = data && data.toString(); this.length = 0;
+                                                   for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                     for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                       this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}},
 
-    merge(caterwaul_global.syntax.prototype, syntax_common);
+                                caterwaul_global.javascript_tree_type_methods,
+                                caterwaul_global.javascript_tree_serialization_methods);
 
     var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
 
