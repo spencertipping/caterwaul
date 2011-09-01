@@ -1,5 +1,5 @@
 Caterwaul JS: a Javascript to Javascript compiler
-Visit http://caterwauljs.org in a non-IE web browser for documentation.
+Visit http://caterwauljs.org for documentation.
 
 Stable builds of caterwaul are in the stable/ directory. Builds ending with 'rN',
 such as '0.3.4r1', are revisions that fix some bug but don't change functionality.
