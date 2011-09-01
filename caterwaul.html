@@ -92,6 +92,7 @@ for my $e (@html_elements) {
     "<$e $line>\n$block\n</$e>";
   };
 }
+
 __
 meta::meta('type::alias', <<'__');
 meta::configure 'alias', inherit => 0;
@@ -2411,6 +2412,7 @@ retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 __
 meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
+meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
 parent::object                 97acda5f35b8f6cd6d6f61ad515f0d3e
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
