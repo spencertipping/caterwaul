@@ -2419,6 +2419,8 @@ template::eval                 1a0e2124a05056be4abc11803883c294
 template::failing_conditional  e3a4523110dd859e828f342185de7c62
 template::include              47b5552d609d97fe7f2522d5c1027014
 template::pinclude             c07ff79bf8d642cceaa9ef844bfcb189
+template::script-include       76be051ad116449ddebd10e7c3729afd
+template::style-include        8e5a06b70e1b00379765f319bf6c8066
 
 __
 meta::parent('todo', <<'__');
@@ -5403,12 +5405,14 @@ my ($name) = @_;
 my $s      = 'script';
 my $script = retrieve($name);
 "<$s>\n$script\n</$s>";
+
 __
 meta::template('style-include', <<'__');
 my ($name) = @_;
 my $s      = 'style';
 my $style  = retrieve($name);
 "<$s>\n$style\n</$s>";
+
 __
 internal::main();
 
