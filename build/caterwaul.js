@@ -37,6 +37,14 @@
 //     f.sourceCode = 'return 5';
 //   });
 
+// The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
+// hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
+
+// | for (var k in {toString: 5}) alert(k);        // no alert on IE
+//   ({toString: 5}).hasOwnProperty('toString')    // false on IE
+
+// To compensate, merge() manually copies toString if it is present on the extension object.
+
     var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
     genval = (function (n, m, u) {return function () {return [u, n, ++m]}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
     gensym = function (name) {var v = genval(); return ['gensym', name || '', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
@@ -44,7 +52,15 @@
        map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
       rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
       hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
-     merge = function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) has(_, k) && (o[k] = _[k]); return o},
+
+     merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
+               // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
+               function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (has(_, k)) o[k] = _[k]; return o} :
+
+               // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
+               function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
+                               if (_ = arguments[i]) {for (var k in _) if (has(_, k)) o[k] = _[k];
+                                                      if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
 
 //   Optimizations.
 //   The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
@@ -331,6 +347,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). In the past, stray 'r' links were serialized as block
 //     comments. Now they are folded into implied semicolons by the parser, so they should never appear by the time serialization happens.
 
+      toString:  function () {var xs = ['']; this.serialize(xs); return xs.join('')},
       structure: function () {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
                               else             return this.data}};
 
@@ -415,7 +432,6 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     Nodes might be flattened, so we can't assume any upper bound on the arity regardless of what kind of operator it is. Realistically you shouldn't hand flattened nodes over to the compile()
 //     function, but it isn't the end of the world if you do.
 
-      toString:  function ()   {var xs = ['']; this.serialize(xs); return xs.join('')},
       serialize: function (xs) {var l = this.length, d = this.data, semi = ';\n',
                                  push = function (x) {if (lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)]) xs.push(' ', x);
                                                       else                                                                           xs.push(x)};
@@ -838,8 +854,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                     function_body = function_body.replace(renaming_table);
                                     s             = renaming_table[s]}
 
-      try       {return (new Function(s, function_body)).call(bindings['this'], bindings)}
-      catch (e) {throw new Error(e + ' while compiling ' + function_body)}};
+      var code = function_body.toString();
+      try       {return (new Function(s, code)).call(bindings['this'], bindings)}
+      catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}};
 
 //   Gensym erasure.
 //   Gensyms are horrible. They look like gensym_foo_1_5fz3ubq_10cbjq3C, which both takes up a lot of space and is hard to read. Fortunately, we can convert them at compile-time. This is possible
