@@ -5190,10 +5190,10 @@ reinterprets some syntax within an APL-like domain-specific language. It generat
 
 For instance, suppose we want an array of the first 10 squares. Using the sequence library looks like this:
 
-n[1, 11] *[x * x] /seq
+ni[1, 10] *[x * x] /seq
 
   Deciphering sequence code.
-  Enter a sequence operator here to see how it is decoded by the <code>seq</code> library: <div id='seq-decipher'></div>
+  Enter a sequence operator here to see how it is decoded by the <code>seq</code> library (this will be more relevant when reading the sections below): <div id='seq-decipher'></div>
 
   Mapping and iterating.
   The <code>*</code> operator is responsible for mapping, iterating, and flat-mapping. It's fairly easy to use; you just "multiply" a sequence by a bracketed expression. <code>*</code> will
@@ -5235,7 +5235,7 @@ n[1, 11] *[x * x] /seq
 
   Operator features.
   The sequence library uses operators to describe operations on arrays. Most of them are regular binary infix operators like <code>+</code> and <code>*</code>, though a few of them have names
-  (such as <code>n[]</code> above).
+  (such as <code>ni[]</code> above).
 
   Despite the wide array of operators supported, there is a high degree of regularity among them. Each operator that takes a block (like <code>*</code> does) has several options that can be
   set to change the way it interprets the block.
