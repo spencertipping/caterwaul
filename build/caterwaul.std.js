@@ -267,7 +267,7 @@
 // Licensed under the terms of the MIT source code license
 
 // Introduction.
-// These macros provide some convenient literal notation for various Javascript literals. For obvious reasons, they have names that are unlikely to collide with methods.
+// These macros provide some convenient literal notation for various Javascript literals. For obvious reasons they have names that are unlikely to collide with methods.
 
 (function ($) {
   $.js_literals = function (caterwaul_function) {
@@ -284,6 +284,10 @@
 //   {foo: 'bar', bif: 'baz'}. There's also qr, which converts from a string to a regular expression and does all of the appropriate escape conversions. Some care should be taken with this,
 //   however, because not all regexp escapes are valid in strings. In particular, you can't do things like 'foo\[bar\]'.qr because \[ isn't recognized in strings.
 
+//   Another modifier is 'qs', which is rarely used outside of the context of writing macros. The idea here is to have Caterwaul parse the string and return a reference to the parse tree. So, for
+//   example, 'foo.bar'.qs is compiled into a reference to the parse tree for foo.bar. A caveat here is that the parse happens only once, so any mutations that happen to the syntax tree are
+//   persisted across invocations. (Unlike the way that array and object literals are interpreted, which is to create a new array or object each time that node is evaluated.)
+
     caterwaul_function.literal_modifiers.string.qw = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
                                                                                             pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
                                                                                      comma.push(new $.syntax(delimiter + pieces[i] + delimiter));
@@ -296,6 +300,8 @@
                                                                                    return hash_node.push(comma.unflatten())});
 
     caterwaul_function.literal_modifiers.string.qr = $.reexpander(function (node) {return node.with_data('/' + node.as_escaped_string().replace(/\//g, '\\/') + '/')});
+
+    caterwaul_function.literal_modifiers.string.qs = function (node) {return new $.ref($.parse(node.as_unescaped_string()))};
 
     return caterwaul_function}})(caterwaul);
 

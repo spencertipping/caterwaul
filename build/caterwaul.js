@@ -371,14 +371,35 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
 //   than a string comparison. The ASCII value for underscore is 95.
 
+    var parse_hex   = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i, result *= 16)
+                                                                              result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
+                                                                            return result},
+
+        parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i, result *= 8) result += digits.charCodeAt(i) - 48;
+                                                                            return result},
+
+    unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
+                                                                         if (is_escaped) is_escaped = false,
+                                                                                         result.push((c = s.charAt(i)) === '\\' ? '\\' :
+                                                                                                     c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
+                                                                                                     c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
+                                                                                                     c === '"' || c === '\'' ? c :
+                                                                                                     c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
+                                                                                                     c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
+                                                                                                                 String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
+                                                                    else if ((c = s.charAt(i)) === '\\') is_escaped = true;
+                                                                    else result.push(c);
+
+                                                                       return result.join('')};
     caterwaul_global.javascript_tree_type_methods = {
                is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
               is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
                is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
-                is_array: function () {return this.data === '['},
+                is_array: function () {return this.data === '['},                        as_unescaped_string: function () {return unescape_string(this.as_escaped_string())},
 
-             is_wildcard: function () {return this.data.charCodeAt(0) === 95},                 is_identifier: function () {return /^\w+$/.test(this.data) && ! has(lex_op, this.data)},
+             is_wildcard: function () {return this.data.charCodeAt(0) === 95},
+           is_identifier: function () {return this.length === 0 && /^[A-Za-z_$]\w*$/.test(this.data) && ! this.is_boolean() && ! this.is_null_or_undefined() && ! has(lex_op, this.data)},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
     is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
