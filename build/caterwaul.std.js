@@ -272,11 +272,19 @@
 (function ($) {
   $.js_literals = function (caterwaul_function) {
 
+    var function_template = $.parse('function (_) {return _body}');
+
 //   Regular expression literals.
 //   Right now we just support the 'x' flag, which causes all whitespace within the regular expression to be ignored. This is a straightforward preprocessing transformation, since we have access
 //   to the regexp in string form anyway.
 
-    (function (r) {r.x = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))})})(caterwaul_function.literal_modifiers.regexp);
+//   To make Javascript's regular expressions more useful I've also included the 'qf' modifier. This turns a regular expression into a matching function; for example, /foo/.qf becomes (function
+//   (s) {return /foo/.exec(s)}).
+
+    (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
+
+                   var call_exec_template = $.parse('_regexp.exec(_)');
+                   r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
 
 //   String literals.
 //   There are a couple of things we can do with strings. First, there's the 'qw' modifier, which causes a string to be split into an array of words at compile-time. So, for instance, the
@@ -304,7 +312,6 @@
 
                    s.qs = function (node) {return new $.ref($.parse(node.as_unescaped_string()))};
 
-                   var function_template = $.parse('function (_) {return _body}');
                    s.qf = $.reexpander(function (node) {return function_template.replace({_body: $.parse(node.as_unescaped_string())})})})(caterwaul_function.literal_modifiers.string);
 
     return caterwaul_function}})(caterwaul);
