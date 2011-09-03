@@ -360,6 +360,12 @@
     modifier              ('raise',  $.reexpander('(function () {throw _expression}).call(this)'));
     parameterized_modifier('rescue', $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'));
 
+//   Evaluation.
+//   Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
+//   and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
+
+    modifier('eval', function (match) {return new $.ref($.compile(this(match._expression)), 'eval')});
+
 // Scoping and referencing.
 // These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
 
@@ -408,6 +414,19 @@
 //     alert(x), where[x = 10]
 
     parameterized_modifier('where', $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'));
+
+//   Importation.
+//   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
+
+//   | log(x) -using- console              // -> (function () {var log = console.log; return log(x)}).call(this)
+
+//   Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
+//   However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
+
+    var scope_template = $.parse('(function () {var _variables; return _expression}).call(this)');
+    parameterized_modifier('using', function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
+                                                      for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
+                                                      return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})});
 
 // Control flow modifiers.
 // These impact how something gets evaluated.
