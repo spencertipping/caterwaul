@@ -415,6 +415,18 @@
 
     parameterized_modifier('where', $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'));
 
+//   Object construction.
+//   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
+//   can also use regular assignments, each of which will be converted into a key/value pair:
+
+//   | var o = capture [f(x) = 10, g(x)(y) = x + y];
+//     o.g(10)(20)         // -> 30
+
+    modifier('capture', $.reexpander(function (match) {for (var r = new $.syntax('{'), comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length;
+                                                            i < l; ++i)
+                                                         comma.push(this(bindings[i]).with_data(':'));
+                                                       return r.push(comma.unflatten())}));
+
 //   Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
 
@@ -424,9 +436,9 @@
 //   However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
 
     var scope_template = $.parse('(function () {var _variables; return _expression}).call(this)');
-    parameterized_modifier('using', function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
-                                                      for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
-                                                      return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})});
+    parameterized_modifier('using', $.reexpander(function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
+                                                                   for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
+                                                                   return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}));
 
 // Control flow modifiers.
 // These impact how something gets evaluated.
