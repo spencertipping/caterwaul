@@ -422,10 +422,9 @@
 //   | var o = capture [f(x) = 10, g(x)(y) = x + y];
 //     o.g(10)(20)         // -> 30
 
-    modifier('capture', $.reexpander(function (match) {for (var r = new $.syntax('{'), comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length;
-                                                            i < l; ++i)
-                                                         comma.push(this(bindings[i]).with_data(':'));
-                                                       return r.push(comma.unflatten())}));
+    modifier('capture', function (match) {for (var r = new $.syntax('{'), comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
+                                            comma.push(this(bindings[i]).with_data(':'));
+                                          return r.push(comma.unflatten())});
 
 //   Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
