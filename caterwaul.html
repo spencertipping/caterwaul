@@ -5351,6 +5351,14 @@ The <code>structure</code> method gives you a string containing the syntax tree 
 
   compile -using.caterwaul
 
+  The opposite of <code>using</code> is <code>capture</code>, which makes an object out of a series of assignments. The assignment structure is just like it is for <code>where</code>:
+
+  result = capture [f(x) = x + 1, y = 10]
+
+  result.f(10)
+
+  result.y
+
   Function modifiers.
   There are two words that create functions. One is <code>given</code>, which creates a regular function. The other is <code>bgiven</code>, which binds the function to the <code>this</code>
   where it was defined. For example:
