@@ -1232,7 +1232,7 @@ meta::function('loc', <<'__');
 hook('before-loc', @_);
 
 my $criteria    = join '|', @_;
-my @attributes  = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
+my @attributes  = grep s/^sdoc::/pp::/, select_keys('--criteria' => $criteria);
 my $tcomments   = 0;
 my $twhitespace = 0;
 my $tsource     = 0;
@@ -1254,6 +1254,7 @@ terminal::info(map &$loc($_), @attributes);
 terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
 
 hook('after-loc', @_);
+
 __
 meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
 meta::function('ls', <<'__');
@@ -2160,7 +2161,7 @@ parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
 
 __
 meta::parent('/home/spencertipping/bin/node-base', <<'__');
-function::loc                                               6b2be2b7f7a9c0f524c3a6e9fad3daa3
+function::loc                                               056a55cdf80e85b2b927a9568504f638
 function::node                                              b0b71c40082dadf3ed4d8510534ff5cc
 function::node-custom                                       9ebcf90e9a7bb24e7611b98ae49e90fc
 function::render                                            48667802c456d49fdf63836f7994dfa7
@@ -2168,10 +2169,10 @@ function::run-forever                                       e5b227e835b00b82d439
 internal_function::dep                                      9f5c8b82af8796a0ef9909de9c28d56b
 message_color::test                                         03621cd6ac0b1a40d703f41e26c5807f
 meta::type::js                                              e292996c992f4bc110e9577266c94784
-parent::/home/spencertipping/bin/repository                 0fe3f55c8cd08b6895126f9944027fc6
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  cf30ed24cbd679b96e608a6c67dae069
-parent::notes                                               52e9dde4eef92e36cc2ba8ad9f51123e
-parent::preprocessor                                        d5f9081e9a9a0b5e737ceee08f5ce507
+parent::/home/spencertipping/bin/repository                 50b3981a563910cc2f2e206b17514504
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  f938653251b89b98cbcc26c713a2dae7
+parent::notes                                               54c54ac22b6c221c7db37ee731b2be88
+parent::preprocessor                                        4695da77689b5766150749851560c16e
 
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
