@@ -710,7 +710,7 @@ caterwaul.words(caterwaul.js())(function ($) {
                             seq_pattern                            = anon('S[_x]'),
                             promote_seq(f)                         = seq_pattern.replace({_x: f}),
 
-                            parse_body(tree, expand, normal, init) = ((r = block_with_seq.match(tree))               ? parse_body(r._x, expand, sequence_context_normal, init) :
+                            parse_body(tree, expand, normal, init) = ((r = block_with_seq.match(tree))               ? parse_body(r._x, expand, sequence_context_normal, sequence_context_init) :
                                                                       (r = block_with_closure.match(tree))           ? parse_body(r._x, expand, wrapping_normal, wrapping_init) :
 
                                                                       (r = block_with_variable_and_init.match(tree)) ? init(r._x, r._init, prefixed_names(r._var)) :
@@ -720,13 +720,14 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                                       (r = block.match(tree))                        ? normal(r._x, standard_names) :
                                                                                                                        normal(promote_function(tree), standard_names))
 
-                                                                     -where [in_sequence_context(f)                   = expand.call(expand, promote_seq(f)),
-                                                                             sequence_context_normal(f, names)        = normal(in_sequence_context(f), names),
+                                                                     -where [in_sequence_context(f)                           = expand.call(expand, promote_seq(f)),
+                                                                             sequence_context_normal(f, names)                = normal(in_sequence_context(f), names),
+                                                                             sequence_context_init(f, init_expression, names) = init  (in_sequence_context(f), init_expression, names),
 
-                                                                             wrapping_normal(f, names)                = normal(close_body(names, f), names),
-                                                                             wrapping_init(f, init_expression, names) = init  (close_body(names, f), init_expression, names),
+                                                                             wrapping_normal(f, names)                        = normal(close_body(names, f), names),
+                                                                             wrapping_init(f, init_expression, names)         = init  (close_body(names, f), init_expression, names),
 
-                                                                             r                                        = null],
+                                                                             r                                                = null],
                             // Modifier parsing
                             tbang_modifier = anon('~!_x'),
                             bang_modifier  = anon('!_x'),
