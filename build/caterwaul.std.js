@@ -163,6 +163,22 @@
 
         function_destructure = function (node) {return function_args_rule.call(this, node) || function_rule.call(this, node)};
 
+//   Infix function application.
+//   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. It locates anything of the form x /-f/ y or x |-f| y and converts it into f(x, y). The
+//   notation is vaguely borrowed from Haskell, though due to Javascript's limitations it doesn't look as good.
+
+//   You can change the minus sign to a tilde to get n-ary flattening; that is, x /~f/ y / z / ... becomes f(x, y, z, ...). (Normally it left-associates into binary applications.) The same goes
+//   for vertical bar syntax.
+
+    var infix_function_slash = $.rereplacer('_x /-_f/ _y', '_f(_x, _y)'), infix_function_bar = $.rereplacer('_x |-_f| _y', '_f(_x, _y)'),
+
+        infix_function_flat  = $.reexpander(function (node) {var match = node.data === '/' && node.flatten('/') || node.data === '|' && node.flatten('|'), l = match && match.length, c;
+                                                             if (l > 2 && match[1].data === 'u~' && (fn = match[1][0])) {
+                                                               for (var result = new $.syntax(',', match[0]), i = 2; i < l; ++i) result.push(match[i]);
+                                                               return new $.syntax('()', match[1][0], result.unflatten())}}),
+
+        infix_function       = function (node) {return infix_function_flat.call(this, node) || infix_function_slash.call(this, node) || infix_function_bar.call(this, node)};
+
 //   Literal modification.
 //   Caterwaul 1.1.2 introduces literal modification, which provides ways to reinterpret various types of literals at compile-time. These are always written as postfix property accesses, e.g.
 //   /foo bar/.x -- here, 'x' is the modifier. Cool as it would be to be able to stack modifiers up, right now Caterwaul doesn't support this. Part of the reason is that I'm too lazy/uninsightful
@@ -245,7 +261,7 @@
 //   function (which will be called lots of times).
 
     var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
-                                            node.length && (modifier.call(this, node) || function_destructure.call(this, node))},
+                                            node.length && (infix_function.call(this, node) || modifier.call(this, node) || function_destructure.call(this, node))},
 
         result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
                                     $(each_node);
