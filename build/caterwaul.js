@@ -1,41 +1,42 @@
 // Introduction.
 // Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
 
-(function (f) {return f(f, (function (x) {return function () {return ++x}})(0))})(function (initializer, unique, undefined) {
+(function (f) {return f(f)})(function (initializer, key, undefined) {
 
 // Utility methods.
-// Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
-// tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
-// below):
+// Utility functions here are:
 
-// | (function (a_gensym) {
-//     var v1 = a_gensym.gensym_1;
-//     var v2 = a_gensym.gensym_2;
-//     ...
-//     return [your macroexpanded function];
-//   }) ({gensym_1: v1, gensym_2: v2, ..., gensym_n: vn});
+// | 1. qw      Splits a string into space-separated words and returns an array of the results. This is a Perl idiom that's really useful when writing lists of things.
+//   2. se      Side-effects on a value and returns the value.
+//   3. fail    Throws an error. This isn't particularly special except for the fact that the keyword 'throw' can't be used in expression context.
+//   4. gensym  Generates a string that will never have been seen before.
+//   5. bind    Fixes 'this' inside the function being bound. This is a common Javascript idiom, but is reimplemented here because we don't know which other libraries are available.
+//   6. map     Maps a function over an array-like object and returns an array of the results.
+//   7. rmap    Recursively maps a function over arrays.
+//   8. hash    Takes a string, splits it into words, and returns a hash mapping each of those words to true. This is used to construct sets.
+//   9. merge   Takes an object and one or more extensions, and copies all properties from each extension onto the object. Returns the object.
 
-// A note about gensym uniqueness. Gensyms are astronomically unlikely to collide, but there are some compromises made to make sure of this. First, gensyms are not predictable; the first one is
-// randomized. This means that if you do have a collision, it may be intermittent (and that is probably a non-feature). Second, and this is a good thing, you can load Caterwaul multiple times
-// without worrying about gensyms colliding between them. Each instance of Caterwaul uses its own system time and random number to seed the gensym generation, and the system time remains stable
-// while the random number gets incremented. It is very unlikely that any collisions would happen.
-
-// As of version 1.0 gensyms have an additional component to provide information about what they're being used for. This is used during gensym renaming; see the environment-dependent compilation
-// source for more information about this.
-
-// Bind() is the usual 'bind this function to some value' function. The only difference is that it supports rebinding; that is, if you have a function you've already bound to X, you can call bind
-// on that function and some new value Y and get the original function bound to Y. The bound function has two attributes, 'original' and 'binding', that let bind() achieve this rebinding.
-
-// Map() is an array map function, fairly standard really. I include it because IE doesn't provide Array.prototype.map. hash() takes a string, splits it on whitespace, and returns an object that
-// maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
-// function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
-
-// Se() stands for 'side-effect', and its purpose is to take a value and a function, pass the value into the function, and return either whatever the function returned or the value you gave it.
-// It's used to initialize things statefully; for example:
+// Side-effecting is used to initialize things statefully; for example:
 
 // | return se(function () {return 5}, function (f) {
 //     f.sourceCode = 'return 5';
 //   });
+
+// Gensyms are unique identifiers that end with high-entropy noise that won't appear in the source being compiled. The general format of a gensym is name_count_suffix, where 'name' is provided by
+// whoever requested the gensym (this allows gensyms to be more readable), 'count' is a base-36 number that is incremented with each gensym, and 'suffix' is a constant base-64 string containing
+// 128 bits of entropy. (Since 64 possibilities is 6 bits, this means that we have 22 characters.)
+
+    var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
+
+    unique = key || (function () {for (var xs = [], d = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_', i = 21, n; i >= 0; --i) xs.push(d.charAt(Math.random() * 64 >>> 0));
+                                  return xs.join('')})(),
+
+    gensym = (function (c) {return function (name) {return [name || '', (++c).toString(36), unique].join('_')}})(0),  is_gensym = function (s) {return s.substr(s.length - 22) === unique},
+
+      bind = function (f, t) {return function () {return f.apply(t, arguments)}},
+       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
+      rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
+      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
 
 // The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
 // hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
@@ -44,16 +45,6 @@
 //   ({toString: 5}).hasOwnProperty('toString')    // false on IE
 
 // To compensate, merge() manually copies toString if it is present on the extension object.
-
-    var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
-    genval = (function (n, m, u) {return function () {return [u, n, ++m]}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
-    gensym = function (name) {var v = genval(); return ['gensym', name || '', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
-
-      bind = function (f, t) {return function () {return f.apply(t, arguments)}},
-
-       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
-      rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
-      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
 
      merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
                // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
@@ -78,7 +69,7 @@
 //   As of Caterwaul 0.7.0 the _max_length property has been replaced by a gensym. This basically guarantees uniqueness, so the various hacks associated with working around the existence of the
 //   special _max_length key are no longer necessary.
 
-   max_length_key = gensym('hash_annotation'),
+   max_length_key = gensym('hash'),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
@@ -91,9 +82,7 @@
   original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
 
   caterwaul_global = se(calls_init(), function () {this.deglobalize = function () {caterwaul = original_global; return caterwaul_global};
-
-                                                   merge(this, {merge:  merge,   map:  map,
-                                                                unique: unique,  rmap: rmap,  gensym: gensym})}),
+                                                   merge(this, {merge: merge, map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym})}),
 
 // Shared parser data.
 // This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
@@ -213,7 +202,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
 //     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-      id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
+                       id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
+      is_caterwaul_syntax: true,
 
 //     Traversal functions.
 //     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -373,26 +363,27 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
 //   than a string comparison. The ASCII value for underscore is 95.
 
-    var parse_hex   = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i, result *= 16)
-                                                                              result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
-                                                                            return result},
+    var parse_hex = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i)
+                                                                            result *= 16, result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
+                                                                          return result},
 
-        parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i, result *= 8) result += digits.charCodeAt(i) - 48;
-                                                                            return result},
+      parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i) result *= 8, result += digits.charCodeAt(i) - 48;
+                                                                          return result},
 
-    unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
-                                                                         if (is_escaped) is_escaped = false,
-                                                                                         result.push((c = s.charAt(i)) === '\\' ? '\\' :
-                                                                                                     c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
-                                                                                                     c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
-                                                                                                     c === '"' || c === '\'' ? c :
-                                                                                                     c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
-                                                                                                     c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
-                                                                                                                 String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
-                                                                    else if ((c = s.charAt(i)) === '\\') is_escaped = true;
-                                                                    else result.push(c);
+  unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
+                                                                       if (is_escaped) is_escaped = false,
+                                                                                       result.push((c = s.charAt(i)) === '\\' ? '\\' :
+                                                                                                   c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
+                                                                                                   c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
+                                                                                                   c === '"' || c === '\'' ? c :
+                                                                                                   c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
+                                                                                                   c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
+                                                                                                               String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
+                                                                  else if ((c = s.charAt(i)) === '\\') is_escaped = true;
+                                                                  else result.push(c);
 
-                                                                       return result.join('')};
+                                                                     return result.join('')};
+
     caterwaul_global.javascript_tree_type_methods = {
                is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
@@ -885,7 +876,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}};
 
 //   Gensym erasure.
-//   Gensyms are horrible. They look like gensym_foo_1_5fz3ubq_10cbjq3C, which both takes up a lot of space and is hard to read. Fortunately, we can convert them at compile-time. This is possible
+//   Gensyms are horrible. They look like foo_1_j15190ba29n1_$1AC151953, which both takes up a lot of space and is hard to read. Fortunately, we can convert them at compile-time. This is possible
 //   because Javascript (mostly) supports alpha-conversion for functions.
 
 //   I said "mostly" because some symbols are converted into runtime strings; these are property keys. In the unlikely event that you've got a gensym being used to dereference something, e.g.
@@ -896,8 +887,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   elegant option is to use scope analysis to keep N low, but I'm too lazy to implement it.)
 
     caterwaul_global.gensym_rename_table = function (tree) {
-      var names = {}, gensyms = [], gensym_pattern = /^gensym_(.*)_\d+_[^_]+_[^_]+$/;
-      tree.reach(function (node) {var d = node.data; gensym_pattern.test(d) && (names[d] || gensyms.push(d)); names[d] = d.replace(gensym_pattern, '$1') || 'anon'});
+      var names = {}, gensyms = [];
+      tree.reach(function (node) {var d = node.data; if (is_gensym(d)) names[d] || gensyms.push(d); names[d] = d.replace(/^(.*)_[a-z0-9]+_.{22}$/, '$1') || 'anon'});
 
       var unseen_count = {}, next_unseen = function (name) {if (! (name in names)) return name;
                                                             var n = unseen_count[name] || 0; while (names[name + (++n).toString(36)]); return name + (unseen_count[name] = n).toString(36)};

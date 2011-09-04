@@ -265,6 +265,10 @@ meta::alias('cloc', 'loc js::core/caterwaul\\.');
 meta::alias('ec', 'edit sdoc::js::caterwaul');
 meta::alias('eh', 'edit data::bootstrap.html.sdoc');
 meta::alias('es', 'edit sdoc::data::style.css');
+meta::alias('ev', <<'__');
+edit sdoc::vim_highlighter::caterwaul
+
+__
 meta::alias('lsc', 'ls -a sdoc::js::core/');
 meta::alias('lse', 'ls -a sdoc::js::extensions/');
 meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
@@ -282,7 +286,7 @@ $('#cover .status').text('compiling caterwaul');
 </script>
 
 <script>
-(function(a){return a(a,(function(b){return function(){return ++b}})(0))})(function(f,c,q){var ae=function(am){return am.split(/\s+/)},C=function(am,an){return an&&an.call(am,am)||am},p=function(am){throw new Error(am)},n=(function(ao,am,an){return function(){return[an,ao,++am]}})(+new Date(),Math.random()*(1<<30)>>>0,c()),V=function(an){var am=n();return["gensym",an||"",am[0].toString(36),am[1].toString(36),am[2].toString(36)].join("_")},i=function(an,am){return function(){return an.apply(am,arguments)}},N=function(aq,an){for(var ao=0,ap=[],am=an.length;ao<am;++ao){ap.push(aq(an[ao],ao))}return ap},x=function(an,am){return N(function(ao){return ao instanceof Array?x(an,ao):an(ao)})},ac=function(ap){for(var ao=0,an=ae(ap),aq={},am=an.length;ao<am;++ao){aq[an[ao]]=true}return t(aq)},aa=(function(an){for(var am in an){if(an.hasOwnProperty(am)){return true}}})({toString:true})?function(aq){for(var ap=1,am=arguments.length,ao;ap<am;++ap){if(ao=arguments[ap]){for(var an in ao){if(g(ao,an)){aq[an]=ao[an]}}}}return aq}:function(aq){for(var ap=1,am=arguments.length,ao;ap<am;++ap){if(ao=arguments[ap]){for(var an in ao){if(g(ao,an)){aq[an]=ao[an]}}if(ao.toString&&!/\[native code\]/.test(ao.toString.toString())){aq.toString=ao.toString}}}return aq},Z=V("hash_annotation"),t=function(ao){var am=0;for(var an in ao){l.call(ao,an)&&(am=an.length>am?an.length:am)}ao[Z]=am;return ao},g=function(an,am){return am!=null&&!(am.length>an[Z])&&l.call(an,am)},l=Object.prototype.hasOwnProperty,ad=function(){var am=function(){return am.init.apply(am,arguments)};return am},af=typeof caterwaul==="undefined"?q:caterwaul,al=C(ad(),function(){this.deglobalize=function(){caterwaul=af;return al};aa(this,{merge:aa,map:N,unique:c,rmap:x,gensym:V})}),ak=ac(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),S=function(ap){for(var ao=0,an=[false];ao<8;++ao){an.push.apply(an,an)}for(var ao=0,am=ap.length;ao<am;++ao){an[ap.charCodeAt(ao)]=true}return an},ai=S(".0123456789"),U=S("0123456789"),z=S("0123456789abcdefABCDEFx"),L=S("eE"),j=S(" \n\r\t"),u=S("()[]{}"),s=S("([{"),y=S("+-*/%&|^!~=<>?:;.,"),J=S("\n\r"),k=S("gims"),O=S("'\"/"),o="/".charCodeAt(0),R="*".charCodeAt(0),m="\\".charCodeAt(0),Y="x".charCodeAt(0),M=".".charCodeAt(0),T="0".charCodeAt(0),ah=ac("++ --"),W=S("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),K=N(ac,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),H=ac("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),F=(function(ao){for(var aq={},ap=0,am=ao.length;ap<am;++ap){for(var an in ao[ap]){g(ao[ap],an)&&(aq[an]=ap)}}return t(aq)})(K),w=(function(ao){for(var aq=[],ar=0,am=ao.length,ap=null;ap=ao[ar],aq[ar]=true,ar<am;++ar){for(var an in ap){if(g(ap,an)&&(aq[ar]=aq[ar]&&!g(H,an))){break}}}return aq})(K),B=ac("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),X=t({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),Q=t({"if":"else","do":"while","catch":"finally","try":"catch"}),D=ac("[] ()"),ag=ac("return throw break continue else"),E=ac("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),h=ac("; {"),ab=ac("i;"),I=ac("++ --"),r=t({"(":")","[":"]","{":"}","?":":"}),G=ac("[ ("),P=ac("?"),e=ac("function if for while catch void delete new typeof in instanceof"),A=ac("function"),v=al.syntax_common={_replace:function(am){return(am.l=this.l)&&(this.l.r=am),(am.r=this.r)&&(this.r.l=am),this},_append_to:function(am){return am&&am._append(this),this},_reparent:function(am){return this.p&&this.p[0]===this&&(this.p[0]=am),this},_fold_l:function(am){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(am){return(this[this.length++]=am)&&(am.p=this),this},_fold_r:function(am){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(am){return am.p=this.p,(this.r=am).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(am){return am.p=this._replace(am).p,this._reparent(am),delete this.l,delete this.r,this._append_to(am)},_unlink:function(am){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(am)},pop:function(){return --this.length,this},push:function(am){return this[this.length++]=am||a,this},id:function(){var am=V("id");return(this.id=function(){return am})()},each:function(ao){for(var an=0,am=this.length;an<am;++an){ao(this[an],an)}return this},map:function(ao){for(var ap=new this.constructor(this),an=0,am=this.length;an<am;++an){ap.push(ao(this[an],an)||this[an])}return ap},reach:function(am){am(this);this.each(function(an){an.reach(am)});return this},rmap:function(an){var am=an(this);return !am||am===this?this.map(function(ao){return ao.rmap(an)}):am.rmap===q?new this.constructor(am):am},clone:function(){return this.rmap(function(){return false})},collect:function(an){var am=[];this.reach(function(ao){an(ao)&&am.push(ao)});return am},replace:function(am){var an;return l.call(am,this.data)&&(an=am[this.data])?an.constructor===String?C(this.map(function(ao){return ao.replace(am)}),function(){this.data=an}):an:this.map(function(ao){return ao.replace(am)})},repopulated_with:function(am){return new this.constructor(this.data,am)},with_data:function(am){return new this.constructor(am,Array.prototype.slice.call(this))},change:function(an,am){return C(new this.constructor(this.data,Array.prototype.slice.call(this)),function(ao){ao[an]=am})},compose_single:function(am,an){return this.change(am,an(this[am]))},traverse:function(am){am({entering:this});am({exiting:this.each(function(an){an.traverse(am)})});return this},flatten:function(am){am=am||this.data;return am!==this.data?this.as(am):!(g(B,am)&&this.length)?this:g(H,am)?C(new this.constructor(am),i(function(ao){for(var an=this;an&&an.data===am;an=an[1]){ao.push(an[0])}ao.push(an)},this)):C(new this.constructor(am),i(function(ap){for(var an=this,ao=[];an.data===am;an=an[0]){an[1]&&ao.push(an[1])}ao.push(an);for(an=ao.length-1;an>=0;--an){ap.push(ao[an])}},this))},unflatten:function(){var an=this,am=g(H,this.data);return this.length<=2?this:C(new this.constructor(this.data),function(aq){if(am){for(var ap=0,ao=an.length-1;ap<ao;++ap){aq=aq.push(an[ap]).push(ap<ao-2?new an.constructor(an.data):an[ap])[1]}}else{for(var ap=an.length-1;ap>=1;--ap){aq=aq.push(ap>1?new an.constructor(an.data):an[0]).push(an[ap])[0]}}})},as:function(am){return this.data===am?this:new this.constructor(am).push(this)},bindings:function(an){var am=an||{};this.reach(function(ao){if(ao.binds_a_value){am[ao.data]=ao.value}});return am},match:function(ao,ap){ao=ao.constructor===String?al.parse(ao):ao;ap||(ap={_:ao});if(this.is_wildcard()){return ap[this.data]=ao,ap}else{if(this.length===ao.length&&this.data===ao.data){for(var an=0,am=this.length;an<am;++an){if(!this[an].match(ao[an],ap)){return null}}return ap}}},toString:function(){var am=[""];this.serialize(am);return am.join("")},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(N(function(am){return am.structure()},this)).join(" ")+")"}else{return this.data}}};al.syntax_subclass=function(an){var am=Array.prototype.slice.call(arguments,1);aa.apply(this,[an.prototype,v].concat(am));an.prototype.constructor=an;return an};var b=al.parse_hex=function(ap){for(var am=0,ao=0,an=ap.length,aq;ao<an;++ao,am*=16){am+=(aq=ap.charCodeAt(ao))<=58?aq-48:(aq&95)-55}return am},aj=al.parse_octal=function(ap){for(var am=0,ao=0,an=ap.length;ao<an;++ao,am*=8){am+=ap.charCodeAt(ao)-48}return am},d=al.unescape_string=function(aq){for(var ap=0,ar,an=aq.length,am=[],ao=false;ap<an;++ap){if(ao){ao=false,am.push((ar=aq.charAt(ap))==="\\"?"\\":ar==="n"?"\n":ar==="r"?"\r":ar==="b"?"\b":ar==="f"?"\f":ar==="0"?"\u0000":ar==="t"?"\t":ar==="v"?"\v":ar==='"'||ar==="'"?ar:ar==="x"?String.fromCharCode(b(aq.substring(ap,++ap+1))):ar==="u"?String.fromCharCode(b(aq.substring(ap,(ap+=3)+1))):String.fromCharCode(aj(aq.substring(ap,(ap+=2)+1))))}else{if((ar=aq.charAt(ap))==="\\"){ao=true}else{am.push(ar)}}}return am.join("")};al.javascript_tree_type_methods={is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_array:function(){return this.data==="["},as_unescaped_string:function(){return d(this.as_escaped_string())},is_wildcard:function(){return this.data.charCodeAt(0)===95},is_identifier:function(){return this.length===0&&/^[A-Za-z_$]\w*$/.test(this.data)&&!this.is_boolean()&&!this.is_null_or_undefined()&&!g(ak,this.data)},has_grouped_block:function(){return g(X,this.data)},is_block:function(){return g(h,this.data)},is_blockless_keyword:function(){return g(ag,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return g(ab,this.data)},is_binary_operator:function(){return g(B,this.data)},is_prefix_unary_operator:function(){return g(E,this.data)},is_postfix_unary_operator:function(){return g(I,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(am){return g(Q,this.data)&&Q[this.data]===(am.data||am)}};al.javascript_tree_serialization_methods={ends_with_block:function(){var am=this[X[this.data]];return this.data==="{"||g(X,this.data)&&(this.data!=="function"||this.length===3)&&am&&am.ends_with_block()},serialize:function(ap){var an=this.length,aq=this.data,am=";\n",ao=function(ar){if(W[ap[ap.length-1].charCodeAt(0)]===W[ar.charCodeAt(0)]){ap.push(" ",ar)}else{ap.push(ar)}};switch(an){case 0:if(g(ag,aq)){return ao(aq.replace(/^u/,""))}else{if(g(r,aq)){return ao(aq),ao(r[aq])}else{return ao(aq)}}case 1:if(g(E,aq)||g(ag,aq)){return ao(aq.replace(/^u/,"")),this[0].serialize(ap)}else{if(g(r,aq)){return ao(aq),this[0].serialize(ap),ao(r[aq])}else{if(g(B,aq)){return ao("/* unary "+aq+" node */"),this[0].serialize(ap)}else{return this[0].serialize(ap),ao(aq)}}}case 2:if(g(D,aq)){return this[0].serialize(ap),ao(aq.charAt(0)),this[1].serialize(ap),ao(aq.charAt(1))}else{if(g(X,aq)){return ao(aq),this[0].serialize(ap),this[1].serialize(ap)}else{if(g(ab,aq)){return this[0].serialize(ap),this[1].serialize(ap)}else{if(aq===";"){return this[0].serialize(ap),ao(am),this[1].serialize(ap)}else{return this[0].serialize(ap),ao(aq),this[1].serialize(ap)}}}}default:if(g(P,aq)){return this[0].serialize(ap),ao(aq),this[1].serialize(ap),ao(":"),this[2].serialize(ap)}else{if(g(X,aq)){return this.accepts(this[2])&&!this[1].ends_with_block()?(ao(aq),this[0].serialize(ap),this[1].serialize(ap),ao(am),this[2].serialize(ap)):(ao(aq),this[0].serialize(ap),this[1].serialize(ap),this[2].serialize(ap))}else{return this.unflatten().serialize(ap)}}}}};al.ref=al.syntax_subclass(function(an,am){if(an instanceof this.constructor){this.value=an.value,this.data=an.data}else{this.value=an,this.data=V(am&&am.constructor===String?am:"ref")}},al.javascript_tree_type_methods,al.javascript_tree_serialization_methods,{binds_a_value:true,length:0},{replace:function(am){var an;return l.call(am,this.data)&&(an=am[this.data])?an.constructor===String?C(new this.constructor(this.value),function(){this.data=an}):an:this}});al.syntax=al.syntax_subclass(function(ar){if(ar instanceof this.constructor){this.data=ar.data,this.length=0}else{this.data=ar&&ar.toString();this.length=0;for(var ap=1,am=arguments.length,ao;ao=arguments[ap],ap<am;++ap){for(var an=0,au=ao.length,aq,at;ao instanceof Array?(aq=ao[an],an<au):(aq=ao,!an);++an){this._append((at=aq.constructor)===String||at===Number||at===Boolean?new this.constructor(aq):aq)}}}},al.javascript_tree_type_methods,al.javascript_tree_serialization_methods);var a=al.empty=new al.syntax("");al.parse=function(aD){if(aD.constructor===al.syntax){return aD}var aG=aD.toString(),aA=0,aS=0,aJ=true,aT=false,aI=false,av=false,aH=0,aF="",aO=0,aM=aG.length,an=function(aW){return aG.charCodeAt(aW)},aw=[],ap=null,am=null,az=null,ar=N(function(){return[]},K),ao=[],ax=[a],aQ=function(aW){return ax.push(aW),aW},au=function(aW){return am?am._sibling(am=aW):(am=aW._append_to(az)),aQ(aW)},aL=this.syntax;if(aM===0){return a}while((aA=aO)<aM){while(j[aS=an(aO)]&&aO<aM){aA=++aO}aT=av=aI=aF=false;if(u[aS]){aF=!!++aO;aJ=s[aS]}else{if(aS===o&&an(aO+1)===R&&(aO+=2)){while(++aO<aM&&an(aO)!==o||an(aO-1)!==R){}aF=!++aO}else{if(aS===o&&an(aO+1)===o){while(++aO<aM&&!J[an(aO)]){}aF=false}else{if(O[aS]&&(aH=aS)&&aJ&&!(aJ=!(aF=aG.charAt(aO)))){while(++aO<aM&&(aS=an(aO))!==aH||aT){aT=!aT&&aS===m}while(++aO<aM&&k[an(aO)]){}aF=true}else{if(aS===T&&z[an(aO+1)]){while(++aO<aM&&z[an(aO)]){}aJ=!(aF=true)}else{if(ai[aS]&&(aS!==M||U[an(aO+1)])){while(++aO<aM&&(U[aS=an(aO)]||(aI^(aI|=aS===M))||(av^(av|=L[aS]&&++aO)))){}while(aO<aM&&U[an(aO)]){++aO}aJ=!(aF=true)}else{if(y[aS]&&(aF=aJ?"u":"",aJ=true)){while(aO<aM&&y[an(aO)]&&g(ak,aF+aG.charAt(aO))){aF+=aG.charAt(aO++)}aJ=!g(ah,aF)}else{while(++aO<aM&&W[an(aO)]){}aJ=g(ak,aF=aG.substring(aA,aO))}}}}}}}if(aO===aA){throw new Error('Caterwaul lex error at "'+aG.substr(aA,40)+'" with leading context "'+aG.substr(aA-40,40)+'" (probably a Caterwaul bug)')}if(aF===false){continue}aF=aF===true?aG.substring(aA,aO):aF==="u;"?";":aF;aF===ap?(aw.pop(),ap=aw[aw.length-1],am=am?am.p:az,az=null):(g(r,aF)?(aw.push(ap=r[aF]),az=au(aQ(new aL(aF))),am=null):au(aQ(new aL(aF))),g(F,aF)&&ar[F[aF]].push(am||az));aJ|=aF===")"&&am.l&&g(X,am.l.data)}for(var aO=0,aM=ar.length,aB,aV;aV=ar[aO],aB=w[aO],aO<aM;++aO){for(var aN=aB?0:aV.length-1,aE=aV.length,ay=aB?1:-1,aK,aU,aC;aB?aN<aE:aN>=0;aN+=ay){if(g(B,aU=(aK=aV[aN]).data)){aK._fold_lr()}else{if(g(G,aU)&&aK.l&&!((aC=aK.l.l)&&g(X,aC.data))&&(aK.l.data==="."||(aK.l.data==="function"&&aK.l.length===2)||!(g(ak,aK.l.data)||g(e,aK.l.data)))){ao.push(aK.l._wrap(aQ(new aL(aU+r[aU]))).p._fold_r())}else{if(g(I,aU)){aK._fold_l()}else{if(g(E,aU)){aK._fold_r()}else{if(g(P,aU)){aK._fold_lr();var aR=aK[1];aK[1]=aK[0];aK[0]=aR}else{if(g(X,aU)&&aK.r&&aK.r.data!==":"){for(var at=0,aP=X[aU];at<aP&&aK.r&&!g(h,aK.r.data);++at){aK._fold_r()}aK.r&&(aK.r.data===";"?aK.push(a):aK._fold_r());if(g(Q,aU)&&Q[aU]===(aK.r&&aK.r.r&&aK.r.r.data)){aK._fold_r().pop()._fold_r()}else{if(g(Q,aU)&&Q[aU]===(aK.r&&aK.r.data)){aK._fold_r()}}}else{if(g(ag,aU)){aK.r&&aK.r.data!==";"&&aK._fold_r()}}}}}}}}}for(var aO=ax.length-1,aV;aO>=0;--aO){(aV=ax[aO]).r&&aV._wrap(aQ(new aL("i;"))).p._fold_r()}for(var aO=0,aM=ao.length,aV,aq;aO<aM;++aO){(aq=(aV=ao[aO])[1]=aV[1][0]||a)&&(aq.p=aV)}while(am.p){am=am.p}for(var aO=ax.length-1,aV;aO>=0;--aO){delete (aV=ax[aO]).p,delete aV.l,delete aV.r}return am};(function(){var am=al.parse("var _bindings; return(_expression)"),ao=al.parse("_variable = _base._variable"),an=al.parse("undefined = void(0)");al.compile=function(aB,av,aA){aA=aa({gensym_renaming:true},aA);var ar=aa({},this._environment||{},av||{},aB.bindings()),ax=[an],az=V("base");for(var au in ar){if(l.call(ar,au)&&au!=="this"){ax.push(ao.replace({_variable:au,_base:az}))}}var ay=new this.syntax(",",ax).unflatten(),ap=am.replace({_bindings:ay,_expression:aB});if(aA.gensym_renaming){var at=this.gensym_rename_table(ap);for(var au in ar){l.call(ar,au)&&(ar[at[au]||au]=ar[au])}ap=ap.replace(at);az=at[az]}var aq=ap.toString();try{return(new Function(az,aq)).call(ar["this"],ar)}catch(aw){throw new Error((aw.message||aw)+" while compiling "+aq)}};al.gensym_rename_table=function(az){var ax={},av=[],ay=/^gensym_(.*)_\d+_[^_]+_[^_]+$/;az.reach(function(aA){var aB=aA.data;ay.test(aB)&&(ax[aB]||av.push(aB));ax[aB]=aB.replace(ay,"$1")||"anon"});var ap={},aw=function(aA){if(!(aA in ax)){return aA}var aB=ap[aA]||0;while(ax[aA+(++aB).toString(36)]){}return aA+(ap[aA]=aB).toString(36)};for(var aq={},at=0,ar=av.length,au;at<ar;++at){aq[au=av[at]]||(ax[aq[au]=aw(ax[au])]=true)}return aq}})();al.init=function(an){var am=function(aq,ao,ap){return aq.constructor===Function||aq.constructor===String?al.compile(am.call(am,al.parse(aq)),ao,ap):an?aq.rmap(function(ar){return an.call(am,ar,ao,ap)}):aq};am.global=al;am.macroexpander=an;return am};al.initializer=f;al.clone=function(){return C(f(f,c).deglobalize(),function(){for(var am in al){this[am]||(this[am]=al[am])}})};return caterwaul=al});
+(function(a){return a(a)})(function(f,z,p){var af=function(an){return an.split(/\s+/)},C=function(an,ao){return ao&&ao.call(an,an)||an},o=function(an){throw new Error(an)},c=z||(function(){for(var an=[],ap="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_",ao=21,aq;ao>=0;--ao){an.push(ap.charAt(Math.random()*64>>>0))}return an.join("")})(),W=(function(an){return function(ao){return[ao||"",(++an).toString(36),c].join("_")}})(0),V=function(an){return an.substr(an.length-22)===c},i=function(ao,an){return function(){return ao.apply(an,arguments)}},N=function(ar,ao){for(var ap=0,aq=[],an=ao.length;ap<an;++ap){aq.push(ar(ao[ap],ap))}return aq},w=function(ao,an){return N(function(ap){return ap instanceof Array?w(ao,ap):ao(ap)})},ad=function(aq){for(var ap=0,ao=af(aq),ar={},an=ao.length;ap<an;++ap){ar[ao[ap]]=true}return s(ar)},ab=(function(ao){for(var an in ao){if(ao.hasOwnProperty(an)){return true}}})({toString:true})?function(ar){for(var aq=1,an=arguments.length,ap;aq<an;++aq){if(ap=arguments[aq]){for(var ao in ap){if(g(ap,ao)){ar[ao]=ap[ao]}}}}return ar}:function(ar){for(var aq=1,an=arguments.length,ap;aq<an;++aq){if(ap=arguments[aq]){for(var ao in ap){if(g(ap,ao)){ar[ao]=ap[ao]}}if(ap.toString&&!/\[native code\]/.test(ap.toString.toString())){ar.toString=ap.toString}}}return ar},aa=W("hash"),s=function(ap){var an=0;for(var ao in ap){l.call(ap,ao)&&(an=ao.length>an?ao.length:an)}ap[aa]=an;return ap},g=function(ao,an){return an!=null&&!(an.length>ao[aa])&&l.call(ao,an)},l=Object.prototype.hasOwnProperty,ae=function(){var an=function(){return an.init.apply(an,arguments)};return an},ag=typeof caterwaul==="undefined"?p:caterwaul,am=C(ae(),function(){this.deglobalize=function(){caterwaul=ag;return am};ab(this,{merge:ab,map:N,rmap:w,gensym:W,is_gensym:V})}),al=ad(". new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , return throw case var const break continue void else u; ;"),S=function(aq){for(var ap=0,ao=[false];ap<8;++ap){ao.push.apply(ao,ao)}for(var ap=0,an=aq.length;ap<an;++ap){ao[aq.charCodeAt(ap)]=true}return ao},aj=S(".0123456789"),U=S("0123456789"),y=S("0123456789abcdefABCDEFx"),L=S("eE"),j=S(" \n\r\t"),t=S("()[]{}"),r=S("([{"),x=S("+-*/%&|^!~=<>?:;.,"),J=S("\n\r"),k=S("gims"),O=S("'\"/"),n="/".charCodeAt(0),R="*".charCodeAt(0),m="\\".charCodeAt(0),Z="x".charCodeAt(0),M=".".charCodeAt(0),T="0".charCodeAt(0),ai=ad("++ --"),X=S("$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),K=N(ad,["function","( [ . [] ()","new delete","u++ u-- ++ -- typeof u~ u! u+ u-","* / %","+ -","<< >> >>>","< > <= >= instanceof in","== != === !==","&","^","|","&&","||","case","?","= += -= *= /= %= &= |= ^= <<= >>= >>>=",":",",","return throw break continue void","var const","if else try catch finally for switch with while do",";"]),H=ad("= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do"),F=(function(ap){for(var ar={},aq=0,an=ap.length;aq<an;++aq){for(var ao in ap[aq]){g(ap[aq],ao)&&(ar[ao]=aq)}}return s(ar)})(K),v=(function(ap){for(var ar=[],at=0,an=ap.length,aq=null;aq=ap[at],ar[at]=true,at<an;++at){for(var ao in aq){if(g(aq,ao)&&(ar[at]=ar[at]&&!g(H,ao))){break}}}return ar})(K),B=ad("[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;"),Y=s({"function":2,"if":1,"do":1,"catch":1,"try":1,"for":1,"while":1,"with":1,"switch":1}),Q=s({"if":"else","do":"while","catch":"finally","try":"catch"}),D=ad("[] ()"),ah=ad("return throw break continue else"),E=ad("u+ u- u! u~ u++ u-- new typeof finally case var const void delete"),h=ad("; {"),ac=ad("i;"),I=ad("++ --"),q=s({"(":")","[":"]","{":"}","?":":"}),G=ad("[ ("),P=ad("?"),e=ad("function if for while catch void delete new typeof in instanceof"),A=ad("function"),u=am.syntax_common={_replace:function(an){return(an.l=this.l)&&(this.l.r=an),(an.r=this.r)&&(this.r.l=an),this},_append_to:function(an){return an&&an._append(this),this},_reparent:function(an){return this.p&&this.p[0]===this&&(this.p[0]=an),this},_fold_l:function(an){return this._append(this.l&&this.l._unlink(this)||a)},_append:function(an){return(this[this.length++]=an)&&(an.p=this),this},_fold_r:function(an){return this._append(this.r&&this.r._unlink(this)||a)},_sibling:function(an){return an.p=this.p,(this.r=an).l=this},_fold_lr:function(){return this._fold_l()._fold_r()},_fold_rr:function(){return this._fold_r()._fold_r()},_wrap:function(an){return an.p=this._replace(an).p,this._reparent(an),delete this.l,delete this.r,this._append_to(an)},_unlink:function(an){return this.l&&(this.l.r=this.r),this.r&&(this.r.l=this.l),delete this.l,delete this.r,this._reparent(an)},pop:function(){return --this.length,this},push:function(an){return this[this.length++]=an||a,this},id:function(){var an=W("id");return(this.id=function(){return an})()},is_caterwaul_syntax:true,each:function(ap){for(var ao=0,an=this.length;ao<an;++ao){ap(this[ao],ao)}return this},map:function(ap){for(var aq=new this.constructor(this),ao=0,an=this.length;ao<an;++ao){aq.push(ap(this[ao],ao)||this[ao])}return aq},reach:function(an){an(this);this.each(function(ao){ao.reach(an)});return this},rmap:function(ao){var an=ao(this);return !an||an===this?this.map(function(ap){return ap.rmap(ao)}):an.rmap===p?new this.constructor(an):an},clone:function(){return this.rmap(function(){return false})},collect:function(ao){var an=[];this.reach(function(ap){ao(ap)&&an.push(ap)});return an},replace:function(an){var ao;return l.call(an,this.data)&&(ao=an[this.data])?ao.constructor===String?C(this.map(function(ap){return ap.replace(an)}),function(){this.data=ao}):ao:this.map(function(ap){return ap.replace(an)})},repopulated_with:function(an){return new this.constructor(this.data,an)},with_data:function(an){return new this.constructor(an,Array.prototype.slice.call(this))},change:function(ao,an){return C(new this.constructor(this.data,Array.prototype.slice.call(this)),function(ap){ap[ao]=an})},compose_single:function(an,ao){return this.change(an,ao(this[an]))},traverse:function(an){an({entering:this});an({exiting:this.each(function(ao){ao.traverse(an)})});return this},flatten:function(an){an=an||this.data;return an!==this.data?this.as(an):!(g(B,an)&&this.length)?this:g(H,an)?C(new this.constructor(an),i(function(ap){for(var ao=this;ao&&ao.data===an;ao=ao[1]){ap.push(ao[0])}ap.push(ao)},this)):C(new this.constructor(an),i(function(aq){for(var ao=this,ap=[];ao.data===an;ao=ao[0]){ao[1]&&ap.push(ao[1])}ap.push(ao);for(ao=ap.length-1;ao>=0;--ao){aq.push(ap[ao])}},this))},unflatten:function(){var ao=this,an=g(H,this.data);return this.length<=2?this:C(new this.constructor(this.data),function(ar){if(an){for(var aq=0,ap=ao.length-1;aq<ap;++aq){ar=ar.push(ao[aq]).push(aq<ap-2?new ao.constructor(ao.data):ao[aq])[1]}}else{for(var aq=ao.length-1;aq>=1;--aq){ar=ar.push(aq>1?new ao.constructor(ao.data):ao[0]).push(ao[aq])[0]}}})},as:function(an){return this.data===an?this:new this.constructor(an).push(this)},bindings:function(ao){var an=ao||{};this.reach(function(ap){if(ap.binds_a_value){an[ap.data]=ap.value}});return an},match:function(ap,aq){ap=ap.constructor===String?am.parse(ap):ap;aq||(aq={_:ap});if(this.is_wildcard()){return aq[this.data]=ap,aq}else{if(this.length===ap.length&&this.data===ap.data){for(var ao=0,an=this.length;ao<an;++ao){if(!this[ao].match(ap[ao],aq)){return null}}return aq}}},toString:function(){var an=[""];this.serialize(an);return an.join("")},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(N(function(an){return an.structure()},this)).join(" ")+")"}else{return this.data}}};am.syntax_subclass=function(ao){var an=Array.prototype.slice.call(arguments,1);ab.apply(this,[ao.prototype,u].concat(an));ao.prototype.constructor=ao;return ao};var b=am.parse_hex=function(aq){for(var an=0,ap=0,ao=aq.length,ar;ap<ao;++ap){an*=16,an+=(ar=aq.charCodeAt(ap))<=58?ar-48:(ar&95)-55}return an},ak=am.parse_octal=function(aq){for(var an=0,ap=0,ao=aq.length;ap<ao;++ap){an*=8,an+=aq.charCodeAt(ap)-48}return an},d=am.unescape_string=function(ar){for(var aq=0,at,ao=ar.length,an=[],ap=false;aq<ao;++aq){if(ap){ap=false,an.push((at=ar.charAt(aq))==="\\"?"\\":at==="n"?"\n":at==="r"?"\r":at==="b"?"\b":at==="f"?"\f":at==="0"?"\u0000":at==="t"?"\t":at==="v"?"\v":at==='"'||at==="'"?at:at==="x"?String.fromCharCode(b(ar.substring(aq,++aq+1))):at==="u"?String.fromCharCode(b(ar.substring(aq,(aq+=3)+1))):String.fromCharCode(ak(ar.substring(aq,(aq+=2)+1))))}else{if((at=ar.charAt(aq))==="\\"){ap=true}else{an.push(at)}}}return an.join("")};am.javascript_tree_type_methods={is_string:function(){return/['"]/.test(this.data.charAt(0))},as_escaped_string:function(){return this.data.substr(1,this.data.length-2)},is_number:function(){return/^-?(0x|\d|\.\d+)/.test(this.data)},as_number:function(){return Number(this.data)},is_boolean:function(){return this.data==="true"||this.data==="false"},as_boolean:function(){return this.data==="true"},is_regexp:function(){return/^\/./.test(this.data)},as_escaped_regexp:function(){return this.data.substring(1,this.data.lastIndexOf("/"))},is_array:function(){return this.data==="["},as_unescaped_string:function(){return d(this.as_escaped_string())},is_wildcard:function(){return this.data.charCodeAt(0)===95},is_identifier:function(){return this.length===0&&/^[A-Za-z_$]\w*$/.test(this.data)&&!this.is_boolean()&&!this.is_null_or_undefined()&&!g(al,this.data)},has_grouped_block:function(){return g(Y,this.data)},is_block:function(){return g(h,this.data)},is_blockless_keyword:function(){return g(ah,this.data)},is_null_or_undefined:function(){return this.data==="null"||this.data==="undefined"},is_constant:function(){return this.is_number()||this.is_string()||this.is_boolean()||this.is_regexp()||this.is_null_or_undefined()},left_is_lvalue:function(){return/=$/.test(this.data)||/\+\+$/.test(this.data)||/--$/.test(this.data)},is_empty:function(){return !this.length},has_parameter_list:function(){return this.data==="function"||this.data==="catch"},has_lvalue_list:function(){return this.data==="var"||this.data==="const"},is_dereference:function(){return this.data==="."||this.data==="[]"},is_invocation:function(){return this.data==="()"},is_contextualized_invocation:function(){return this.is_invocation()&&this[0].is_dereference()},is_invisible:function(){return g(ac,this.data)},is_binary_operator:function(){return g(B,this.data)},is_prefix_unary_operator:function(){return g(E,this.data)},is_postfix_unary_operator:function(){return g(I,this.data)},is_unary_operator:function(){return this.is_prefix_unary_operator()||this.is_postfix_unary_operator()},accepts:function(an){return g(Q,this.data)&&Q[this.data]===(an.data||an)}};am.javascript_tree_serialization_methods={ends_with_block:function(){var an=this[Y[this.data]];return this.data==="{"||g(Y,this.data)&&(this.data!=="function"||this.length===3)&&an&&an.ends_with_block()},serialize:function(aq){var ao=this.length,ar=this.data,an=";\n",ap=function(at){if(X[aq[aq.length-1].charCodeAt(0)]===X[at.charCodeAt(0)]){aq.push(" ",at)}else{aq.push(at)}};switch(ao){case 0:if(g(ah,ar)){return ap(ar.replace(/^u/,""))}else{if(g(q,ar)){return ap(ar),ap(q[ar])}else{return ap(ar)}}case 1:if(g(E,ar)||g(ah,ar)){return ap(ar.replace(/^u/,"")),this[0].serialize(aq)}else{if(g(q,ar)){return ap(ar),this[0].serialize(aq),ap(q[ar])}else{if(g(B,ar)){return ap("/* unary "+ar+" node */"),this[0].serialize(aq)}else{return this[0].serialize(aq),ap(ar)}}}case 2:if(g(D,ar)){return this[0].serialize(aq),ap(ar.charAt(0)),this[1].serialize(aq),ap(ar.charAt(1))}else{if(g(Y,ar)){return ap(ar),this[0].serialize(aq),this[1].serialize(aq)}else{if(g(ac,ar)){return this[0].serialize(aq),this[1].serialize(aq)}else{if(ar===";"){return this[0].serialize(aq),ap(an),this[1].serialize(aq)}else{return this[0].serialize(aq),ap(ar),this[1].serialize(aq)}}}}default:if(g(P,ar)){return this[0].serialize(aq),ap(ar),this[1].serialize(aq),ap(":"),this[2].serialize(aq)}else{if(g(Y,ar)){return this.accepts(this[2])&&!this[1].ends_with_block()?(ap(ar),this[0].serialize(aq),this[1].serialize(aq),ap(an),this[2].serialize(aq)):(ap(ar),this[0].serialize(aq),this[1].serialize(aq),this[2].serialize(aq))}else{return this.unflatten().serialize(aq)}}}}};am.ref=am.syntax_subclass(function(ao,an){if(ao instanceof this.constructor){this.value=ao.value,this.data=ao.data}else{this.value=ao,this.data=W(an&&an.constructor===String?an:"ref")}},am.javascript_tree_type_methods,am.javascript_tree_serialization_methods,{binds_a_value:true,length:0},{replace:function(an){var ao;return l.call(an,this.data)&&(ao=an[this.data])?ao.constructor===String?C(new this.constructor(this.value),function(){this.data=ao}):ao:this}});am.syntax=am.syntax_subclass(function(at){if(at instanceof this.constructor){this.data=at.data,this.length=0}else{this.data=at&&at.toString();this.length=0;for(var aq=1,an=arguments.length,ap;ap=arguments[aq],aq<an;++aq){for(var ao=0,av=ap.length,ar,au;ap instanceof Array?(ar=ap[ao],ao<av):(ar=ap,!ao);++ao){this._append((au=ar.constructor)===String||au===Number||au===Boolean?new this.constructor(ar):ar)}}}},am.javascript_tree_type_methods,am.javascript_tree_serialization_methods);var a=am.empty=new am.syntax("");am.parse=function(aE){if(aE.constructor===am.syntax){return aE}var aH=aE.toString(),aB=0,aT=0,aK=true,aU=false,aJ=false,aw=false,aI=0,aG="",aP=0,aN=aH.length,ao=function(aX){return aH.charCodeAt(aX)},ax=[],aq=null,an=null,aA=null,at=N(function(){return[]},K),ap=[],ay=[a],aR=function(aX){return ay.push(aX),aX},av=function(aX){return an?an._sibling(an=aX):(an=aX._append_to(aA)),aR(aX)},aM=this.syntax;if(aN===0){return a}while((aB=aP)<aN){while(j[aT=ao(aP)]&&aP<aN){aB=++aP}aU=aw=aJ=aG=false;if(t[aT]){aG=!!++aP;aK=r[aT]}else{if(aT===n&&ao(aP+1)===R&&(aP+=2)){while(++aP<aN&&ao(aP)!==n||ao(aP-1)!==R){}aG=!++aP}else{if(aT===n&&ao(aP+1)===n){while(++aP<aN&&!J[ao(aP)]){}aG=false}else{if(O[aT]&&(aI=aT)&&aK&&!(aK=!(aG=aH.charAt(aP)))){while(++aP<aN&&(aT=ao(aP))!==aI||aU){aU=!aU&&aT===m}while(++aP<aN&&k[ao(aP)]){}aG=true}else{if(aT===T&&y[ao(aP+1)]){while(++aP<aN&&y[ao(aP)]){}aK=!(aG=true)}else{if(aj[aT]&&(aT!==M||U[ao(aP+1)])){while(++aP<aN&&(U[aT=ao(aP)]||(aJ^(aJ|=aT===M))||(aw^(aw|=L[aT]&&++aP)))){}while(aP<aN&&U[ao(aP)]){++aP}aK=!(aG=true)}else{if(x[aT]&&(aG=aK?"u":"",aK=true)){while(aP<aN&&x[ao(aP)]&&g(al,aG+aH.charAt(aP))){aG+=aH.charAt(aP++)}aK=!g(ai,aG)}else{while(++aP<aN&&X[ao(aP)]){}aK=g(al,aG=aH.substring(aB,aP))}}}}}}}if(aP===aB){throw new Error('Caterwaul lex error at "'+aH.substr(aB,40)+'" with leading context "'+aH.substr(aB-40,40)+'" (probably a Caterwaul bug)')}if(aG===false){continue}aG=aG===true?aH.substring(aB,aP):aG==="u;"?";":aG;aG===aq?(ax.pop(),aq=ax[ax.length-1],an=an?an.p:aA,aA=null):(g(q,aG)?(ax.push(aq=q[aG]),aA=av(aR(new aM(aG))),an=null):av(aR(new aM(aG))),g(F,aG)&&at[F[aG]].push(an||aA));aK|=aG===")"&&an.l&&g(Y,an.l.data)}for(var aP=0,aN=at.length,aC,aW;aW=at[aP],aC=v[aP],aP<aN;++aP){for(var aO=aC?0:aW.length-1,aF=aW.length,az=aC?1:-1,aL,aV,aD;aC?aO<aF:aO>=0;aO+=az){if(g(B,aV=(aL=aW[aO]).data)){aL._fold_lr()}else{if(g(G,aV)&&aL.l&&!((aD=aL.l.l)&&g(Y,aD.data))&&(aL.l.data==="."||(aL.l.data==="function"&&aL.l.length===2)||!(g(al,aL.l.data)||g(e,aL.l.data)))){ap.push(aL.l._wrap(aR(new aM(aV+q[aV]))).p._fold_r())}else{if(g(I,aV)){aL._fold_l()}else{if(g(E,aV)){aL._fold_r()}else{if(g(P,aV)){aL._fold_lr();var aS=aL[1];aL[1]=aL[0];aL[0]=aS}else{if(g(Y,aV)&&aL.r&&aL.r.data!==":"){for(var au=0,aQ=Y[aV];au<aQ&&aL.r&&!g(h,aL.r.data);++au){aL._fold_r()}aL.r&&(aL.r.data===";"?aL.push(a):aL._fold_r());if(g(Q,aV)&&Q[aV]===(aL.r&&aL.r.r&&aL.r.r.data)){aL._fold_r().pop()._fold_r()}else{if(g(Q,aV)&&Q[aV]===(aL.r&&aL.r.data)){aL._fold_r()}}}else{if(g(ah,aV)){aL.r&&aL.r.data!==";"&&aL._fold_r()}}}}}}}}}for(var aP=ay.length-1,aW;aP>=0;--aP){(aW=ay[aP]).r&&aW._wrap(aR(new aM("i;"))).p._fold_r()}for(var aP=0,aN=ap.length,aW,ar;aP<aN;++aP){(ar=(aW=ap[aP])[1]=aW[1][0]||a)&&(ar.p=aW)}while(an.p){an=an.p}for(var aP=ay.length-1,aW;aP>=0;--aP){delete (aW=ay[aP]).p,delete aW.l,delete aW.r}return an};(function(){var an=am.parse("var _bindings; return(_expression)"),ap=am.parse("_variable = _base._variable"),ao=am.parse("undefined = void(0)");am.compile=function(aC,aw,aB){aB=ab({gensym_renaming:true},aB);var at=ab({},this._environment||{},aw||{},aC.bindings()),ay=[ao],aA=W("base");for(var av in at){if(l.call(at,av)&&av!=="this"){ay.push(ap.replace({_variable:av,_base:aA}))}}var az=new this.syntax(",",ay).unflatten(),aq=an.replace({_bindings:az,_expression:aC});if(aB.gensym_renaming){var au=this.gensym_rename_table(aq);for(var av in at){l.call(at,av)&&(at[au[av]||av]=at[av])}aq=aq.replace(au);aA=au[aA]}var ar=aq.toString();try{return(new Function(aA,ar)).call(at["this"],at)}catch(ax){throw new Error((ax.message||ax)+" while compiling "+ar)}};am.gensym_rename_table=function(az){var ay={},aw=[];az.reach(function(aA){var aB=aA.data;if(V(aB)){ay[aB]||aw.push(aB)}ay[aB]=aB.replace(/^(.*)_[a-z0-9]+_.{22}$/,"$1")||"anon"});var aq={},ax=function(aA){if(!(aA in ay)){return aA}var aB=aq[aA]||0;while(ay[aA+(++aB).toString(36)]){}return aA+(aq[aA]=aB).toString(36)};for(var ar={},au=0,at=aw.length,av;au<at;++au){ar[av=aw[au]]||(ay[ar[av]=ax(ay[av])]=true)}return ar}})();am.init=function(ao){var an=function(ar,ap,aq){return ar.constructor===Function||ar.constructor===String?am.compile(an.call(an,am.parse(ar)),ap,aq):ao?ar.rmap(function(at){return ao.call(an,at,ap,aq)}):ar};an.global=am;an.macroexpander=ao;return an};am.initializer=f;am.clone=function(){return C(f(f,c).deglobalize(),function(){for(var an in am){this[an]||(this[an]=am[an])}})};return caterwaul=am});
 </script>
 <script>
 (caterwaul.std_initializer=function(){(function(c){var b=function(g){var d=function(h){if(h.constructor===Array){for(var k=0,j=h.length,m=[];k<j;++k){m.push(d(h[k]))}return function(l){for(var o=m.length-1,q;o>=0;--o){if(q=m[o].call(this,l)){return q}}}}else{return h.constructor===String?d(c.parse(h)):h.constructor===c.syntax?g.call(this,h):h}};return d};c.pattern=b(function(d){return function(g){return d.match(g)}});c.expander=b(function(d){return function(g){return d.replace(g)}});c.alternatives=b(function(d){throw new Error("must use replacer functions with caterwaul.alternatives()")});c.reexpander=function(g){var d=c.expander(g);return function(h){var i=d.call(this,h);return i&&this(i)}};var a=function(d){return function(h,j){var i=c.pattern(h),g=d(j);return function(k){var l=i.call(this,k);return l&&g.call(this,l)}}};c.replacer=a(c.expander);c.rereplacer=a(c.reexpander);c.macroexpand=function(d){return c(c.alternatives(Array.prototype.slice.call(arguments,1)))(d)}})(caterwaul);(function(a){a.anonymizer=function(){for(var d={},c=0,b=arguments.length;c<b;++c){d[arguments[c]]=a.gensym(arguments[c])}return function(g){return a.parse(g).replace(d)}}})(caterwaul);(function(a){a.js=function(c){var i=function(G){var O=G.data,D=O.charAt(0),I=a.syntax;if(D!=="'"&&D!=='"'||!/#\{[^\}]+\}/.test(O)){return false}for(var H=[],P=[],K=1,J=O.length-1,N=0,L=false,E=1,M;K<J;++K){if(N){if((M=O.charAt(K))==="}"){--N||(H.push(O.substring(E,K)),P.push(true))&&(E=K+1),L=false}else{N+=M==="{"}}else{if((M=O.charAt(K))==="#"){L=true}else{if(M==="{"&&L){H.push(O.substring(E,K-1)),P.push(false),E=K+1,++N}else{L=false}}}}H.push(O.substring(E,J)),P.push(false);for(var F=new RegExp("\\\\"+D,"g"),K=0,J=H.length;K<J;++K){H[K]=P[K]?this(a.parse(H[K].replace(F,D)).as("(")):new I(D+H[K]+D)}return new I("+",H).unflatten().as("(")};var A=a.rereplacer("_left(_args) = _right","_left = (function (_args) {return _right})"),d=a.rereplacer("_left(_var = arguments) = _right","_left = (function () {var _var = arguments; return _right})"),s=function(D){return d.call(this,D)||A.call(this,D)};var k=a.pattern("_literal._modifier"),B=function(E,F,D){var G=E.literal_modifiers[F];return G.hasOwnProperty(D)&&G[D]},o=function(F){var E=k.call(this,F),D,G;if(E&&(D=E._literal)&&(G=D.is_identifier()?B(this,"identifier",E._modifier.data):D.is_array()?B(this,"array",E._modifier.data):D.is_regexp()?B(this,"regexp",E._modifier.data):D.is_number()?B(this,"number",E._modifier.data):D.is_string()?B(this,"string",E._modifier.data):null)){return G.call(this,D)}};var v=a.pattern("_modifier[_expression]"),j=a.pattern("_expression /_modifier"),y=a.pattern("_expression -_modifier"),C=a.pattern("_modifier in _expression"),u=a.pattern("_expression |_modifier"),w=a.pattern("_expression, _modifier"),q=a.pattern("_modifier._parameters"),l=a.pattern("_modifier[_parameters]"),z=a.pattern("_expression <_modifier> _parameters"),h=a.pattern("_expression -_modifier- _parameters"),b=function(I){var D=z.call(this,I)||h.call(this,I);if(D){for(var J=this.parameterized_modifiers,G=J.length-1,H;G>=0;--G){if(H=J[G].call(this,D)){return H}}}var F=v.call(this,I)||j.call(this,I)||y.call(this,I)||C.call(this,I)||u.call(this,I)||w.call(this,I);if(F){var E=q.call(this,F._modifier)||l.call(this,F._modifier);if(E){F._modifier=E._modifier;F._parameters=E._parameters;for(var J=this.parameterized_modifiers,G=J.length-1,H;G>=0;--G){if(H=J[G].call(this,F)){return H}}}else{for(var J=this.modifiers,G=J.length-1,H;G>=0;--G){if(H=J[G].call(this,F)){return H}}}}};var g=function(D){return i.call(this,D)||o.call(this,D)||D.length&&(b.call(this,D)||s.call(this,D))},m=c?a(function(D){return c.call(this,D)||g.call(this,D)}):a(g);m.modifiers=[];m.parameterized_modifiers=[];m.literal_modifiers={regexp:{},array:{},string:{},number:{},identifier:{}};return m}})(caterwaul);(function(a){a.js_literals=function(c){var b=a.parse("function (_) {return _body}");(function(d){d.x=a.reexpander(function(h){return h.with_data(h.data.replace(/\s+/g,""))});var g=a.parse("_regexp.exec(_)");d.qf=function(h){return b.replace({_body:g.replace({_regexp:h})})}})(c.literal_modifiers.regexp);(function(d){d.qw=a.reexpander(function(o){for(var q=new a.syntax("["),g=new a.syntax(","),j=o.data.charAt(0),m=o.as_escaped_string().split(/\s+/),k=0,h=m.length;k<h;++k){g.push(new a.syntax(j+m[k]+j))}return q.push(g.unflatten())});d.qh=a.reexpander(function(o){for(var q=new a.syntax("{"),g=new a.syntax(","),j=o.data.charAt(0),m=o.as_escaped_string().split(/\s+/),k=0,h=m.length;k<h;k+=2){g.push(new a.syntax(":",new a.syntax(j+m[k]+j),new a.syntax(j+m[k+1]+j)))}return q.push(g.unflatten())});d.qr=a.reexpander(function(g){return g.with_data("/"+g.as_escaped_string().replace(/\//g,"\\/")+"/")});d.qs=function(g){return new a.ref(a.parse(g.as_unescaped_string()))};d.qf=a.reexpander(function(g){return b.replace({_body:a.parse(g.as_unescaped_string())})})})(c.literal_modifiers.string);return c}})(caterwaul);(function(a){a.words=function(d){var h=function(i,j){return function(k){return k._modifier.data===i&&j.call(this,k)}},b=function(i,j){d.modifiers.push(h(i,j))},g=function(i,j){d.parameterized_modifiers.push(h(i,j))};b("qs",function(i){return new a.ref(i._expression,"qs")});b("qse",function(i){return new a.ref(this(i._expression),"qse")});b("reexpand",function(i){return this(this(i._expression))});b("noexpand",function(i){return i._expression});b("raise",a.reexpander("(function () {throw _expression}).call(this)"));g("rescue",a.reexpander("(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)"));b("eval",function(i){return new a.ref(a.compile(this(i._expression)),"eval")});g("given",a.reexpander("(function (_parameters) {return _expression})"));g("bgiven",a.reexpander("(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))"));b("delay",a.reexpander("(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))"));b("lazy",a.reexpander("(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))"));g("se",a.reexpander("(function (it) {return (_parameters), it}).call(this, (_expression))"));g("re",a.reexpander("(function (it) {return (_parameters)}).call(this, (_expression))"));g("where",a.reexpander("(function () {var _parameters; return (_expression)}).call(this)"));b("capture",a.reexpander(function(m){for(var q=new a.syntax("{"),j=new a.syntax(","),s=m._expression.flatten(","),o=0,k=s.length;o<k;++o){j.push(this(s[o]).with_data(":"))}return q.push(j.unflatten())}));var c=a.parse("(function () {var _variables; return _expression}).call(this)");g("using",a.reexpander(function(l){var m=a.compile(this(l._parameters)),i=new a.syntax(",");for(var j in m){if(Object.prototype.hasOwnProperty.call(m,j)){i.push(new a.syntax("=",j,new a.ref(m[j])))}}return c.replace({_variables:i.unflatten(),_expression:l._expression})}));g("when",a.reexpander("((_parameters) && (_expression))"));g("unless",a.reexpander("(! (_parameters) && (_expression))"));return d}})(caterwaul);caterwaul.words(caterwaul.js())(function(a){a.seq(caterwaul_function)=caterwaul_function-se-it.modifiers.push(given.match in seq_expand.call(seq_expand,anon_pattern.replace({_x:match._expression}))-re-this(it)/when.it-when[match._modifier.data==="seq"])-where[anon_pattern=anon("S[_x]"),seq_expand=a(a.alternatives(operator_macros.concat(word_macros)))],where[anon=a.anonymizer("S"),rule(p,e)=a.rereplacer(p.constructor===String?anon(p):p,e.constructor===String?anon(e):e),operator_macros=[rule("S[_x]","_x"),rule("S[(_x)]","(S[_x])"),rule("S[_x[_y]]","S[_x][S[_y]]"),rule("S[_xs + _ys]",concat),rule("S[_xs ^ _ys]",zip),rule("S[[_x]]","[S[_x]]"),rule("S[_x, _y]","S[_x], S[_y]"),rule("S[_xs - _ys]",cross),rule("S[_xs %_thing]",handle_filter_forms),rule("S[_xs *_thing]",handle_map_forms),rule("S[_xs /_thing]",handle_fold_forms),rule("S[_xs |_thing]",handle_exists_forms),rule("S[_xs %k*_thing]",handle_kmap_forms),rule("S[_xs %v*_thing]",handle_vmap_forms),rule("S[_xs %k%_thing]",handle_kfilter_forms),rule("S[_xs %v%_thing]",handle_vfilter_forms)]-where[unrecognized(reason)=raise[new Error(reason)],use_form(form,xs,body,init,vars)=form?form.replace({_f:body,_init:init}).replace(a.merge({_xs:xs},vars)):unrecognized("unsupported sequence operator or modifiers used on #{body}"),operator_case(forms)(match)=parse_modifiers(match._thing,use(forms.normal,forms.inormal),use(forms.bang,forms.ibang),use(forms.tbang,forms.itbang))-where[xs=match._xs,expander=this,form_function(form)(body,vars)=use_form(form,xs,body,null,vars),iform_function(form)(body,init,vars)=use_form(form,xs,body,init,vars),use(form,iform)(body)=parse_body(body,expander,form_function(form),iform_function(iform))],handle_map_forms=operator_case({normal:map,bang:each,tbang:flatmap}),handle_filter_forms=operator_case({normal:filter,bang:filter_not,tbang:map_filter}),handle_fold_forms=operator_case({normal:foldl,bang:foldr,tbang:unfold,inormal:ifoldl,ibang:ifoldr}),handle_kmap_forms=operator_case({normal:kmap,bang:keach}),handle_kfilter_forms=operator_case({normal:kfilter,bang:kfilter_not,tbang:kmap_filter}),handle_vmap_forms=operator_case({normal:vmap,bang:veach}),handle_vfilter_forms=operator_case({normal:vfilter,bang:vfilter_not,tbang:vmap_filter}),handle_exists_forms=operator_case({normal:exists}),block=anon("[_x]"),block_with_variable=anon("_var[_x]"),block_with_init=anon("[_init][_x]"),block_with_variable_and_init=anon("_var[_init][_x]"),block_with_closure=anon("+_x"),block_with_seq=anon("~_x"),standard_names={_x:"x",_x0:"x0",_xi:"xi",_xl:"xl"},prefixed_names(p)={_x:p,_x0:"#{p}0",_xi:"#{p}i",_xl:"#{p}l"},function_promotion=anon("_f(_x, _x0, _xi, _xl)"),promote_function(f)=function_promotion.replace({_f:f}),closure_wrapper=anon("(function (_x, _x0, _xi, _xl) {return _f}).call(this, _x, _x0, _xi, _xl)"),close_body(vars,f)=closure_wrapper.replace(vars).replace({_f:f}),seq_pattern=anon("S[_x]"),promote_seq(f)=seq_pattern.replace({_x:f}),parse_body(tree,expand,normal,init)=((r=block_with_seq.match(tree))?parse_body(r._x,expand,sequence_context_normal,init):(r=block_with_closure.match(tree))?parse_body(r._x,expand,wrapping_normal,wrapping_init):(r=block_with_variable_and_init.match(tree))?init(r._x,r._init,prefixed_names(r._var)):(r=block_with_init.match(tree))?init(r._x,r._init,standard_names):(r=block_with_variable.match(tree))?normal(r._x,prefixed_names(r._var)):(r=block.match(tree))?normal(r._x,standard_names):normal(promote_function(tree),standard_names))-where[in_sequence_context(f)=expand.call(expand,promote_seq(f)),sequence_context_normal(f,names)=normal(in_sequence_context(f),names),wrapping_normal(f,names)=normal(close_body(names,f),names),wrapping_init(f,init_expression,names)=init(close_body(names,f),init_expression,names),r=null],tbang_modifier=anon("~!_x"),bang_modifier=anon("!_x"),parse_modifiers(tree,normal,bang,tbang)=((result=tbang_modifier.match(tree))?tbang(result._x):(result=bang_modifier.match(tree))?bang(result._x):normal(tree))-where[result=null]]-where[loop_anon=a.anonymizer("xs","ys","x","y","i","j","l","lj","r","o","k"),scope=anon("(function (xs) {var _x, _x0, _xi, _xl; _body}).call(this, S[_xs])"),scoped(t)=scope.replace({_body:t}),form(x)=loop_anon(scoped(anon(x))),map=form("for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                             return ys"),each=form("for (var          _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                      return xs"),flatmap=form("for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f)));    return ys"),filter=form("for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                       return ys"),filter_not=form("for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                       return ys"),map_filter=form("for (var ys = [], _xi = 0, _xl = xs.length, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys"),foldl=form("for (var _x0 = xs[0], _xi = 1, _xl = xs.length;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                     return _x0"),foldr=form("for (var _xl = xs.length, _xi = _xl - 2, _x0 = xs[_xl - 1]; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0"),unfold=form("for (var ys = [], _x = xs, _xi = 0;                     _x !== null; ++_xi) ys.push(_x), _x = (_f);                        return ys"),ifoldl=form("for (var _x0 = (_init), _xi = 0, _xl = xs.length;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                         return _x0"),ifoldr=form("for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                         return _x0"),exists=form("for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return x} return false"),concat=anon("(S[_xs]).concat((S[_ys]))"),zip=form("for (var ys = (S[_ys]), pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs"),cross=form("for (var ys = (S[_ys]), pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);return pairs"),kmap=form("var r = {};    for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) r[_f] = xs[_x];                        return r"),keach=form("               for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) _f;                                    return xs"),kfilter=form("var r = {};    for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r"),kfilter_not=form("var r = {};    for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r"),kmap_filter=form("var r = {}, x; for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r"),vmap=form("var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], r[k] = (_f);                return r"),veach=form("               for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], _f;                         return xs"),vfilter=form("var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r"),vfilter_not=form("var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r"),vmap_filter=form("var r = {}, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r")],word_macros=[rule("S[n[_upper]]",n),rule("S[ni[_upper]]",ni),rule("S[_o /keys]",keys),rule("S[_o |object]",object),rule("S[n[_lower, _upper]]",n),rule("S[ni[_lower, _upper]]",ni),rule("S[_o /values]",values),rule("S[_o -object]",object),rule("S[n[_lower, _upper, _step]]",n),rule("S[ni[_lower, _upper, _step]]",ni),rule("S[_o /pairs]",pairs),rule("S[_o /object]",object)]-where[n(match)=n_pattern.replace(a.merge({_lower:"0",_step:"1"},match)),ni(match)=ni_pattern.replace(a.merge({_lower:"0",_step:"1"},match)),n_pattern=anon("(function (i, u, s) {if ((u - i) * s <= 0) return [];for (var r = [], d = u - i; d > 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_lower), (_upper), (_step))"),ni_pattern=anon("(function (i, u, s) {if ((u - i) * s <= 0) return [];for (var r = [], d = u - i; d > 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_lower), (_upper), (_step))"),scope=anon("(function (o) {_body}).call(this, (S[_o]))"),scoped(t)=scope.replace({_body:t}),form(p)=tree.replace(match)-given.match-where[tree=scoped(anon(p))],keys=form("var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks"),values=form("var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs"),pairs=form("var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps"),object=form("for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r")]]})(caterwaul);caterwaul.js_all=function(){return this.seq(this.words(this.js_literals(this.js())))}})();
@@ -330,8 +334,8 @@ var shell = given.nothing in
  history_error_for(e) = jquery in pre.error /text('' + e),
 
  ui_for(x) = ! x ? jquery in span /text('' + x) :
- x.constructor === caterwaul.syntax ? jquery in span /text(x.replace(caterwaul.gensym_rename_table(x)).toString()) :
- x.constructor === jQuery ? x.parent().length ? jquery in div.sandbox('(DOM node already in document)')
+ x.is_caterwaul_syntax ? jquery in span /text(x.toString()) :
+ x.constructor === jQuery ? x.parent().length ? jquery in div.sandbox('(A DOM node that is already in document)')
  /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
  jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
  jquery in span /text('' + x),
@@ -343,19 +347,20 @@ var shell = given.nothing in
  log(x) = shell.children('.history').append(x) -re- realign() -re- x,
 
  history_n = 0,
- context = {expand: given.nothing in shell.animate({left: 0, right: 0}, realign),
- collapse: given.nothing in shell.animate({left: 600, right: 50}, realign),
- clear: given.nothing in shell.children('.history').empty() -re- realign() -re- '',
- caterwaul: caterwaul.clone(),
- history: [],
+ context = capture [expand() = shell.animate({left: 0, right: 0}, realign),
+ collapse() = shell.animate({left: 600, right: 50}, realign),
+ clear() = shell.children('.history').empty() -re- realign() -re- '',
+ caterwaul = caterwaul.clone(),
+ history = [],
 
- help: given.nothing in 'available variables:\n' +
+ help() = 'available variables:\n' +
  (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
  -where [keys = context /keys -seq -re- it.sort(),
  pairs = keys *[[x, context[x]]] -seq]).join("\n"),
 
- log: given.thing in log(history_log_for(thing)) -re- thing,
- it: null}
+ log(thing) = log(history_log_for(thing)) -re- thing,
+ it = null]
+
  -se [it.context = it]
  -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
  -se [it.context.description = 'variables available to the shell',
@@ -1207,17 +1212,20 @@ around_hook('load-state', @_, sub {
 __
 meta::function('load-time', <<'__');
 sub load {
-  my ($runtime, $file) = @_;
-  terminal::info("$runtime: loading $file");
-    bench(sub {sh("$runtime $file > /dev/null 2>&1")})}
+  my ($runtime, @files) = @_;
+  with_exported(@files, sub {
+    my ($file) = @_;
+    terminal::info("$runtime: loading @files");
+      bench(sub {sh("$runtime $file > /dev/null 2>&1")}, 4)})}
 
-load 'gjs', 'build/caterwaul.core.js';
-load 'gjs', 'build/caterwaul.js';
-load 'gjs', 'build/caterwaul.pre.js';
+load 'gjs', qw(build/caterwaul.js);
+load 'gjs', qw(build/caterwaul.js build/caterwaul.std.js);
+load 'gjs', qw(build/caterwaul.js build/caterwaul.std.js build/caterwaul.ui.js);
 
-load 'node', 'build/caterwaul.core.js';
-load 'node', 'build/caterwaul.js';
-load 'node', 'build/caterwaul.pre.js';
+load 'node', qw(build/caterwaul.js);
+load 'node', qw(build/caterwaul.js build/caterwaul.std.js);
+load 'node', qw(build/caterwaul.js build/caterwaul.std.js build/caterwaul.ui.js);
+
 __
 meta::function('loc', <<'__');
 # Counts SLOC, whitespace, and total LOC in the codebase.
@@ -1274,6 +1282,15 @@ join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @e
 
 __
 meta::function('ls-a', 'ls(\'-ad\', @_);');
+meta::function('min-gzipped', <<'__');
+# Prints minified and gzipped size
+sub size_of {my @files = ('build/caterwaul.min.js', map "build/caterwaul.$_.min.js", @_); terminal::info("minified/gzipped(@_) is " . qx(cat @files | gzip --best -c | wc -c))}
+
+size_of;
+size_of 'std';
+size_of 'std', 'ui';
+
+__
 meta::function('minify', <<'__');
 # Minify using YUI compressor
 my ($filename) = @_;
@@ -1734,6 +1751,8 @@ file::write("build/caterwaul.$_.js", retrieve("pp::js::extensions/$_"), mkpath =
 terminal::info('minifying stuff');
 minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.js", @extensions;
 
+file::write('build/caterwaul.vim', retrieve('vim_highlighter::caterwaul'), mkpath => 1);
+
 __
 meta::hook('before-save::bootstrap.html', <<'__');
 build_bootstrap_html();
@@ -1799,11 +1818,13 @@ __
 meta::internal_function('bench', <<'__');
 use Time::HiRes qw/gettimeofday tv_interval/;
 
-my ($f) = @_;
+my ($f, $times) = @_;
+$times ||= 1;
 my $start_time = [gettimeofday];
-&$f();
-my $duration = tv_interval($start_time);
+&$f() for 1 .. $times;
+my $duration = tv_interval($start_time) / $times;
 terminal::info("$duration seconds elapsed");
+
 __
 meta::internal_function('cache', <<'__');
 my ($name, %pairs) = @_;
@@ -2648,41 +2669,42 @@ meta::sdoc('js::caterwaul', <<'__');
 Introduction.
 Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
 
-(function (f) {return f(f, (function (x) {return function () {return ++x}})(0))})(function (initializer, unique, undefined) {
+(function (f) {return f(f)})(function (initializer, key, undefined) {
 
 Utility methods.
-Gensym is used to support qs[]. When we quote syntax, what we really intend to do is grab a syntax tree representing something; this entails creating a let-binding with the already-evaluated
-tree. (Note: Don't go and modify these qs[]-generated trees; you only get one for each qs[].) The ultimate code ends up looking like this (see 'Environment-dependent compilation' some distance
-below):
+Utility functions here are:
 
-| (function (a_gensym) {
-    var v1 = a_gensym.gensym_1;
-    var v2 = a_gensym.gensym_2;
-    ...
-    return [your macroexpanded function];
-  }) ({gensym_1: v1, gensym_2: v2, ..., gensym_n: vn});
+| 1. qw      Splits a string into space-separated words and returns an array of the results. This is a Perl idiom that's really useful when writing lists of things.
+  2. se      Side-effects on a value and returns the value.
+  3. fail    Throws an error. This isn't particularly special except for the fact that the keyword 'throw' can't be used in expression context.
+  4. gensym  Generates a string that will never have been seen before.
+  5. bind    Fixes 'this' inside the function being bound. This is a common Javascript idiom, but is reimplemented here because we don't know which other libraries are available.
+  6. map     Maps a function over an array-like object and returns an array of the results.
+  7. rmap    Recursively maps a function over arrays.
+  8. hash    Takes a string, splits it into words, and returns a hash mapping each of those words to true. This is used to construct sets.
+  9. merge   Takes an object and one or more extensions, and copies all properties from each extension onto the object. Returns the object.
 
-A note about gensym uniqueness. Gensyms are astronomically unlikely to collide, but there are some compromises made to make sure of this. First, gensyms are not predictable; the first one is
-randomized. This means that if you do have a collision, it may be intermittent (and that is probably a non-feature). Second, and this is a good thing, you can load Caterwaul multiple times
-without worrying about gensyms colliding between them. Each instance of Caterwaul uses its own system time and random number to seed the gensym generation, and the system time remains stable
-while the random number gets incremented. It is very unlikely that any collisions would happen.
-
-As of version 1.0 gensyms have an additional component to provide information about what they're being used for. This is used during gensym renaming; see the environment-dependent compilation
-source for more information about this.
-
-Bind() is the usual 'bind this function to some value' function. The only difference is that it supports rebinding; that is, if you have a function you've already bound to X, you can call bind
-on that function and some new value Y and get the original function bound to Y. The bound function has two attributes, 'original' and 'binding', that let bind() achieve this rebinding.
-
-Map() is an array map function, fairly standard really. I include it because IE doesn't provide Array.prototype.map. hash() takes a string, splits it on whitespace, and returns an object that
-maps each element to true. It's useful for defining sets. extend() takes a constructor function and zero or more extension objects, merging each extension object into the constructor
-function's prototype. The constructor function is then returned. It's a shorthand for defining classes.
-
-Se() stands for 'side-effect', and its purpose is to take a value and a function, pass the value into the function, and return either whatever the function returned or the value you gave it.
-It's used to initialize things statefully; for example:
+Side-effecting is used to initialize things statefully; for example:
 
 | return se(function () {return 5}, function (f) {
     f.sourceCode = 'return 5';
   });
+
+Gensyms are unique identifiers that end with high-entropy noise that won't appear in the source being compiled. The general format of a gensym is name_count_suffix, where 'name' is provided by
+whoever requested the gensym (this allows gensyms to be more readable), 'count' is a base-36 number that is incremented with each gensym, and 'suffix' is a constant base-64 string containing
+128 bits of entropy. (Since 64 possibilities is 6 bits, this means that we have 22 characters.)
+
+    var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
+
+    unique = key || (function () {for (var xs = [], d = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_', i = 21, n; i >= 0; --i) xs.push(d.charAt(Math.random() * 64 >>> 0));
+                                  return xs.join('')})(),
+
+    gensym = (function (c) {return function (name) {return [name || '', (++c).toString(36), unique].join('_')}})(0),  is_gensym = function (s) {return s.substr(s.length - 22) === unique},
+
+      bind = function (f, t) {return function () {return f.apply(t, arguments)}},
+       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
+      rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
+      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
 
 The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
 hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
@@ -2691,16 +2713,6 @@ hasOwnProperty and DontEnum within JScript, these two expressions are evaluated 
   ({toString: 5}).hasOwnProperty('toString')    // false on IE
 
 To compensate, merge() manually copies toString if it is present on the extension object.
-
-    var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
-    genval = (function (n, m, u) {return function () {return [u, n, ++m]}})(+new Date(), Math.random() * (1 << 30) >>> 0, unique()),
-    gensym = function (name) {var v = genval(); return ['gensym', name || '', v[0].toString(36), v[1].toString(36), v[2].toString(36)].join('_')},
-
-      bind = function (f, t) {return function () {return f.apply(t, arguments)}},
-
-       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
-      rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
-      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
 
      merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
                // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
@@ -2725,7 +2737,7 @@ To compensate, merge() manually copies toString if it is present on the extensio
   As of Caterwaul 0.7.0 the _max_length property has been replaced by a gensym. This basically guarantees uniqueness, so the various hacks associated with working around the existence of the
   special _max_length key are no longer necessary.
 
-   max_length_key = gensym('hash_annotation'),
+   max_length_key = gensym('hash'),
     annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
               has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
@@ -2738,9 +2750,7 @@ available only on the global caterwaul() function.
   original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
 
   caterwaul_global = se(calls_init(), function () {this.deglobalize = function () {caterwaul = original_global; return caterwaul_global};
-
-                                                   merge(this, {merge:  merge,   map:  map,
-                                                                unique: unique,  rmap: rmap,  gensym: gensym})}),
+                                                   merge(this, {merge: merge, map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym})}),
 
 Shared parser data.
 This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
@@ -2860,7 +2870,8 @@ nodes. At the end of folding there is only one child per paren-group.
     and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
     first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-      id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
+                       id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
+      is_caterwaul_syntax: true,
 
     Traversal functions.
     each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
@@ -3020,26 +3031,27 @@ nodes. At the end of folding there is only one child per paren-group.
   Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
   than a string comparison. The ASCII value for underscore is 95.
 
-    var parse_hex   = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i, result *= 16)
-                                                                              result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
-                                                                            return result},
+    var parse_hex = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i)
+                                                                            result *= 16, result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
+                                                                          return result},
 
-        parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i, result *= 8) result += digits.charCodeAt(i) - 48;
-                                                                            return result},
+      parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i) result *= 8, result += digits.charCodeAt(i) - 48;
+                                                                          return result},
 
-    unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
-                                                                         if (is_escaped) is_escaped = false,
-                                                                                         result.push((c = s.charAt(i)) === '\\' ? '\\' :
-                                                                                                     c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
-                                                                                                     c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
-                                                                                                     c === '"' || c === '\'' ? c :
-                                                                                                     c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
-                                                                                                     c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
-                                                                                                                 String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
-                                                                    else if ((c = s.charAt(i)) === '\\') is_escaped = true;
-                                                                    else result.push(c);
+  unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
+                                                                       if (is_escaped) is_escaped = false,
+                                                                                       result.push((c = s.charAt(i)) === '\\' ? '\\' :
+                                                                                                   c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
+                                                                                                   c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
+                                                                                                   c === '"' || c === '\'' ? c :
+                                                                                                   c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
+                                                                                                   c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
+                                                                                                               String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
+                                                                  else if ((c = s.charAt(i)) === '\\') is_escaped = true;
+                                                                  else result.push(c);
 
-                                                                       return result.join('')};
+                                                                     return result.join('')};
+
     caterwaul_global.javascript_tree_type_methods = {
                is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
@@ -3532,7 +3544,7 @@ set to something else. If you really wnat some other value of undefined, you can
       catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}};
 
   Gensym erasure.
-  Gensyms are horrible. They look like gensym_foo_1_5fz3ubq_10cbjq3C, which both takes up a lot of space and is hard to read. Fortunately, we can convert them at compile-time. This is possible
+  Gensyms are horrible. They look like foo_1_j15190ba29n1_$1AC151953, which both takes up a lot of space and is hard to read. Fortunately, we can convert them at compile-time. This is possible
   because Javascript (mostly) supports alpha-conversion for functions.
 
   I said "mostly" because some symbols are converted into runtime strings; these are property keys. In the unlikely event that you've got a gensym being used to dereference something, e.g.
@@ -3543,8 +3555,8 @@ set to something else. If you really wnat some other value of undefined, you can
   elegant option is to use scope analysis to keep N low, but I'm too lazy to implement it.)
 
     caterwaul_global.gensym_rename_table = function (tree) {
-      var names = {}, gensyms = [], gensym_pattern = /^gensym_(.*)_\d+_[^_]+_[^_]+$/;
-      tree.reach(function (node) {var d = node.data; gensym_pattern.test(d) && (names[d] || gensyms.push(d)); names[d] = d.replace(gensym_pattern, '$1') || 'anon'});
+      var names = {}, gensyms = [];
+      tree.reach(function (node) {var d = node.data; if (is_gensym(d)) names[d] || gensyms.push(d); names[d] = d.replace(/^(.*)_[a-z0-9]+_.{22}$/, '$1') || 'anon'});
 
       var unseen_count = {}, next_unseen = function (name) {if (! (name in names)) return name;
                                                             var n = unseen_count[name] || 0; while (names[name + (++n).toString(36)]); return name + (unseen_count[name] = n).toString(36)};
@@ -4751,12 +4763,12 @@ var shell = given.nothing in
                     history_log_for(o)    = jquery in pre.log   /text('' + o),
                     history_error_for(e)  = jquery in pre.error /text('' + e),
 
-                    ui_for(x)             = ! x                                ? jquery in span /text('' + x) :
-                                            x.constructor === caterwaul.syntax ? jquery in span /text(x.replace(caterwaul.gensym_rename_table(x)).toString()) :
-                                            x.constructor === jQuery           ? x.parent().length ? jquery in div.sandbox('(DOM node already in document)')
-                                                                                                               /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
-                                                                                                     jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
-                                                                                 jquery in span /text('' + x),
+                    ui_for(x)             = ! x                      ? jquery in span /text('' + x) :
+                                            x.is_caterwaul_syntax    ? jquery in span /text(x.toString()) :
+                                            x.constructor === jQuery ? x.parent().length ? jquery in div.sandbox('(A DOM node that is already in document)')
+                                                                                                     /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
+                                                                                           jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
+                                                                       jquery in span /text('' + x),
 
                     realign()             = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
                                                        -where [input = shell.find('.prompt .input')]
@@ -4765,19 +4777,20 @@ var shell = given.nothing in
                     log(x)                = shell.children('.history').append(x) -re- realign() -re- x,
 
                     history_n             = 0,
-                    context               = {expand:    given.nothing in shell.animate({left: 0,   right: 0},  realign),
-                                             collapse:  given.nothing in shell.animate({left: 600, right: 50}, realign),
-                                             clear:     given.nothing in shell.children('.history').empty() -re- realign() -re- '',
-                                             caterwaul: caterwaul.clone(),
-                                             history:   [],
+                    context               = capture [expand()   = shell.animate({left: 0,   right: 0},  realign),
+                                                     collapse() = shell.animate({left: 600, right: 50}, realign),
+                                                     clear()    = shell.children('.history').empty() -re- realign() -re- '',
+                                                     caterwaul  = caterwaul.clone(),
+                                                     history    = [],
 
-                                             help:      given.nothing in 'available variables:\n' +
-                                                                         (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
-                                                                          -where [keys  = context /keys -seq -re- it.sort(),
-                                                                                  pairs = keys *[[x, context[x]]] -seq]).join("\n"),
+                                                     help()     = 'available variables:\n' +
+                                                                  (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
+                                                                   -where [keys  = context /keys -seq -re- it.sort(),
+                                                                           pairs = keys *[[x, context[x]]] -seq]).join("\n"),
 
-                                             log:       given.thing   in log(history_log_for(thing)) -re- thing,
-                                             it:        null}
+                                                     log(thing) = log(history_log_for(thing)) -re- thing,
+                                                     it         = null]
+
                                             -se [it.context = it]
                                             -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
                                             -se [it.context.description   = 'variables available to the shell',
@@ -4898,6 +4911,221 @@ form, written meta::\w+('stuff', <<'eof');\n...\neof\n. We just need to find all
 
                                               parse_long(match)  = long_form_parser.exec(match)  -re- {namespace: it[1], attribute: it[2], value: it[4]},
                                               parse_short(match) = short_form_parser.exec(match) -re- {namespace: it[1], attribute: it[2], value: it[3]}];
+
+__
+meta::sdoc('vim_highlighter::caterwaul', <<'__');
+Caterwaul VIM highlighter | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Language:       Javascript with Caterwaul extensions
+Maintainer:     Spencer Tipping <spencer@spencertipping.com>
+URL:            http://caterwauljs.org/build/caterwaul.vim
+
+if !exists("main_syntax")
+  if version < 600
+    syntax clear
+  elseif exists("b:current_syntax")
+    finish
+  endif
+  let main_syntax = 'caterwaul'
+endif
+
+syn case match
+setlocal iskeyword=48-57,95,36,A-Z,a-z
+
+syn region    jsParenGroup              matchgroup=jsParen   start=/(/  end=/)/  contains=TOP
+syn region    jsBracketGroup            matchgroup=jsBracket start=/\[/ end=/\]/ contains=TOP
+syn region    jsBraceGroup              matchgroup=jsBrace   start=/{/  end=/}/  contains=TOP
+
+syn region    jsTernary                 matchgroup=jsTernaryOperator start=/?/ end=/:/ contains=TOP,jsColonLHS
+syn match     jsOperator                /[-+*^%&\|!~;=><,]\{1,4\}/
+syn match     jsDot                     /\./
+
+syn keyword   jsReservedToplevel        if else switch while for do break continue return with case default try catch finally throw delete void
+syn keyword   jsOperator                in instanceof typeof new
+syn keyword   jsBuiltinType             Array Boolean Date Function Number Object String RegExp
+syn keyword   jsBuiltinLiteral          true false null undefined
+
+syn keyword   jsBuiltinValue            this arguments
+syn keyword   jsPrototype               prototype constructor
+
+syn match     jsAssignment              /\k\+\s*[-+*/^&|%<>]*=[^=]\@=/ contains=jsOperator
+
+syn match     jsWordPrefix              /[-\/|,]\k\@=/
+
+syn match     jsIdentifier              /[A-Za-z$_][A-Za-z0-9$_]*/
+syn match     jsNumber                  /-\?0x[0-9A-Fa-f]\+\|-\?\(\d*\.\d\+\|\d\+\.\d*\|\d\+\)\([eE][+-]\?\d\{1,3\}\)\?\|-\?0[0-7]\+/
+syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
+syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
+syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpEscape
+
+  syn match   jsRegexpEscape            /\\[sSbBwWdDnr\\\[\]]\|[+*|]\|\[[^]]\+\]/ contained
+
+  syn match   jsStringEscape            /\\\d\{3\}\|\\u[0-9A-Za-z]\{4\}\|\\[a-z"'\\]/ contained
+  syn region  jsCaterwaulEscape         start=/#{/ end=/}/                            contained contains=TOP keepend
+  syn match   jsCaterwaulNumericHex     /xl\?\(_\?[0-9a-f]\{2\}_\?\)\+/
+  syn match   jsCaterwaulNumericBinary  /bl\?\(_\?[01]\{2\}_\?\)\{4,\}/
+
+syn match     jsColonLHS                /\k\+\s*:/
+syn region    jsVarBinding              matchgroup=jsVarBindingConstruct start=/\<var\>\|\<const\>/ end=/;/ contains=TOP
+syn match     jsVarInBinding            /var\s\+\k\+\s\+in/ contains=jsVarBindingKeyword,jsOperator
+syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(function\|catch\)\s*(/ end=/)/ contains=jsOperator
+
+  syn keyword jsVarBindingKeyword       const var contained
+  syn keyword jsBindingKeyword          function catch contained
+  syn match   jsBindingAssignment       /\k\+\s*=\([^=]\|$\)\@=/ contains=jsOperator contained containedin=jsVarBinding
+  syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_ ]\+\(([A-Za-z0-9$_,= ]*)\)*\s*=\([^=]\|$\)\@=/ contains=jsOperator,jsParens contained containedin=jsBindingGroup
+  syn match   jsCpsBindingAssignment    /[A-Za-z0-9$_ ]\+\s*<-/                                      contains=jsOperator,jsParens contained containedin=jsCaterwaulLetCps
+
+syn keyword   jsBindingMacro            where capture nextgroup=jsBindingGroup
+syn keyword   jsFunctionMacro           given bgiven  nextgroup=jsFunctionGroup
+syn keyword   jsQuotationMacro          qs qse        nextgroup=jsQuotationGroup
+syn keyword   jsFunctionMacro           delay lazy
+syn keyword   jsOtherMacro              se re when unless until raise rescue seq noexpand reexpand using
+
+syn cluster   jsMacro                   add=jsBindingMacro,jsFunctionMacro,jsQuotationMacro,jsOtherMacro
+
+syn match     jsSeqFilter               /\/\(pairs\|keys\|values\)\>/
+syn match     jsSeqFilter               /%[kv][\*%\/~!]/
+syn match     jsSeqFilter               /[-\/|]object\>/
+
+syn region    jsBindingGroup            matchgroup=jsCaterwaulMacro start='\s*\[' end=']' contained contains=TOP
+syn region    jsFunctionGroup           matchgroup=jsCaterwaulMacro start='\s*\[' end=']' contained
+syn region    jsQuotationGroup          matchgroup=jsCaterwaulMacro start='\s*\[' end=']' contained contains=TOP
+
+syn match     jsBindingGroup            /\.\k\+/ contained
+syn match     jsFunctionGroup           /\.\k\+/ contained
+
+syn match     jsParens                  /[()]/ contained
+syn match     jsClosers                 /[\]})]/
+
+syn cluster   jsCaterwaulHtmlOps        contains=jsCaterwaulHtmlClass,jsCaterwaulHtmlSlash,jsCaterwaulHtmlMap,jsCaterwaulHtmlAttr,jsCaterwaulHtmlElement,jsCaterwaulHtmlParens
+syn cluster   jsCaterwaulHtmlOps             add=jsCaterwaulHtmlArray,jsCaterwaulHtmlSlashB,jsCaterwaulHtmlAttrB,jsCaterwaulHtmlPlus,jsCaterwaulHtmlContains
+
+syn region    jsCaterwaulHtmlPrefix1    matchgroup=jsCaterwaulMacro start=/\<jquery\s*\[/ end=/]/ contains=TOP,@jsCaterwaulHtmlGroups
+syn match     jsCaterwaulHtmlPrefix2    /\<jquery\s\+in\s*/ nextgroup=@jsCaterwaulHtmlOps
+
+syn cluster   jsCaterwaulHtmlGroups     contains=jsCaterwaulHtmlPrefix1,jsCaterwaulHtmlPrefix2
+
+  syn match   jsCaterwaulHtmlClass      /[ \t\n]*\./                    contained nextgroup=jsCaterwaulHtmlClassName
+  syn match   jsCaterwaulHtmlClassName  /[ \t\n]*\w\+/                  contained nextgroup=@jsCaterwaulHtmlOps
+  syn match   jsCaterwaulHtmlSlash      /[ \t\n]*\/\s*\w\+/             contained nextgroup=@jsCaterwaulHtmlOps
+  syn match   jsCaterwaulHtmlSlashB     /[ \t\n]*\/!\s*\w\+/            contained nextgroup=@jsCaterwaulHtmlOps
+  syn match   jsCaterwaulHtmlAttr       /[ \t\n]*\*\s*\w\+/             contained nextgroup=@jsCaterwaulHtmlOps
+  syn match   jsCaterwaulHtmlAttrB      /[ \t\n]*\*!\s*\w\+/            contained nextgroup=@jsCaterwaulHtmlOps
+  syn match   jsCaterwaulHtmlMap        /[ \t\n]*%\s*[A-Za-z0-9$_\.]\+/ contained nextgroup=@jsCaterwaulHtmlOps
+
+  syn match   jsCaterwaulHtmlPlus       /[ \t\n]*+\s*/                  contained nextgroup=@jsCaterwaulHtmlOps
+  syn match   jsCaterwaulHtmlContains   /[ \t\n]*>\s*/                  contained nextgroup=@jsCaterwaulHtmlOps
+
+  syn region  jsCaterwaulHtmlParens     matchgroup=jsParens start=/(/  end=/)/ contained nextgroup=@jsCaterwaulHtmlOps containedin=@jsCaterwaulHtmlGroups contains=jsCaterwaulHtmlElement,jsStringS,jsStringD
+  syn region  jsCaterwaulHtmlArray      matchgroup=jsParens start=/\[/ end=/]/ contained nextgroup=@jsCaterwaulHtmlOps containedin=@jsCaterwaulHtmlGroups contains=TOP
+
+  syn keyword jsCaterwaulHtmlElement    html head body meta script style link title div a span input button textarea option contained containedin=@jsCaterwaulHtmlGroups nextgroup=@jsCaterwaulHtmlOps
+  syn keyword jsCaterwaulHtmlElement    table tbody tr td th thead tfoot img h1 h2 h3 h4 h5 h6 li ol ul noscript p pre samp contained containedin=@jsCaterwaulHtmlGroups nextgroup=@jsCaterwaulHtmlOps
+  syn keyword jsCaterwaulHtmlElement    blockquote select form label iframe sub sup var code caption canvas audio video     contained containedin=@jsCaterwaulHtmlGroups nextgroup=@jsCaterwaulHtmlOps
+
+syn match     jsCaterwaulComplexOp      /\([-+*^%&\|<>]\{1,2\}\)[A-Za-z0-9$_()\[\]]\+\1\|\([<>]\{1,2\}\)[^ ]\+[<>]\{1,2\}/
+
+syn region    jsBlockComment            start=+/\*+ end=+\*/+ contains=@Spell,jsCommentTags
+syn region    jsLineComment             start=+//+  end=+$+   contains=@Spell,jsCommentTags
+
+  syn keyword jsCommentTags             TODO FIXME XXX TBD contained
+
+syn sync fromstart
+
+if main_syntax == "caterwaul"
+  syn sync ccomment javaScriptComment
+endif
+
+hi def link jsClosers                   Error
+
+hi def link jsCaterwaulNumericHex       Number
+hi def link jsCaterwaulNumericBinary    Number
+
+hi def link jsCaterwaulHtmlElement      Keyword
+hi def link jsCaterwaulHtmlClass        Special
+hi def link jsCaterwaulHtmlClassName    Type
+hi def link jsCaterwaulHtmlSlash        Special
+hi def link jsCaterwaulHtmlSlashB       Special
+hi def link jsCaterwaulHtmlMap          Special
+hi def link jsCaterwaulHtmlAttr         Special
+hi def link jsCaterwaulHtmlAttrB        Special
+hi def link jsCaterwaulHtmlPlus         Special
+hi def link jsCaterwaulHtmlContains     Special
+
+hi def link jsCaterwaulHtmlPrefix2      Special
+
+hi def link jsCaterwaulSeqVariable      Identifier
+
+hi def link jsCaterwaulUnaryLeftOp      Special
+hi def link jsCaterwaulComplexOp        Special
+hi def link jsCaterwaulOperatorFn       Special
+
+hi def link jsCaterwaulMacro            Special
+hi def link jsCaterwaulFn               Identifier
+
+hi def link jsSeqFilter                 Special
+
+hi def link jsWordPrefix                Special
+
+hi def link jsBindingMacro              Special
+hi def link jsFunctionMacro             Special
+hi def link jsOtherMacro                Special
+hi def link jsQuotationMacro            Keyword
+
+hi def link jsFunctionGroup             Identifier
+
+hi def link jsQuotationGroup            String
+
+hi def link jsLineComment               Comment
+hi def link jsBlockComment              Comment
+hi def link jsCommentTags               Todo
+
+hi def link jsQuote                     Special
+hi def link jsNumber                    Number
+hi def link jsStringS                   String
+hi def link jsStringD                   String
+hi def link jsRegexp                    String
+hi def link jsRegexpEscape              Special
+hi def link jsStringEscape              Special
+hi def link jsCaterwaulEscape           Special
+hi def link jsColonLHS                  Type
+
+hi def link jsAssignment                Type
+
+hi def link jsParen                     Special
+hi def link jsParens                    Special
+hi def link jsBracket                   Special
+hi def link jsBrace                     Special
+hi def link jsParenCloseError           Error
+hi def link jsBracketCloseError         Error
+hi def link jsBraceCloseError           Error
+
+hi def link jsTernaryOperator           Special
+
+hi def link jsVarInBinding              Type
+
+hi def link jsVarBindingKeyword         Keyword
+hi def link jsVarBindingConstruct       Keyword
+hi def link jsBindingConstruct          Special
+hi def link jsBindingKeyword            Keyword
+hi def link jsBindingAssignment         Type
+hi def link jsExtraBindingAssignment    Identifier
+hi def link jsParamBinding              Identifier
+
+hi def link jsReservedToplevel          Keyword
+hi def link jsOperator                  Keyword
+hi def link jsDot                       Special
+hi def link jsBuiltinType               Type
+hi def link jsBuiltinLiteral            Special
+hi def link jsBuiltinValue              Special
+hi def link jsPrototype                 Special
+
+let b:current_syntax = "caterwaul"
+if main_syntax == 'caterwaul'
+  unlet main_syntax
+endif
 
 __
 meta::sdoc('web/tutorial', <<'__');

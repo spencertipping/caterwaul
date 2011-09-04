@@ -8,3 +8,8 @@ Builds ending with 'bN' are beta and should NOT be used if correctness matters!
 These builds are primarily for me to test against and probably have bugs. That
 said, if you do happen to use one and find a problem, e-mail me and I'll fix it
 before releasing a non-beta.
+
+There's a Vim syntax highlighter in build/. You can use it by copying it to your
+~/.vim/syntax, then adding this line to your .vimrc:
+
+au BufReadPost,BufNewFile *.js set syntax=caterwaul
