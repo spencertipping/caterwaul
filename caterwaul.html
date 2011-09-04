@@ -1284,8 +1284,8 @@ __
 meta::function('ls-a', 'ls(\'-ad\', @_);');
 meta::function('min-gzipped', <<'__');
 # Prints minified and gzipped size
-sub size_of {my @files = ('build/caterwaul.min.js', map "build/caterwaul.$_.min.js", @_); terminal::info("minified/gzipped(@_) is " . qx(cat @files | gzip --best -c | wc -c))}
-
+sub size_of {my @files = ('build/caterwaul.min.js', map "build/caterwaul.$_.min.js", @_);
+             terminal::info("minified/gzipped(@_) is " . qx(cat @files | wc -c | tr -d '\n') . "/" . qx(cat @files | gzip --best -c | wc -c | tr -d '\n'))}
 size_of;
 size_of 'std';
 size_of 'std', 'ui';
