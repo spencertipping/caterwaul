@@ -89,7 +89,7 @@ syn match     jsFunctionGroup           /\.\k\+/ contained
 syn match     jsParens                  /[()]/ contained
 syn match     jsClosers                 /[\]})]/
 
-syn match     jsCaterwaulInfixFunction  /\([|\/]\)[-~]\S\+\1/
+syn match     jsCaterwaulInfixFunction  /\([|\/]\)[-~][^ \t\/|]\+\1/
 
 syn cluster   jsCaterwaulHtmlOps        contains=jsCaterwaulHtmlClass,jsCaterwaulHtmlSlash,jsCaterwaulHtmlMap,jsCaterwaulHtmlAttr,jsCaterwaulHtmlElement,jsCaterwaulHtmlParens
 syn cluster   jsCaterwaulHtmlOps             add=jsCaterwaulHtmlArray,jsCaterwaulHtmlSlashB,jsCaterwaulHtmlAttrB,jsCaterwaulHtmlPlus,jsCaterwaulHtmlContains
