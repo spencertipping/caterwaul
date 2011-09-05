@@ -3,6 +3,9 @@
 
 
 
+// Caterwaul JS | Spencer Tipping
+// Licensed under the terms of the MIT source code license
+
 // Introduction.
 // Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
 

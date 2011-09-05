@@ -44,7 +44,7 @@ syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\
 syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^-~\+!\/A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpEscape
 
 syn region    jsCodeString              matchgroup=jsCodeQuote start=/\z(['"]\)/ end=/\z1\.qf\>/ skip=/\\./ oneline contains=TOP
-syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString
+syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString contained
 
   syn match   jsRegexpEscape            /\\[sSbBwWdDnr\\\[\]]\|[+*|]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
 

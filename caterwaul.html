@@ -2666,6 +2666,9 @@ These styles, while they should be more or less consistent across pages, are des
 
 __
 meta::sdoc('js::caterwaul', <<'__');
+Caterwaul JS | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
 Introduction.
 Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
 
@@ -4976,7 +4979,7 @@ syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\
 syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^-~\+!\/A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpEscape
 
 syn region    jsCodeString              matchgroup=jsCodeQuote start=/\z(['"]\)/ end=/\z1\.qf\>/ skip=/\\./ oneline contains=TOP
-syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString
+syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString contained
 
   syn match   jsRegexpEscape            /\\[sSbBwWdDnr\\\[\]]\|[+*|]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
 
