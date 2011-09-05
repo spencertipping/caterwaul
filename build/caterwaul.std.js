@@ -179,6 +179,14 @@
 
         infix_function       = function (node) {return infix_function_flat.call(this, node) || infix_function_slash.call(this, node) || infix_function_bar.call(this, node)};
 
+//   Postfix function application.
+//   This is a bit simpler than infix function application and is used when you have a unary function. Sometimes it's simpler to think of a function as a filter than as a wrapper, and this macro
+//   makes it easier to do that. This is particularly useful when you have many nested function calls, for instance if you're defining multi-level function composition:
+
+//   | compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
+
+    var postfix_function = $.rereplacer('_x /!_f', '_f(_x)');
+
 //   Literal modification.
 //   Caterwaul 1.1.2 introduces literal modification, which provides ways to reinterpret various types of literals at compile-time. These are always written as postfix property accesses, e.g.
 //   /foo bar/.x -- here, 'x' is the modifier. Cool as it would be to be able to stack modifiers up, right now Caterwaul doesn't support this. Part of the reason is that I'm too lazy/uninsightful
@@ -261,7 +269,8 @@
 //   function (which will be called lots of times).
 
     var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
-                                            node.length && (infix_function.call(this, node) || modifier.call(this, node) || function_destructure.call(this, node))},
+                                            node.length && (infix_function.call(this, node) || postfix_function.call(this, node) ||
+                                                            modifier.call(this, node) || function_destructure.call(this, node))},
 
         result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
                                     $(each_node);
