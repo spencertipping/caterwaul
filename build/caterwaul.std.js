@@ -512,10 +512,9 @@
 // | 1. Ternary ?:
 //   2. Short-circuit && and ||
 //   3. Parentheses
-//   4. Function and method calls
 
-// It won't cross a square-bracket boundary, however. This includes distributing over array elements and [] dereferencing. You can cause it to cross an array boundary by prefixing the array with
-// ~ (which should be familiar, as it is the same syntax that's used to cause function bodies to be interpreted in sequence context). For instance:
+// It won't cross a square-bracket or invocation boundary, however. This includes distributing over array elements and [] dereferencing. You can cause it to cross an array boundary by prefixing
+// the array with ~ (which should be familiar, as it is the same syntax that's used to cause function bodies to be interpreted in sequence context). For instance:
 
 // | [1, 2, 3, X] -seq             // <- X is interpreted in regular Javascript context
 //   ~[1, 2, 3, X] -seq            // <- X is interpreted in sequence context
@@ -689,7 +688,7 @@ caterwaul.words(caterwaul.js())(function ($) {
          operator_macros = [rule('S[_x]', '_x'),  rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),  rule('S[_xs - _ys]', cross),
 
                                                   // Distributive property
-                                                  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs(_ys)]', 'S[_xs](S[_ys])'),
+                                                  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs(_ys)]', 'S[_xs](_ys)'),
                                                   rule('S[[_x]]', '[_x]'),     rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs._p]',   'S[_xs]._p'),
 
                                                   rule('S[~[_x]]', '[S[_x]]'),          // <- ~ modifier on arrays
