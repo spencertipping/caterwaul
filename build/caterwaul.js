@@ -349,13 +349,13 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                               else             return this.data}};
 
 //   Syntax node subclassing.
-//   Caterwaul 1.1.1 generalizes the variadic syntax node model to support arbitrary subclasses. This is useful when defining syntax trees for languages other than Javascript. Note that this
-//   method is destructive to your constructor; it adds a bunch of methods to the prototype automatically.
+//   Caterwaul 1.1.1 generalizes the variadic syntax node model to support arbitrary subclasses. This is useful when defining syntax trees for languages other than Javascript. As of Caterwaul
+//   1.1.2 this method is nondestructive with respect to the constructor and other arguments.
 
-    caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1);
-                                                        merge.apply(this, [ctor.prototype, syntax_common].concat(extensions));
-                                                        ctor.prototype.constructor = ctor;
-                                                        return ctor};
+    caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1), proxy = function () {return ctor.apply(this, arguments)};
+                                                        merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
+                                                        proxy.prototype.constructor = proxy;
+                                                        return proxy};
 
 //   Type detection and retrieval.
 //   These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
