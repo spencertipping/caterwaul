@@ -506,6 +506,20 @@
 // pretend that everything is (or at least looks like one) and rely on the [i] and .length properties. This allows the sequence library to (1) have a very thin design, and (2) compile down to
 // tight loops without function calls.
 
+// Distributive property.
+// The seq[] modifier distributes across several operators. They are:
+
+// | 1. Ternary ?:
+//   2. Short-circuit && and ||
+//   3. Parentheses
+//   4. Function and method calls
+
+// It won't cross a square-bracket boundary, however. This includes distributing over array elements and [] dereferencing. You can cause it to cross an array boundary by prefixing the array with
+// ~ (which should be familiar, as it is the same syntax that's used to cause function bodies to be interpreted in sequence context). For instance:
+
+// | [1, 2, 3, X] -seq             // <- X is interpreted in regular Javascript context
+//   ~[1, 2, 3, X] -seq            // <- X is interpreted in sequence context
+
 // Notation.
 // The notation is mostly a superset of the pre-1.0 sequence notation. Operators that have the same functionality as before (others are reserved for future meanings, but probably won't do what
 // they used to):
@@ -672,10 +686,14 @@ caterwaul.words(caterwaul.js())(function ($) {
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(p.constructor === String ? anon(p) : p, e.constructor === String ? anon(e) : e),
 
-         operator_macros = [rule('S[_x]', '_x'),  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),
-                                                  rule('S[[_x]]', '[_x]'),     rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs - _ys]', cross),
+         operator_macros = [rule('S[_x]', '_x'),  rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),  rule('S[_xs - _ys]', cross),
 
-                                                  // Distribution over various conditionals
+                                                  // Distributive property
+                                                  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs(_ys)]', 'S[_xs](S[_ys])'),
+                                                  rule('S[[_x]]', '[_x]'),     rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs._p]',   'S[_xs]._p'),
+
+                                                  rule('S[~[_x]]', '[S[_x]]'),          // <- ~ modifier on arrays
+
                                                   rule('S[_x ? _y : _z]', '(S[_x]) ? (S[_y]) : (S[_z])'), rule('S[_x && _y]', '(S[_x]) && (S[_y])'), rule('S[_x || _y]', '(S[_x]) || (S[_y])'),
 
                                                   // Unary seq operators
