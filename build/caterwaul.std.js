@@ -167,16 +167,23 @@
 //   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. It locates anything of the form x /-f/ y or x |-f| y and converts it into f(x, y). The
 //   notation is vaguely borrowed from Haskell, though due to Javascript's limitations it doesn't look as good.
 
-//   You can change the minus sign to a tilde to get n-ary flattening; that is, x /~f/ y / z / ... becomes f(x, y, z, ...). (Normally it left-associates into binary applications.) The same goes
-//   for vertical bar syntax.
+//   You can change the minus sign to a tilde to get n-ary flattening; that is, x /y /... /~f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax. This macroexpansion follows
+//   associativity, so you can do this:
+
+//   | x /!f /-g/ y                // -> g(f(x), y)
 
     var infix_function_slash = $.rereplacer('_x /-_f/ _y', '_f(_x, _y)'), infix_function_bar = $.rereplacer('_x |-_f| _y', '_f(_x, _y)'),
 
-        infix_function_flat  = $.reexpander(function (node) {var match = node.data === '/' && node.flatten('/') || node.data === '|' && node.flatten('|'), l = match && match.length, first, c;
-                                                             for (var i = 1; i < l; ++i) if (match[first = i].data === 'u~') break;
-                                                             if (++i < l && (fn = match[first][0])) {
-                                                               for (var result = new $.syntax(','); i < l; ++i) result.push(match[i]);
-                                                               return new $.syntax('()', match[first][0], new $.syntax(',', match.slice(0, first).unflatten(), result.unflatten()))}}),
+        infix_function_flat  = function (node) {var d = node.data, left, fn;
+                                                if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u~' && (fn = left[1][0])) {
+                                                  // Pre-expand macros in the left-hand side.
+                                                  for (var comma = new $.syntax(','), n = this(left[0]); n.data === d; n = n[0]) comma.push(n[1]);
+                                                  comma.push(n);
+
+                                                  // The comma arguments are backwards, so reverse them in-place:
+                                                  for (var i = 0, l = comma.length, temp; i < l >> 1; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
+
+                                                  return new $.syntax('()', fn, comma.push(node[1]).unflatten())}},
 
         infix_function       = function (node) {return infix_function_flat.call(this, node) || infix_function_slash.call(this, node) || infix_function_bar.call(this, node)};
 
@@ -270,8 +277,8 @@
 //   function (which will be called lots of times).
 
     var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
-                                            node.length && (infix_function.call(this, node) || postfix_function.call(this, node) ||
-                                                            modifier.call(this, node) || function_destructure.call(this, node))},
+                                            node.length && (modifier.call(this, node) || function_destructure.call(this, node) ||
+                                                            infix_function.call(this, node) || postfix_function.call(this, node))},
 
         result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
                                     $(each_node);
