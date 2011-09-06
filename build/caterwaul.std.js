@@ -183,7 +183,7 @@
                                                   // The comma arguments are backwards, so reverse them in-place:
                                                   for (var i = 0, l = comma.length, temp; i < l >> 1; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
 
-                                                  return new $.syntax('()', fn, comma.push(node[1]).unflatten())}},
+                                                  return new $.syntax('()', fn, comma.push(this(node[1])).unflatten())}},
 
         infix_function       = function (node) {return infix_function_flat.call(this, node) || infix_function_slash.call(this, node) || infix_function_bar.call(this, node)};
 
