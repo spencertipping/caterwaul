@@ -71,7 +71,7 @@ syn keyword   jsFunctionMacro           delay lazy
 syn keyword   jsOtherMacro              raise seq noexpand reexpand
 
 syn keyword   jsParameterizedMacro      se re when unless using rescue nextgroup=jsModifierSuffix
-syn match     jsModifierSuffix          /[->]\?/ contained
+syn match     jsModifierSuffix          /[->]?/ contained
 
 syn cluster   jsMacro                   add=jsBindingMacro,jsFunctionMacro,jsQuotationMacro,jsOtherMacro
 

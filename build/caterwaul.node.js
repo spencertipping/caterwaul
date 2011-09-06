@@ -250,10 +250,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
 
-      repopulated_with: function (xs)   {return new this.constructor(this.data, xs)},
-      with_data:        function (d)    {return new this.constructor(d, Array.prototype.slice.call(this))},
-      change:           function (i, x) {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
-      compose_single:   function (i, f) {return this.change(i, f(this[i]))},
+      repopulated_with: function (xs)     {return new this.constructor(this.data, xs)},
+      with_data:        function (d)      {return new this.constructor(d, Array.prototype.slice.call(this))},
+      change:           function (i, x)   {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
+      compose_single:   function (i, f)   {return this.change(i, f(this[i]))},
+      slice:            function (x1, x2) {return new this.constructor(this.data, Array.prototype.slice.call(this, x1, x2))},
 
 //     General-purpose traversal.
 //     This is a SAX-style traversal model, useful for analytical or scope-oriented tree traversal. You specify a callback function that is invoked in pre-post-order on the tree (you get events
