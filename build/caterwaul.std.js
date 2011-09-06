@@ -175,7 +175,7 @@
         infix_function_flat  = $.reexpander(function (node) {var match = node.data === '/' && node.flatten('/') || node.data === '|' && node.flatten('|'), l = match && match.length, first, c;
                                                              for (var i = 1; i < l; ++i) if (match[first = i].data === 'u~') break;
                                                              if (++i < l && (fn = match[first][0])) {
-                                                               for (var result = new $.syntax(',', match[0]); i < l; ++i) result.push(match[i]);
+                                                               for (var result = new $.syntax(','); i < l; ++i) result.push(match[i]);
                                                                return new $.syntax('()', match[first][0], new $.syntax(',', match.slice(0, first).unflatten(), result.unflatten()))}}),
 
         infix_function       = function (node) {return infix_function_flat.call(this, node) || infix_function_slash.call(this, node) || infix_function_bar.call(this, node)};
