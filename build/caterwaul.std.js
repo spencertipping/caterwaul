@@ -672,9 +672,13 @@ caterwaul.words(caterwaul.js())(function ($) {
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(p.constructor === String ? anon(p) : p, e.constructor === String ? anon(e) : e),
 
-         operator_macros = [rule('S[_x]', '_x'),  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][S[_y]]'),  rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),
-                                                  rule('S[[_x]]', '[S[_x]]'),  rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs - _ys]', cross),
+         operator_macros = [rule('S[_x]', '_x'),  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),
+                                                  rule('S[[_x]]', '[_x]'),     rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs - _ys]', cross),
 
+                                                  // Distribution over various conditionals
+                                                  rule('S[_x ? _y : _z]', '(S[_x]) ? (S[_y]) : (S[_z])'), rule('S[_x && _y]', '(S[_x]) && (S[_y])'), rule('S[_x || _y]', '(S[_x]) || (S[_y])'),
+
+                                                  // Unary seq operators
                                                   rule('S[_xs %_thing]',   handle_filter_forms),   rule('S[_xs *_thing]',   handle_map_forms),
                                                   rule('S[_xs /_thing]',   handle_fold_forms),     rule('S[_xs |_thing]',   handle_exists_forms),
 
