@@ -6,10 +6,29 @@ if [[ -e index.html || -e style.css ]]; then
   exit 1
 fi
 
-wget ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.js -O jquery-1.6.2.js
-wget caterwauljs.org/build/caterwaul.js
-wget caterwauljs.org/build/caterwaul.std.js
-wget caterwauljs.org/build/caterwaul.ui.js
+cat > update-dependencies <<end
+#!/bin/bash
+
+# Usage:
+# ./update-dependencies
+#
+# Downloads local copies of all app dependencies. You can add new dependencies
+# below and then include them in index.html.
+
+download() {
+  local target="\$1"
+  shift
+  echo -n "downloading \$target: "
+  curl -s "\$@" > "\$target"
+  echo done
+}
+
+download jquery-1.6.2.min.js ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js
+download caterwaul.all.min.js caterwauljs.org/build/caterwaul{,.std,.ui}.min.js
+end
+
+chmod u+x update-dependencies
+./update-dependencies
 
 cat > style.css <<end
 body {font-family: sans-serif; font-size: 9pt}
@@ -19,10 +38,15 @@ cat > index.html <<end
 <!doctype html>
 <html>
   <head>
-  <script src='jquery-1.6.2.js'></script>
-  <script src='caterwaul.js'></script>
-  <script src='caterwaul.std.js'></script>
-  <script src='caterwaul.ui.js'></script>
+  <script src='jquery-1.6.2.min.js'></script>
+  <script src='caterwaul.all.min.js'></script>
+
+  <script>
+    \$(caterwaul.jquery(caterwaul.js_all())(function () {
+      \$('body').append('#{exclamation} Your new app works!')
+      -where [exclamation = 'Woot!'];
+    }));
+  </script>
 
   <link rel='stylesheet' href='style.css' />
   </head>
