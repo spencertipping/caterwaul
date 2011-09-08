@@ -382,7 +382,7 @@ var shell = given.nothing in
  run_command(c) = log(history_entry_for(c))
  -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
 
- shell_prompt = jquery [div.prompt[prompt, input, shadow]]
+ shell_prompt = jquery [div.prompt[prompt, input, structure, shadow]]
  -se- setTimeout(realign, 10)
  -se- setInterval(update_shadow, 10)
 
@@ -395,14 +395,17 @@ var shell = given.nothing in
 
  -where [input = jquery in input.input,
  prompt = jquery in span.accent('&gt;'),
+ structure = jquery in div.structure,
  shadow = jquery in div.shadow,
 
- last_shadow_text = null,
+ last_input_text = null,
  rename_gensyms_in(t) = t.replace(context.caterwaul.gensym_rename_table(t)),
- update_shadow() = shadow.text(context.compiler(context.caterwaul.parse(last_shadow_text = input.val()))
+ update_shadow() = structure.text(context.caterwaul.parse(input.val()).structure())
+ -se- shadow.text(context.compiler(context.caterwaul.parse(last_input_text = input.val()))
  -re- rename_gensyms_in(it).toString()
  -rescue- e.toString())
- -unless [input.val() === last_shadow_text],
+
+ -unless [input.val() === last_input_text],
 
  h_index = 0,
  history_prev() = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[--h_index]) -when [h_index > 0]
@@ -810,6 +813,9 @@ a {text-decoration: none}
 #tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
 
 #tutorial-page .shell .prompt > span {margin: 4px}
+
+#tutorial-page .shell .structure              {color: #797; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .structure:hover:before {color: #888; content: 'parse tree: '; padding-right: 4px}
 
 #tutorial-page .shell .shadow              {color: #888; display: block; margin: 4px; padding: 4px 0}
 #tutorial-page .shell .shadow:before       {color: #752; content: '>'; padding-right: 4px}
@@ -2630,6 +2636,9 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
 
 #tutorial-page .shell .prompt > span {margin: 4px}
+
+#tutorial-page .shell .structure              {color: #797; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .structure:hover:before {color: #888; content: 'parse tree: '; padding-right: 4px}
 
 #tutorial-page .shell .shadow              {color: #888; display: block; margin: 4px; padding: 4px 0}
 #tutorial-page .shell .shadow:before       {color: #752; content: '>'; padding-right: 4px}
@@ -4878,7 +4887,7 @@ var shell = given.nothing in
                     run_command(c)        = log(history_entry_for(c))
                                             -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
 
-                    shell_prompt          = jquery [div.prompt[prompt, input, shadow]]
+                    shell_prompt          = jquery [div.prompt[prompt, input, structure, shadow]]
                                             -se- setTimeout(realign, 10)
                                             -se- setInterval(update_shadow, 10)
 
@@ -4891,14 +4900,17 @@ var shell = given.nothing in
 
                                             -where [input                = jquery in input.input,
                                                     prompt               = jquery in span.accent('&gt;'),
+                                                    structure            = jquery in div.structure,
                                                     shadow               = jquery in div.shadow,
 
-                                                    last_shadow_text     = null,
+                                                    last_input_text      = null,
                                                     rename_gensyms_in(t) = t.replace(context.caterwaul.gensym_rename_table(t)),
-                                                    update_shadow()      = shadow.text(context.compiler(context.caterwaul.parse(last_shadow_text = input.val()))
-                                                                                       -re- rename_gensyms_in(it).toString()
-                                                                                       -rescue- e.toString())
-                                                                           -unless [input.val() === last_shadow_text],
+                                                    update_shadow()      = structure.text(context.caterwaul.parse(input.val()).structure())
+                                                                           -se- shadow.text(context.compiler(context.caterwaul.parse(last_input_text = input.val()))
+                                                                                            -re- rename_gensyms_in(it).toString()
+                                                                                            -rescue- e.toString())
+
+                                                                           -unless [input.val() === last_input_text],
 
                                                     h_index              = 0,
                                                     history_prev()       = (h[h_index] = input.val()) -when [h_index < history_n] -re- input.val(h[--h_index]) -when [h_index > 0]
