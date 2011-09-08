@@ -60,18 +60,18 @@
 // semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve the
 // problem by implementing a grammar-like structure for tree traversal.
 
-//   Use cases.
+  // Use cases.
 //   One fairly obvious use case is code tracing. When we trace some code, we need to keep track of whether it should be interpreted in sequence or expression context. Although there are only two
 //   states here, it still is too complex for a single-layer macroexpander to handle gracefully; so we create two separate caterwaul functions that delegate control to one another. We then create
 //   a set of annotations to indicate which state or states should be chosen next. For example, here are some expansions from the tracing behavior:
 
-//   | E[_x = _y]  ->  H[_x = E[_y]]
+  // | E[_x = _y]  ->  H[_x = E[_y]]
 //     S[_x = _y]  ->  _x = E[_y]
 
-//   It's straightforward enough to define macros this way; all that needs to be done is to mark the initial state and put state information into the macro patterns. The hard part is making sure
+  // It's straightforward enough to define macros this way; all that needs to be done is to mark the initial state and put state information into the macro patterns. The hard part is making sure
 //   that the markers don't interfere with the existing syntax. This requires that all of the markers be replaced by gensyms before the macroexpansion happens.
 
-//   Gensym anonymizing.
+  // Gensym anonymizing.
 //   Replacing symbols in macro patterns is trivial with the replace() method. The only hard part is performing this same substitution on the macroexpansions. (In fact, this is impossible to do
 //   transparently given Turing-complete macros.) In order to work around this, strings are automatically expanded (because it's easy to do), but functions must call translate_state_markers() on
 //   any patterns they intend to use. This call must happen before substituting syntax into the patterns (!) because otherwise translate_state_markers() may rewrite code that happens to contain
@@ -121,18 +121,18 @@
 // Javascript-specific shorthands.
 // Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
 
-//   String interpolation.
+  // String interpolation.
 //   Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
 //   bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.
 
-//   This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
+  // This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
 //   used on the string itself, but you can now include balanced braces in the interpolated text. For example, this is now valid:
 
-//   | 'foo #{{bar: "bif"}.bar}'
+  // | 'foo #{{bar: "bif"}.bar}'
 
-//   There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
+  // There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
 
-//   | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
+  // | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
 
     var string_interpolator = function (node) {
       var s = node.data, q = s.charAt(0), syntax = $.syntax;
@@ -151,11 +151,11 @@
                                                                                                                     new syntax(q + pieces[i] + q);
       return new syntax('+', pieces).unflatten().as('(')};
 
-//   Destructuring function creation.
+  // Destructuring function creation.
 //   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
 //   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
 
-//   There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
+  // There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
 //   inside the body of the function without worrying whether you'll lose the function context.
 
     var function_rule        = $.rereplacer('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
@@ -163,53 +163,49 @@
 
         function_destructure = function (node) {return function_args_rule.call(this, node) || function_rule.call(this, node)};
 
-//   Infix function application.
-//   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. It locates anything of the form x /-f/ y or x |-f| y and converts it into f(x, y). The
-//   notation is vaguely borrowed from Haskell, though due to Javascript's limitations it doesn't look as good.
+  // Infix function application.
+//   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. x /y /... /-f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax; that is, x
+//   |y |... |-f| z also becomes f(x, y, ..., z). This macro respects associativity, so you can do this:
 
-//   You can change the minus sign to a tilde to get n-ary flattening; that is, x /y /... /~f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax. This macroexpansion follows
-//   associativity, so you can do this:
+  // | x /!f /-g/ y                // -> g(f(x), y)
 
-//   | x /!f /-g/ y                // -> g(f(x), y)
+  // There used to be two different syntaxes depending on whether you wanted binary or n-ary function application. I realized this was probably overkill since the macro now distributes across
+//   parse trees appropriately.
 
-    var infix_function_slash = $.rereplacer('_x /-_f/ _y', '_f(_x, _y)'), infix_function_bar = $.rereplacer('_x |-_f| _y', '_f(_x, _y)'),
+    var infix_function = function (node) {var d = node.data, left, fn;
+                                          if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0])) {
+                                            // Pre-expand macros in the left-hand side.
+                                            for (var comma = new $.syntax(','), n = this(left[0]); n.data === d; n = n[0]) comma.push(n[1]);
+                                            comma.push(n);
 
-        infix_function_flat  = function (node) {var d = node.data, left, fn;
-                                                if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u~' && (fn = left[1][0])) {
-                                                  // Pre-expand macros in the left-hand side.
-                                                  for (var comma = new $.syntax(','), n = this(left[0]); n.data === d; n = n[0]) comma.push(n[1]);
-                                                  comma.push(n);
+                                            // The comma arguments are backwards, so reverse them in-place:
+                                            for (var i = 0, l = comma.length >> 1, temp; i < l; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
 
-                                                  // The comma arguments are backwards, so reverse them in-place:
-                                                  for (var i = 0, l = comma.length, temp; i < l >> 1; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
+                                            return new $.syntax('()', fn, comma.push(this(node[1])).unflatten())}};
 
-                                                  return new $.syntax('()', fn, comma.push(this(node[1])).unflatten())}},
-
-        infix_function       = function (node) {return infix_function_flat.call(this, node) || infix_function_slash.call(this, node) || infix_function_bar.call(this, node)};
-
-//   Postfix function application.
+  // Postfix function application.
 //   This is a bit simpler than infix function application and is used when you have a unary function. Sometimes it's simpler to think of a function as a filter than as a wrapper, and this macro
 //   makes it easier to do that. This is particularly useful when you have many nested function calls, for instance if you're defining multi-level function composition:
 
-//   | compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
+  // | compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
 
     var postfix_function = $.rereplacer('_x /!_f', '_f(_x)');
 
-//   Literal modification.
+  // Literal modification.
 //   Caterwaul 1.1.2 introduces literal modification, which provides ways to reinterpret various types of literals at compile-time. These are always written as postfix property accesses, e.g.
 //   /foo bar/.x -- here, 'x' is the modifier. Cool as it would be to be able to stack modifiers up, right now Caterwaul doesn't support this. Part of the reason is that I'm too lazy/uninsightful
 //   to know how to do it performantly considering the present architecture, but another part of it is that the bugs would become strange and subtle. My goal is to keep the compilation process
 //   reasonably transparent, and you can imagine the bizarre chain of events that would occur if someone wrote a modifier that, for instance, returned a different type of literal. It would be
 //   utter chaos (though a really cool form of it).
 
-//   Sadly, you can't modify object literals. The reason has to do with syntactic ambiguity. Suppose you've got a function like this:
+  // Sadly, you can't modify object literals. The reason has to do with syntactic ambiguity. Suppose you've got a function like this:
 
-//   | function () {
+  // | function () {
 //       {foo: 'bar'}.modifier
 //       return true;
 //     }
 
-//   This function fails to parse under SpiderMonkey, since it assumes that {foo: 'bar'} is a statement-level block with a label 'foo' and a discarded string literal 'bar'. Rather than open this
+  // This function fails to parse under SpiderMonkey, since it assumes that {foo: 'bar'} is a statement-level block with a label 'foo' and a discarded string literal 'bar'. Rather than open this
 //   can of worms, I'm just nixing the whole idea of modifying object literals (besides, it doesn't seem particularly useful anyway, though perhaps I'm being myopic about it).
 
     var modified_literal_form   = $.pattern('_literal._modifier'),
@@ -227,12 +223,12 @@
                                                                                                                  null))
                                                      return expander.call(this, literal)};
 
-//   Modifier syntax.
+  // Modifier syntax.
 //   These are the 'structured forms' I was talking about above. Prior to caterwaul 1.1 these were stored as individual pre-expanded macros. This had a number of problems, perhaps most notably
 //   that it was extremely inefficient. I loaded up caterwaul in the REPL and found that caterwaul.js_ui(caterwaul.js_all()) had 329 macros installed. This meant 329 tree-match tests for every
 //   function.
 
-//   Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
+  // Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
 //   fact match. However, there are only a few checks that need to happen before determining whether a modifier match is possible, unlike before.
 
     var bracket_modifier_form = $.pattern('_modifier[_expression]'),               slash_modifier_form = $.pattern('_expression /_modifier'),
@@ -268,12 +264,12 @@
                                         for (var es = this.modifiers, i = es.length - 1, r; i >= 0; --i)
                                           if (r = es[i].call(this, regular_match)) return r}};
 
-//   Tying it all together.
+  // Tying it all together.
 //   This is where we write a big macroexpander to perform all of the tasks mentioned above. It just falls through cases, which is now a fairly standard pattern for macros. There is a high-level
 //   optimization that we can perform: leaf nodes can only be expanded by the string interpolator, so we try this one first and reject any further matching attempts if the node has no children.
 //   Because roughly half of the nodes will have no children, this saves on average 5 matching attempts per node.
 
-//   I've got two closures here to avoid putting a conditional in either one of them. In particular, we know already whether we got a macroexpander, so there's no need to test it inside the
+  // I've got two closures here to avoid putting a conditional in either one of them. In particular, we know already whether we got a macroexpander, so there's no need to test it inside the
 //   function (which will be called lots of times).
 
     var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
@@ -307,11 +303,11 @@
 
     var function_template = $.parse('function (_) {return _body}');
 
-//   Regular expression literals.
+  // Regular expression literals.
 //   Right now we just support the 'x' flag, which causes all whitespace within the regular expression to be ignored. This is a straightforward preprocessing transformation, since we have access
 //   to the regexp in string form anyway.
 
-//   To make Javascript's regular expressions more useful I've also included the 'qf' modifier. This turns a regular expression into a matching function; for example, /foo/.qf becomes (function
+  // To make Javascript's regular expressions more useful I've also included the 'qf' modifier. This turns a regular expression into a matching function; for example, /foo/.qf becomes (function
 //   (s) {return /foo/.exec(s)}).
 
     (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
@@ -319,17 +315,17 @@
                    var call_exec_template = $.parse('_regexp.exec(_)');
                    r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
 
-//   String literals.
+  // String literals.
 //   There are a couple of things we can do with strings. First, there's the 'qw' modifier, which causes a string to be split into an array of words at compile-time. So, for instance, the
 //   expression 'foo bar bif'.qw would be compiled into ['foo', 'bar', 'bif']. Another modifier is 'qh', which is like 'qw' but creates a hash instead. So 'foo bar bif baz'.qh would result in
 //   {foo: 'bar', bif: 'baz'}. There's also qr, which converts from a string to a regular expression and does all of the appropriate escape conversions. Some care should be taken with this,
 //   however, because not all regexp escapes are valid in strings. In particular, you can't do things like 'foo\[bar\]'.qr because \[ isn't recognized in strings.
 
-//   Another modifier is 'qs', which is rarely used outside of the context of writing macros. The idea here is to have Caterwaul parse the string and return a reference to the parse tree. So, for
+  // Another modifier is 'qs', which is rarely used outside of the context of writing macros. The idea here is to have Caterwaul parse the string and return a reference to the parse tree. So, for
 //   example, 'foo.bar'.qs is compiled into a reference to the parse tree for foo.bar. A caveat here is that the parse happens only once, so any mutations that happen to the syntax tree are
 //   persisted across invocations. (Unlike the way that array and object literals are interpreted, which is to create a new array or object each time that node is evaluated.)
 
-//   Functions can be written concisely using qf. This causes the string to be interpreted as the body of a function whose sole argument is called _. This may change at some point in the future.
+  // Functions can be written concisely using qf. This causes the string to be interpreted as the body of a function whose sole argument is called _. This may change at some point in the future.
 
     (function (s) {s.qw = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
                                                                  pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
@@ -373,7 +369,7 @@
         modifier               = function (word, expander) {caterwaul_function.modifiers              .push(filtered_expander(word, expander))},
         parameterized_modifier = function (word, expander) {caterwaul_function.parameterized_modifiers.push(filtered_expander(word, expander))};
 
-//   Quotation.
+  // Quotation.
 //   qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant
 //   that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
 //   reuse.
@@ -381,19 +377,19 @@
     modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')});
     modifier('qse', function (match) {return new $.ref(this(match._expression), 'qse')});
 
-//   Macroexpansion control.
+  // Macroexpansion control.
 //   Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
 
     modifier('reexpand', function (match) {return this(this(match._expression))});
     modifier('noexpand', function (match) {return match._expression});
 
-//   Error handling.
+  // Error handling.
 //   Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
     modifier              ('raise',  $.reexpander('(function () {throw _expression}).call(this)'));
     parameterized_modifier('rescue', $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'));
 
-//   Evaluation.
+  // Evaluation.
 //   Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
 //   and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
 
@@ -402,24 +398,24 @@
 // Scoping and referencing.
 // These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
 
-//   Function words.
+  // Function words.
 //   These define functions in some form. given[] and bgiven[] are modifiers to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure binding.
 //   For example:
 
-//   | var f = x + 1 -given [x];
+  // | var f = x + 1 -given [x];
 //     var f = x + 1 -given.x;
 
     parameterized_modifier('given',  $.reexpander('(function (_parameters) {return _expression})'));
     parameterized_modifier('bgiven', $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'));
 
-//   Nullary function words.
+  // Nullary function words.
 //   These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
 //   each time, and another is to compute the value lazily and return the cached value for each future invocation. The modifiers are called 'delay' and 'lazy', and they always bind to the
 //   surrounding context (analogous to bgiven, above).
 
-//   Here are their operational semantics by example:
+  // Here are their operational semantics by example:
 
-//   | var x = 10;
+  // | var x = 10;
 //     var f = ++x -delay;
 //     f()         -> 11
 //     f()         -> 12
@@ -430,41 +426,41 @@
     modifier('delay', $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'));
     modifier('lazy',  $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'));
 
-//   Side-effecting.
+  // Side-effecting.
 //   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /se[] adverb. Older versions of caterwaul
 //   bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
 
-//   | hash(k, v) = {} /se[it[k] = v];
+  // | hash(k, v) = {} /se[it[k] = v];
 //     compose(f, g)(x) = g(x) -re- f(it);
 
     parameterized_modifier('se', $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'));
     parameterized_modifier('re', $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'));
 
-//   Scoping.
+  // Scoping.
 //   You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
 
-//   | where[x = 10][alert(x)]
+  // | where[x = 10][alert(x)]
 //     alert(x), where[x = 10]
 
     parameterized_modifier('where', $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'));
 
-//   Object construction.
+  // Object construction.
 //   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
 //   can also use regular assignments, each of which will be converted into a key/value pair:
 
-//   | var o = capture [f(x) = 10, g(x)(y) = x + y];
+  // | var o = capture [f(x) = 10, g(x)(y) = x + y];
 //     o.g(10)(20)         // -> 30
 
     modifier('capture', function (match) {for (var r = new $.syntax('{'), comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
                                             comma.push(this(bindings[i]).with_data(':'));
                                           return r.push(comma.unflatten())});
 
-//   Importation.
+  // Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
 
-//   | log(x) -using- console              // -> (function () {var log = console.log; return log(x)}).call(this)
+  // | log(x) -using- console              // -> (function () {var log = console.log; return log(x)}).call(this)
 
-//   Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
+  // Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
 //   However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
 
     var scope_template = $.parse('(function () {var _variables; return _expression}).call(this)');
@@ -475,7 +471,7 @@
 // Control flow modifiers.
 // These impact how something gets evaluated.
 
-//   Conditionals.
+  // Conditionals.
 //   These impact whether an expression gets evaluated. x /when.y evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
 //   truthy.
 
@@ -536,126 +532,126 @@
 
 // Note that ^ has higher precedence than |, so we can use it in a sequence comprehension without interfering with the |seq macro (so long as the |seq macro is placed on the right).
 
-//   Modifiers.
+  // Modifiers.
 //   Modifiers are unary operators that come after the primary operator. These have the same (or similar) functionality as before:
 
-//   | ~ = interpret something in sequence context   e.g.  [[1], [2], [3]] *~[x *[x + 1]] |seq  ->  [[2], [3], [4]]
+  // | ~ = interpret something in sequence context   e.g.  [[1], [2], [3]] *~[x *[x + 1]] |seq  ->  [[2], [3], [4]]
 //     x = rename the variable from 'x'              e.g.  [1, 2, 3] *y[y + 1] |seq             ->  [2, 3, 4]
 
-//   Here, 'x' means any identifier. Caterwaul 1.0 introduces some new stuff. The map function now has a new variant, *~!. Filter also supports this variant. Like other operators, they support
+  // Here, 'x' means any identifier. Caterwaul 1.0 introduces some new stuff. The map function now has a new variant, *~!. Filter also supports this variant. Like other operators, they support
 //   variable renaming and sequence context. You can do this by putting those modifiers after the *~!; for instance, xs *~!~[exp] interprets 'exp' in sequence context. Similarly, *~!y[exp] uses
 //   'y' rather than 'x'.
 
-//   | *~! = flatmap         e.g. [1, 2, 3] *~![[x, x + 1]] |seq      ->  [1, 2, 2, 3, 3, 4]
+  // | *~! = flatmap         e.g. [1, 2, 3] *~![[x, x + 1]] |seq      ->  [1, 2, 2, 3, 3, 4]
 //     %~! = map/filter      e.g. [1, 2, 3] %~![x & 1 && x + 1] |seq  ->  [2, 4]
 //     /~! = unfold          e.g. 1 /~![x < 5 ? x + 1 : null] |seq    ->  [1, 2, 3, 4, 5]
 
-//   Variables.
+  // Variables.
 //   All of the variables from before are still available and the naming is still mostly the same. Each block has access to 'x', which is the immediate element. 'xi' is the index, and 'x0' is the
 //   alternative element for folds. Because all sequences are finite, a new variable 'xl' is available -- this is the total number of elements in the source sequence. The sequence object is no
 //   longer accessible because there may not be a concrete sequence. (I'm leaving room for cross-operation optimizations in the future.) The renaming is done exactly as before:
 
-//   | [1, 2, 3] *[x + 1] |seq             -> [2, 3, 4]
+  // | [1, 2, 3] *[x + 1] |seq             -> [2, 3, 4]
 //     [1, 2, 3] *y[y + 1] |seq            -> [2, 3, 4]
 //     [1, 2, 3] *[xi] |seq                -> [0, 1, 2]
 //     [1, 2, 3] *foo[fooi] |seq           -> [0, 1, 2]
 
-//   Word operators.
+  // Word operators.
 //   Some operators are designed to work with objects, just like in prior versions. However, the precedence has been changed to improve ergonomics. For example, it's uncommon to use objects as an
 //   intermediate form because all of the sequence operators are built around arrays. Similarly, it's very common to unpack objects immediately before using them. Therefore the unpack operators
 //   should be very high precedence and the pack operator should have very low precedence:
 
-//   | {foo: 'bar'} /keys |seq             -> ['foo']
+  // | {foo: 'bar'} /keys |seq             -> ['foo']
 //     {foo: 'bar'} /values |seq           -> ['bar']
 //     {foo: 'bar'} /pairs |seq            -> [['foo', 'bar']]
 //     {foo: 'bar'} /pairs |object |seq    -> {foo: 'bar'}
 
-//   Note that unlike regular modifiers you can't use a variety of operators with each word. Each one is defined for just one form. I may change this in the future, but I'm reluctant to start
+  // Note that unlike regular modifiers you can't use a variety of operators with each word. Each one is defined for just one form. I may change this in the future, but I'm reluctant to start
 //   with it because it would remove a lot of syntactic flexibility.
 
-//   Update: After using this in the field, I've found that the low-precedence |object form is kind of a pill. Now the sequence library supports several variants, /object, -object, and |object.
+  // Update: After using this in the field, I've found that the low-precedence |object form is kind of a pill. Now the sequence library supports several variants, /object, -object, and |object.
 
-//   Prefixes.
+  // Prefixes.
 //   New in Caterwaul 1.0.3 is the ability to specify the scope of operation for sequence macros. For instance, you might want to operate on one of several types of data. Normally the sequence
 //   macro assumes arrays, but you may want to modify a unary operator such as *[] to transform an object's keys or values. Prefixes let you do this.
 
-//   | o %k*[x.substr(1)] -seq     (equivalent to  o /pairs *[[x[0].substr(1), x[1]]]  -object -seq)
+  // | o %k*[x.substr(1)] -seq     (equivalent to  o /pairs *[[x[0].substr(1), x[1]]]  -object -seq)
 //     o %v*[x.split(/a/)] -seq    (equivalent to  o /pairs *[[x[0], x[1].split(/a/)]] -object -seq)
 
-//   Prefixes are generally faster than manual unpacking and repacking. However, some operations (e.g. fold and its variants) don't work with prefixes. The reason is that it's unclear what to do
+  // Prefixes are generally faster than manual unpacking and repacking. However, some operations (e.g. fold and its variants) don't work with prefixes. The reason is that it's unclear what to do
 //   with the values that correspond to a folded key, for instance. (Imagine what this would mean: o %k/[x + x0] -seq) The following operators can be used with prefixes:
 
-//   | *   = map
+  // | *   = map
 //     *!  = each          <- returns the original object
 //     %   = filter        <- removes key/value pairs
 //     %!  = filter-not
 //     %~! = map-filter    <- changes some key-value pairs, removes others
 
-//   These operators support the standard set of modifiers, including ~ prefixing and variable renaming. However, indexing variables such as xi and xl are unavailable because no temporary arrays
+  // These operators support the standard set of modifiers, including ~ prefixing and variable renaming. However, indexing variables such as xi and xl are unavailable because no temporary arrays
 //   are constructed.
 
-//   The following operators cannot be used with prefixes because it's difficult to imagine what purpose they would serve:
+  // The following operators cannot be used with prefixes because it's difficult to imagine what purpose they would serve:
 
-//   | *~! = flatmap
+  // | *~! = flatmap
 //     /   = foldl
 //     /!  = foldr
 //     /~! = unfold
 
-//   None of the binary operators (e.g. +, -, ^, etc) can be used with prefixes because of precedence. Any prefix would bind more strongly to the left operand than it would to the binary
+  // None of the binary operators (e.g. +, -, ^, etc) can be used with prefixes because of precedence. Any prefix would bind more strongly to the left operand than it would to the binary
 //   operator, which would disrupt the syntax tree.
 
-//   Folding prefixes.
+  // Folding prefixes.
 //   New in Caterwaul 1.1 is the ability to specify fold prefixes. This allows you to specify the initial element of a fold:
 
-//   | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
+  // | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
 //     xs /~[[]][x0 + [x, x + 1]] -seq     (equivalent to  xs *~![[x, x + 1]] -seq)
 
-//   Function promotion.
+  // Function promotion.
 //   Caterwaul 1.1 also adds support for implicit function promotion of sequence block expressions:
 
-//   | f(x) = x + 1
+  // | f(x) = x + 1
 //     seq in [1, 2, 3] *f
 //     seq in [-1, 0, 1] %f
 
-//   You can use this to make method calls, which will remain bound to the original object:
+  // You can use this to make method calls, which will remain bound to the original object:
 
-//   | xs *foo.bar -seq            (equivalent to  xs *[foo.bar(x)] -seq)
+  // | xs *foo.bar -seq            (equivalent to  xs *[foo.bar(x)] -seq)
 //     xs *(bar + bif).baz -seq    (equivalent to  xs *[(bar + bif).baz(x)] -seq)
 
-//   The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
+  // The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
 //   context, since it is unclear what the intent would be.
 
-//     Calling convention.
+    // Calling convention.
 //     All functions you promote will always be called with these arguments, in this order:
 
-//     | f(x, x0, xi, xl)
+    // | f(x, x0, xi, xl)
 
-//     This may seem strange, since x0 may or may not be defined. I chose this setup to simplify code generation, even if it is a bit redundant. If x0 isn't provided by the current operator, then
+    // This may seem strange, since x0 may or may not be defined. I chose this setup to simplify code generation, even if it is a bit redundant. If x0 isn't provided by the current operator, then
 //     its value will be undefined.
 
-//   Scope wrapping.
+  // Scope wrapping.
 //   Normally sequences use thin compilation; that is, the body of each sequence element is inserted directly into a for-loop. This increases performance by eliminating a function call, but it
 //   has the usual caveats about variable sharing. For instance:
 
-//   | fs = [1, 2, 3] *[delay in x] -seq
+  // | fs = [1, 2, 3] *[delay in x] -seq
 //     fs[0]()                     -> 3  (counterintuitive)
 //     fs[1]()                     -> 3  (counterintuitive)
 //     fs[2]()                     -> 3  (expected)
 
-//   The problem is that all three closures get the same value of 'x', which is a single lexically-scoped variable. To fix this, caterwaul 1.1 introduces the unary + modifier on blocks. This
+  // The problem is that all three closures get the same value of 'x', which is a single lexically-scoped variable. To fix this, caterwaul 1.1 introduces the unary + modifier on blocks. This
 //   wraps them in a closure to give each iteration its own lexical scope:
 
-//   | fs = [1, 2, 3] *+[delay in x] -seq
+  // | fs = [1, 2, 3] *+[delay in x] -seq
 //     fs[0]()                     -> 1
 //     fs[1]()                     -> 2
 //     fs[2]()                     -> 3
 
-//   Numbers.
+  // Numbers.
 //   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macros
 //   available are n[] and ni[], which generate finite sequences of evenly-spaced numbers. The only difference between n[] and ni[] is that ni[] uses an inclusive upper bound, whereas n[] is
 //   exclusive.
 
-//   | n[1, 10] -seq               ->  [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  // | n[1, 10] -seq               ->  [1, 2, 3, 4, 5, 6, 7, 8, 9]
 //   | ni[1, 10] -seq              ->  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 //     n[10] -seq                  ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 //     ni[10] -seq                 ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

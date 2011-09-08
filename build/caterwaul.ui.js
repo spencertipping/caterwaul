@@ -88,12 +88,12 @@ caterwaul.words(caterwaul.js())(function ($) {
                                  -where [anon_pattern  = anon('J[_x]'),
                                          jquery_expand = $($.alternatives(jquery_macros.concat(string_macros).concat(search_macros)))],
 
-//   Transforms.
+  // Transforms.
 //   There are a lot of stages here, but most of them are fairly trivial. The first, J[], is used to indicate that something needs to be expanded under the jquery grammar. This is responsible for
 //   turning elements into jQuery calls, dot operators into classes, etc, and it does most of the heavy lifting. The other large stage is P[], which converts the pattern language into a jQuery
 //   CSS selector.
 
-//   The small stages are S[], which just turns something into a string with underscore-to-dash conversion; TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>"); and PS[], which
+  // The small stages are S[], which just turns something into a string with underscore-to-dash conversion; TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>"); and PS[], which
 //   quotes a compiled pattern.
 
   where [jq            = 'jQuery',
