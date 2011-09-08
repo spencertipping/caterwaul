@@ -179,7 +179,7 @@
                                             comma.push(n);
 
                                             // The comma arguments are backwards, so reverse them in-place:
-                                            for (var i = 0, l = comma.length >> 1, temp; i < l; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
+                                            for (var i = 0, l = comma.length, temp; i < l >> 1; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
 
                                             return new $.syntax('()', fn, comma.push(this(node[1])).unflatten())}};
 
