@@ -5080,6 +5080,8 @@ syn match     jsModifierSuffix          /[->]?/ contained
 
 syn cluster   jsMacro                   add=jsBindingMacro,jsFunctionMacro,jsQuotationMacro,jsOtherMacro
 
+syn match     jsLiteralModifier         /\.\(q[swh]\|x\)\>/
+
 syn match     jsSeqFilter               /\/\(pairs\|keys\|values\)\>/
 syn match     jsSeqFilter               /%[kv][\*%\/~!]/
 syn match     jsSeqFilter               /[-\/|]object\>/
@@ -5163,6 +5165,8 @@ hi def link jsCaterwaulFn               Identifier
 
 hi def link jsCaterwaulInfixFunction    Type
 hi def link jsCaterwaulUnaryFunction    Type
+
+hi def link jsLiteralModifier           Special
 
 hi def link jsSeqFilter                 Special
 
