@@ -39,14 +39,14 @@ syn match     jsWordPrefix              /[-\/|,<]\k\@=/
 
 syn match     jsIdentifier              /[A-Za-z$_][A-Za-z0-9$_]*/
 syn match     jsNumber                  /-\?0x[0-9A-Fa-f]\+\|-\?\(\d*\.\d\+\|\d\+\.\d*\|\d\+\)\([eE][+-]\?\d\{1,3\}\)\?\|-\?0[0-7]\+/
-syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"\(\.qf\>\)\@!/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
-syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'\(\.qf\>\)\@!/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
-syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^-~\+!\/A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpEscape
+syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
+syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
+syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^-~\+!\/A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpSpecial
 
-syn region    jsCodeString              matchgroup=jsCodeQuote start=/\z(['"]\)/ end=/\z1\.qf\>/ skip=/\\./ oneline contains=TOP
+syn region    jsCodeString              matchgroup=jsCodeQuote start=/\z(['"]\)/ end=/\z1\.qf\>/ skip=/\\./ oneline keepend contains=TOP
 syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString contained
 
-  syn match   jsRegexpEscape            /\\[sSbBwWdDnr\\\[\]]\|[+*|]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
+  syn match   jsRegexpSpecial           /\\[sSbBwWdDnr\\\[\]]\|[+*|?]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
 
   syn match   jsStringEscape            /\\\d\{3\}\|\\u[0-9A-Za-z]\{4\}\|\\[a-z"'\\]/ contained
   syn region  jsCaterwaulEscape         start=/#{/ end=/}/                            contained contains=TOP keepend
@@ -192,6 +192,7 @@ hi def link jsStringS                   String
 hi def link jsStringD                   String
 hi def link jsRegexp                    String
 hi def link jsRegexpEscape              Special
+hi def link jsRegexpSpecial             Special
 hi def link jsStringEscape              Special
 hi def link jsCaterwaulEscape           Special
 hi def link jsColonLHS                  Type

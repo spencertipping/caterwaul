@@ -1444,8 +1444,9 @@ my $pattern = join '|', @_;
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__');
-hook('before-render');
-hook('after-render');
+hook('before-render', @_);
+hook('after-render', @_);
+
 __
 meta::function('repl', <<'__');
 node(['id::start = +new Date();', 'pp::js::caterwaul.all', 'id::console.log("caterwaul self-compiled in " + (+new Date() - start) + "ms");',
@@ -1765,6 +1766,8 @@ my @web = select_keys('--criteria' => "::web/(.*/)?$_[0]");
 edit($web[0]);
 __
 meta::hook('after-render::base-files', <<'__');
+my %options = map {$_ => 1} @_;
+
 terminal::info('creating base files');
 file::write('build/caterwaul.vim',     retrieve('vim_highlighter::caterwaul'), mkpath => 1);
 file::write('build/caterwaul.js',      retrieve('pp::js::caterwaul'),          mkpath => 1);
@@ -1775,8 +1778,12 @@ my @extensions = qw/std ui/;
 terminal::info('creating extensions');
 file::write("build/caterwaul.$_.js", retrieve("pp::js::extensions/$_"), mkpath => 1) for @extensions;
 
-terminal::info('minifying stuff');
-minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.js", @extensions;
+unless ($options{'-M'}) {
+  terminal::info('minifying stuff');
+  minify($_) for 'build/caterwaul.js', map "build/caterwaul.$_.js", @extensions;
+} else {
+  terminal::info('-M specified, so not minifying');
+}
 
 __
 meta::hook('before-save::bootstrap.html', <<'__');
@@ -2169,6 +2176,32 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('function-notation', <<'__');
+Function notation improvements.
+Something needs to be done about the state of function assignment. The notation is underexpressive; it's possible to support the full range of expressions for each parameter, and right now
+only the bare minimum of formal parameter description is used.
+
+I've got a couple of possibilities in mind. First, it should be straightforward to do some simple destructuring. This would be things like array and object access; e.g. f([a, b]) = a + b.
+Something else would be side-effecting of some sort; for instance, f(a, console.log(a)) = a + 1. Presumably the macroexpander would need to identify this method call as something that wasn't a
+pattern and treat it accordingly.
+
+One thing I'd find useful is to have some way to side-effect both before and after a subsequent function; for instance:
+
+| f(xs)(y) = ...                                // <- want to side-effect on lambda (y) -> ...
+  f(xs, xs |[!x] |seq && raise ...,
+        result.toString() = ...)(y) = ...       // <- clunky, but it works
+
+So the rule here is that things that look like formals are treated as such, and everything else is considered to be a side-effect of some sort.
+
+How to differentiate before-result expressions from after-result expressions? One approach is just to sort them out, but then we risk losing the original ordering, which might have mattered.
+Another approach is to identify the first expression that depends on 'result' and consider that to be the start of the after-expressions.
+
+| combinator(xs, result, name) = ...
+  f(xs, combinator(xs, result, 'f'))(s) = ...
+
+This is a good approach; it lends itself well to factoring. It's a shame we can't do some kind of higher-order factoring though...
+
+__
 meta::parent('./sdoc', <<'__');
 function::sdoc                           237d9c094c1f8ef0c074071618f0af25
 function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
@@ -2189,7 +2222,7 @@ meta::parent('/home/spencertipping/bin/node-base', <<'__');
 function::loc                                               056a55cdf80e85b2b927a9568504f638
 function::node                                              b0b71c40082dadf3ed4d8510534ff5cc
 function::node-custom                                       9ebcf90e9a7bb24e7611b98ae49e90fc
-function::render                                            48667802c456d49fdf63836f7994dfa7
+function::render                                            c8bcbe682c726fadd1cfa93eec64b913
 function::run-forever                                       e5b227e835b00b82d439dc24a1873622
 internal_function::dep                                      9f5c8b82af8796a0ef9909de9c28d56b
 message_color::test                                         03621cd6ac0b1a40d703f41e26c5807f
@@ -5044,14 +5077,14 @@ syn match     jsWordPrefix              /[-\/|,<]\k\@=/
 
 syn match     jsIdentifier              /[A-Za-z$_][A-Za-z0-9$_]*/
 syn match     jsNumber                  /-\?0x[0-9A-Fa-f]\+\|-\?\(\d*\.\d\+\|\d\+\.\d*\|\d\+\)\([eE][+-]\?\d\{1,3\}\)\?\|-\?0[0-7]\+/
-syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"\(\.qf\>\)\@!/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
-syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'\(\.qf\>\)\@!/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
-syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^-~\+!\/A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpEscape
+syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
+syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
+syn region    jsRegexp                  matchgroup=jsQuote start=+/[^/ ]+rs=e-1 skip=+\\\\\|\\/+ end=+/[gims]*[^-~\+!\/A-Za-z0-9 #(\[{]\@=+ oneline contains=jsRegexpSpecial
 
-syn region    jsCodeString              matchgroup=jsCodeQuote start=/\z(['"]\)/ end=/\z1\.qf\>/ skip=/\\./ oneline contains=TOP
+syn region    jsCodeString              matchgroup=jsCodeQuote start=/\z(['"]\)/ end=/\z1\.qf\>/ skip=/\\./ oneline keepend contains=TOP
 syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString contained
 
-  syn match   jsRegexpEscape            /\\[sSbBwWdDnr\\\[\]]\|[+*|]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
+  syn match   jsRegexpSpecial           /\\[sSbBwWdDnr\\\[\]]\|[+*|?]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
 
   syn match   jsStringEscape            /\\\d\{3\}\|\\u[0-9A-Za-z]\{4\}\|\\[a-z"'\\]/ contained
   syn region  jsCaterwaulEscape         start=/#{/ end=/}/                            contained contains=TOP keepend
@@ -5197,6 +5230,7 @@ hi def link jsStringS                   String
 hi def link jsStringD                   String
 hi def link jsRegexp                    String
 hi def link jsRegexpEscape              Special
+hi def link jsRegexpSpecial             Special
 hi def link jsStringEscape              Special
 hi def link jsCaterwaulEscape           Special
 hi def link jsColonLHS                  Type
