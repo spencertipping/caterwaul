@@ -155,13 +155,62 @@
 //   This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
 //   regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
 
-  // There's a special case. You can grab the whole arguments array by setting something equal to it. For example, f(xs = arguments) = xs[0] + xs[1]. This makes it easy to use binding constructs
-//   inside the body of the function without worrying whether you'll lose the function context.
+  // You can put non-formal expressions into the argument list. There are, in fact, three kinds of things you can use:
 
-    var function_rule        = $.rereplacer('_left(_args) = _right',            '_left = (function (_args) {return _right})'),
-        function_args_rule   = $.rereplacer('_left(_var = arguments) = _right', '_left = (function () {var _var = arguments; return _right})'),
+  // | 1. Formal parameters -- these are transcribed literally into the compiled function's argument list.
+//     2. Before-result side effects -- these are compiled into local variables or statements prior to executing the function body.
+//     3. After-result side effects -- these are compiled into statements after executing the function body; the function's result is in scope as a variable called 'result'.
 
-        function_destructure = function (node) {return function_args_rule.call(this, node) || function_rule.call(this, node)};
+  // The general form of destructuring function definitions is:
+
+  // | f(formals, [before], [after]) = ...
+
+  // This is the compiled output (dependent on whether 'before' and 'after' are specified):
+
+  // | // general case                     // no 'before' cases                  // no 'after' cases                     // neither
+//     f = function(formals) {             f = function (formals) {              f = function (formals) {                f = function (formals) {
+//       before;                             var result = ...;                     before;                                 ;               // <- I'm too lazy to fix this
+//       var result = ...;                   after;                                return ...;                             return ...;
+//       after;                              return result;                      };                                      };
+//       return result;                    };
+//     };
+
+  // There are some rules governing how 'before' and 'after' statements are detected and compiled. They are:
+
+  // | 1. Everything is assumed to be a formal until the first parameter that is not a simple identifier.
+//     2. Everything that isn't a formal is assumed to be a 'before' expression until the first expression that mentions 'result'.
+//     3. Everything after that is assumed to be an 'after' expression.
+//     4. Any 'before' or 'after' expression of the form '_variable = ...' is compiled into a local variable definition rather than a simple assignment. This prevents global scope contention.
+
+  // This notation doesn't preclude the possibility of some form of destructuring binds in the future, since there wouldn't be much point to writing a toplevel array or object literal and
+//   intending it to be used as a side-effect. (Doing that would just put the value into void context; at that point you might as well leave it out.)
+
+    var function_local_template = $.parse('var _x = _y'),  function_bind_pattern = $.parse('_x = _y'),  function_result_pattern  = $.parse('result'),
+
+        function_with_afters         = $.parse('function (_formals) {_befores; var result = _result; _afters; return result}'),
+        function_without_afters      = $.parse('function (_formals) {_befores; return _result}'),
+        function_assignment_template = $.parse('_f = _x'),
+
+        function_is_result           = function (n) {return n.is_empty() && n.data === 'result'},
+
+        function_destructure = $.rereplacer('_f(_xs) = _y', function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length; i < l; ++i)
+                                                                                (afters.length  || ps[i].contains(function_is_result) ? afters  :
+                                                                                 befores.length || ps[i].length                       ? befores : formals).push(ps[i]);
+
+                                                                              // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
+                                                                              // into expression context by wrapping them in parentheses.
+                                                                              for (var contains_locals = [befores, afters], i = 0, l = contains_locals.length; i < l; ++i)
+                                                                                for (var xs = contains_locals[i], j = 0, lj = xs.length, m; j < lj; ++j)
+                                                                                  xs[j] = (m = function_bind_pattern.match(xs[j])) && m._x.is_empty() ? function_local_template.replace(m) :
+                                                                                                                                                        xs[j].as('(');
+                                                                              var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
+                                                                                  new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
+                                                                                  new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty
+
+                                                                                  template    = function_assignment_template.replace(
+                                                                                                  {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});
+
+                                                                              return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
 
   // Infix function application.
 //   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. x /y /... /-f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax; that is, x

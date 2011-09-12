@@ -319,6 +319,14 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
       bindings: function (hash) {var result = hash || {}; this.reach(function (n) {if (n.binds_a_value) result[n.data] = n.value}); return result},
 
+    // Containment.
+//     You can ask a tree whether it contains any nodes that satisfy a given predicate. This is done using the .contains() method and is significantly more efficient than using .collect() if your
+//     tree does in fact contain a matching node.
+
+      contains: function (f) {var result = f(this);
+                              if (result) return result;
+                              for (var i = 0, l = this.length; i < l; ++i) if (result = this[i].contains(f)) return result},
+
     // Matching.
 //     Any syntax tree can act as a matching pattern to destructure another one. It's often much more fun to do things this way than it is to try to pick it apart by hand. For example, suppose
 //     you wanted to determine whether a node represents a function that immediately returns, and to know what it returns. The simplest way to do it is like this:
