@@ -6067,9 +6067,12 @@ peril, both due to volatility and because they might be useless.)
   the reasons I consider it to be experimental.
 
   Postfix function application.
-  This is a special case of infix function application for unary functions. Expressions of the form <code>x /!f</code> are converted to <code>f(x)</code>:
+  This is an alternative way to invoke functions. Rather than putting the function in the second-to-last position, you can put it after all of its arguments. This enables you to invoke
+  functions with only one argument. Expressions of the form <code>x /!f</code> are converted to <code>f(x)</code>:
 
   100 /!log
+
+  Prefix slashes are recognized as before: <code>x /y /... /!f</code> is converted to <code>f(x, y, ...)</code>.
 
   Literal modifiers.
   There are two kinds of modifiers. Literal modifiers are used to modify literal values (such as strings and regular expressions). For example, Caterwaul provides a literal modifier called
