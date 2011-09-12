@@ -188,8 +188,11 @@
 //   makes it easier to do that. This is particularly useful when you have many nested function calls, for instance if you're defining multi-level function composition:
 
   // | compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
+//     x /y /z /!f                                 // -> f(x, y, z)
 
-    var postfix_function = $.rereplacer('_x /!_f', '_f(_x)');
+    var postfix_function_template = $.parse('_f(_x)'),
+        postfix_function          = $.rereplacer('_x /!_f', function (match) {return postfix_function_template.replace({_f: match._f,
+                                                                                                                        _x: this(match._x).flatten('/').with_data(',').unflatten()})});
 
   // Literal modification.
 //   Caterwaul 1.1.2 introduces literal modification, which provides ways to reinterpret various types of literals at compile-time. These are always written as postfix property accesses, e.g.
