@@ -61,7 +61,7 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
   syn keyword jsVarBindingKeyword       const var contained
   syn keyword jsBindingKeyword          function catch contained
   syn match   jsBindingAssignment       /\k\+\s*=\([^=]\|$\)\@=/ contains=jsOperator contained containedin=jsVarBinding
-  syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_]\+\s*\(=\([^=]\|$\)\@=\|(\)\@=/ contained containedin=jsBindingGroup
+  syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_]\+\s*\(=\([^=]\|$\)\@=\|(.*=\([^=]\|$\)\)\@=/ contained containedin=jsBindingGroup
 
 syn keyword   jsBindingMacro            where capture nextgroup=jsBindingGroup
 syn keyword   jsFunctionMacro           given bgiven  nextgroup=jsFunctionGroup
