@@ -156,7 +156,6 @@ hi def link jsCaterwaulComplexOp        Special
 hi def link jsCaterwaulOperatorFn       Special
 
 hi def link jsCaterwaulMacro            Special
-hi def link jsCaterwaulFn               Identifier
 
 hi def link jsCaterwaulInfixFunction    Type
 hi def link jsCaterwaulUnaryFunction    Type
