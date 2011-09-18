@@ -105,6 +105,9 @@
 //   cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
 //   fail to parse.
 
+  // Caterwaul 1.1.3 adds support for Unicode characters, even though they're technically not allowed as identifiers in Javascript. All Unicode characters are treated as identifiers since
+//   Javascript assigns no semantics to them.
+
        lex_op = hash('. new ++ -- u++ u-- u+ u- typeof u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
                      'return throw case var const break continue void else u; ;'),
 
@@ -690,7 +693,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       that you could write 'x / 5', and it is obvious that the / means division. But if you wrote 'return / 5', the / would be a regexp delimiter because return is an operator, not a value. So
 //       at the very end, in addition to assigning t, we also set the re flag if the word turns out to be an operator.
 
-       else {while (++i < l && lex_ident[cs(i)]); re = has(lex_op, t = s.substring(mark, i))}
+      // Extended ASCII and above are considered identifiers. This allows Caterwaul to parse Unicode source, even though it will fail to distinguish between Unicode operator symbols and Unicode
+//       letters.
+
+       else {while (++i < l && (lex_ident[c = cs(i)] || c > 0x7f)); re = has(lex_op, t = s.substring(mark, i))}
 
       // Token unification.
 //       t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
