@@ -222,15 +222,19 @@
 //   parse trees appropriately.
 
     var infix_function = function (node) {var d = node.data, left, fn;
-                                          if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0])) {
-                                            // Pre-expand macros in the left-hand side.
-                                            for (var comma = new $.syntax(','), n = this(left[0]); n.data === d; n = n[0]) comma.push(n[1]);
-                                            comma.push(n);
+                                          if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0]))
+                                            return new $.syntax('()', fn, this(node[0][0]).flatten(d).push(this(node[1])).with_data(',').unflatten())};
 
-                                            // The comma arguments are backwards, so reverse them in-place:
-                                            for (var i = 0, l = comma.length, temp; i < l >> 1; ++i) temp = comma[i], comma[i] = comma[l - i - 1], comma[l - i - 1] = temp;
+  // Infix method application.
+//   This is subtly different from infix function application in that a method is called. You might want this when dealing with lots of nested methods, which can otherwise become hard to manage.
+//   Like infix function application, this macro respects precedence and associativity.
 
-                                            return new $.syntax('()', fn, comma.push(this(node[1])).unflatten())}};
+  // | f /g /~a/ h /~b/ i          // -> ((f).a(g, h)).b(i)
+
+    var infix_method = function (node) {var d = node.data, left, fn;
+                                        if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u~' && (fn = left[1][0])) {
+                                          var xs = [].slice.call(this(node[0][0]).flatten(d)), object = xs.shift();
+                                          return new $.syntax('()', new $.syntax('.', new $.syntax('(', object), fn), new $.syntax(',', xs, this(node[1])).unflatten())}};
 
   // Postfix function application.
 //   This is a bit simpler than infix function application and is used when you have a unary function. Sometimes it's simpler to think of a function as a filter than as a wrapper, and this macro
@@ -326,7 +330,7 @@
 
     var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
                                             node.length && (modifier.call(this, node) || function_destructure.call(this, node) ||
-                                                            infix_function.call(this, node) || postfix_function.call(this, node))},
+                                                            infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
 
         result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
                                     $(each_node);
