@@ -714,6 +714,13 @@
 //     n[0, 10, 2] -seq            ->  [0, 2, 4, 6, 8]
 //     ni[0, 10, 2] -seq           ->  [0, 2, 4, 6, 8, 10]
 
+  // Slicing.
+//   There are two reasons you might want to slice something. One is that you're legitimately taking a subsequence of the original thing; in that case, you can invoke the .slice() method
+//   manually. The more interesting case is when you want to promote a non-array into an array. This is such a common thing to do (and has so much typing overhead) that I've dedicated a shorthand
+//   to it:
+
+  // | +xs -seq, where [xs = arguments]            -> Array.prototype.slice.call(arguments)
+
 // Generated code.
 // Previously the code was factored into separate methods that took callback functions. (Basically the traditional map/filter/each arrangement in functional languages.) However, now the library
 // optimizes the methods out of the picture. This means that now we manage all of the dataflow between the different sequence operators. I thought about allocating gensym variables -- one for
@@ -721,6 +728,20 @@
 // with each dependent sequence listed in the for-loop variable initialization.
 
 // Luckily this won't matter because, like, there aren't any bugs or anything ;)
+
+  // Type closure.
+//   Caterwaul 1.1.3 includes a modification that makes the sequence library closed over types. Suppose you've got a special collection type that you want to use instead of arrays. A sequence
+//   operation will assume that your collection type implements .length and [i], but any maps or flat maps that you do will return new instances of your type rather than generalizing to a regular
+//   array. For example:
+
+  // | xs = new my_sequence();
+//     ys = xs *f -seq;
+//     ys.constructor === xs.constructor           // -> true
+
+  // In order for this to work, your sequence classes need to implement a nullary constructor that creates an empty instance. They should also implement a variadic push() method.
+
+  // Note that this is a breaking change! The fix is to prepend sequence variables with '+' (see 'Slicing' above). This breaks any code that relies on the seq library taking care of Arguments
+//   objects by promoting them into arrays.
 
 // Portability.
 // The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
@@ -748,6 +769,8 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                   rule('S[_x ? _y : _z]', '(S[_x]) ? (S[_y]) : (S[_z])'), rule('S[_x && _y]', '(S[_x]) && (S[_y])'), rule('S[_x || _y]', '(S[_x]) || (S[_y])'),
 
                                                   // Unary seq operators
+                                                  rule('S[+_xs]', 'Array.prototype.slice.call((_xs))'),
+
                                                   rule('S[_xs %_thing]',   handle_filter_forms),   rule('S[_xs *_thing]',   handle_map_forms),
                                                   rule('S[_xs /_thing]',   handle_fold_forms),     rule('S[_xs |_thing]',   handle_exists_forms),
 
@@ -829,23 +852,25 @@ caterwaul.words(caterwaul.js())(function ($) {
                             loop_anon   = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
                             scope       = anon('(function (xs) {var _x, _x0, _xi, _xl; _body}).call(this, S[_xs])'),
                             scoped(t)   = scope.replace({_body: t}),
-                            form(x)     = loop_anon(scoped(anon(x))),
+                            expand(s)   = s.replace(/@/g, 'Array.prototype.slice.call').replace(/#/g, 'Object.prototype.hasOwnProperty.call'),
+
+                            form(x)     = x /!expand /!anon /!scoped /!loop_anon,
 
                             // Form definitions
-                            map         = form('for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));                             return ys'),
-                            each        = form('for (var          _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f);                                      return xs'),
-                            flatmap     = form('for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, ys.slice.call((_f)));    return ys'),
+                            map         = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));              return ys'),
+                            each        = form('for (var                            _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                       return xs'),
+                            flatmap     = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, @((_f))); return ys'),
 
-                            filter      = form('for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);                       return ys'),
-                            filter_not  = form('for (var ys = [], _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);                       return ys'),
-                            map_filter  = form('for (var ys = [], _xi = 0, _xl = xs.length, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y);                return ys'),
+                            filter      = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);        return ys'),
+                            filter_not  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);        return ys'),
+                            map_filter  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
 
-                            foldl       = form('for (var _x0 = xs[0], _xi = 1, _xl = xs.length;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
-                            foldr       = form('for (var _xl = xs.length, _xi = _xl - 2, _x0 = xs[_xl - 1]; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                     return _x0'),
-                            unfold      = form('for (var ys = [], _x = xs, _xi = 0;                     _x !== null; ++_xi) ys.push(_x), _x = (_f);                        return ys'),
+                            foldl       = form('for (var _x0 = xs[0], _xi = 1, _xl = xs.length;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f); return _x0'),
+                            foldr       = form('for (var _xl = xs.length, _xi = _xl - 2, _x0 = xs[_xl - 1]; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f); return _x0'),
+                            unfold      = form('for (var ys = [], _x = xs, _xi = 0;                     _x !== null; ++_xi) ys.push(_x), _x = (_f);    return ys'),
 
-                            ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = xs.length;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);                         return _x0'),
-                            ifoldr      = form('for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);                         return _x0'),
+                            ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = xs.length;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);     return _x0'),
+                            ifoldr      = form('for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);     return _x0'),
 
                             exists      = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return x} return false'),
 
@@ -855,19 +880,19 @@ caterwaul.words(caterwaul.js())(function ($) {
                             cross       = form('for (var ys = (S[_ys]), pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
                                                  'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
 
-                            kmap        = form('var r = {};    for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) r[_f] = xs[_x];                        return r'),
-                            keach       = form('               for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x)) _f;                                    return xs'),
+                            kmap        = form('var r = new xs.constructor();    for (var _x in xs) if (#(xs, _x)) r[_f] = xs[_x];                        return r'),
+                            keach       = form('               for (var _x in xs) if (#(xs, _x)) _f;                                    return xs'),
 
-                            kfilter     = form('var r = {};    for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r'),
-                            kfilter_not = form('var r = {};    for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r'),
-                            kmap_filter = form('var r = {}, x; for (var _x in xs) if (Object.prototype.hasOwnProperty.call(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r'),
+                            kfilter     = form('var r = new xs.constructor();    for (var _x in xs) if (#(xs, _x) &&      (_f))  r[_x] = xs[_x];          return r'),
+                            kfilter_not = form('var r = new xs.constructor();    for (var _x in xs) if (#(xs, _x) &&    ! (_f))  r[_x] = xs[_x];          return r'),
+                            kmap_filter = form('var r = new xs.constructor(), x; for (var _x in xs) if (#(xs, _x) && (x = (_f))) r[x]  = xs[_x];          return r'),
 
-                            vmap        = form('var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], r[k] = (_f);                return r'),
-                            veach       = form('               for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], _f;                         return xs'),
+                            vmap        = form('var r = new xs.constructor();    for (var  k in xs) if (#(xs, k)) _x = xs[k], r[k] = (_f);                return r'),
+                            veach       = form('               for (var  k in xs) if (#(xs, k)) _x = xs[k], _f;                         return xs'),
 
-                            vfilter     = form('var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r'),
-                            vfilter_not = form('var r = {};    for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r'),
-                            vmap_filter = form('var r = {}, x; for (var  k in xs) if (Object.prototype.hasOwnProperty.call(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r')],
+                            vfilter     = form('var r = new xs.constructor();    for (var  k in xs) if (#(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r'),
+                            vfilter_not = form('var r = new xs.constructor();    for (var  k in xs) if (#(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r'),
+                            vmap_filter = form('var r = new xs.constructor(), x; for (var  k in xs) if (#(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r')],
 
          word_macros     = [rule('S[n[_upper]]',                n),  rule('S[ni[_upper]]',                ni),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),
                             rule('S[n[_lower, _upper]]',        n),  rule('S[ni[_lower, _upper]]',        ni),  rule('S[_o /values]', values),  rule('S[_o -object]', object),
