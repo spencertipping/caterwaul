@@ -227,6 +227,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.) If a mapping function
 //     returns something falsy, it will have exactly the same effect as returning the node without modification.
 
+    // Recursive map() and each() variants have another form starting with Caterwaul 1.1.3. These are pmap() and peach(), which recursively traverse the tree in post-order. That is, the node
+//     itself is visited after its children are.
+
     // Using the old s() to do gensym-safe replacement requires that you invoke it only once, and this means that for complex macroexpansion you'll have a long array of values. This isn't ideal,
 //     so syntax trees provide a replace() function that handles replacement more gracefully:
 
@@ -237,6 +240,9 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
       reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
       rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r.rmap === undefined ? new this.constructor(r) : r},
+
+      peach: function (f) {this.each(function (n) {n.peach(f)}); f(this); return this},
+      pmap:  function (f) {var t = this.map(function (n) {return n.pmap(f)}); return f(t)},
 
       clone: function () {return this.rmap(function () {return false})},
 
