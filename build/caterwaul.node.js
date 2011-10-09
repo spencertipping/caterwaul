@@ -113,7 +113,7 @@
 
     lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
     lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
-    lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}'),       lex_opener = lex_table('([{'),                    lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
+    lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}?:'),     lex_opener = lex_table('([{?:'),                  lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
       lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
      lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
      lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
@@ -774,8 +774,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
             if (has(parse_lr, data = (node = _[j]).data))  node._fold_lr();
 
       // Ambiguous parse groups.
-//       As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that way
-//       it reflects the precedence of dereferencing and invocation). The only change we need to make is to discard the explicit parenthetical or square-bracket grouping for invocations or
+//       As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that
+//       way it reflects the precedence of dereferencing and invocation). The only change we need to make is to discard the explicit parenthetical or square-bracket grouping for invocations or
 //       dereferences, respectively. It doesn't make much sense to have a doubly-nested structure, where we have a node for invocation and another for the group on the right-hand side of that
 //       invocation. Better is to modify the group in-place to represent an invocation.
 
@@ -808,8 +808,15 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // Ternary operator behavior.
 //       This is kind of interesting. If we have a ternary operator, then it will be treated first as a group; just like parentheses, for example. This is the case because the ternary syntax is
 //       unambiguous for things in the middle. So, for example, '3 ? 4 : 5' initially parses out as a '?' node whose child is '4'. Its siblings are '3' and '5', so folding left and right is an
-//       obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding, we do a quick swap of the first two
-//       to set the ordering straight.
+//       obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding, we do a quick swap of the first
+//       two to set the ordering straight.
+
+      // There's a subtle catch here. Depending on the Javascript parser, low-precedence operators may be allowed in the middle of a ?:. For example, x ? y = z : z is legal in all runtimes that
+//       I'm aware of, and x ? y, z : z is illegal only in SpiderMonkey. This becomes a problem because folding the node won't do the right thing if a low-precedence operator isn't already
+//       folded.
+
+      // Because there isn't a particularly elegant fix for this, I'm going to leave the bug here. It's so unusual to write code that exploits the problem that I don't consider it to be an
+//       important issue.
 
        else if (has(parse_ternary, data))  {node._fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
 
