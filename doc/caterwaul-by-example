@@ -436,7 +436,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.Ibuv/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.8KBy/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -2514,12 +2514,55 @@ meta::section('main', <<'__');
   - include section::list-of-primes
   - include section::this-is-hideous
   - include section::game-of-life
+  - include section::run-length-encoding
 - end
 
 __
 meta::section('ray-tracer', <<'__');
 - s1 Ray tracer | sec:ray-tracer
   
+
+__
+meta::section('run-length-encoding', <<'__');
+- sc Run Length Encoding
+  It's unlikely that you'll actually need to write a run-length encoder in Javascript anytime soon, but the problem is a good example of how to do basic sequence-manipulation tasks. I'll start
+  with the decoder because it's simpler. The format looks like this:
+
+  - verbatim << end
+    [[count, item], [count, item], ...]
+  - end
+
+  \noindent So, for example, \verb+[[1, 3], [2, 4]]+ encodes the array \verb+[3, 4, 4]+. A regular Javascript decoder looks like this:
+
+  - verbatim << end
+    var rle_decode = function (xs) {
+      var result = [];
+      for (var i = 0, l = xs.length; i < l; ++i)
+        for (var j = 0, lj = xs[i][0]; j < lj; ++j)
+          result.push(xs[i][1]);
+      return result;
+    };
+  - end
+
+  Fortunately this is exactly the kind of thing that the \verb+seq+ macro can help with. Here's the same function in Caterwaul:
+
+  - verbatim << end
+    rle_decode(xs) = xs *~!~[n[x[0]] *y[x[1]]] -seq
+  - end
+
+  This makes use of some of the more obscure bits of the sequence library. Here's the breakdown:
+
+  - enumerate << end
+    - item[] {\tt xs *\textasciitilde !}
+      Flat-map over {\tt xs}. The block should return an array from each {\tt x} in {\tt xs}; all of these arrays are concatenated to form the result.
+
+    - item[] {\tt \textasciitilde[n[x[0]] ...]}
+      Interpret the flat-map block in sequence context. This gives us access to {\tt n[]}, which generates a sequence of numbers. In this case we're generating a list {\tt x[0]} elements long.
+      The numbers themselves don't matter, just the length of the array.
+
+    - item[] {\tt *y[x[1]]}
+      Take that list of numbers, calling each one {\tt y}, and return {\tt x[1]}. We're throwing away {\tt y} because we just want the same item repeated a bunch of times.
+  - end
 
 __
 meta::section('this-is-hideous', <<'__');
