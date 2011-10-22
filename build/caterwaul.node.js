@@ -626,7 +626,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
         var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
             grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [empty],
             new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)},
-            syntax_node = this.syntax;
+            syntax_node = this.syntax, ternaries = [];
 
     // Trivial case.
 //     The empty string will break the lexer because we won't generate a token (since we're already at the end). To prevent this we return an empty syntax node immediately, since this is an
@@ -808,17 +808,16 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // Ternary operator behavior.
 //       This is kind of interesting. If we have a ternary operator, then it will be treated first as a group; just like parentheses, for example. This is the case because the ternary syntax is
 //       unambiguous for things in the middle. So, for example, '3 ? 4 : 5' initially parses out as a '?' node whose child is '4'. Its siblings are '3' and '5', so folding left and right is an
-//       obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding, we do a quick swap of the first
-//       two to set the ordering straight.
+//       obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding everything, we do a quick swap of
+//       the first two to set the ordering straight.
 
       // There's a subtle catch here. Depending on the Javascript parser, low-precedence operators may be allowed in the middle of a ?:. For example, x ? y = z : z is legal in all runtimes that
 //       I'm aware of, and x ? y, z : z is illegal only in SpiderMonkey. This becomes a problem because folding the node won't do the right thing if a low-precedence operator isn't already
 //       folded.
 
-      // Because there isn't a particularly elegant fix for this, I'm going to leave the bug here. It's so unusual to write code that exploits the problem that I don't consider it to be an
-//       important issue.
+      // The fix for this is to push the ternary onto a separate list. After all operators have been folded, we can resolve the ternary by assigning the children to the correct places.
 
-       else if (has(parse_ternary, data))  {node._fold_lr(); var temp = node[1]; node[1] = node[0]; node[0] = temp}
+       else if (has(parse_ternary, data))  node._fold_lr(), ternaries.push(node);
 
       // Grab-until-block behavior.
 //       Not quite as simple as it sounds. This is used for constructs such as 'if', 'function', etc. Each of these constructs takes the form '<construct> [identifier] () {}', but they can also
@@ -864,6 +863,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     just those now. I'm preserving the 'p' pointers, though they're probably not useful beyond here.
 
         for (var i = 0, l = invocation_nodes.length, _, child; i < l; ++i)  (child = (_ = invocation_nodes[i])[1] = _[1][0] || empty) && (child.p = _);
+
+    // Another piece of this is fixing up all ternary nodes. Some ternaries have commas or assignments in the middle, which will be folded after the ternary as a whole is folded. This means two
+//     things. First, we couldn't have processed the ternary operator in a single step; and second, the children are in the wrong places as mentioned above. In particular, the ternary will have
+//     one child at [0], one at [length - 2], and the other at [length - 1]. The conditional is [length - 2], so we put this one first.
+
+        for (var i = 0, l = ternaries.length, _, n, temp; i < l; ++i)  n = (_ = ternaries[i]).length, temp = _[0], _[0] = _[n - 2], _[1] = temp, _[2] = _[n - 1], _.length = 3;
 
         while (head.p) head = head.p;
 
