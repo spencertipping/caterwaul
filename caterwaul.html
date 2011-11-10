@@ -5232,9 +5232,9 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
   syn match   jsBindingAssignment       /\k\+\s*=\([^=]\|$\)\@=/ contains=jsOperator contained containedin=jsVarBinding
   syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_]\+\s*\(=\([^=]\|$\)\@=\|(.*=\([^=]\|$\)\)\@=/ contained containedin=jsBindingGroup
 
-syn keyword   jsBindingMacro            where capture nextgroup=jsBindingGroup
-syn keyword   jsFunctionMacro           given bgiven  nextgroup=jsFunctionGroup
-syn keyword   jsQuotationMacro          qs qse        nextgroup=jsQuotationGroup
+syn keyword   jsBindingMacro            where capture wcapture nextgroup=jsBindingGroup
+syn keyword   jsFunctionMacro           given bgiven           nextgroup=jsFunctionGroup
+syn keyword   jsQuotationMacro          qs qse                 nextgroup=jsQuotationGroup
 syn keyword   jsFunctionMacro           delay lazy
 syn keyword   jsOtherMacro              raise seq noexpand reexpand
 
