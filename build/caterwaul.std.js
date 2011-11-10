@@ -507,9 +507,16 @@
   // | var o = capture [f(x) = 10, g(x)(y) = x + y];
 //     o.g(10)(20)         // -> 30
 
-    modifier('capture', function (match) {for (var r = new $.syntax('{'), comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
+  // A variant, wcapture, provides local 'where'-style bindings as well as returning the object. This allows the definitions to refer to one another.
+
+    modifier('capture', function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
                                             comma.push(this(bindings[i]).with_data(':'));
-                                          return r.push(comma.unflatten())});
+                                          return new $.syntax('{', comma.unflatten())});
+
+    var wcapture_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
+    modifier('wcapture', function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
+                                             (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
+                                           return wcapture_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})});
 
   // Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
@@ -519,7 +526,7 @@
   // Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
 //   However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
 
-    var scope_template = $.parse('(function () {var _variables; return _expression}).call(this)');
+    var scope_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
     parameterized_modifier('using', $.reexpander(function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
                                                                    for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
                                                                    return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}));
