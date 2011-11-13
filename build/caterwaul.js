@@ -235,11 +235,19 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
     // | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
 
+    // Controlling rmap() traversal.
+//     rmap() provides a fairly rich interface to allow you to inform Caterwaul about what to do with each subtree. For each visited node, you can do three things:
+
+    // | 1. Replace the node with another value. The value you return should be either a string (in which case it will be promoted into a node), or a syntax node. Traversal stops here.
+//       2. Preserve the original value, but descend into children. In this case you should return either the original tree or false.
+//       3. Preserve the original value, but don't descend into children. In this case you should return true. This has the advantage that it avoids allocating copies of trees that you don't
+//          intend to modify. You can also use this to escape from an rmap() operation by continuing to return true.
+
       each:  function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
       map:   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
 
       reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
-      rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r.rmap === undefined ? new this.constructor(r) : r},
+      rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r === true ? this : r.rmap === undefined ? new this.constructor(r) : r},
 
       peach: function (f) {this.each(function (n) {n.peach(f)}); f(this); return this},
       pmap:  function (f) {var t = this.map(function (n) {return n.pmap(f)}); return f(t)},
