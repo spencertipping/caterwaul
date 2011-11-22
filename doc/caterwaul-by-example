@@ -1,7 +1,15 @@
 #!/usr/bin/perl
-# Run perldoc on this file for documentation.
+# 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
 
-# For the benefit of HTML viewers:
+# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
+# really gnarly). If you're curious what it's made of, I recommend reading
+# http://github.com/spencertipping/writing-self-modifying-perl.
+#
+# If you got one of these from someone and don't know what to do with it, send
+# it to spencer@spencertipping.com and I'll see if I can figure out what it
+# does.
+
+# For the benefit of HTML viewers (this is hack):
 # <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
 
 $|++;
@@ -105,6 +113,17 @@ sub meta::functor::editable {
       return edit($attribute) if $command eq 'edit' or $options{default} eq 'edit' and not defined $command;
       return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
       return retrieve($attribute)}}}
+__
+meta::meta('functor::html-templates', <<'__');
+my @html_elements = qw/html head title meta script style link body div/;    # Very incomplete list
+
+for my $e (@html_elements) {
+  meta::externalize "template::$e", "template::$e", sub {
+    my ($line, $block) = @_;
+    "<$e $line>\n$block\n</$e>";
+  };
+}
+
 __
 meta::meta('functor::tex-templates', <<'__');
 package tex;
@@ -304,6 +323,14 @@ meta::functor::editable 'sdoc', inherit => 1, extension => sub {
 };
 __
 meta::meta('type::section', 'meta::functor::editable \'section\', extension => \'.cltex\', inherit => 0, default => \'edit\';');
+meta::meta('type::slibrary', <<'__');
+meta::configure 'slibrary', extension => '.pl.sdoc', inherit => 1;
+meta::define_form 'slibrary', sub {
+  my ($name, $value) = @_;
+  meta::eval_in(sdoc("slibrary::$name"), "slibrary::$name");
+};
+
+__
 meta::meta('type::state', <<'__');
 # Allows temporary or long-term storage of states. Nothing particularly insightful
 # is done about compression, so storing alternative states will cause a large
@@ -322,7 +349,11 @@ meta::define_form 'template', sub {
   meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
 };
 __
-meta::meta('type::vim_highlighter', 'meta::functor::editable \'vim_highlighter\', extension => \'.vim\', inherit => 1, default => \'edit\';');
+meta::meta('type::vim_highlighter', <<'__');
+meta::configure 'vim_highlighter', extension => '.vim', inherit => 1;
+meta::define_form 'vim_highlighter', \&meta::bootstrap::implementation;
+
+__
 meta::bootstrap('html', <<'__');
 <html>
   <head>
@@ -341,9 +372,17 @@ meta::bootstrap('html', <<'__');
 __
 meta::bootstrap('initialization', <<'__');
 #!/usr/bin/perl
-# Run perldoc on this file for documentation.
+# 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
 
-# For the benefit of HTML viewers:
+# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
+# really gnarly). If you're curious what it's made of, I recommend reading
+# http://github.com/spencertipping/writing-self-modifying-perl.
+#
+# If you got one of these from someone and don't know what to do with it, send
+# it to spencer@spencertipping.com and I'll see if I can figure out what it
+# does.
+
+# For the benefit of HTML viewers (this is hack):
 # <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
 
 $|++;
@@ -403,6 +442,7 @@ meta::cache('parent-identification', <<'__');
 /home/spencertipping/bin/configuration aa772900bb5b925cb84346bd72a4249d
 /home/spencertipping/bin/literate-project cf9c87bde4f2e9aed1ea468d85b2ddad
 /home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
+/home/spencertipping/conjectures/perl-objects/sdoc a1e8480e579614c01dabeecf0f963bcc
 configuration aa772900bb5b925cb84346bd72a4249d
 development 3d94eaf9719db17882d02c1d1fe18718
 notes a9e5975593ed5d90d943ad98405c71e5
@@ -436,7 +476,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.8KBy/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.3YQ6/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -450,8 +490,9 @@ push @{$transient{path}}, @_;
 __
 meta::function('alias', <<'__');
 my ($name, @stuff) = @_;
-return ls('-a', '^alias::') unless defined $name;
-@stuff ? around_hook('alias', @_, sub {associate("alias::$name", join(' ', @stuff), execute => 1)}) : retrieve("alias::$name") || "Undefined alias $name";
+@_ ? @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join(' ', @stuff), execute => 1)})
+            : retrieve("alias::$name") // "Undefined alias $name"
+   : table_display([select_keys('--namespace' => 'alias')], [map retrieve($_), select_keys('--namespace' => 'alias')]);
 
 __
 meta::function('cat', 'join "\\n", retrieve(@_);');
@@ -763,6 +804,27 @@ around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
   delete @data{@_}});
 __
+meta::function('rmparent', <<'__');
+# Removes one or more parents.
+my ($options, @parents) = separate_options(@_);
+my $clobber_divergent = $$options{'-D'} || $$options{'--clobber-divergent'};
+
+for my $parent (@parents) {
+  my $keep_parent_around = 0;
+
+  for my $line (split /\n/, retrieve("parent::$parent")) {
+    my ($name, $hash) = split /\s+/, $line;
+    next unless exists $data{$name};
+
+    my $local_hash = fast_hash(retrieve($name));
+    if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name)}
+    else {terminal::info("local attribute $name exists and is divergent; use rmparent -D $parent to delete it");
+          $keep_parent_around = 1}}
+
+  $keep_parent_around ? terminal::info("not deleting parent::$parent so that you can run", "rmparent -D $parent if you want to nuke divergent attributes too")
+                      : rm("parent::$parent")}
+
+__
 meta::function('save', 'around_hook(\'save\', sub {dangerous(\'\', sub {file::write($0, serialize()); $transient{initial} = state()}) if verify()});');
 meta::function('save-state', <<'__');
 # Creates a named copy of the current state and stores it.
@@ -792,7 +854,7 @@ sub is_code    {map /^\s*[^A-Z\|\s]/o, @_}
 sub is_blank   {map /^\n/o, @_}
 sub comment    {my ($text, $s, $e) = @_; join "\n", map("$s $_$e", split /\n/, $text)}
 
-sub paragraphs {map split(/(\n{2,})/, $_), @_}
+sub paragraphs {map split(/((?:\n\h*){2,})/, $_), @_}
 
 my ($filename) = @_;
 
@@ -800,13 +862,15 @@ my ($filename) = @_;
 # we want to look up the extension in the transients table. The other is that
 # it's a real filename.
 my ($extension)       = $filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo;
-my ($other_extension) = extension_for(attribute($filename));
+my ($other_extension) = extension_for($filename);
+$other_extension =~ s/\.sdoc$//io;
 $other_extension =~ s/^\.//o;
 
-my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $extension)};
+my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $extension)} // $comments_for_extension{''};
 
 join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
          "\n$start $generated_string $end\n";
+
 __
 meta::function('sdoc-html', <<'__');
 # Converts SDoc to logically-structured HTML. Sections end up being nested,
@@ -913,14 +977,18 @@ exec(@_) unless fork;
 
 __
 meta::function('shell', <<'__');
+my ($options, @arguments) = separate_options(@_);
+$transient{repl_prefix} = $$options{'--repl-prefix'};
+
 terminal::cc(retrieve('data::current-continuation')) if length $data{'data::current-continuation'};
-around_hook('shell', sub {shell::repl()});
+around_hook('shell', sub {shell::repl(%$options)});
 
 __
 meta::function('size', <<'__');
 my $size = 0;
 $size += length $data{$_} for keys %data;
-sprintf "% 7d % 7d", length(serialize()), $size;
+sprintf "% 7d % 7d % 7d", length(serialize()), $size, length(serialize('-up'));
+
 __
 meta::function('snapshot', <<'__');
 my ($name) = @_;
@@ -1309,10 +1377,11 @@ my @others  = grep ! /^-/,   @parseable;
 my @singles = map /-(.{2,})/ ? map("-$_", split(//, $1)) : $_, @singles;
 
 my %options;
-  $options{$1} = $2 for grep /^([^=]+)=(.*)$/, @longs;
-++$options{$_}      for grep ! /=/, @singles, @longs;
+/^([^=]+)=(.*)$/ and $options{$1} = $2 for @longs;
+++$options{$_} for grep ! /=/, @singles, @longs;
 
 ({%options}, @others, @_);
+
 __
 meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
 meta::internal_function('table_display', <<'__');
@@ -1376,8 +1445,9 @@ sub prompt {
   my $name    = $options{name} // ::name();
 
   my $indicators = join '', map &{"::$_"}(), ::select_keys('--namespace' => 'indicator');
+  my $prefix     = $transient{repl_prefix} // '';
 
-  "\033[1;32m$name\033[0;0m$indicators "}
+  "$prefix\033[1;32m$name\033[0;0m$indicators "}
 
 sub repl {
   my %options = @_;
@@ -1413,11 +1483,11 @@ meta::message_color('cc', '36');
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::parent('./sdoc', <<'__');
-function::sdoc                           4d33dcf625897e463bb30fc91cb94339
+function::sdoc                           237d9c094c1f8ef0c074071618f0af25
 function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
-parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
+parent::/home/spencertipping/bin/object  d53d1f464e12d065394298dd96d22301
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
@@ -1425,7 +1495,7 @@ retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 __
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                7f5ba514d47ac29a3c226d0e331d9da4
-parent::/home/spencertipping/bin/object  97acda5f35b8f6cd6d6f61ad515f0d3e
+parent::/home/spencertipping/bin/object  7374722eec54c39ab752e3fb032c1886
 
 __
 meta::parent('/home/spencertipping/bin/literate-project', <<'__');
@@ -1448,7 +1518,7 @@ meta::template::quotations     f76a27311c8a9d09550dd669e98f9a7f
 meta::template::sections       25cb0a42bf1c2f403f8f9c2e1c5e4105
 meta::type::resource           c521d2de1dcd7f9f7ec4df3557572009
 meta::type::section            fb3b53eaebc1a2433c1763eccdb781c4
-parent::development            8098ec36fcef23cd0b973a03236d73c9
+parent::development            ea5508a6ca5054fcd2c9643cd85529cb
 resource::header               165b42e25edb90043f5d3b544adee521
 resource::header-languages     96d12558e40d0df64ff3176b767f4f3b
 resource::header-listings      712557f5989b12ca325bdd2cd36020ef
@@ -1461,10 +1531,10 @@ vim_highlighter::cltex         40744d98b02b4b50fedb4d1e7e1fd151
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
 bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
-bootstrap::initialization               7637e32ba308624d824eacc9337c2512
+bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
 bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
 function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
-function::alias                         fb63bb3836ab968de2ee93f33d1704ec
+function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
 function::cat                           f684de6c8776617a437b76009114f52e
 function::cc                            12ea9176e388400704d823433c209b7a
 function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
@@ -1502,8 +1572,8 @@ function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
 function::serialize-single              aa77af032272f5a2664e21713739a223
 function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
 function::shb                           7b2685a4041c25bc495816e472bdace5
-function::shell                         22d25a32ffc3f2855fb7e2aec77c72fb
-function::size                          6cd9a4dd17be87ea2962f8f566a97d11
+function::shell                         a87f389b94713e5855e62241d649d01d
+function::size                          8d4bd7a84ece556717f8ba3bf258d33c
 function::snapshot                      56939a47f2758421669641e15ebd66eb
 function::state                         8c68044dccae28f33244d0c7e9e9acfb
 function::touch                         3991b1b7c7187566f50e5e58ce01fa06
@@ -1540,13 +1610,13 @@ internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
 internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
 internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
 internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
-internal_function::separate_options     da1c2a3a1e03faafe6b4446ebb6bad90
+internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
 internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
 internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          2c5e6663a8f672e2242a7d3ea3276f09
+library::shell                          6b9f3befb61a01e9132a440601f8ea0a
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -1575,32 +1645,44 @@ retriever::object                       c7633990b4e01bdc783da7e545799f4f
 retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 
 __
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
+function::sdoc                           c681cb2a062f2073e9756779450d94bf
+function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
+function::sdocp                          c3d738d982ba87418a298ff58478a85b
+meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
+meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
+parent::/home/spencertipping/bin/object  7374722eec54c39ab752e3fb032c1886
+retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
+retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
+retriever::sdocp                         330694ea14a23bb04b65c761075cd946
+
+__
 meta::parent('configuration', <<'__');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
 parent::/home/spencertipping/bin/object  293415c4d45c10239298fa46b01cff17
 __
 meta::parent('development', <<'__');
-parent::./sdoc            f938653251b89b98cbcc26c713a2dae7
+parent::./sdoc            80a565297328b30d6e95028d03bd7861
 parent::configuration     835c872a2163166e001c4e07b5191353
-parent::notes             54c54ac22b6c221c7db37ee731b2be88
-parent::preprocessor      17671b2efb938883b4a94354e0cd7d64
-parent::repository        50b3981a563910cc2f2e206b17514504
-parent::vim-highlighters  5fa3c2b07b5c5457e50a07680a8da8a1
+parent::notes             017f7493aa63b6db4a4668a237aa7538
+parent::preprocessor      09a56657d0fde76fcf3fa664d2c6b4ca
+parent::repository        5b2a3158563910cc089b10ca719b56f5
+parent::vim-highlighters  1f933c20697efa693fe0e0e6257df086
 
 __
 meta::parent('notes', <<'__');
 function::note    5e2737593e8d13fc43bb10e97603e53a
 function::notes   7229b326ac8686b2db6de98496bc7527
 meta::type::note  f81bea58841a438e4ee34608ab4f54c0
-parent::object    97acda5f35b8f6cd6d6f61ad515f0d3e
+parent::object    7374722eec54c39ab752e3fb032c1886
 
 __
 meta::parent('object', <<'__');
 bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
-bootstrap::initialization               7637e32ba308624d824eacc9337c2512
+bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
 bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
 function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
-function::alias                         fb63bb3836ab968de2ee93f33d1704ec
+function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
 function::cat                           f684de6c8776617a437b76009114f52e
 function::cc                            12ea9176e388400704d823433c209b7a
 function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
@@ -1638,8 +1720,8 @@ function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
 function::serialize-single              aa77af032272f5a2664e21713739a223
 function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
 function::shb                           7b2685a4041c25bc495816e472bdace5
-function::shell                         22d25a32ffc3f2855fb7e2aec77c72fb
-function::size                          6cd9a4dd17be87ea2962f8f566a97d11
+function::shell                         a87f389b94713e5855e62241d649d01d
+function::size                          8d4bd7a84ece556717f8ba3bf258d33c
 function::snapshot                      56939a47f2758421669641e15ebd66eb
 function::state                         8c68044dccae28f33244d0c7e9e9acfb
 function::touch                         3991b1b7c7187566f50e5e58ce01fa06
@@ -1676,13 +1758,13 @@ internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
 internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
 internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
 internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
-internal_function::separate_options     da1c2a3a1e03faafe6b4446ebb6bad90
+internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
 internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
 internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          2c5e6663a8f672e2242a7d3ea3276f09
+library::shell                          6b9f3befb61a01e9132a440601f8ea0a
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -1713,27 +1795,30 @@ retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 __
 meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
+meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 97acda5f35b8f6cd6d6f61ad515f0d3e
+parent::object                 7374722eec54c39ab752e3fb032c1886
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
 template::failing_conditional  e3a4523110dd859e828f342185de7c62
 template::include              47b5552d609d97fe7f2522d5c1027014
 template::pinclude             c07ff79bf8d642cceaa9ef844bfcb189
+template::script-include       76be051ad116449ddebd10e7c3729afd
+template::style-include        8e5a06b70e1b00379765f319bf6c8066
 
 __
 meta::parent('repository', <<'__');
 function::dupdate                               3203750417390913ae3892002b53bdc1
 meta::type::cached_dependency                   b9dc0b20c2d3af0deb3b835b20cac4a7
-parent::/home/spencertipping/bin/configuration  6f3e18f610849f59cc500d1b9d9d4db0
+parent::/home/spencertipping/bin/configuration  99a1d31e9e499afe6e49a7e9bb2787b2
 retriever::http                                 a23617a5787de41d1a89ad4496cacce3
 
 __
 meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
-meta::type::vim_highlighter  11a2d74eca3445ee1b7887a6f6370462
-parent::object               97acda5f35b8f6cd6d6f61ad515f0d3e
+meta::type::vim_highlighter  27990fddb6d7bd383b55dbdfee0d148d
+parent::object               7374722eec54c39ab752e3fb032c1886
 
 __
 meta::resource('header', <<'__');
@@ -2633,7 +2718,7 @@ meta::section('this-is-hideous', <<'__');
       least one jump for every significant edit). These operators are organized by common-use precedence, since it was far more common to add products than to multiply sums, for instance. In a
       sense, this is a very ergonomic Huffman-style coding of common practice.
 
-      Perhaps a less commonly recognized feature of infix operators is that you can easily determine how much code to grab with one continuous edit. For example, support I'm editing the code
+      Perhaps a less commonly recognized feature of infix operators is that you can easily determine how much code to grab with one continuous edit. For example, suppose I'm editing the code
       below and want to conditionalize the side effect on truthiness:
 
       - verbatim << end
@@ -2779,6 +2864,20 @@ my ($commands) = @_;
 return '' if template::failing_conditional($commands);
 my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
 "\n\n$text\n\n";
+__
+meta::template('script-include', <<'__');
+my ($name) = @_;
+my $s      = 'script';
+my $script = retrieve($name);
+"<$s>\n$script\n</$s>";
+
+__
+meta::template('style-include', <<'__');
+my ($name) = @_;
+my $s      = 'style';
+my $style  = retrieve($name);
+"<$s>\n$style\n</$s>";
+
 __
 meta::vim_highlighter('cltex', <<'__');
 " Cleaner TeX
