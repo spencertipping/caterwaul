@@ -297,7 +297,7 @@ meta::alias('rloc', 'loc js::(?!.*test|.*format|unit|minify|macroexpand|precompi
 meta::bootstrap('html', <<'__');
 <html >
 <head >
-<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.js'>
+<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js'>
 
 </script>
 <script >
@@ -983,7 +983,7 @@ meta::data('author', 'Spencer Tipping');
 meta::data('bootstrap.html.sdoc', <<'__');
 - html << end
   - head << end
-    - script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.js'
+    - script src='http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js'
     - script << end
       $('#cover .status').text('compiling caterwaul');
     - end

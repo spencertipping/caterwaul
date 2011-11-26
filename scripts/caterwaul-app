@@ -23,7 +23,7 @@ download() {
   echo done
 }
 
-download jquery-1.6.2.min.js ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js
+download jquery-1.7.0.min.js ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js
 download caterwaul.all.min.js caterwauljs.org/build/caterwaul{,.std,.ui}.min.js
 end
 
@@ -38,7 +38,7 @@ cat > index.html <<end
 <!doctype html>
 <html>
   <head>
-  <script src='jquery-1.6.2.min.js'></script>
+  <script src='jquery-1.7.0.min.js'></script>
   <script src='caterwaul.all.min.js'></script>
 
   <script>
