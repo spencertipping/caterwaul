@@ -81,12 +81,9 @@
 // | my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
 
 caterwaul.words(caterwaul.js())(function ($) {
-  $.jquery(caterwaul_function) = caterwaul_function -se-
-                                 it.modifiers.push(given.match in jquery_expand.call(jquery_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it
-                                                                  -when [match._modifier.data === 'jquery'])
-
-                                 -where [anon_pattern  = anon('J[_x]'),
-                                         jquery_expand = $($.alternatives(jquery_macros.concat(string_macros).concat(search_macros)))],
+  $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery(match) = jquery_expand.call(jquery_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
+                                                 -where [anon_pattern  = anon('J[_x]'),
+                                                         jquery_expand = $($.alternatives(jquery_macros.concat(string_macros).concat(search_macros)))],
 
   // Transforms.
 //   There are a lot of stages here, but most of them are fairly trivial. The first, J[], is used to indicate that something needs to be expanded under the jquery grammar. This is responsible for

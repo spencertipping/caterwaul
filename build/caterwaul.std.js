@@ -295,10 +295,10 @@
 
         parameterized_wickets = $.pattern('_expression <_modifier> _parameters'),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'),
 
-        modifier = function (node) {var parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
-                                    if (parameterized_match)
-                                      for (var es = this.parameterized_modifiers, i = es.length - 1, r; i >= 0; --i)
-                                        if (r = es[i].call(this, parameterized_match)) return r;
+        modifier = function (node) {var modifier, parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
+                                    if (parameterized_match && this.parameterized_modifiers.hasOwnProperty(modifier = parameterized_match._modifier.data)) {
+                                      var r = this.parameterized_modifiers[modifier].call(this, parameterized_match);
+                                      if (r) return r}
 
                                     var regular_match = bracket_modifier_form.call(this, node) || slash_modifier_form.call(this, node) ||
                                                         minus_modifier_form  .call(this, node) || in_modifier_form   .call(this, node) ||
@@ -313,12 +313,10 @@
                                         regular_match._modifier   = parameter_match._modifier;
                                         regular_match._parameters = parameter_match._parameters;
 
-                                        for (var es = this.parameterized_modifiers, i = es.length - 1, r; i >= 0; --i)
-                                          if (r = es[i].call(this, regular_match)) return r}
-
+                                        return this.parameterized_modifiers.hasOwnProperty(modifier = regular_match._modifier.data) &&
+                                               this.parameterized_modifiers[modifier].call(this, regular_match)}
                                       else
-                                        for (var es = this.modifiers, i = es.length - 1, r; i >= 0; --i)
-                                          if (r = es[i].call(this, regular_match)) return r}};
+                                        return this.modifiers.hasOwnProperty(modifier = regular_match._modifier.data) && this.modifiers[modifier].call(this, regular_match)}};
 
   // Tying it all together.
 //   This is where we write a big macroexpander to perform all of the tasks mentioned above. It just falls through cases, which is now a fairly standard pattern for macros. There is a high-level
@@ -335,8 +333,8 @@
         result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
                                     $(each_node);
 
-    result.modifiers               = [];
-    result.parameterized_modifiers = [];
+    result.modifiers               = {};
+    result.parameterized_modifiers = {};
 
     result.literal_modifiers = {regexp: {}, array: {}, string: {}, number: {}, identifier: {}};
 
@@ -414,60 +412,51 @@
 // This behavior installs a bunch of common words and sensible behaviors for them. The goal is to handle most Javascript syntactic cases by using words rather than Javascript primitive syntax.
 // For example, constructing lambdas can be done with 'given' rather than the normal function() construct:
 
-// | [1, 2, 3].map(x + 1, given[x])        // -> [1, 2, 3].map(function (x) {return x + 1})
+// | [1, 2, 3].map(x + 1, given.x)         // -> [1, 2, 3].map(function (x) {return x + 1})
 
-// In this case, given[] is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given[].
+// In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
 
 (function ($) {
-  $.words = function (caterwaul_function) {
-    var filtered_expander      = function (word, expander) {return function (match) {return match._modifier.data === word && expander.call(this, match)}},
+  var scope_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
 
-        modifier               = function (word, expander) {caterwaul_function.modifiers              .push(filtered_expander(word, expander))},
-        parameterized_modifier = function (word, expander) {caterwaul_function.parameterized_modifiers.push(filtered_expander(word, expander))};
+  $.words = function (caterwaul_function) {$.merge(caterwaul_function.modifiers,               $.words.modifiers);
+                                           $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers);
+                                           return caterwaul_function};
+
+// Unparameterized modifiers.
+// These are basically flags that you can set on chunks of code.
+
+  $.words.modifiers = {
 
   // Quotation.
 //   qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant
 //   that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
 //   reuse.
 
-    modifier('qs',  function (match) {return new $.ref(match._expression, 'qs')});
-    modifier('qse', function (match) {return new $.ref(this(match._expression), 'qse')});
+    qs:  function (match) {return new $.ref(match._expression, 'qs')},
+    qse: function (match) {return new $.ref(this(match._expression), 'qse')},
 
   // Macroexpansion control.
 //   Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
 
-    modifier('reexpand', function (match) {return this(this(match._expression))});
-    modifier('noexpand', function (match) {return match._expression});
+    reexpand: function (match) {return this(this(match._expression))},
+    noexpand: function (match) {return match._expression},
 
   // Error handling.
 //   Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
-    modifier              ('raise',  $.reexpander('(function () {throw _expression}).call(this)'));
-    parameterized_modifier('rescue', $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'));
+    raise: $.reexpander('(function () {throw _expression}).call(this)'),
 
   // Evaluation.
 //   Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
 //   and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
 
-    modifier('eval', function (match) {return new $.ref($.compile(this(match._expression)), 'eval')});
-
-// Scoping and referencing.
-// These all impact scope or references somehow -- in other words, they create variable references but don't otherwise impact the nature of evaluation.
-
-  // Function words.
-//   These define functions in some form. given[] and bgiven[] are modifiers to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure binding.
-//   For example:
-
-  // | var f = x + 1 -given [x];
-//     var f = x + 1 -given.x;
-
-    parameterized_modifier('given',  $.reexpander('(function (_parameters) {return _expression})'));
-    parameterized_modifier('bgiven', $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'));
+    eval: function (match) {return new $.ref($.compile(this(match._expression)), 'eval')},
 
   // Nullary function words.
 //   These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
 //   each time, and another is to compute the value lazily and return the cached value for each future invocation. The modifiers are called 'delay' and 'lazy', and they always bind to the
-//   surrounding context (analogous to bgiven, above).
+//   surrounding context (analogous to bgiven).
 
   // Here are their operational semantics by example:
 
@@ -479,26 +468,8 @@
 //     g()         -> 13
 //     g()         -> 13
 
-    modifier('delay', $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'));
-    modifier('lazy',  $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'));
-
-  // Side-effecting.
-//   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /se[] adverb. Older versions of caterwaul
-//   bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
-
-  // | hash(k, v) = {} /se[it[k] = v];
-//     compose(f, g)(x) = g(x) -re- f(it);
-
-    parameterized_modifier('se', $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'));
-    parameterized_modifier('re', $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'));
-
-  // Scoping.
-//   You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
-
-  // | where[x = 10][alert(x)]
-//     alert(x), where[x = 10]
-
-    parameterized_modifier('where', $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'));
+    delay: $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'),
+    lazy:  $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'),
 
   // Object construction.
 //   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
@@ -509,14 +480,51 @@
 
   // A variant, wcapture, provides local 'where'-style bindings as well as returning the object. This allows the definitions to refer to one another.
 
-    modifier('capture', function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
-                                            comma.push(this(bindings[i]).with_data(':'));
-                                          return new $.syntax('{', comma.unflatten())});
+    capture:  function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
+                                  comma.push(this(bindings[i]).with_data(':'));
+                                return new $.syntax('{', comma.unflatten())},
 
-    var wcapture_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
-    modifier('wcapture', function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
-                                             (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
-                                           return wcapture_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})});
+    wcapture: function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
+                                  (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
+                                return scope_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})}};
+
+// Parameterized modifiers.
+// These act like binary operators in the sense that they have a left and a right-hand side.
+
+  $.words.parameterized_modifiers = {
+
+  // Function words.
+//   These define functions in some form. given[] and bgiven[] are modifiers to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure binding.
+//   For example:
+
+  // | var f = x + 1 -given [x];
+//     var f = x + 1 -given.x;
+
+    given:  $.reexpander('(function (_parameters) {return _expression})'),
+    bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
+
+  // Error handling.
+//   Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
+
+    rescue: $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+
+  // Side-effecting.
+//   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /se[] adverb. Older versions of caterwaul
+//   bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
+
+  // | hash(k, v) = {} /se[it[k] = v];
+//     compose(f, g)(x) = g(x) -re- f(it);
+
+    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'),
+    re: $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'),
+
+  // Scoping.
+//   You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
+
+  // | where[x = 10][alert(x)]
+//     alert(x), where[x = 10]
+
+    where: $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
 
   // Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
@@ -526,22 +534,16 @@
   // Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
 //   However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
 
-    var scope_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
-    parameterized_modifier('using', $.reexpander(function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
-                                                                   for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
-                                                                   return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}));
-
-// Control flow modifiers.
-// These impact how something gets evaluated.
+    using: $.reexpander(function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
+                                            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
+                                          return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}),
 
   // Conditionals.
 //   These impact whether an expression gets evaluated. x /when.y evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
 //   truthy.
 
-    parameterized_modifier('when',   $.reexpander('((_parameters) && (_expression))'));
-    parameterized_modifier('unless', $.reexpander('(! (_parameters) && (_expression))'));
-
-    return caterwaul_function}})(caterwaul);
+    when:   $.reexpander('((_parameters) && (_expression))'),
+    unless: $.reexpander('(! (_parameters) && (_expression))')}})(caterwaul);
 
 // Generated by SDoc 
 
@@ -755,12 +757,9 @@
 // such (from a design perspective).
 
 caterwaul.words(caterwaul.js())(function ($) {
-  $.seq(caterwaul_function) = caterwaul_function -se-
-                              it.modifiers.push(given.match in seq_expand.call(seq_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it
-                                                               -when [match._modifier.data === 'seq'])
-
-                              -where [anon_pattern = anon('S[_x]'),
-                                      seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
+  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq(match) = seq_expand.call(seq_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
+                                              -where [anon_pattern = anon('S[_x]'),
+                                                      seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
 
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(p.constructor === String ? anon(p) : p, e.constructor === String ? anon(e) : e),
