@@ -963,7 +963,21 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
 // This informs my_caterwaul and my_other_caterwaul that your intent is just to macroexpand trees to trees, not transform functions into other functions.
 
+  // Composition syntax.
+//   Caterwaul 1.1.6 introduces a string-based syntax for initialization. So instead of things like caterwaul.jquery(caterwaul.js_all())(...), you can write caterwaul('js_all jquery')(...). The
+//   rule in this case is that each word is transformed into a method invocation. The first one is invoked with no parameters, and subsequent ones are invoked on the return value of the previous
+//   method. Methods are called from left to right, so the string order is opposite from function composition order. For example:
+
+  // | caterwaul('m1 m2 m3')       ->      caterwaul.m3(caterwaul.m2(caterwaul.m1()))
+
+  // All Caterwaul standard libraries are written such that they can be used this way.
+
+  var invoke_caterwaul_methods = function (methods) {
+    for (var ms = methods.split(/\s+/), i = 1, l = ms.length, r = caterwaul_global[ms[0]](); i < l; ++i) r = caterwaul_global[ms[i]](r);
+    return r};
+
   caterwaul_global.init = function (macroexpander) {
+    macroexpander.constructor === Function || (macroexpander = invoke_caterwaul_methods(macroexpander));
     var result = function (f, environment, options) {
       return f.constructor === Function || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
                                                       macroexpander ? f.rmap(function (node) {return macroexpander.call(result, node, environment, options)}) : f};
