@@ -1,12 +1,12 @@
-$(caterwaul.jquery(caterwaul.js_all())(function () {
+$(caterwaul('js_all jquery')(function () {
   $('body').append(top_button_row, board.div)
   -where [
     board           = life_board(30, 30),
     interval        = null,
     run_or_stop()   = interval ? stop_running()  -se- $(this).text('Run') :
                                  start_running() -se- $(this).text('Stop'),
-    start_running() = interval = setInterval(board.step, 100),
-    stop_running()  = clearInterval(interval) -se [interval = null],
+    start_running() = interval = board.step /-setInterval/ 100,
+    stop_running()  = interval /!clearInterval -se [interval = null],
     top_button_row  = jquery in div(
                         button.step('Step') /click(board.step),
                         button.run('Run')   /click(run_or_stop))]
@@ -23,7 +23,7 @@ $(caterwaul.jquery(caterwaul.js_all())(function () {
                                  left: x * 12, width:  10,
                                  top:  y * 12, height: 10}),
 
-    invert_on_click(e)  = e.mousedown($(this).toggleClass('on') -given.e),
+    invert_on_click(e)  = e.mousedown("$(this).toggleClass('on')".qf),
     div_for(cs)         = jquery [div.board]
                           -se- cs *!~[x *![it.append(x)]] /seq,
     step_function(cs)() =

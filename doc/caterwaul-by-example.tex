@@ -64,6 +64,12 @@ error(message)      = log('ERROR', message)
 choose(n, k) = fact(n) / (fact(k) * fact(n - k))
                -where [fact(x) = x ? x * fact(x - 1) : 1]
 \end{verbatim}
+
+\item{Syntactic constructs that allow you to avoid writing parentheses.}
+\begin{verbatim}
+fourth_root = Math.sqrt /-compose/ Math.sqrt
+              -where [compose(f, g)(x) = x /!f /!g]
+\end{verbatim}
 \end{enumerate}
 
   Because Caterwaul is written as a pure Javascript library, it maintains complete compatibility with Javascript as a language. Most of the reason for this is that Caterwaul is a syntactic
@@ -138,12 +144,12 @@ var g2 = c(f2);
     Most Javascript apps have a surrounding lexical closure to create a local scope, so you can save some space by transforming the function inline:
 
 \begin{verbatim}
-caterwaul.js_all()(function () {
+caterwaul('js_all')(function () {
   // app code
 })();
 
 // If using jQuery:
-$(caterwaul.js_all()(function () {
+$(caterwaul('js_all')(function () {
   // app code
 }));
 \end{verbatim}
@@ -154,7 +160,7 @@ $(caterwaul.js_all()(function () {
     Here's a Caterwaul app that computes our list of primes and shows it to the user:
 
 \lstset{caption={examples/primes/primes-first.js},name={examples/primes/primes-first.js}}\begin{resourcecode}
-$(caterwaul.js_all()(function () {
+$(caterwaul('js_all')(function () {
   var is_prime = function (x) {
     for (var i = 2; i * i <= x; ++i)
       if (x % i === 0)
@@ -176,8 +182,8 @@ $(caterwaul.js_all()(function () {
     since it stops before reaching $\sqrt n$. It's necessary to use an inclusive upper bound to make sure that we get squares as well as other factors.}
 
 \lstset{caption={examples/primes/primes.js},name={examples/primes/primes.js}}\begin{resourcecode}
-$(caterwaul.js_all()(function () {
-  $('body').text(primes.join(', '))
+$(caterwaul('js_all')(function () {
+  $('body') /~text/ primes.join(', ')
   -where [
     composite(n) = ni[2, Math.sqrt(n)] |[n % x === 0] |seq,
     primes       = n[2, 10000] %!composite -seq];
@@ -487,15 +493,15 @@ integrate(f, a, b, h) = n[a, b, h] /[0][x0 + f(x)] -seq -re- it * h
     the left margin relatively clean by moving lower-level details off to the right.) However, this code is wrapped at under 100 columns to be readable in the PDF.
 
 \lstset{caption={examples/game-of-life/life.js},name={examples/game-of-life/life.js}}\begin{resourcecode}
-$(caterwaul.jquery(caterwaul.js_all())(function () {
+$(caterwaul('js_all jquery')(function () {
   $('body').append(top_button_row, board.div)
   -where [
     board           = life_board(30, 30),
     interval        = null,
     run_or_stop()   = interval ? stop_running()  -se- $(this).text('Run') :
                                  start_running() -se- $(this).text('Stop'),
-    start_running() = interval = setInterval(board.step, 100),
-    stop_running()  = clearInterval(interval) -se [interval = null],
+    start_running() = interval = board.step /-setInterval/ 100,
+    stop_running()  = interval /!clearInterval -se [interval = null],
     top_button_row  = jquery in div(
                         button.step('Step') /click(board.step),
                         button.run('Run')   /click(run_or_stop))]
@@ -512,7 +518,7 @@ $(caterwaul.jquery(caterwaul.js_all())(function () {
                                  left: x * 12, width:  10,
                                  top:  y * 12, height: 10}),
 
-    invert_on_click(e)  = e.mousedown($(this).toggleClass('on') -given.e),
+    invert_on_click(e)  = e.mousedown("$(this).toggleClass('on')".qf),
     div_for(cs)         = jquery [div.board]
                           -se- cs *!~[x *![it.append(x)]] /seq,
     step_function(cs)() =
@@ -558,8 +564,8 @@ $('body').append(top_button_row, board.div)
   interval        = null,
   run_or_stop()   = interval ? stop_running()  -se- $(this).text('Run') :
                                start_running() -se- $(this).text('Stop'),
-  start_running() = interval = setInterval(board.step, 100),
-  stop_running()  = clearInterval(interval) -se [interval = null],
+  start_running() = interval = board.step /-setInterval/ 100,
+  stop_running()  = interval /!clearInterval -se [interval = null],
   top_button_row  = jquery in div(
                       button.step('Step') /click(board.step),
                       button.run('Run')   /click(run_or_stop))]

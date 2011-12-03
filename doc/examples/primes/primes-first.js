@@ -1,4 +1,4 @@
-$(caterwaul.js_all()(function () {
+$(caterwaul('js_all')(function () {
   var is_prime = function (x) {
     for (var i = 2; i * i <= x; ++i)
       if (x % i === 0)
