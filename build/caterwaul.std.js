@@ -770,7 +770,8 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                   rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs(_ys)]', 'S[_xs](_ys)'),
                                                   rule('S[[_x]]', '[_x]'),     rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs._p]',   'S[_xs]._p'),
 
-                                                  rule('S[~[_x]]', '[S[_x]]'),          // <- ~ modifier on arrays
+                                                  rule('S[~[_x]]',     '[S[_x]]'),              // ~ modifier on arrays
+                                                  rule('S[~_xs(_ys)]', 'S[_xs](S[_ys])'),       // ~ modifier on function calls
 
                                                   rule('S[_x ? _y : _z]', '(S[_x]) ? (S[_y]) : (S[_z])'), rule('S[_x && _y]', '(S[_x]) && (S[_y])'), rule('S[_x || _y]', '(S[_x]) || (S[_y])'),
 
