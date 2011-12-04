@@ -1,0 +1,824 @@
+Introduction.
+Caterwaul is a Javascript recompiler that lets you change the semantics of functions. To do this it implements a modular decompiler, macroexpander, and compiler that allow you to manipulate
+code in a first-class way. It also comes with several macro (Lisp-style, not C-style) libraries to make Javascript more fun (though you can easily disable them and/or write your own).
+
+If you see merit in the linguistic features of Haskell, APL, Lisp, and Perl, then you will probably also see merit in the things that Caterwaul tries to achieve and you might even like it. If
+you're a normal person who wants to use modern tools to write normal, maintainable apps, and you're not a programming language enthusiast who seeks out the pathological and the bizarre, then I
+recommend using <a href='http://coffeescript.com' target='_blank'>CoffeeScript</a> instead.
+
+This page is written in Caterwaul using the libraries covered below. If you're feeling adventurous, you might be interested to see the <a href='#annotated'>annotated source</a> (the code that
+drives this page is in the <code>web/</code> section near the bottom).
+
+A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.
+
+I've also started writing documentation in a more traditional form, available from <a href='doc/' target='_blank'>the documentation directory</a>. This is a great place to start if you're
+interested in using Caterwaul for production projects.
+
+  Praise for Caterwaul.
+  Lots of people have looked at Caterwaul and great things to say about it. Here are some of them:
+  <blockquote>LaunchCtl? You may as well learn Caterwaul! <span class='signature'>Jeff Simpson, Senior Software Engineer @ LivingSocial</span></blockquote>
+  <blockquote>Embrace the dark side of Javascript. Use Caterwaul. <span class='signature'>Dan Hopkins, Senior Software Engineer @ LivingSocial</span></blockquote>
+  <blockquote>Nobody in their right mind would use this language. <span class='signature'>Anonymous</span></blockquote>
+  <blockquote>Using this to build applications is like using quantum mechanics to build a car. <span class='signature'>Hank Racette, Founder of Arden Lake Technologies</span></blockquote>
+  <blockquote>Caterwaul is a terrible language for the vast majority of developers. But I like it well enough. <span class='signature'>Spencer Tipping, author of Caterwaul</span></blockquote>
+
+  Using Caterwaul.
+  Caterwaul is pure Javascript, so you can integrate it into any web page without much effort. For example:
+
+  | &lt;script src='http://caterwauljs.org/build/caterwaul.min.js'>&lt;/script>
+    &lt;script src='http://caterwauljs.org/build/caterwaul.std.min.js'>&lt;/script>
+    &lt;script src='http://caterwauljs.org/build/caterwaul.ui.min.js'>&lt;/script>
+
+  The next step is to configure a compiler instance. Caterwaul provides a framework that you can use to build custom compilers, so this step tells Caterwaul what kind of macros you want to
+  expand. (This could include your own custom macros or third-party extensions.)
+
+  For example, here's how to get a compiler that compiles all of the macros discussed on this page:
+
+  | var compiler = caterwaul.jquery(caterwaul.js_all());
+
+  What we're saying here is "build a compiler with all Javascript core macros, then add jQuery support." A compiler is a function that recompiles any function you give it:
+
+  | var compiled = compiler(function () {alert(x) -where [x = 10]});
+
+  Generally you create the compiler inline and use it to transform your app's initialization function:
+
+  | // For jQuery apps:
+    $(caterwaul.jquery(caterwaul.js_all())(function () {
+      $('body').append(jquery in div('hi there!'));
+    }));
+
+  | // For non-jQuery apps, or libraries:
+    caterwaul.js_all()(function () {
+      // app code
+    })();
+
+  Check out <a href='doc/caterwaul-by-example.pdf' target='_blank'>Caterwaul by example</a> for a more detailed discussion about writing apps with Caterwaul.
+
+  Libraries.
+  I maintain a motley set of libraries that are in various ways related to Caterwaul. Right now they are:
+  <ul>
+  <li><a href='http://github.com/spencertipping/caterwaul-bloom' target='_blank'>Bloom filter implementation</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-terminal' target='_blank'>ANSI terminal library</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-jquery-node' target='_blank'>Headless jQuery constructors (for HTML rendering)</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-regexp' target='_blank'>Regular expression parser (uses Caterwaul syntax trees)</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-parser' target='_blank'>Nonlinear parser combinators</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-futures' target='_blank'>Futures implementation</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-factory' target='_blank'>Value generation combinators (for testing, etc)</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-numerical-integration' target='_blank'>Numerical integration with error function</a></li>
+  </ul>
+
+  I should mention that they're in various states of disrepair and sometimes break. However, if you'd like to use one in production, feel free to <a
+  href='mailto:spencer@spencertipping.com'>e-mail me</a> and I'll set up a stable versioning scheme for it. They're all MIT-licensed, as is Caterwaul.
+
+  Downloading Caterwaul.
+  Here are some relevant links if you want to hack on or use Caterwaul:
+  <ul>
+  <li><a href='http://github.com/spencertipping/caterwaul' target='_blank'>Caterwaul on Github</a></li>
+  <li><a href='http://caterwauljs.org/stable' target='_blank'>Stable versions of Caterwaul</a></li>
+  <li><a href='http://caterwauljs.org/build/caterwaul.vim' target='_blank'>Vim highlighter for Javascript/Caterwaul</a></li>
+  <li><a href='http://github.com/spencertipping/js-in-ten-minutes' target='_blank'>Javascript in Ten Minutes</a></li>
+  </ul>
+
+  Caterwaul in node.js.
+  It's really easy to use Caterwaul with <a href='http://nodejs.org' target='_blank'>node.js</a>. You just need to download <code>caterwaul.node.js</code> and whatever extensions you want to
+  use (I'll assume <code>caterwaul.std.js</code> for the purposes of this example), and concatenate them into one big file. On Mac or Linux the process looks like this:
+
+  | $ curl http://caterwauljs.org/build/caterwaul.{node,std}.js > caterwaul-custom.js
+    $ node
+    > var caterwaul = require('./caterwaul-custom.js').caterwaul;
+    > caterwaul.js_all()('[1, 2, 3] *[x + 1] -seq');
+    [ 2, 3, 4 ]
+    >
+
+  Because Caterwaul recompiles functions, you'll have to explicitly bind <code>require</code> if you want your app to have access to it. This can be done by specifying a hash of variable
+  bindings after the function you're compiling. For example:
+
+  | var main_function = function () {...};
+    caterwaul.js_all()(main_function, {require: require});
+
+  Doing this puts <code>require</code> into the local scope of the compiled function. (Unfortunately, Caterwaul has no way of doing this automatically, since all functions that it constructs
+  are created in the global scope and lexical scopes are not first-class in Javascript.)
+
+  Performance.
+  Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 11K minified and
+  gzipped. The code that it generates is about as fast as handwritten Javascript.
+
+  Here's a benchmark to test how well Caterwaul performs in your browser (entries marked with + are part of the standard Caterwaul load cycle; the others are more granular benchmarks):
+  <div id='benchmark'></div>
+
+Javascript extensions.
+Caterwaul's core macro set starts by extending Javascript syntax in some helpful ways. In particular, it enables quick function assignment, <a href='#advanced'>infix and postfix function
+application (experimental)</a>, and Ruby-style string interpolation (which works with both single and double quotes):
+
+add(x, y) = x + y
+
+c
+String.prototype.say_hi() = 'hi from #{this}!'
+
+Caterwaul translates these expressions into this:
+
+| add = function (x, y) {
+    return x + y;
+  };
+  String.prototype.say_hi = function () {
+    return 'hi ' + (this) + '!';
+  };
+
+Now we can use the new functions in the shell:
+
+add(3, 4)
+
+'javascript'.say_hi()
+
+Caterwaul also supports some <a href='#advanced'>experimental features</a> when defining functions this way.
+
+String interpolation, function assignment, and infix and postfix function application are the only irregular syntactic forms provided by Caterwaul. Everything else is implemented as a regular
+form called a modifier.
+
+General modifiers.
+A modifier is a word that is used with an operator to modify a bit of syntax. For example, Caterwaul provides a modifier called <code>when</code> to execute things conditionally:
+
+log('hi') -when ['foo'.length === 3]
+
+There are two parts to a modifier. The first is the operator you use with it (in this case minus), and the second is the modifier and any arguments it takes. The operator is very important; it
+determines how much stuff you're modifying. For example:
+
+log('hi'), log('again') -when [1 === 2]
+
+Here the <code>when [1 === 2]</code> only modifies <code>log('again')</code> because minus has much higher precedence than the comma operator. However, Caterwaul lets you use several other
+operators to change this:
+
+log('hi'), log('again'), when [1 === 2]
+
+In this case the <code>when [1 === 2]</code> modifies both <code>log</code> statements. The reason for this is kind of subtle: comma left-associates, so the first comma was collapsed into a
+single syntax node that then became the left-hand side of the second comma. Because Caterwaul operates on the structure of your code, it groups both <code>log</code> statements into the
+conditional.
+
+You can inspect Caterwaul's parse tree by using the <code>qs</code> modifier (for "quote syntax"). For example:
+
+qs [log('hi'), log('again'), when [1 === 2]]
+
+qs [log('hi'), log('again'), when [1 === 2]].data
+
+qs [log('hi'), log('again'), when [1 === 2]].length
+
+qs [log('hi'), log('again'), when [1 === 2]][0]
+
+qs [log('hi'), log('again'), when [1 === 2]][1]
+
+qs [log('hi'), log('again'), when [1 === 2]].structure()
+
+The <code>structure</code> method gives you a string containing the syntax tree in S-expression form. I talk more about this in the <a href='#quotation'>section about quotation</a>.
+
+  Modifier operators.
+  There are about six different operators you can use in conjunction with a modifier. From highest to lowest precedence they are:
+  <ol><li>The slash. For example, <code>log('hi') /when [true]</code>. I use this when I need something tighter than a minus.</li>
+      <li>The minus. For example, <code>log('hi') -when [true]</code>. It also comes in another form: <code>log('hi') -when- true</code>. I use this most of the time because it seems easier to
+          read.</li>
+      <li>The <code>in</code> operator. For example, <code>given [x] in x + 1</code>. <code>in</code> has the same precedence as <code><</code> and <code>></code>, which is lower
+          than the arithmetic operators. As a result, it's useful when you're binding variables or creating functions around simple expressions.</li>
+      <li>The <code><></code> operators. These are used around a modifier: <code>log('hi') <unless> no_logging</code>. This has the same precedence as <code>in</code> and other relational
+          operators.
+      <li>The <code>|</code> operator. This is the lowest-precedence regular operator; the only things lower are <code>&&</code>, <code>||</code>, <code>?:</code>, assignment, and the
+          comma.</li>
+      <li>The <code>,</code> operator. This is the lowest-precedence operator in Javascript. It can be dangerous to use because it left-associates; for example,
+          <code>f(x, y, z, where [z = 10])</code> will invoke <code>f</code> on just one parameter, since the <code>where</code> gobbles everything to its left. (Using a <code>|</code> here
+          would fix the problem.)</li>
+      <li>The <code>[]</code> operator. This starts the precedence hierarchy over by using explicit grouping. For example, <code>where [x = 10] [log(x)]</code>.</li></ol>
+
+  Conditional modifiers.
+  <code>when</code> and <code>unless</code> are used to make conditionals more flexible. The semantics and return values are:
+
+  | x -when- y           -> y && x
+    x -unless- y         -> !y && x
+
+  Binding modifiers.
+  These let you define locally-scoped variables. There are two of these modifiers, <code>where</code> and <code>using</code>. <code>where</code> is used to bind local variables at runtime,
+  much like it is in Haskell:
+
+  x -where [x = 10]
+
+  f(10) -where [f(x) = x + 1]
+
+  Sometimes, though, you want to have access to all of the properties of an object without qualifying them. Javascript provides the <code>with</code> keyword for this purpose, but because it
+  is evaluated at runtime it has significant performance implications. A much faster alternative is to use Caterwaul's <code>using</code> modifier, which evaluates its object at compile-time
+  and produces a list of local variable definitions that refer to the object's properties. (Naturally, this means that the object you're using needs to be computable at compile-time.) Also,
+  any variables defined with <code>using</code> will shadow surrounding variables with the same name. For example, this refers to <code>caterwaul.compile</code>:
+
+  compile -using.caterwaul
+
+  The opposite of <code>using</code> is <code>capture</code>, which makes an object out of a series of assignments. The assignment structure is just like it is for <code>where</code>:
+
+  result = capture [f(x) = x + 1, y = 10]
+
+  result.f(10)
+
+  result.y
+
+  Capturing assignments this way has one problem: since it just builds an object, your expressions can't refer to each other. For example, this won't do what you want:
+
+  capture [f(x) = x + 1, g = f]
+
+  The way to work around this is to use <code>wcapture</code>, which, as its name suggests, combines <code>where</code> and <code>capture</code>. Like <code>capture</code>, it returns an
+  object built out of assignments, but like <code>where</code>, it introduces a local scope so that all of the assignments can see each other:
+
+  wcapture [f(x) = x + 1, g = f].g(10)
+
+  Function modifiers.
+  There are two words that create functions. One is <code>given</code>, which creates a regular function. The other is <code>bgiven</code>, which binds the function to the <code>this</code>
+  where it was defined. For example:
+
+  given [x] in x + 1
+
+  x + 1 -given [x]
+
+  f.call(10) -where [f = this -given- x]
+
+  f.call(10) -where [f = this -bgiven- x]
+
+  There's a shorthand you can use if you just have a single operand for a modifier:
+
+  x + 1 -given.x
+
+  given.x in x + 1
+
+  given.x [x + 1]
+
+  Delayed evaluation.
+  Functional languages like Haskell provide lazy semantics in the language; these allow you to represent infinite data structures and other cool things. Javascript uses strict semantics by
+  default, but you can wrap something in a function to delay its evaluation. Caterwaul provides a couple of macros that are linguistically suggestive of true lazy evaluation:
+
+  x = 10
+
+  f = ++x -delay
+
+  f()
+
+  g = ++x -lazy
+
+  g()
+
+  The <code>delay</code> modifier just wraps an expression in a context-preserving nullary function (equivalent to <code>bgiven.nothing in _expression</code>), and the <code>lazy</code>
+  modifier does the same thing but invokes the function at most once. (Future invocations of the wrapper function return the cached return value.)
+
+  Side-effecting modifiers.
+  These make it easy to manipulate values and return things without using an explicit variable. We do this in English using pronouns, and Caterwaul binds the variable <code>it</code> to refer
+  to "the thing that we're working with."
+
+  There are two ways to create a side-effect. One is to return the side-effecting expression and the other is to return the original value. For example, suppose you want to write a function
+  <code>hash(k, v)</code> that returns a hash <code>h</code> such that <code>h[k] === v</code>. In plain Javascript you'd write this:
+
+  | var hash = function (k, v) {
+      var result = {};
+      result[k] = v;
+      return result;
+    };
+
+  However, the amount of typing required is much larger than the complexity of the problem. We want to return an object after applying a side-effect to it; to do this with Caterwaul we would
+  use the <code>se</code> modifier, which stands for "side-effect":
+
+  hash(k, v) = {} -se [it[k] = v]
+
+  This style of side-effects returns the original expression. Sometimes, though, you want to return the result of the side-effect rather than the original. For example, here's a zero-division
+  check in plain Javascript:
+
+  | var x_over_yp1 = function (x, y) {
+      var y_plus_1 = y + 1;
+      return y_plus_1 === 0 ? 0 : x / y_plus_1;
+    };
+
+  Here's the same function using a returning side-effect ("re" stands for "returning effect"):
+
+  x_over_yp1(x, y) = y + 1 -re [it === 0 ? 0 : x / it]
+
+  Side-effecting won't impact the evaluation order of your code. That is, <code>x -se- y</code> and <code>x -re- y</code> will always evaluate <code>x</code> before <code>y</code>.
+
+  Quotation.
+  <span id='quotation'></span> Most people won't use this, but it's handy if you're doing heavy-duty syntax analysis or writing complex macros. The standard library includes an obscure
+  modifier called <code>qs</code> that you can use to quote a piece of code. Quotation is basically grabbing the literal syntax rather than evaluating it normally. For example:
+
+  qs [foo + bar]
+
+  qs [foo + bar].data
+
+  qs [foo + bar].length
+
+  qs [foo + bar][0]
+
+  qs [foo + bar].structure()
+
+  Quotation is an idea that comes from Lisp and is handled similarly by Caterwaul. (The only difference is that Caterwaul returns its own n-ary syntax tree format instead of cons trees.)
+
+  A variant, <code>qse</code>, macroexpands the quoted code before returning it as a syntax tree. For example:
+
+  qse [log(foo) -unless [true]]
+
+  log(foo) -unless [true], qse
+
+  You can use this in the shell to see how Caterwaul will macroexpand something. Note that the shell's <code>caterwaul</code> function is configured with all extensions enabled.
+
+  Evaluation modifiers.
+  You can inform Caterwaul that you want to evaluate an expression at compile-time rather than at runtime by using the <code>eval</code> modifier. For example:
+
+  given.x in x + Math.sqrt(2)
+
+  given.x in x + Math.sqrt(2) /eval
+
+  In the second example, <code>Math.sqrt(2)</code> is evaluated when the code is macroexpanded and a variable called <code>eval</code> is inserted into the code in its place. <code>eval</code>
+  is bound to the result of the compile-time evaluation. Generally you wouldn't use this modifier, but I've included it for completeness.
+
+  Macroexpansion modifiers.
+  The <code>reexpand</code> and <code>noexpand</code> modifiers give Caterwaul instructions about how to handle an expression. For instance, suppose you have a variable called
+  <code>given</code>, and you want to use it without worrying that Caterwaul will interpret it as a modifier. You can wrap expressions that contain this variable with the <code>noexpand</code>
+  modifier to prevent any macroexpansion from happening:
+
+  qse in noexpand [x -given.x]
+
+  Similar to <code>noexpand</code> is <code>reexpand</code>, which tells Caterwaul to re-expand the output of the first macroexpansion. Normally you don't need to use this because all of the
+  standard macros re-expand their output automatically and therefore require only the initial expansion.
+
+  Other modifiers.
+  There are a few more modifiers that I threw in to the standard library to make some edge cases easier:
+
+  new Error('uh-oh') -raise
+
+  null.foo -rescue- log('caught #{e}')
+
+  The exception is always called <code>e</code> when using the <code>rescue</code> modifier.
+
+Sequence library.
+<span id='seq'></span> This is probably the gnarliest part of Caterwaul, but in my opinion it's also the most useful. The sequence library provides a modifier called <code>seq</code> that
+reinterprets some syntax within an APL-like domain-specific language. It generates very efficient code and lets you express maps, folds, cartesian products, zips, etc, with very little effort.
+
+For instance, suppose we want an array of the first 10 squares. Using the sequence library looks like this:
+
+ni[1, 10] *[x * x] /seq
+
+  Deciphering sequence code.
+  Enter a sequence operator here to see how it is decoded by the <code>seq</code> library (this will be more relevant when reading the sections below): <div id='seq-decipher'></div>
+
+  Mapping and iterating.
+  The <code>*</code> operator is responsible for mapping, iterating, and flat-mapping. It's fairly easy to use; you just "multiply" a sequence by a bracketed expression. <code>*</code> will
+  create a variable called <code>x</code> and evaluate your expression for each element in the sequence. It then collects these results and returns a new array. For example:
+
+  seq in [1, 2, 3] *['x = #{x}']
+
+  You don't have to use just arrays. You can use anything with a <code>.length</code> and <code>[0]</code> ... <code>[n - 1]</code> attributes. One of the most common non-array collections I
+  use is a jQuery selector (just be sure to wrap <code>x</code> again so that you're not dealing with a plain DOM node):
+
+  seq in +$('div') *[$(x).attr('class')]
+
+  In this case, the <code>+</code> converts the jQuery collection into an array by invoking <code>Array.prototype.slice</code> on it. We can also map into another jQuery collection if we want
+  to; for instance:
+
+  seq in $('div') *[x.parentNode]
+
+    Alternative forms.
+    Most operators have an alternative form that does something similar to the original. You specify this form by using a <code>!</code> after the operator. The alternative form of
+    <code>*</code> is used to iterate without collecting the results; doing this returns the original array. For example:
+
+    seq in [1, 2, 3] *![log(x)]
+
+    The third use of <code>*</code> is flat-mapping, which is denoted by writing <code>*~!</code>. For example:
+
+    seq in [1, 2, 3] *~![[x, x + 1]]
+
+    Like the original form, these alternative forms can be combined with any of the operator features below.
+
+    Prefixes.
+    Caterwaul 1.0.3 supports prefixes for mapping and iterating over non-array structures. Right now there are two prefixes, <code>%k</code> and <code>%v</code>. These can be used with
+    <code>*</code> and <code>*!</code>, but not <code>*~!</code>.
+
+    These prefixes stand for 'keys' and 'values', respectively, and they're used to limit the scope of a map or iteration to the keys or values of an object. For example:
+
+    (seq in {foo: 'bar'} %k*[x + 'hi']).foohi
+
+    (seq in {foo: 'bar'} %v*[x + 'hi']).foo
+
+    seq in {foo: 'bar'} %v*![log(x)]
+
+    The reason you can't use <code>%k</code> and <code>%v</code> with <code>*~!</code> is that <code>*~!</code> isn't a componentwise operator. Because it could return zero, one, or many
+    values for each one that gets visited, it isn't clear what to do with the result. (One example of this is <code>seq in value %v*~![[x, x + 'foo']]</code> -- the intent is unclear.)
+
+  Operator features.
+  The sequence library uses operators to describe operations on arrays. Most of them are regular binary infix operators like <code>+</code> and <code>*</code>, though a few of them have names
+  (such as <code>ni[]</code> above).
+
+  Despite the wide array of operators supported, there is a high degree of regularity among them. Each operator that takes a block (like <code>*</code> does) has several options that can be
+  set to change the way it interprets the block.
+
+    Sequence interpretation.
+    Normally the expression inside <code>[]</code> is interpreted as a regular Javascript expression. But sometimes you want to remain in sequence context so that you don't have to explicitly
+    modify the expression. To do that, you prefix the <code>[]</code> with a <code>~</code>:
+
+    seq in [[1], [2], [3]] *~[x *[x + 1]]
+
+    Variable renaming.
+    In the example above we lost access to the outer <code>x</code> due to shadowing. To avoid this problem, the sequence language lets you rename any variable by prefixing the <code>[]</code>
+    with a new variable name:
+
+    seq in [1, 2, 3] *y[y + 1]
+
+    You can use both of these options at the same time, yielding this:
+
+    seq in [[1], [2], [3]] *~y[y *[x + 1]]
+
+    Note that you can't say <code>*y~[...]</code>, as this is invalid Javascript syntax (<code>~</code> is always a unary operator).
+
+    Function promotion.
+    Caterwaul 1.1 adds the ability to implicitly promote functions by using them instead of a <code>[]</code> block. For example:
+
+    seq in [1, 2, 3] *![log(x)]
+
+    seq in [1, 2, 3] *!log
+
+    Note that the function name is evaluated within the context of the loop, so it is re-evaluated each iteration. This could, in pathological cases, be beneficial; but mostly it's something
+    to watch out for. Generally you should only use local variables, or simple permutations of them, as functions. Function promotion applies to all operators that take blocks.
+
+  Filtering.
+  The filtering family of operators is denoted by <code>%</code>. For instance, here's a way to get multiples of three:
+
+  seq in [1, 2, 3] %[x % 3 === 0]
+
+    Alternative forms.
+    Negation is so high precedence that it's often difficult to work it into a form without adding parentheses. The alternative form of <code>%</code> negates the predicate:
+
+    seq in [1, 2, 3] %![x % 3]
+
+    The other alternative form of <code>%</code> is a simultaneous map/filter. The idea is to return the expression value when it's truthy and drop the element otherwise. For example, we can
+    get the squares of all negative elements this way:
+
+    seq in [1, -2, -3, 4] %~![x < 0 && x * x]
+
+    Prefixes.
+    Filter operations can all take the <code>%k</code> and <code>%v</code> prefixes. These remove and/or transform key-value mapping in objects. For example:
+
+    seq in {foo: 'bar', bif: 'baz'} %k%[/foo/.test(x)] /pairs
+
+    seq in {foo: 'bar', bif: 'baz'} %v%[/z/.test(x)] /pairs
+
+    seq in {foo: 'bar', bif: 'baz'} %k%![/o/.test(x)] /pairs
+
+    seq in {foo: 'bar', bif: 'baz'} %k%~![/o/.test(x) && x.replace(/o/g, 'a')] /pairs
+
+    Using <code>/pairs</code> with prefixes isn't necessary in most cases. I've included it in these examples to better illustrate what's happening.
+
+  Folding.
+  You can fold stuff through a binary expression by using the <code>/</code> family of operators. <code>/</code> has two forms: left fold (the default), and right fold (written as
+  <code>/!</code>). For example, here is how you might sum a bunch of numbers:
+
+  seq in [1, 2, 3] /[x + x0]
+
+  Since <code>+</code> is associative it doesn't matter which direction the fold goes. It becomes obvious, however, if we interpolate the values into a string:
+
+  seq in [1, 2, 3] /['[#{x0}, #{x}]']
+
+  seq in [1, 2, 3] /!['[#{x}, #{x0}]']
+
+  Notice that for folding we have a new variable <code>x0</code>, which is available only when folding. <code>x0</code> is always used as the accumulator; that is, the inductive step is
+  <code>x0 = f(x0, x)</code>. There are actually a few variables you have access to depending on what you're doing. Inside any block you'll have <code>x</code>, <code>xi</code> (the current
+  index), and <code>xl</code> (the length of the original sequence). Each of these changes uniformly if you rename the variable; so for instance:
+
+  seq in [1, 2, 3] /bar[bar + bar0 + bari + barl]
+
+    Prefixes.
+    Sometimes you want to fold into an existing element. For example, suppose you want the sum of the squares of numbers from 1 to 10. This code won't work:
+
+    seq in n[1, 11] /[x*x + x0*x0]
+
+    The reason is that you can't square the accumulator. If you can't specify the starting element of the fold, the best you can do is to pre-map the elements and then sum them normally:
+
+    seq in n[1, 11] *[x * x] /[x + x0]
+
+    However, the other option is to specify the initial value for <code>x0</code> by using the fold prefix:
+
+    seq in n[1, 11] /[0][x0 + x*x]
+
+    seq in n[1, 11] /![0][x0 + x*x]
+
+    The fold prefix value is never interpreted in sequence context, even if you modify the body of the fold to do so.
+
+    Unfolding.
+    Sometimes it's useful to have anamorphic value generators. These are the opposite of folds: unfolds produce multiple values from one. For instance, summing the array <code>[1, 2, 3, 4,
+    5]</code> can be done using a fold over the <code>+</code> operator:
+
+    [1, 2, 3, 4, 5] /[x + x0] -seq
+
+    Similarly, generating the array <code>[1, 2, 3, 4, 5]</code> can be done using an unfold over the increment operator:
+
+    1 /~![x < 5 ? x + 1 : null] -seq
+
+    If we treat the body of the unfold as a function <code>f(x) = x < 5 ? x + 1 : null</code>, then an unfold could be seen as <code>[1, f(1), f(f(1)), f(f(f(1))), f(f(f(f(1))))]</code>. The
+    last element returns <code>null</code>, which tells the sequence library to stop unfolding.
+
+  Quantification.
+  The sequence library provides existential quantification on arrays. This uses a block that acts as a predicate. So, for instance, to determine whether any element in an array is positive:
+
+  [-4, -5, 10, 2] |[x > 0] |seq
+
+  The <code>|</code> operator returns the first truthy value generated by the expression (not just true or false), so you can use it to detect things too. This block causes the sequence
+  comprehension to return not only whether an element is positive, but if so the first such element will be returned:
+
+  [-4, -5, 10, 2] |[x > 0 && x] |seq
+
+  [-4, -5, 10, 2] |[x -when [x > 0]] |seq
+
+  We can also use this construct to return the index of the first matching element. Because an index of 0 is falsy, we'll have to add one (so 0 is the not-found value rather than -1):
+
+  [-4, -5, 10, 2] |[xi + 1 -when [x > 0]] |seq
+
+  Combination.
+  There are three ways you can combine things. The most obvious is concatenation, written <code>+</code>:
+
+  seq in [1, 2, 3] + [4, 5, 6]
+
+  Less obvious are zipping, written <code>^</code>, and the cartesian product, written <code>-</code>. Because <code>^</code> has lower precedence than <code>in</code>, we have to switch to a
+  lower-precedence modifier form for <code>seq</code>. For example:
+
+  [1, 2, 3] ^ [4, 5, 6] |seq
+
+  The cartesian product takes every possible pairing of elements from the two sequences:
+
+  seq in [1, 2, 3] - [4, 5, 6]
+
+  Each of these operators has lower precedence than <code>*</code>, <code>/</code>, and <code>%</code> (all of which have equal precedence), so they can be used without parentheses. Zipping
+  has lower precedence than cartesian product and concatenation; this choice was made because a zip is a common operation prior to folding a bunch of pairs into an object and thus ending the
+  sequence comprehension.
+
+  Objects.
+  A really useful and important feature of the sequence library is that it works with objects very easily. It has four operators, <code>/keys</code>, <code>/values</code>, <code>/pairs</code>,
+  and <code>|object</code>, that can convert between objects and arrays.
+
+  You can pull an array of the keys or values of an object (not in any particular order of course) by using <code>/keys</code> and <code>/values</code>. For example:
+
+  window /keys -seq
+
+  jQuery /values -seq
+
+  More interesting is the <code>/pairs</code> operator. This pulls out key-value pairs as two-element arrays:
+
+  {foo: 'bar', bif: 'baz'} /pairs -seq
+
+  Its inverse is the <code>|object</code> operator (also can be written as <code>-object</code> or <code>/object</code>, depending on what kind of precedence you want), which turns an array of
+  those pairs back into an object:
+
+  [['foo', 'bar'], ['bif', 'baz']] |object |seq
+
+  [['foo', 'bar'], ['bif', 'baz']] -object -seq
+
+  [['foo', 'bar'], ['bif', 'baz']] /object /seq
+
+  Note the differing precedences of <code>/keys</code> etc. and <code>|object</code>. This is intentional. The rationale is that you rarely manipulate objects as objects in sequence
+  comprehensions, since the sequence library has no useful operators for objects other than unpacking. Therefore, objects come from various other values and enter a sequence comprehension,
+  which may at the very end zip an intermediate result into a final object return value. The alternative higher-precedence forms of <code>object</code> didn't exist before, but after some
+  real-world use I've found it useful to be able to maintain a certain precedence level.
+
+  Also note that when possible you should use <code>%k</code> and <code>%v</code> instead of packing and unpacking objects. These prefixes are faster and, in my experience, make the code
+  easier to read.
+
+  Numerical iteration.
+  Within a sequence comprehension you have access to the <code>n[]</code> operator, which generates arrays of evenly-spaced numbers. It has three uses. When invoked on one argument it returns
+  integers between 0, inclusive, and the number, exclusive. When invoked with two arguments the first becomes the inclusive lower bound and the second is the exclusive upper bound. Adding a
+  third argument changes the increment from its default value of 1. For example:
+
+  n[10] -seq
+
+  n[5, 8] -seq
+
+  n[0, 1, 0.25] -seq
+
+  n[0, -1, 0.25] -seq
+
+  n[0, -1, -0.25] -seq
+
+  Another similar operator is <code>ni[]</code>, which behaves exactly like <code>n[]</code> except that it includes its upper bound. For instance:
+
+  n[10] -seq
+
+  ni[10] -seq
+
+  n[1, 4] -seq
+
+  ni[1, 4] -seq
+
+  n[0, 1, 0.25] -seq
+
+  ni[0, 1, 0.25] -seq
+
+  Note that the usual floating-point caveats apply; for example:
+
+  n[0, 1, 0.1] -seq
+
+  ni[0, 1, 0.1] -seq
+
+  These results are the same because of the inductive loops used in <code>n</code> and <code>ni</code>. If you need endpoint accuracy in floating-point situations, your best bet is to generate
+  an integer sequence and map across a scaling factor:
+
+  n[10] *[x * 0.1] -seq
+
+  ni[10] *[x * 0.1] -seq
+
+DOM/jQuery driver.
+One of the benefits of promoting syntax into a first-class construct is that you can specialize certain syntactic constructs for library interoperation. Caterwaul provides a module that
+integrates jQuery-based DOM node construction right into the syntax of your program. (You can also write modules to do similar things for other client-side libraries.) For example:
+
+jquery in div.foo('hi there')
+
+In this example, <code>jquery</code> is a modifier that interprets its code as HAML-like DOM construction. The code above is translated into this:
+
+| jQuery('<div>').addClass('foo').append('<span>' + ('hi there') + '</span>')
+
+  Nodes and classes.
+  The example above illustrates the node and class syntax. The way Caterwaul sees this is that <code>div</code> is a node, and each dot-expression after it denotes a class. For example,
+  <code>div.foo.bar.bif</code> creates a <code>div</code> with three classes. You can also create just plain elements; <code>div</code> creates an empty <code>div</code> element with no CSS
+  classes.
+
+  This DOM driver uses context to determine when a word should be interpreted as an element name. Importantly, it doesn't have a list of known elements that it knows to promote. So, for
+  example, this is also perfectly valid code:
+
+  jquery in foo.bar(bif)
+
+  If you run this you'll get a <code>&lt;foo></code> node that contains an empty <code>&lt;bif></code> node.
+
+  Appending children.
+  If you invoke one node on another, you're telling the driver to add the "parameters" of the invocation as children. This is translated into an <code>append</code> call to jQuery. So, for
+  example, <code>div.foo(span.bar('hi there'))</code> creates an anonymous span containing <code>hi there</code>, adds that to a span with the "bar" class, and adds that to a div with the
+  "foo" class. The div is returned.
+
+  For reasons that will shortly become apparent there is a lower-precedence way to represent appending. You can use the <code>></code> operator to do the same thing as invocation. For example:
+
+  jquery [div > p]
+
+  Perhaps counterintuitively, chaining the <code>></code> operator does not result in further nesting. This is because <code>></code> left-associates, so <code>div > p > pre</code> would be
+  interpreted as <code>(div > p) > pre</code>. This actually ends up being really convenient -- more so than if it did what it does in CSS, in my opinion.
+
+  Appending other stuff.
+  Because you can easily use functional abstraction over DOM nodes you'll probably end up factoring the creation of elements into a bunch of different functions. As a result, you'll end up
+  calling those functions and wrapping some of the children in new nodes. The way to do this is to append stuff in a non-DOM context using <code>[]</code> instead of <code>()</code>:
+
+  foo = jquery in div.foo
+
+  jquery in div.container[foo]
+
+  The low-precedence counterpart is <code>>=</code>, and like <code>></code> it left-associates. You can also mix the two because its precedence is identical to <code>></code>.
+
+  In the "hi there" example at the top of this section I appended the string "hi there" (which was interpreted as a Javascript value, not as a node constructor) using parentheses rather than
+  square brackets. The DOM driver has an exception for string values, since often you'll want to insert plain text between other nodes:
+
+  jquery in div('foo', button, 'bar')
+
+  There's also a much more sinister aspect to it, though. Firefox (and SpiderMonkey-based Javascript engines in general) rewrites your code at compile-time, before Caterwaul can see it. One of
+  the optimizations it performs is constant-folding, which involves rewriting things of the form <code>x['y']</code> to <code>x.y</code> whenever <code>y</code> is a valid identifier. As a
+  result, if you write something like this:
+
+  jquery in button['hi']
+
+  You will get the undesirable outcome <code>&lt;button class='hi'></button></code> in the generated code on Firefox. As a result you are always better off using <code>()</code> when there is
+  text involved (as long as the text is a literal string, that is).
+
+  Attributes and jQuery data.
+  These can be setup by using the <code>*</code> operator. For example:
+
+  jquery in a('google') *href('http://google.com')
+
+  This invokes jQuery's <code>attr()</code> method on <code>'href', 'http://google.com'</code>. A similar shorthand is provided for jQuery's <code>data()</code>:
+
+  jquery in a('got data') *!foo('bar')
+
+  This results in <code>data('foo', 'bar')</code>. The expression inside parentheses is evaluated in normal Javascript context.
+
+  Arbitrary methods and event bindings.
+  These are available by using the <code>/</code> operator. For instance:
+
+  jquery in button /text('hi')
+
+  The slash simply turns into a regular method call: <code>$('&lt;button>').text('hi')</code>. Similar is the <code>/!</code> operator, which turns into a <code>bind()</code> call:
+
+  jquery in button /!click(given.e in alert('hi'))
+
+  Calling functions.
+  One of the downsides of having a DSL for DOM node construction is that it's hard to call a function on a small piece of the structure. The DOM library addresses this by using the
+  <code>%</code> operator to represent function invocation. For instance:
+
+  says_hi(e) = e.text('hi there')
+
+  jquery in button %says_hi
+
+  This expands into <code>say_hi($('&lt;button>'))</code>. Sometimes you want to pass parameters into the function you're using. This is achieved by currying:
+
+  says(thing)(e) = e.text(thing)
+
+  jquery in button %says('click me')
+
+Experimental extensions.
+<span id='advanced'></span> These are things that I'm experimenting with before committing to the design. As such, they may change or be removed in the next few versions. (So use at your own
+peril, both due to volatility and because they might be useless.)
+
+  Side-effects in function definitions.
+  I was writing some parser combinators using curried functions, and realized that it would be useful to be able to do things in between function definitions. For example, consider this
+  definition:
+
+  f(x)(y) = x + y
+
+  It would be nice to be able to ensure that <code>x</code> was a number as soon as we passed it to <code>f</code>, rather than waiting for it to also receive <code>y</code>. To do this, you
+  can use a side-effect, introduced in Caterwaul 1.1.3:
+
+  must_be_numeric(n) = n.constructor === Number || raise [new Error('#{n} is not a number')]
+
+  f(x, must_be_numeric(x))(y) = x + y
+
+  You can also side-effect on the result of the function. This can be useful if you want to attach metadata to intermediate invocations:
+
+  f(x, result.toString() = 'f(#{x})')(y) = x + y
+
+  f(5).toString()
+
+  Infix function application.
+  Haskell gives you a nice way to use a function as an infix operator: you use backticks (so <code>x `f` y</code> becomes <code>f x y</code>). This reduces an API designer's pressure to use
+  operator overloading, since now there's another way to get the normal subject-verb-object ordering in expressions.
+
+  Caterwaul has a couple of similar constructs, though they don't look very nice compared to Haskell. The first is a simple binary application, which looks like this:
+
+  1 /-log/ 2
+
+  1 |-log| 2
+
+  You can stack these up, as they associate leftward:
+
+  1 /-log/ 2 /-log/ 3
+
+  You can extend the invocation to take arbitrarily many arguments by adding them to the left and prefixing them with <code>/</code>:
+
+  1 / 2 / 3 /-log/ 4
+
+  1 | 2 | 3 |-log| 4
+
+  Naturally, this syntax is somewhat dangerous since it might collide with certain arithmetic expressions. Hopefully nobody will be dividing twice in a row, but it could happen. That's one of
+  the reasons I consider it to be experimental.
+
+  Infix method application.
+  You can invoke a method in much the same way that you can invoke a function. To do this, use the <code>~</code> prefix:
+
+  caterwaul /~parse/ log
+
+  Like infix function application, this form can become variadic:
+
+  foo = 'hi'
+
+  bar = 'there'
+
+  console /foo /~log/ bar
+
+  Postfix function application.
+  This is an alternative way to invoke functions. Rather than putting the function in the second-to-last position, you can put it after all of its arguments. This enables you to invoke
+  functions with only one argument. Expressions of the form <code>x /!f</code> are converted to <code>f(x)</code>:
+
+  100 /!log
+
+  Prefix slashes are recognized as before: <code>x /y /... /!f</code> is converted to <code>f(x, y, ...)</code>.
+
+  Literal modifiers.
+  There are two kinds of modifiers. Literal modifiers are used to modify literal values (such as strings and regular expressions). For example, Caterwaul provides a literal modifier called
+  <code>.x</code> that removes spaces from regular expressions:
+
+  /foo bar bif/.x
+
+  All literal modifiers look like this; that is, they appear to be properties and aren't invoked. Caterwaul will only process literal modifiers that it knows about and that match literals of
+  the right type. All of these expansions happen at compile-time, so there is no significant runtime impact of using them.
+
+    Regular expression modifiers.
+    The simplest regular expression modifier is <code>.x</code>. This lets you insert whitespace into your regular expressions without actually matching against whitespace; it's very similar
+    to the 'x' flag in Perl or Ruby.
+
+    /^\w+ @ \w+ \. com$/.x
+
+    Another is <code>.qf</code>, short for "quote function". This causes the regular expression to be turned into a function that matches against strings (very similar to Perl's behavior):
+
+    /foo/.qf
+
+    String modifiers.
+    Strings can be modified in several different ways:
+
+    'foo bar'.qw
+
+    Here, <code>.qw</code> causes the string to be split into an array of words. You can put arbitrarily much whitespace between words, though the usual Javascript syntax rules apply.
+
+    'foo bar bif baz'.qh
+
+    Similar to <code>.qw</code>, but a hash (object) is constructed instead of an array. Every other word is used as a key, and each following word is a value.
+
+    '^http://'.qr
+
+    Converts a string into a regular expression, but properly escapes the forward slashes. This is primarily for notational convenience, and has the caveat that some things that you'd do
+    within regular expressions aren't allowed in strings. (For example, <code>'foo\[bar\]'.qr</code> will fail in Javascript's initial parse because <code>\[</code> and <code>\]</code> are
+    invalid escape sequences.)
+
+    'x + 1'.qs
+
+    This creates a reference to the syntax tree generated by parsing <code>x + 1</code>. It's rare that you'd use this unless you're writing macros.
+
+    '_ + 1'.qf
+
+    Constructs a function whose sole argument is <code>_</code> and whose body is <code>_ + 1</code>. Code within the function is macroexpanded automatically, so you can do things like this:
+
+    '_ + 1 -when._'.qf

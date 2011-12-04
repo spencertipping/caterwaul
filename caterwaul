@@ -1842,6 +1842,8 @@ file::write('build/caterwaul.vim',     retrieve('vim_highlighter::caterwaul'), m
 file::write('build/caterwaul.js',      retrieve('pp::js::caterwaul'),          mkpath => 1);
 file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'),     mkpath => 1);
 
+file::write('doc/caterwaul-tutorial.sdoc', retrieve('sdoc::web/tutorial'), mkpath => 1);
+
 my @extensions = qw/std ui/;
 
 terminal::info('creating extensions');
