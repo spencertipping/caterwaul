@@ -511,6 +511,13 @@ ni[1, 10] *[x * x] /seq
     If we treat the body of the unfold as a function <code>f(x) = x < 5 ? x + 1 : null</code>, then an unfold could be seen as <code>[1, f(1), f(f(1)), f(f(f(1))), f(f(f(f(1))))]</code>. The
     last element returns <code>null</code>, which tells the sequence library to stop unfolding.
 
+    I recently received some great feedback from <a href='http://twitter.com/Phlogistique'>@Phlogistique</a> regarding unfolding. He suggested that I could use an extra body to determine the
+    condition rather than using <code>null</code> as a sentinel. This is a very elegant approach, and it's now implemented in version 1.1.5:
+
+    1 /~![x < 5][x + 1] -seq
+
+    If you use two blocks, <code>null</code> can be generated from your unfolds and elements will be generated as long as the first block returns truthy values.
+
   Quantification.
   The sequence library provides existential quantification on arrays. This uses a block that acts as a predicate. So, for instance, to determine whether any element in an array is positive:
 
