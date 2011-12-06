@@ -39,6 +39,7 @@
 //   element(child1, child2)       ->  $('<element>').append((child1 /jquery).add((child2 /jquery)))
 //   element[child]                ->  $('<element>').append(child)                                        <- no re-expansion here
 //   element[child1, child2]       ->  $('<element>').append(child1.add(child2))
+//   element < tree                ->  $('<element>').append(tree.toString())                              <- used to build populated <script> nodes from syntax trees
 //   element > child               ->  $('<element>').append(child /jquery)
 //   element >= child              ->  $('<element>').append(child)
 //   element1, element2            ->  (element1 /jquery).add((element2 /jquery))
@@ -113,6 +114,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 
                           rule('J[_element(_children)]',      'J[_element].append(J[_children])'),
                           rule('J[_element[_children]]',      'J[_element].append(_children)'),
+                          rule('J[_element < _tree]',         'J[_element].append((_tree).toString())'),
                           rule('J[_element > _child]',        'J[_element].append(J[_child])'),
                           rule('J[_element >= _child]',       'J[_element].append(_child)'),
 
