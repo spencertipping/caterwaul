@@ -1,0 +1,131 @@
+\documentclass{report}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,pxfonts,listings,color}
+\usepackage[colorlinks]{hyperref}
+\definecolor{gray}{rgb}{0.6,0.6,0.6}
+
+\usepackage{caption}
+\DeclareCaptionFormat{listing}{\llap{\color{gray}#1\hspace{10pt}}\tt{}#3}
+\captionsetup[lstlisting]{format=listing, singlelinecheck=false, margin=0pt, font={bf}}
+
+\lstset{columns=fixed,basicstyle={\tt},numbers=left,firstnumber=auto,basewidth=0.5em,showstringspaces=false,numberstyle={\color{gray}\scriptsize}}
+
+\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}
+
+\lstnewenvironment{asmcode}       {}{}
+\lstnewenvironment{cppcode}       {\lstset{language=c++}}{}
+\lstnewenvironment{javacode}      {\lstset{language=java}}{}
+\lstnewenvironment{javascriptcode}{}{}
+\lstnewenvironment{htmlcode}      {\lstset{language=html}}{}
+\lstnewenvironment{perlcode}      {\lstset{language=perl}}{}
+\lstnewenvironment{rubycode}      {\lstset{language=ruby}}{}
+
+\lstnewenvironment{resourcecode}{}{}
+
+\title{Caterwaul Reference Manual}
+\author{Spencer Tipping}
+
+\begin{document}
+\maketitle{}
+\tableofcontents{}
+
+\chapter{The {\tt caterwaul} global}
+  Caterwaul introduces exactly one global variable called {\tt caterwaul}. When you're using Caterwaul as a programming language, you invoke this global on a string containing configurations;
+  for example \verb|caterwaul('js_all jquery')|. However, this is an abstraction over some more basic functions. Here are the most useful public methods of the global {\tt caterwaul} object:
+
+\begin{enumerate}
+\item[{\tt parse(object)}]
+  Parses {\tt object} as Javascript, and returns a syntax tree. The string representation of {\tt object} is obtained by invoking {\tt object.toString()}; this works for strings,
+  functions, and other syntax trees.\footnote{Though as an optimization, Caterwaul is allowed to behave as an identity function if you send a syntax tree to {\tt parse()}.}
+
+  For example, here's a quick way to test {\tt parse()} (this can be run from the root directory of the Caterwaul repository):
+
+\begin{verbatim}
+$ node
+> caterwaul = require('./build/caterwaul.node').caterwaul
+[output]
+> caterwaul.parse('x + y').structure()
+'("+" x y)'
+>
+\end{verbatim}
+
+\item[{\tt compile(tree)}]
+  Similar to Javascript's native {\tt eval()}, but works on syntax trees. Unlike {\tt eval()}, this method always returns a value. This means that the syntax tree you pass to {\tt
+  compile()} must be an expression, not a statement or statement block.\footnote{Expressions are valid when wrapped in parentheses; statements aren't. {\tt compile()} wraps its tree in
+  parentheses and executes that.}
+
+  {\tt compile()} takes two optional arguments. The first is an object containing named references. This is useful when you want to pass state from the compile-time environment into the
+  compiled expression. For example:
+
+\begin{verbatim}
+> tree = caterwaul.parse('x + y')
+> caterwaul.compile(tree)
+ReferenceError: x is not defined
+> caterwaul.compile(tree, {x: 3, y: 4})
+7
+>
+\end{verbatim}
+
+  Caterwaul passes these values in by constructing a closure and evaluating your code inside of that closure scope. This means that you can pass in any value, not just ones that can be
+  easily serialized:
+
+\begin{verbatim}
+> caterwaul.compile(tree, {x: caterwaul, y: tree})
+'function () {return f.init.apply(f, arguments)}x+y'
+>
+\end{verbatim}
+
+  The other optional argument to {\tt compile()} (which must appear in the third position if you're using it) is an object containing compilation flags. As of version 1.1.5, the only flag
+  supported is \verb|gensym_renaming|, which defaults to {\tt true}. You will probably never care about this; it causes any Caterwaul-generated symbol to be turned into a more readable
+  name before the expression is returned.
+
+\item[{\tt gensym([name])}]
+  Returns a guaranteed-unique symbol. If {\tt name} is given, then the symbol will begin with {\tt name}. For example:
+
+\begin{verbatim}
+> caterwaul.gensym('foo')
+'foo_l_pWVi5y82xjbMJo3QxUTW03'
+>
+\end{verbatim}
+
+  I say that this is guaranteed-unique, but technically it isn't. Caterwaul's gensyms contain 128 bits of random data as a suffix, and this won't occur anywhere in your code. However, it
+  is not difficult to predict future values of {\tt gensym()} given previous values, since Caterwaul's suffix doesn't change. I've never run into a case where this was a problem, but you
+  can easily thwart {\tt gensym()} if you deliberately try to.
+
+\item[{\tt deglobalize()}]
+  Restores the original value of the global called {\tt caterwaul}, and returns the receiver. This is useful if (1) you're using two versions of Caterwaul at the same time, or (2) in the
+  unlikely event that someone else has also named their library Caterwaul.
+\end{enumerate}
+
+  Aside from a few utility methods like {\tt merge()}, those methods are all that you're likely to care about on the Caterwaul global. In addition to those methods, Caterwaul also gives you
+  access to two kinds of syntax trees:
+
+\begin{enumerate}
+\item[{\tt caterwaul.syntax}]
+  This represents an ordinary Javascript expression that would come out of the {\tt parse()} function. For example:
+
+\begin{verbatim}
+> caterwaul.parse('foo(bar)').constructor === caterwaul.syntax
+true
+> new caterwaul.syntax('()', 'foo', 'bar').toString()
+'foo(bar)'
+>
+\end{verbatim}
+
+  {\tt caterwaul.syntax} is covered in more detail in the next chapter.
+
+\item[{\tt caterwaul.ref}]
+  This gives you a way to insert a reference into compiled code. You can do this by passing a reference into {\tt compile()}, but sometimes it's easier to use an anonymous reference.
+  Here's how this works:
+
+\begin{verbatim}
+> tree = caterwaul.parse('foo(bar)')
+> ref = new caterwaul.ref(function (x) {return x + 1})
+> caterwaul.compile(tree.replace({foo: ref}), {bar: 5})
+6
+>
+\end{verbatim}
+\end{enumerate}
+
+
+\end{document}
