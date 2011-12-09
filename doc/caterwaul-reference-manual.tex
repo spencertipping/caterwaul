@@ -56,7 +56,19 @@ $ node
 \item[{\tt compile(tree)}]
   Similar to Javascript's native {\tt eval()}, but works on syntax trees. Unlike {\tt eval()}, this method always returns a value. This means that the syntax tree you pass to {\tt
   compile()} must be an expression, not a statement or statement block.\footnote{Expressions are valid when wrapped in parentheses; statements aren't. {\tt compile()} wraps its tree in
-  parentheses and executes that.}
+  parentheses and executes that.} This may seem like a tremendous limitation, but it isn't too bad since you can create anonymous functions:
+
+\begin{verbatim}
+> caterwaul.compile(caterwaul.parse('if (true) console.log(5)'))
+Error: Unexpected token if while compiling ...
+> code = 'function () {if (true) console.log(5)}';
+> caterwaul.compile(caterwaul.parse(code))
+[Function]
+> caterwaul.compile(caterwaul.parse(code))()
+5                       // from console.log()
+undefined               // return value from function
+>
+\end{verbatim}
 
   {\tt compile()} takes two optional arguments. The first is an object containing named references. This is useful when you want to pass state from the compile-time environment into the
   compiled expression. For example:
