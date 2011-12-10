@@ -15,7 +15,7 @@
 
 <div id='cover' style='position: absolute; background: white; z-index: 1; left: 0; top: 0; width: 10000px; height: 10000px; text-transform: uppercase; font-family: "Lucida Sans Unicode", "Lucida Grande", "Tahoma", sans-serif; font-size: 10pt'>
 <div style='padding: 160px 0 20px 100px'>Caterwaul <span style='color: #777'>JS</span></div>
-<div style='font-family: "Droid Sans", sans-serif; font-size: 10pt; padding: 0 0 0 100px'>
+<div style='padding: 0 0 0 100px'>
 <div class='jquery'>jQuery</div>
 <div class='caterwaul' style='opacity: 0.3'>caterwaul</div>
 <div class='futures' style='opacity: 0.3'>futures</div>
@@ -944,7 +944,7 @@ meta::bootstrap('initialization', <<'__');
 
 <div id='cover' style='position: absolute; background: white; z-index: 1; left: 0; top: 0; width: 10000px; height: 10000px; text-transform: uppercase; font-family: "Lucida Sans Unicode", "Lucida Grande", "Tahoma", sans-serif; font-size: 10pt'>
 <div style='padding: 160px 0 20px 100px'>Caterwaul <span style='color: #777'>JS</span></div>
-<div style='font-family: "Droid Sans", sans-serif; font-size: 10pt; padding: 0 0 0 100px'>
+<div style='padding: 0 0 0 100px'>
 <div class='jquery'>jQuery</div>
 <div class='caterwaul' style='opacity: 0.3'>caterwaul</div>
 <div class='futures' style='opacity: 0.3'>futures</div>
