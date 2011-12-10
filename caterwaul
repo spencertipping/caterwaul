@@ -727,8 +727,9 @@ $('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.
 
 
  $('head').append(jquery in title('caterwaul js'));
- $('body').empty().append(original_cover, page_header, original_pages);
- $('#cover').animate({opacity: 0}, "$('#cover').remove()".qf);
+ $('body').empty().append(original_cover, jquery in div.wrapper[page_header, original_pages]);
+ $('#cover').animate({opacity: 0, left: -10}, 'slow', "$('#cover').remove()".qf);
+ $('body > .wrapper').css({position: 'relative', left: 10}).animate({left: 0}, 'slow');
 
  original_styles.appendTo('head')};
 
@@ -5009,8 +5010,9 @@ $(caterwaul('js_all jquery')(function () {
     - pinclude pp::js::web/seq-decipher
 
     $('head').append(jquery in title('caterwaul js'));
-    $('body').empty().append(original_cover, page_header, original_pages);
-    $('#cover').animate({opacity: 0}, "$('#cover').remove()".qf);
+    $('body').empty().append(original_cover, jquery in div.wrapper[page_header, original_pages]);
+    $('#cover').animate({opacity: 0, left: -10}, 'slow', "$('#cover').remove()".qf);
+    $('body > .wrapper').css({position: 'relative', left: 10}).animate({left: 0}, 'slow');
 
     original_styles.appendTo('head')};
 
