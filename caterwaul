@@ -346,14 +346,14 @@ $('#cover .status .compiling').css({color: 'black'});
 // Caterwaul JS web interface | Spencer Tipping
 // Licensed under the terms of the MIT source code license
 
-$('#cover .status').text('loading tutorial content');
+$('#cover .status .page').css({color: 'black'});
 
 $(caterwaul('js_all jquery')(function () {
  var original_html = $('body').html(),
  original_pages = $('#tutorial-page, #sdoc-page'),
  original_styles = $('style, link[rel="stylesheet"]');
 
- $('#cover .status').text('parsing state');
+ $('#cover .status .state').css({color: 'black'});
 
  var construct_page = function (original_html) {
 
@@ -4962,14 +4962,14 @@ meta::sdoc('js::web/main', <<'__');
 Caterwaul JS web interface | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-$('#cover .status').text('loading tutorial content');
+$('#cover .status .page').css({color: 'black'});
 
 $(caterwaul('js_all jquery')(function () {
   var original_html   = $('body').html(),
       original_pages  = $('#tutorial-page, #sdoc-page'),
       original_styles = $('style, link[rel="stylesheet"]');
 
-  $('#cover .status').text('parsing state');
+  $('#cover .status .state').css({color: 'black'});
 
   var construct_page = function (original_html) {
     - pinclude pp::js::web/header
