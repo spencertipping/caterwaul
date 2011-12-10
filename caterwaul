@@ -771,6 +771,8 @@ a {text-decoration: none}
 /* Tutorial page styling.*/
 /* These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.*/
 
+#benchmark td {font-size: 10pt; font-family: 'Droid Sans', sans-serif}
+
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
 #tutorial-page p {font-size: 10pt; line-height: 1.3em; text-align: justify; font-family: 'Droid Sans', sans-serif}
@@ -2687,6 +2689,8 @@ A great article about this (and its cross-browser ramifications) at http://www.l
 
 Tutorial page styling.
 These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.
+
+#benchmark td {font-size: 10pt; font-family: 'Droid Sans', sans-serif}
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
