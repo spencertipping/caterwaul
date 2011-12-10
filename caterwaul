@@ -5510,6 +5510,7 @@ interested in using Caterwaul for production projects.
   <blockquote>Nobody in their right mind would use this language. <span class='signature'>Anonymous</span></blockquote>
   <blockquote>Using this to build applications is like using quantum mechanics to build a car. <span class='signature'>Hank Racette, Founder of Arden Lake Technologies</span></blockquote>
   <blockquote>Caterwaul is a terrible language for the vast majority of developers. But I like it well enough. <span class='signature'>Spencer Tipping, author of Caterwaul</span></blockquote>
+  <blockquote>Genius <span class='signature'>bilalhusain@ycombinator</span></blockquote>
 
   Using Caterwaul.
   Caterwaul is pure Javascript, so you can integrate it into any web page without much effort. For example:
