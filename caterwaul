@@ -679,7 +679,7 @@ $('#benchmark').append(jquery [table(tr(td(a.caterwaul_core('+ caterwaul core in
  std: "caterwaul.std_initializer()".qf, 'parse-ui': "caterwaul.parse(caterwaul.ui_initializer)".qf,
  ui: "caterwaul.ui_initializer()".qf},
 
- benchmark(f, each, end) = f -where [trials = 4,
+ benchmark(f, each, end) = f -where [trials = 8,
  start = +new Date(),
  result = n[trials] *!+[shortly(delay in each(xl - --trials) -se-
  f() -se- end((+new Date() - start) / xl) /unless.trials)] -seq]]);
@@ -4946,7 +4946,7 @@ $('#benchmark').append(jquery [table(tr(td(a.caterwaul_core('+ caterwaul core in
                                                           std:  "caterwaul.std_initializer()".qf,           'parse-ui':   "caterwaul.parse(caterwaul.ui_initializer)".qf,
                                                           ui:   "caterwaul.ui_initializer()".qf},
 
-                               benchmark(f, each, end) = f -where [trials = 4,
+                               benchmark(f, each, end) = f -where [trials = 8,
                                                                    start  = +new Date(),
                                                                    result = n[trials] *!+[shortly(delay in each(xl - --trials) -se-
                                                                                                            f() -se- end((+new Date() - start) / xl) /unless.trials)] -seq]]);
