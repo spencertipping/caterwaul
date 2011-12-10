@@ -655,14 +655,18 @@ var shell = given.nothing in
 
 
 
-$('#benchmark').append(jquery [table(tr(td(a.caterwaul_core('+ caterwaul core initialization') %clickable), td.core_result),
- tr(td(a.caterwaul_std('+ compile std extension') %clickable), td.std_result),
- tr(td(a.caterwaul_ui('+ compile ui extension') %clickable), td.ui_result),
- tr(td(a.caterwaul_init('+ create compiler') %clickable), td.init_result),
+$('#benchmark').append(jquery [table(tr(td *colspan(2) > 'standard load cycle, assuming js_all and jquery'),
+ tr(td(a.caterwaul_core('> caterwaul core initialization') %clickable), td.core_result),
+ tr(td(a.caterwaul_std('> parse/compile std extension') %clickable), td.std_result),
+ tr(td(a.caterwaul_ui('> parse/compile ui extension') %clickable), td.ui_result),
+ tr(td(a.caterwaul_init('> instantiate compiler') %clickable), td.init_result),
 
- tr(td(a.caterwaul_parse_core('parse caterwaul core') %clickable), td.parse_core_result),
- tr(td(a.caterwaul_parse_std('parse std extension') %clickable), td.parse_std_result),
- tr(td(a.caterwaul_parse_ui('parse ui extension') %clickable), td.parse_ui_result))]
+ tr,
+ tr(td *colspan(2) > 'microbenchmarks (not part of the standard load cycle)'),
+
+ tr(td(a.caterwaul_parse_core('// parse caterwaul core') %clickable), td.parse_core_result),
+ tr(td(a.caterwaul_parse_std('// parse std extension') %clickable), td.parse_std_result),
+ tr(td(a.caterwaul_parse_ui('// parse ui extension') %clickable), td.parse_ui_result))]
 
  -se- functions %k*![setup_link(it, x)] /seq
 
@@ -763,6 +767,9 @@ a {text-decoration: none}
 
 .identify {background: #35a !important}
 
+ul {list-style-type: square; color: #777}
+li {color: black}
+
 /* Word wrapping inside <pre> elements.*/
 /* A great article about this (and its cross-browser ramifications) at http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/.*/
 
@@ -771,6 +778,7 @@ a {text-decoration: none}
 /* Tutorial page styling.*/
 /* These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.*/
 
+#benchmark {padding-top: 10px}
 #benchmark td {font-size: 10pt; font-family: 'Droid Sans', sans-serif}
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
@@ -2682,6 +2690,9 @@ a {text-decoration: none}
 
 .identify {background: #35a !important}
 
+ul {list-style-type: square; color: #777}
+li {color: black}
+
 Word wrapping inside <pre> elements.
 A great article about this (and its cross-browser ramifications) at http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/.
 
@@ -2690,6 +2701,7 @@ A great article about this (and its cross-browser ramifications) at http://www.l
 Tutorial page styling.
 These styles, while they should be more or less consistent across pages, are designed specifically for the tutorial.
 
+#benchmark {padding-top: 10px}
 #benchmark td {font-size: 10pt; font-family: 'Droid Sans', sans-serif}
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
@@ -4922,14 +4934,18 @@ caterwaul.words(caterwaul.js())(function ($) {
 
 __
 meta::sdoc('js::web/benchmark', <<'__');
-$('#benchmark').append(jquery [table(tr(td(a.caterwaul_core('+ caterwaul core initialization') %clickable), td.core_result),
-                                     tr(td(a.caterwaul_std('+ compile std extension')          %clickable), td.std_result),
-                                     tr(td(a.caterwaul_ui('+ compile ui extension')            %clickable), td.ui_result),
-                                     tr(td(a.caterwaul_init('+ create compiler')               %clickable), td.init_result),
+$('#benchmark').append(jquery [table(tr(td *colspan(2) > 'standard load cycle, assuming js_all and jquery'),
+                                     tr(td(a.caterwaul_core('> caterwaul core initialization') %clickable), td.core_result),
+                                     tr(td(a.caterwaul_std('> parse/compile std extension')    %clickable), td.std_result),
+                                     tr(td(a.caterwaul_ui('> parse/compile ui extension')      %clickable), td.ui_result),
+                                     tr(td(a.caterwaul_init('> instantiate compiler')          %clickable), td.init_result),
 
-                                     tr(td(a.caterwaul_parse_core('parse caterwaul core')      %clickable), td.parse_core_result),
-                                     tr(td(a.caterwaul_parse_std('parse std extension')        %clickable), td.parse_std_result),
-                                     tr(td(a.caterwaul_parse_ui('parse ui extension')          %clickable), td.parse_ui_result))]
+                                     tr,
+                                     tr(td *colspan(2) > 'microbenchmarks (not part of the standard load cycle)'),
+
+                                     tr(td(a.caterwaul_parse_core('// parse caterwaul core')    %clickable), td.parse_core_result),
+                                     tr(td(a.caterwaul_parse_std('// parse std extension')      %clickable), td.parse_std_result),
+                                     tr(td(a.caterwaul_parse_ui('// parse ui extension')        %clickable), td.parse_ui_result))]
 
                        -se- functions %k*![setup_link(it, x)] /seq
 
@@ -6347,7 +6363,7 @@ interested in using Caterwaul for production projects.
   Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 12K minified and
   gzipped. The code that it generates is about as fast as handwritten imperative Javascript and is often a bit faster than handwritten functional Javascript.
 
-  Here's a benchmark to test how well Caterwaul performs in your browser (entries marked with + are part of the standard Caterwaul load cycle; the others are more granular benchmarks):
+  Here's a benchmark to test how well Caterwaul performs in your browser:
   <div id='benchmark'></div>
 
 __
