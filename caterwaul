@@ -755,6 +755,14 @@ li *     {color: black}
 
 .identify {background: #35a !important}
 
+/* Webkit scrollbar styling.*/
+
+::-webkit-scrollbar              {width: 4px; height: 4px}
+::-webkit-scrollbar-button       {display: none}
+::-webkit-scrollbar-track        {background: #eee}
+::-webkit-scrollbar-thumb        {background: #777}
+::-webkit-scrollbar-thumb:hover  {background: black}
+
 /* Word wrapping inside <pre> elements.*/
 /* A great article about this (and its cross-browser ramifications) at http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/.*/
 
@@ -787,10 +795,6 @@ li *     {color: black}
 
 #wrapper .toc h1, #wrapper .toc h2, #wrapper .toc h3, #wrapper .toc h4
 {font-size: 10pt; color: black; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
-
-#wrapper .toc h1:hover,       #wrapper .toc h2:hover,       #wrapper .toc h3:hover,       #wrapper .toc h4:hover       {color: #35a}
-/*#wrapper .toc h1:after,       #wrapper .toc h2:after,       #wrapper .toc h3:after,       #wrapper .toc h4:after       {content: ' >>'; color: #777}
-#wrapper .toc h1:hover:after, #wrapper .toc h2:hover:after, #wrapper .toc h3:hover:after, #wrapper .toc h4:hover:after {content: ' >>'; color: #35a}*/
 
 #wrapper .toc h1 {padding: 0 10px}
 #wrapper .toc h2 {padding: 0 20px}
@@ -2652,6 +2656,14 @@ li *     {color: black}
 
 .identify {background: #35a !important}
 
+Webkit scrollbar styling.
+
+::-webkit-scrollbar              {width: 4px; height: 4px}
+::-webkit-scrollbar-button       {display: none}
+::-webkit-scrollbar-track        {background: #eee}
+::-webkit-scrollbar-thumb        {background: #777}
+::-webkit-scrollbar-thumb:hover  {background: black}
+
 Word wrapping inside <pre> elements.
 A great article about this (and its cross-browser ramifications) at http://www.longren.org/2006/09/27/wrapping-text-inside-pre-tags/.
 
@@ -2684,10 +2696,6 @@ These styles, while they should be more or less consistent across pages, are des
 
 #wrapper .toc h1, #wrapper .toc h2, #wrapper .toc h3, #wrapper .toc h4
 {font-size: 10pt; color: black; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
-
-#wrapper .toc h1:hover,       #wrapper .toc h2:hover,       #wrapper .toc h3:hover,       #wrapper .toc h4:hover       {color: #35a}
-/*#wrapper .toc h1:after,       #wrapper .toc h2:after,       #wrapper .toc h3:after,       #wrapper .toc h4:after       {content: ' >>'; color: #777}
-#wrapper .toc h1:hover:after, #wrapper .toc h2:hover:after, #wrapper .toc h3:hover:after, #wrapper .toc h4:hover:after {content: ' >>'; color: #35a}*/
 
 #wrapper .toc h1 {padding: 0 10px}
 #wrapper .toc h2 {padding: 0 20px}
