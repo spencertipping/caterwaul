@@ -621,15 +621,14 @@ var shell = given.nothing in
 // All we have to do here is create a div to contain each page and render its content from the SDoc source in the perl object. (Since this HTML file is actually a self-modifying Perl object --
 // long story.) We also build a table of contents.
 
- $('#wrapper').append(toc, pages, shell())
+ $('#wrapper') / toc / pages /~append/ shell()
 
  -where [page_for(attribute) = jquery [div.page[sdoc_to_dom(attribute.value)]] -se- it.find('pre.code') *![$(x).text($(x).text().replace(/^\s*/, ''))] /seq,
  page_attributes = attributes %[x.namespace === 'sdoc' && /^web\//.test(x.attribute)] -seq,
- pages = jquery [div] -se- page_attributes *page_for *![it /~append/ x] /seq,
+ pages = jquery [div.pages] -se- page_attributes *page_for *![it /~append/ x] /seq,
 
  toc = jquery [div.toc] -se- toc_links *~![x] *![it /~append/ x] /seq
- -where [section_id_count = 0,
- assign_section_id() = $(this).attr('id', 'section-#{++section_id_count}'),
+ -where [assign_section_id() = $(this).attr('id', $(this).text().replace(/\W/g, '-').replace(/-+/g, '-')),
 
  title_of(section) = $('<h#{level}>').text($(section).children('h#{level}').text())
  -where [level = +/level(\d+)/.exec($(section).attr('class'))[1]],
@@ -775,7 +774,8 @@ li *     {color: black}
 #benchmark td {font-size: 10pt; font-family: 'Droid Sans', sans-serif}
 
 #seq-decipher                      {padding: 4px 0; margin: 20px 0}
-#seq-decipher input                {background: #eee; padding: 4px; font-family: 'Droid Sans Mono', monospace; outline: none !important}
+#seq-decipher input                {border: none; background: #eee; padding: 4px; font-family: 'Droid Sans Mono', monospace; outline: none !important}
+#seq-decipher input:hover          {background: #aaa}
 #seq-decipher table.result         {font-size: 9pt}
 #seq-decipher td.name              {text-transform: lowercase; color: #777}
 #seq-decipher td.fragment          {font-family: 'Droid Sans Mono', monospace; color: #777}
@@ -2676,7 +2676,8 @@ These styles, while they should be more or less consistent across pages, are des
 #benchmark td {font-size: 10pt; font-family: 'Droid Sans', sans-serif}
 
 #seq-decipher                      {padding: 4px 0; margin: 20px 0}
-#seq-decipher input                {background: #eee; padding: 4px; font-family: 'Droid Sans Mono', monospace; outline: none !important}
+#seq-decipher input                {border: none; background: #eee; padding: 4px; font-family: 'Droid Sans Mono', monospace; outline: none !important}
+#seq-decipher input:hover          {background: #aaa}
 #seq-decipher table.result         {font-size: 9pt}
 #seq-decipher td.name              {text-transform: lowercase; color: #777}
 #seq-decipher td.fragment          {font-family: 'Droid Sans Mono', monospace; color: #777}
@@ -4968,15 +4969,14 @@ Building the content pages.
 All we have to do here is create a div to contain each page and render its content from the SDoc source in the perl object. (Since this HTML file is actually a self-modifying Perl object --
 long story.) We also build a table of contents.
 
-  $('#wrapper').append(toc, pages, shell())
+  $('#wrapper') / toc / pages /~append/ shell()
 
   -where [page_for(attribute)      = jquery [div.page[sdoc_to_dom(attribute.value)]] -se- it.find('pre.code') *![$(x).text($(x).text().replace(/^\s*/, ''))] /seq,
           page_attributes          = attributes %[x.namespace === 'sdoc' && /^web\//.test(x.attribute)] -seq,
-          pages                    = jquery [div] -se- page_attributes *page_for *![it /~append/ x] /seq,
+          pages                    = jquery [div.pages] -se- page_attributes *page_for *![it /~append/ x] /seq,
 
           toc                      = jquery [div.toc] -se- toc_links *~![x] *![it /~append/ x] /seq
-                                     -where [section_id_count    = 0,
-                                             assign_section_id() = $(this).attr('id', 'section-#{++section_id_count}'),
+                                     -where [assign_section_id() = $(this).attr('id', $(this).text().replace(/\W/g, '-').replace(/-+/g, '-')),
 
                                              title_of(section)   = $('<h#{level}>').text($(section).children('h#{level}').text())
                                                            -where [level = +/level(\d+)/.exec($(section).attr('class'))[1]],
