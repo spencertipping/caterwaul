@@ -18,6 +18,7 @@
 <div style='color: #777; font-family: "Droid Sans", sans-serif; font-size: 10pt; padding: 0 0 0 100px'>
 <div class='jquery' style='color: black'>jQuery</div>
 <div class='caterwaul'>caterwaul</div>
+<div class='futures'>futures</div>
 <div class='page'>page</div>
 <div class='state'>state</div>
 </div>
@@ -295,6 +296,7 @@ meta::define_form 'vim_highlighter', \&meta::bootstrap::implementation;
 __
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
 meta::alias('cloc', 'loc js::core/caterwaul\\.');
+meta::alias('eb', 'edit bootstrap::initialization');
 meta::alias('ec', 'edit sdoc::js::caterwaul');
 meta::alias('eh', 'edit data::bootstrap.html.sdoc');
 meta::alias('es', 'edit sdoc::data::style.css');
@@ -342,6 +344,17 @@ $('#cover .caterwaul').css({color: 'black'});
 <script>
 (caterwaul.ui_initializer=function(){caterwaul.words(caterwaul.js())(function(a){a.jquery(caterwaul_function)=caterwaul_function-se[it.modifiers.jquery(match)=jquery_expand.call(jquery_expand,anon_pattern.replace({_x:match._expression}))-re-this(it)/when.it]-where[anon_pattern=anon("J[_x]"),jquery_expand=a(a.alternatives(jquery_macros.concat(string_macros).concat(search_macros)))],where[jq="jQuery",anon=a.anonymizer("J","TS","S","P","PS"),hyphenate(s)=s.replace(/_/g,"-"),rule(p,e)=a.rereplacer(anon(p),e.constructor===Function?e.call(this,match)-given.match:anon(e)),p=where[p_pattern=anon("P[_thing]")] in p_pattern.replace({_thing:node})-given.node,jquery_macros=[rule("J[_element]",given.match[match._element.is_constant()||match._element.length?wrap_in_jquery(match):become_dom_node(match)]),rule("J[_element._class]","J[_element].addClass(S[_class])"),rule("J[_element *_attr(_val)]","J[_element].attr(S[_attr], _val)"),rule("J[_element *!_name(_val)]","J[_element].data(S[_name], _val)"),rule("J[_element /_method(_args)]","J[_element]._method(_args)"),rule("J[_element /!_event(_args)]","J[_element].bind(S[_event], _args)"),rule("J[_element %_function]","_function(J[_element])"),rule("J[_element(_children)]","J[_element].append(J[_children])"),rule("J[_element[_children]]","J[_element].append(_children)"),rule("J[_element < _tree]","J[_element].append((_tree).toString())"),rule("J[_element > _child]","J[_element].append(J[_child])"),rule("J[_element >= _child]","J[_element].append(_child)"),rule("J[_element1, _element2]","J[_element1].add(J[_element2])"),rule("J[_element1 + _element2]","J[_element1].add(J[_element2])"),rule("J[_element >> _pattern]","J[_element].filter(PS[_pattern])"),rule("J[_element >>> _pattern]","J[_element].find(PS[_pattern])"),rule("J[_element << _pattern]","J[_element].parents(PS[_pattern])"),rule("J[(_element)]","(J[_element])"),rule("J[[_element]]","[J[_element]]"),rule("J[+_expression]","_expression")]-where[dom_node_template=anon("#{jq}(TS[_element])"),jquery_template=anon('#{jq}("<span>" + (_element) + "</span>")'),become_dom_node(match)=dom_node_template.replace(match),wrap_in_jquery(match)=jquery_template.replace(match)],string_macros=[rule("TS[_identifier]",string("<#{hyphenate(match._identifier.data)}>")-given.match),rule("S[_identifier]",string(hyphenate(match._identifier.data))-given.match),rule("PS[_identifier]",string(expand(p(match._identifier)).data)-given.match)]-where[string(s)=new a.syntax('"'+s.replace(/\\/g,"\\\\").replace(/"/g,'\\"')+'"')],search_macros=[rule("P[_element]",new a.syntax(hyphenate(match._element.data-re[it==="_"?"*":it]))-given.match),rule("P[_element._class]",new a.syntax("#{this(p(match._element)).data}.#{hyphenate(match._class.data)}")-given.match),rule("P[_element[_attributes]]",new a.syntax("#{this(p(match._element)).data}[#{this(p(match._attributes))}]")-given.match),rule("P[_attribute = _value]",new a.syntax('#{this(p(match._attribute)).data}="#{'+interpolated(match._value)+'}"')-given.match),rule("P[(_element)]","P[_element]"),rule("P[_element1 +   _element2]",binary(", ")),rule("P[_element1,    _element2]",binary(", ")),rule("P[_element1 >>  _element2]",binary(" ")),rule("P[_element1 >>> _element2]",binary(" ")),rule("P[_element1 >   _element2]",binary(" > ")),rule("P[_element1(_element2)]",binary(" > ")),rule("P[_element /_selector]",new a.syntax("#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}")-given.match),rule("P[_element /_selector(_value)]",new a.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#{'+interpolated(match._value)+'}")')-given.match)]-where[interpolated(node)='(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',binary(op)(match)=new a.syntax("#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}")]]})(caterwaul)})();
 </script>
+
+<script >
+$('#cover .futures').css({color: 'black'});
+</script>
+<script>
+caterwaul.js_all()(function(a){(a.future=construct_future)/-a.merge/static_future_methods-where[static_future_methods=capture[array(xs)=transpose_array(xs),object(o)=transpose_object(o),k(x)=callback_future()(x)],construct_future(xs)=xs?xs.constructor===Object?a.future.object(xs):xs.constructor===Array?a.future.array(xs):new Error("unrecognized argument for future constructor: #{xs}")/raise:callback_future(),callback_future()=calls_its_send_method()-se-it/future_initials_for(it)/-a.merge/future_operations_for(it)-where[calls_its_send_method()=f-where[f()=f.send.apply(f,arguments)]],componentwise(init,each)(xs)=result-se-each(xs,v/~push/receive(k)-given[k,v])-where[result=caterwaul.future(),received=init(),queue={},enqueue(k,v)=(queue[k]||(queue[k]=[])).push(v),replay_queue()=queue/pairs*![receive(x[0])(x[1].shift())-when-x[1].length]-seq,expected_count=each(xs,++count-delay)-re-count-where[count=0],received_count=0,receive(k)(v)=received.hasOwnProperty(k)?enqueue(k,v):(received[k]=v)-re-result(received)/se[received=init(),received_count=0,replay_queue()]/when[++received_count===expected_count]],transpose_array=componentwise("[]".qf,given[xs,f] in xs*![f(xi,x)]-seq),transpose_object=componentwise("{}".qf,given[o,f] in o/pairs*![f(x[0],x[1])]-seq),call_vc(f,xs)=f.apply(continuation,xs)-re[continuation_result||[it]]-where[continuation_result=null,continuation(xs=arguments)=continuation_result=Array.prototype.slice.call(xs)],future_initials_for(future)={listeners:[],decided:null},future_operations_for(future)=wcapture[send(xs=arguments)=future-se[it.decided=xs,future.listeners*![future/-x.apply/xs]-seq],push(f)=future-se-future.listeners/~push/f-se-future/-f.apply/future.decided/when[future.decided],map(f)=callback_future()-se-push("it /-it.apply/ call_vc(f, arguments)".qf),flat_map(f)=callback_future()-se-map(f/~push/"future /~push/ it".qf),scan(size)=result-se-observe/!push-where[xs=[],result=callback_future()-se[it.queue()=xs],observe(x)=xs/~push/x-se-check_window(),check_window()=xs.shift()-se-result(+xs-seq)-when[elements.length>size]],fold(f,initial)=result-se-observe/!push-where[result=callback_future()-se[it.state()=initial],observe(x)=result(initial=f(initial,x))],filter(f)=caterwaul_future()-se-"it(_) -when- f(_)".qf/!push]]})(caterwaul);
+</script>
+<script>
+caterwaul("js_all")(function(a){a.invariant=wcapture[node(behavior)=n/-a.merge/wcapture[to(b,p)=n-se-set_edge(b,p)-se-set_sibling(b,p),send(v,visited)=behavior(n,v,seen)-se-broadcast(v)-where[seen=(visited||{})-se[it[id]=n]],unlink()=n-se-siblings*![x/false/~to/n]/seq,signal()=broadcast,set_edge(b,p)=b?(siblings[p.id]=p,p.siblings[id]=n):(delete siblings[p.id],delete p.siblings[id]),set_sibling(b,p)=b?edges[p.id]=p.edges[id]=b:(delete edges[p.id],delete p.edges[id]),id=gensym(),edges={},siblings={}]-where[n()=n.send.apply(n,arguments),broadcast=caterwaul.future()],node_repeat()(n,v,seen)=n.edges%k%![seen[x]]/pairs*[x[1](v,seen,siblings[x[0]])]/seq/!future/~map/"v".qf-where[siblings=n.siblings],node_cache(eq)(n,v,seen)=!eq(v,n.val()),filter_node(f)(n)=node(f(v)?n(v,seen):future()(v),given[v,seen]),linear_edge(v,visited,n)=n(v,visited),silent_edge(v,visited,n)=future()(v),fail_edge(v,visited,n)=future()(null)],using.caterwaul})(caterwaul);
+</script>
+
 <script>
 // Caterwaul JS web interface | Spencer Tipping
 // Licensed under the terms of the MIT source code license
@@ -932,6 +945,7 @@ meta::bootstrap('initialization', <<'__');
 <div style='color: #777; font-family: "Droid Sans", sans-serif; font-size: 10pt; padding: 0 0 0 100px'>
 <div class='jquery' style='color: black'>jQuery</div>
 <div class='caterwaul'>caterwaul</div>
+<div class='futures'>futures</div>
 <div class='page'>page</div>
 <div class='state'>state</div>
 </div>
@@ -1023,6 +1037,13 @@ meta::data('bootstrap.html.sdoc', <<'__');
     - script-include build/caterwaul.min.js
     - script-include build/caterwaul.std.min.js
     - script-include build/caterwaul.ui.min.js
+
+    - script << end
+      $('#cover .futures').css({color: 'black'});
+    - end
+    - script-include deps/future.min.js
+    - script-include deps/invariant.min.js
+
     - script-include crunch::pp::js::web/main
 
     - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'
