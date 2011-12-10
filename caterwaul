@@ -732,8 +732,8 @@ $('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.
 
  $('head').append(jquery in title('caterwaul js'));
  $('body').empty().append(original_cover, jquery in div.wrapper[page_header, original_pages]);
- $('#cover').animate({opacity: 0, left: -20}, "$('#cover').remove()".qf);
- $('body > .wrapper').css({position: 'relative', left: 20}).animate({left: 0});
+ $('#cover').animate({left: -20}, "$('#cover').remove()".qf);
+ $('body > .wrapper').css({zIndex: 100, position: 'absolute', background: 'white', left: 20, opacity: 0}).animate({left: 0, opacity: 1});
 
  original_styles.appendTo('head')};
 
@@ -5015,8 +5015,8 @@ $(caterwaul('js_all jquery')(function () {
 
     $('head').append(jquery in title('caterwaul js'));
     $('body').empty().append(original_cover, jquery in div.wrapper[page_header, original_pages]);
-    $('#cover').animate({opacity: 0, left: -20}, "$('#cover').remove()".qf);
-    $('body > .wrapper').css({position: 'relative', left: 20}).animate({left: 0});
+    $('#cover').animate({left: -20}, "$('#cover').remove()".qf);
+    $('body > .wrapper').css({zIndex: 100, position: 'absolute', background: 'white', left: 20, opacity: 0}).animate({left: 0, opacity: 1});
 
     original_styles.appendTo('head')};
 
@@ -6350,8 +6350,8 @@ interested in using Caterwaul for production projects.
     [ 2, 3, 4 ]
     >
 
-  Because Caterwaul recompiles functions, you'll have to explicitly bind <code>require</code> if you want your app to have access to it. This can be done by specifying a hash of variable
-  bindings after the function you're compiling. For example:
+  Because Caterwaul recompiles functions into the global scope and <code>require</code> is a lexical variable in node.js, you'll have to explicitly bind <code>require</code> if you want your
+  app to have access to it. This can be done by specifying a hash of variable bindings after the function you're compiling. For example:
 
   | var main_function = function () {...};
     caterwaul('js_all')(main_function, {require: require});
