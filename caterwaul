@@ -728,8 +728,8 @@ $('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.
 
  $('head').append(jquery in title('caterwaul js'));
  $('body').empty().append(original_cover, jquery in div.wrapper[page_header, original_pages]);
- $('#cover').animate({opacity: 0, left: -20}, 'slow', "$('#cover').remove()".qf);
- $('body > .wrapper').css({position: 'relative', left: 20}).animate({left: 0}, 'slow');
+ $('#cover').animate({opacity: 0, left: -20}, "$('#cover').remove()".qf);
+ $('body > .wrapper').css({position: 'relative', left: 20}).animate({left: 0});
 
  original_styles.appendTo('head')};
 
@@ -739,10 +739,10 @@ $('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.
 
 </script>
 
-<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'>
+<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono&subset=latin'>
 
 </link>
-<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans'>
+<link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans&subset=latin'>
 
 </link>
 
@@ -773,16 +773,12 @@ a {text-decoration: none}
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
-#tutorial-page p {font-size: 10pt; line-height: 2.1em; text-align: justify; font-family: 'Droid Sans', sans-serif}
+#tutorial-page p {font-size: 10pt; line-height: 1.3em; text-align: justify; font-family: 'Droid Sans', sans-serif}
 #tutorial-page blockquote .signature {float: right; color: #777; font-variant: italic}
-#tutorial-page blockquote {clear: right; margin-top: 10px}
+#tutorial-page blockquote {clear: right; padding-top: 10px; margin-right: 0; padding-right: 0}
 
-#tutorial-page p a              {color: #777; text-decoration: none}
-#tutorial-page p a:before       {content: '['; color: #777}
-#tutorial-page p a:after        {content: ']'; color: #777}
-#tutorial-page p a:hover        {color: #35a}
-#tutorial-page p a:hover:before {content: '['; color: #aaa}
-#tutorial-page p a:hover:after  {content: ']'; color: #aaa}
+#tutorial-page p a       {color: #777; text-decoration: none}
+#tutorial-page p a:hover {color: #35a}
 
 #tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
 {color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
@@ -814,7 +810,7 @@ a {text-decoration: none}
 #tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '+ '; color: #777}
 
 #tutorial-page .shell {position: fixed; border-radius: 0px; right: 50px; top: 0; bottom: 0; left: 600px; border: solid 2px #222; border-width: 0 1px; overflow-y: auto; overflow-x: hidden}
-#tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
+#tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9); display: none}
 
 #tutorial-page .shell .prompt > span {margin: 4px}
 
@@ -854,18 +850,18 @@ a {text-decoration: none}
 
 #tutorial-page .section h1, #tutorial-page .section h2, #tutorial-page .section h3, #tutorial-page .section h4 {padding-top: 50px}
 
-#tutorial-page .section h1 {font-size: 16pt}
-#tutorial-page .section h2 {font-size: 13pt}
-#tutorial-page .section h3 {font-size: 11pt}
+#tutorial-page .section h1 {font-size: 12pt}
+#tutorial-page .section h2 {font-size: 11pt}
+#tutorial-page .section h3 {font-size: 10pt}
 
 #tutorial-page .section h1, #tutorial-page .section h2, #tutorial-page .section h3, #tutorial-page .section h4 {text-transform: uppercase; font-weight: normal}
 
-#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page code {font-size: 8pt; font-family: 'Droid Sans Mono', monospace; background: #eee; padding: 2px}
+#tutorial-page pre  {font-size: 8pt; font-family: 'Droid Sans Mono', monospace; background: #eee; padding: 2px}
 
 #tutorial-page pre.code {cursor: pointer; padding: 10px 4px}
 #tutorial-page pre.code:before {content: '> '; color: #fa4}
-#tutorial-page pre.code:hover {background: #222; color: #fa4}
+#tutorial-page pre.code:hover {background: #aaa; color: #fa4}
 
 /* SDoc page styling.*/
 /* This is optimized for long lines and lots of text.*/
@@ -1049,8 +1045,8 @@ meta::data('bootstrap.html.sdoc', <<'__');
 
     - script-include crunch::pp::js::web/main
 
-    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono'
-    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans'
+    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono&subset=latin'
+    - link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Droid+Sans&subset=latin'
 
     - style-include pp::data::style.css
   - end
@@ -1775,14 +1771,6 @@ __
 meta::function('t', <<'__');
 my @tests = select_keys('--criteria' => "sdoc::js::test/(.*\/)?$_[0]");
 edit($tests[0]);
-__
-meta::function('testq-pre', <<'__');
-my ($options, @stuff) = separate_options(@_);
-my @tests = grep $_ !~ /^js::test\/lib/, grep s/^sdoc:://, select_keys('--criteria' => "^sdoc::js::.*\\.?test");
-
-terminal::warning('running tests without rendering');
-node([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) unless $$options{'-N'};
-gjs([qw(caterwaul.all.pre.js test/lib/unit.js), @tests]) if $$options{'-a'};
 __
 meta::function('todo-summary', <<'__');
 my @todo_items = &{'parse-todo'}(@_);
@@ -2702,16 +2690,12 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
-#tutorial-page p {font-size: 10pt; line-height: 2.1em; text-align: justify; font-family: 'Droid Sans', sans-serif}
+#tutorial-page p {font-size: 10pt; line-height: 1.3em; text-align: justify; font-family: 'Droid Sans', sans-serif}
 #tutorial-page blockquote .signature {float: right; color: #777; font-variant: italic}
-#tutorial-page blockquote {clear: right; margin-top: 10px}
+#tutorial-page blockquote {clear: right; padding-top: 10px; margin-right: 0; padding-right: 0}
 
-#tutorial-page p a              {color: #777; text-decoration: none}
-#tutorial-page p a:before       {content: '['; color: #777}
-#tutorial-page p a:after        {content: ']'; color: #777}
-#tutorial-page p a:hover        {color: #35a}
-#tutorial-page p a:hover:before {content: '['; color: #aaa}
-#tutorial-page p a:hover:after  {content: ']'; color: #aaa}
+#tutorial-page p a       {color: #777; text-decoration: none}
+#tutorial-page p a:hover {color: #35a}
 
 #tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
 {color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
@@ -2743,7 +2727,7 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '+ '; color: #777}
 
 #tutorial-page .shell {position: fixed; border-radius: 0px; right: 50px; top: 0; bottom: 0; left: 600px; border: solid 2px #222; border-width: 0 1px; overflow-y: auto; overflow-x: hidden}
-#tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
+#tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9); display: none}
 
 #tutorial-page .shell .prompt > span {margin: 4px}
 
@@ -2783,18 +2767,18 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page .section h1, #tutorial-page .section h2, #tutorial-page .section h3, #tutorial-page .section h4 {padding-top: 50px}
 
-#tutorial-page .section h1 {font-size: 16pt}
-#tutorial-page .section h2 {font-size: 13pt}
-#tutorial-page .section h3 {font-size: 11pt}
+#tutorial-page .section h1 {font-size: 12pt}
+#tutorial-page .section h2 {font-size: 11pt}
+#tutorial-page .section h3 {font-size: 10pt}
 
 #tutorial-page .section h1, #tutorial-page .section h2, #tutorial-page .section h3, #tutorial-page .section h4 {text-transform: uppercase; font-weight: normal}
 
-#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page code {font-size: 8pt; font-family: 'Droid Sans Mono', monospace; background: #eee; padding: 2px}
+#tutorial-page pre  {font-size: 8pt; font-family: 'Droid Sans Mono', monospace; background: #eee; padding: 2px}
 
 #tutorial-page pre.code {cursor: pointer; padding: 10px 4px}
 #tutorial-page pre.code:before {content: '> '; color: #fa4}
-#tutorial-page pre.code:hover {background: #222; color: #fa4}
+#tutorial-page pre.code:hover {background: #aaa; color: #fa4}
 
 SDoc page styling.
 This is optimized for long lines and lots of text.
@@ -5011,8 +4995,8 @@ $(caterwaul('js_all jquery')(function () {
 
     $('head').append(jquery in title('caterwaul js'));
     $('body').empty().append(original_cover, jquery in div.wrapper[page_header, original_pages]);
-    $('#cover').animate({opacity: 0, left: -20}, 'slow', "$('#cover').remove()".qf);
-    $('body > .wrapper').css({position: 'relative', left: 20}).animate({left: 0}, 'slow');
+    $('#cover').animate({opacity: 0, left: -20}, "$('#cover').remove()".qf);
+    $('body > .wrapper').css({position: 'relative', left: 20}).animate({left: 0});
 
     original_styles.appendTo('head')};
 
@@ -6290,7 +6274,7 @@ interested in using Caterwaul for production projects.
 
   For example, here's how to get a compiler that compiles all of the macros discussed on this page:
 
-  | var compiler = caterwaul.jquery(caterwaul.js_all());
+  | var compiler = caterwaul('js_all jquery');
 
   What we're saying here is "build a compiler with all Javascript core macros, then add jQuery support." A compiler is a function that recompiles any function you give it:
 
@@ -6299,12 +6283,12 @@ interested in using Caterwaul for production projects.
   Generally you create the compiler inline and use it to transform your app's initialization function:
 
   | // For jQuery apps:
-    $(caterwaul.jquery(caterwaul.js_all())(function () {
+    $(caterwaul('js_all jquery')(function () {
       $('body').append(jquery in div('hi there!'));
     }));
 
   | // For non-jQuery apps, or libraries:
-    caterwaul.js_all()(function () {
+    caterwaul('js_all')(function () {
       // app code
     })();
 
@@ -6342,7 +6326,7 @@ interested in using Caterwaul for production projects.
   | $ curl http://caterwauljs.org/build/caterwaul.{node,std}.js > caterwaul-custom.js
     $ node
     > var caterwaul = require('./caterwaul-custom.js').caterwaul;
-    > caterwaul.js_all()('[1, 2, 3] *[x + 1] -seq');
+    > caterwaul('js_all')('[1, 2, 3] *[x + 1] -seq');
     [ 2, 3, 4 ]
     >
 
@@ -6350,14 +6334,14 @@ interested in using Caterwaul for production projects.
   bindings after the function you're compiling. For example:
 
   | var main_function = function () {...};
-    caterwaul.js_all()(main_function, {require: require});
+    caterwaul('js_all')(main_function, {require: require});
 
   Doing this puts <code>require</code> into the local scope of the compiled function. (Unfortunately, Caterwaul has no way of doing this automatically, since all functions that it constructs
   are created in the global scope and lexical scopes are not first-class in Javascript.)
 
   Performance.
-  Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 11K minified and
-  gzipped. The code that it generates is about as fast as handwritten Javascript.
+  Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 12K minified and
+  gzipped. The code that it generates is about as fast as handwritten imperative Javascript and is often a bit faster than handwritten functional Javascript.
 
   Here's a benchmark to test how well Caterwaul performs in your browser (entries marked with + are part of the standard Caterwaul load cycle; the others are more granular benchmarks):
   <div id='benchmark'></div>
