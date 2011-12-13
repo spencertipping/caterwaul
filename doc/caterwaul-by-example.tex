@@ -133,7 +133,7 @@ Programmer ->    |      \
 \begin{verbatim}
 // Use an unconfigured caterwaul compiler; this has no effect:
 var f = function (x) {return x + 1};
-var g = caterwaul(f);
+var g = caterwaul()(f);
 
 // Use all known Javascript extensions:
 var f2 = function (x) {return y, where[y = x + 1]};
@@ -155,6 +155,9 @@ $(caterwaul('js_all')(function () {
 \end{verbatim}
 
     We're using jQuery, so our app will look like the second function here.
+
+    Incidentally, you may be wondering why Caterwaul takes a string. The reason is that you'll often want to enable multiple extensions at a time. To save space, you can say something like
+    \verb|caterwaul('js_all jquery')| to mean \verb|caterwaul.jquery(caterwaul.js_all())|.
 
 \section{Application code}
     Here's a Caterwaul app that computes our list of primes and shows it to the user:

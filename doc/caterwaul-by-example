@@ -476,7 +476,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.1wdV/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.djHm/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -2457,7 +2457,7 @@ meta::section('list-of-primes', <<'__');
     - verbatim << end
       // Use an unconfigured caterwaul compiler; this has no effect:
       var f = function (x) {return x + 1};
-      var g = caterwaul(f);
+      var g = caterwaul()(f);
 
       // Use all known Javascript extensions:
       var f2 = function (x) {return y, where[y = x + 1]};
@@ -2479,6 +2479,9 @@ meta::section('list-of-primes', <<'__');
     - end
 
     We're using jQuery, so our app will look like the second function here.
+
+    Incidentally, you may be wondering why Caterwaul takes a string. The reason is that you'll often want to enable multiple extensions at a time. To save space, you can say something like
+    \verb|caterwaul('js_all jquery')| to mean \verb|caterwaul.jquery(caterwaul.js_all())|.
 
   - s1 Application code
     Here's a Caterwaul app that computes our list of primes and shows it to the user:
