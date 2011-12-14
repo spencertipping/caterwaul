@@ -3895,7 +3895,7 @@ Composition lets you create derivative Caterwaul instances that incorporate cert
 layer by introducing an extra step before compilation or after parsing:
 
 | c1 = caterwaul('js_all')
-  c2 = caterwaul('jquery')
+  c2 = caterwaul('something_else')
   c1.after(c2)(f)               -> c2.compile(c1(c2(c2.parse(f))))
   c1.before(c2)(f)              -> c2.compile(c2(c1(c2.parse(f))))
 
