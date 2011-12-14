@@ -976,7 +976,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     macroexpander.constructor === Function || (macroexpander = invoke_caterwaul_methods(macroexpander));
     var result = function (f, environment, options) {
       return f.constructor === Function || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
-                                                                      f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
+                                                                      f.rmap(function (node) {return result.macroexpander(node, environment, options)})};
     result.global        = caterwaul_global;
     result.macroexpander = macroexpander;
     return result};
