@@ -524,7 +524,22 @@
   // | where[x = 10][alert(x)]
 //     alert(x), where[x = 10]
 
-    where: $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
+  // A variant of this is 'cwhere[]', which is a compile-time 'where'. It's similar to (macrolet) in Lisp. The idea is that it has where[]-style syntax but introduces macros into a segment of
+//   code. For example:
+
+  // | x.y.z /nullify -cwhere [_x._y /nullify = _x /nullify && ((_x /nullify)._y)]
+
+  // The right-hand side of each '=' is implicitly parenthesized, and each expansion is applied recursively (until it stops matching the input).
+
+  // You can use cwhere[] to splice in arguments to other cwhere[] macros. For example:
+
+  // | eval[caterwaul.nullify = qs[_x._y /nullify = x /nullify && ((_x /nullify)._y)]],
+//     x.y.z -cwhere [nullify] -cwhere [nullify = caterwaul.nullify /eval]
+
+    where:  $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
+    cwhere: $.reexpander(function (match) {var macros = match._parameters.flatten(','), l = macros.length;
+                                           return match._expression.rmap(function (node) {
+                                             for (var i = 0, macro, m; i < l; ++i) if (m = (macro = macros[i])[0].match(node)) return macro[1].replace(m)})}),
 
   // Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:

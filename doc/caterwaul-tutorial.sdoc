@@ -225,6 +225,15 @@ The <code>structure</code> method gives you a string containing the syntax tree 
 
   wcapture [f(x) = x + 1, g = f].g(10)
 
+  Caterwaul also gives you a compile-time <code>where</code> called <code>cwhere</code>. This is a way to define macros for a region of code. For example, let's suppose you want to inline a
+  function at compile-time. Here's how you might do that:
+
+  f(10) -cwhere [f(_x) = 2 * _x + 1]
+
+  You can also use <code>cwhere</code> on itself. (This is totally awesome and not recommended for sane people.) For example, if you have a definition that you want to reuse:
+
+  f(10) -cwhere [inline(f, _x + 1)] -cwhere [inline(_f, _e) = _f(_x) = _e]
+
   Function modifiers.
   There are two words that create functions. One is <code>given</code>, which creates a regular function. The other is <code>bgiven</code>, which binds the function to the <code>this</code>
   where it was defined. For example:
@@ -534,6 +543,10 @@ ni[1, 10] *[x * x] /seq
   We can also use this construct to return the index of the first matching element. Because an index of 0 is falsy, we'll have to add one (so 0 is the not-found value rather than -1):
 
   [-4, -5, 10, 2] |[xi + 1 -when [x > 0]] |seq
+
+  You can also ask whether something doesn't exist. This is done with the <code>|!</code> sequence operator. For example, to ask whether an array contains no negative numbers:
+
+  [1, 2, 3, 4] |![x < 0] |seq
 
   Combination.
   There are three ways you can combine things. The most obvious is concatenation, written <code>+</code>:
