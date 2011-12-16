@@ -6027,6 +6027,10 @@ ni[1, 10] *[x * x] /seq
 
   [-4, -5, 10, 2] |[xi + 1 -when [x > 0]] |seq
 
+  You can also ask whether something doesn't exist. This is done with the <code>|!</code> sequence operator. For example, to ask whether an array contains no negative numbers:
+
+  [1, 2, 3, 4] |![x < 0] |seq
+
   Combination.
   There are three ways you can combine things. The most obvious is concatenation, written <code>+</code>:
 
