@@ -535,9 +535,9 @@
 //     x.y.z -cwhere [nullify] -cwhere [nullify = caterwaul.nullify /eval]
 
     where:  $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
-    cwhere: $.reexpander(function (match) {var macros = match._parameters.flatten(','), l = macros.length;
-                                           return match._expression.rmap(function (node) {
-                                             for (var i = 0, macro, m; i < l; ++i) if (m = (macro = macros[i])[0].match(node)) return macro[1].replace(m)})}),
+    cwhere: $.reexpander(function (match) {var macros = match._parameters.flatten(','), l = macros.length, expand = function (node) {
+                                             for (var i = 0, macro, m; i < l; ++i) if (m = (macro = macros[i])[0].match(node)) return expand(macro[1].replace(m))};
+                                           return match._expression.rmap(expand)}),
 
   // Importation.
 //   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
