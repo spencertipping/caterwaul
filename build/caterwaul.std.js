@@ -536,7 +536,7 @@
 
     where:  $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
     cwhere: $.reexpander(function (match) {var macros = match._parameters.flatten(','), l = macros.length, expand = function (node) {
-                                             for (var i = 0, macro, m; i < l; ++i) if (m = (macro = macros[i])[0].match(node)) return expand(macro[1].replace(m))};
+                                             for (var i = 0, macro, m; i < l; ++i) if (m = (macro = macros[i])[0].match(node)) return expand(m = macro[1].replace(m)) || m};
                                            return match._expression.rmap(expand)}),
 
   // Importation.
