@@ -594,6 +594,7 @@
 //   -  = cartesian product        e.g.  [1, 2] - [3, 4] |seq               ->  [[1, 3], [1, 4], [2, 3], [2, 4]]
 //   ^  = zip                      e.g.  [1, 2, 3] ^ [4, 5, 6] |seq         ->  [[1, 4], [2, 5], [3, 6]]
 //   |  = exists                   e.g.  [1, 2, 3] |[x === 2] |seq          ->  true
+//   |! = not-exists               e.g.  [1, 2, 3] |![x >= 4] |seq          ->  true
 
 // Note that ^ has higher precedence than |, so we can use it in a sequence comprehension without interfering with the |seq macro (so long as the |seq macro is placed on the right).
 
@@ -807,7 +808,7 @@ caterwaul.words(caterwaul.js())(function ($) {
                             handle_vmap_forms                      = operator_case({normal: vmap,    bang: veach}),
                             handle_vfilter_forms                   = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
 
-                            handle_exists_forms                    = operator_case({normal: exists}),
+                            handle_exists_forms                    = operator_case({normal: exists,  bang: not_exists}),
 
                             // Body parsing
                             block                                  = anon('[_x]'),
@@ -881,6 +882,7 @@ caterwaul.words(caterwaul.js())(function ($) {
                             iunfold     = form('for (var ys = [], _x = xs, _xi = 0;                      (_init); ++_xi) ys.push(_x), _x = (_f);       return ys'),
 
                             exists      = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return x} return false'),
+                            not_exists  = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return false} return true'),
 
                             concat      = anon('(S[_xs]).concat((S[_ys]))'),
 
