@@ -529,6 +529,8 @@
 
   // | x.y.z /nullify -cwhere [_x._y /nullify = _x /nullify && ((_x /nullify)._y)]
 
+  // The right-hand side of each '=' is implicitly parenthesized, and each expansion is applied recursively (until it stops matching the input).
+
   // You can use cwhere[] to splice in arguments to other cwhere[] macros. For example:
 
   // | eval[caterwaul.nullify = qs[_x._y /nullify = x /nullify && ((_x /nullify)._y)]],
