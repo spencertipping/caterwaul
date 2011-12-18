@@ -672,6 +672,12 @@
   // | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
 //     xs /~[[]][x0 + [x, x + 1]] -seq     (equivalent to  xs *~![[x, x + 1]] -seq)
 
+  // From 1.1.5 onwards, these fold prefixes can be used with other operators as well. For example:
+
+  // | 1 /~![xi < 10][x + 1] -seq          (return the array [1, 2, ..., 9]: the first block conditionalizes the unfold)
+//     xs %~![x < 0][-x] -seq              (return an array of the negation of all negative elements in the first)
+//     xs *~![xi < 10][f(x)] -seq          (return the tenth composition of f over x)
+
   // Function promotion.
 //   Caterwaul 1.1 also adds support for implicit function promotion of sequence block expressions:
 
@@ -799,9 +805,9 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                                              iform_function(form)(body, init, vars) = use_form(form, xs, body, init, vars),
                                                                              use(form, iform)(body)                 = parse_body(body, expander, form_function(form), iform_function(iform))],
 
-                            handle_map_forms                       = operator_case({normal: map,     bang: each,        tbang: flatmap}),
-                            handle_filter_forms                    = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter}),
-                            handle_fold_forms                      = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl,  ibang: ifoldr,  itbang: iunfold}),
+                            handle_map_forms                       = operator_case({normal: map,     bang: each,        tbang: flatmap,                                   itbang: iterate}),
+                            handle_filter_forms                    = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                itbang: imap_filter}),
+                            handle_fold_forms                      = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,    inormal: ifoldl, ibang: ifoldr, itbang: iunfold}),
 
                             handle_kmap_forms                      = operator_case({normal: kmap,    bang: keach}),
                             handle_kfilter_forms                   = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
@@ -869,9 +875,13 @@ caterwaul.words(caterwaul.js())(function ($) {
                             each        = form('for (var                            _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                       return xs'),
                             flatmap     = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, @((_f))); return ys'),
 
-                            filter      = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);        return ys'),
-                            filter_not  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);        return ys'),
-                            map_filter  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+                            iterate     = form('for (var _x = xs, _xi = 0, _x0, _xl;                      _x0 = (_init); ++_xi) _x = (_f);                                return _x'),
+
+                            filter      = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);        return ys'),
+                            filter_not  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);        return ys'),
+                            map_filter  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+
+                            imap_filter = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0; _xi < _xl; ++_xi) _x = xs[_xi], (_x0 = (_init)) && ys.push(_f); return ys'),
 
                             foldl       = form('for (var _x0 = xs[0], _xi = 1, _xl = xs.length;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f); return _x0'),
                             foldr       = form('for (var _xl = xs.length, _xi = _xl - 2, _x0 = xs[_xl - 1]; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f); return _x0'),

@@ -23,6 +23,8 @@ interested in using Caterwaul for production projects.
   <blockquote>Caterwaul is a terrible language for the vast majority of developers. But I like it well enough. <span class='signature'>Spencer Tipping, author of Caterwaul</span></blockquote>
   <blockquote>Genius <span class='signature'>bilalhusain@ycombinator</span></blockquote>
   <blockquote>Caterwaul is f**king terrifying <span class='signature'>@wookiehangover</span></blockquote>
+  <blockquote>Caterwaul is for advanced JavaScript developers only, and is in no way recommended to people that don't know what they're doing.
+    <span class='signature'>Softpedia</span></blockquote>
 
   Using Caterwaul.
   Caterwaul is pure Javascript, so you can integrate it into any web page without much effort. For example:
@@ -402,6 +404,14 @@ ni[1, 10] *[x * x] /seq
     The reason you can't use <code>%k</code> and <code>%v</code> with <code>*~!</code> is that <code>*~!</code> isn't a componentwise operator. Because it could return zero, one, or many
     values for each one that gets visited, it isn't clear what to do with the result. (One example of this is <code>seq in value %v*~![[x, x + 'foo']]</code> -- the intent is unclear.)
 
+    Initialized forms.
+    You can provide an initialization block to <code>*~!</code> to iterate without building up an array. For example, to find the 1024th root of a number:
+
+    5 *~![xi < 10][Math.sqrt(x)] -seq
+
+    This is equivalent to using an unfold (see below) and selecting only the last element of the resulting array. Because no array is built, <code>*~![]</code> ends up being significantly
+    faster.
+
   Operator features.
   The sequence library uses operators to describe operations on arrays. Most of them are regular binary infix operators like <code>+</code> and <code>*</code>, though a few of them have names
   (such as <code>ni[]</code> above).
@@ -465,6 +475,13 @@ ni[1, 10] *[x * x] /seq
 
     Using <code>/pairs</code> with prefixes isn't necessary in most cases. I've included it in these examples to better illustrate what's happening.
 
+    Initialized forms.
+    You can use an init-block with <code>%~!</code> to separate the selector and the map. For example:
+
+    [1, 2, 3] %~![x & 1][x + 1] -seq
+
+    This is faster than its equivalent, <code>%[x & 1] *[x + 1]</code>.
+
   Folding.
   You can fold stuff through a binary expression by using the <code>/</code> family of operators. <code>/</code> has two forms: left fold (the default), and right fold (written as
   <code>/!</code>). For example, here is how you might sum a bunch of numbers:
@@ -518,7 +535,10 @@ ni[1, 10] *[x * x] /seq
 
     1 /~![x < 5][x + 1] -seq
 
-    If you use two blocks, <code>null</code> can be generated from your unfolds and elements will be generated as long as the first block returns truthy values.
+    If you use two blocks, <code>null</code> can be generated from your unfolds and elements will be generated as long as the first block returns truthy values. Also, <code>x0</code> is set to
+    the value of the first block. So, for example:
+
+    1 /~![xi < 5 && 'woot'][x0] -seq
 
   Quantification.
   The sequence library provides existential quantification on arrays. This uses a block that acts as a predicate. So, for instance, to determine whether any element in an array is positive:
