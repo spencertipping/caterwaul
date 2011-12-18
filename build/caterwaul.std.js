@@ -879,7 +879,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 
                             ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = xs.length;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);     return _x0'),
                             ifoldr      = form('for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);     return _x0'),
-                            iunfold     = form('for (var ys = [], _x = xs, _xi = 0;                      (_init); ++_xi) ys.push(_x), _x = (_f);       return ys'),
+                            iunfold     = form('for (var ys = [], _x = xs, _xi = 0, _x0;           _x0 = (_init); ++_xi) ys.push(_x), _x = (_f);       return ys'),
 
                             exists      = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return x} return false'),
                             not_exists  = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return false} return true'),
