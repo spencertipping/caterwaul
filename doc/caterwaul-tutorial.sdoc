@@ -412,6 +412,14 @@ ni[1, 10] *[x * x] /seq
     This is equivalent to using an unfold (see below) and selecting only the last element of the resulting array. Because no array is built, <code>*~![]</code> ends up being significantly
     faster.
 
+    Hacking iteration.
+    It's not hard to achieve a lot of flexibility with the <code>seq</code> macro. For example, you can manually increment <code>xi</code> to skip elements:
+
+    [1, 2, 3, 4, 5] *[++xi /unless [x & 1], xs[xi]] -seq
+
+    I don't exactly recommend that you do this, but under the hood the <code>seq</code> macro writes more or less normal-looking <code>for</code> loops and so is amenable to this kind of
+    manipulation.
+
   Operator features.
   The sequence library uses operators to describe operations on arrays. Most of them are regular binary infix operators like <code>+</code> and <code>*</code>, though a few of them have names
   (such as <code>ni[]</code> above).
@@ -494,11 +502,11 @@ ni[1, 10] *[x * x] /seq
 
   seq in [1, 2, 3] /!['[#{x}, #{x0}]']
 
-  Notice that for folding we have a new variable <code>x0</code>, which is available only when folding. <code>x0</code> is always used as the accumulator; that is, the inductive step is
-  <code>x0 = f(x0, x)</code>. There are actually a few variables you have access to depending on what you're doing. Inside any block you'll have <code>x</code>, <code>xi</code> (the current
-  index), and <code>xl</code> (the length of the original sequence). Each of these changes uniformly if you rename the variable; so for instance:
+  Notice that for folding we have a new variable <code>x0</code>. <code>x0</code> is always used as the accumulator; that is, the inductive step is <code>x0 = f(x0, x)</code>. There are
+  actually a few variables you have access to depending on what you're doing. Inside any block you'll have <code>x</code>, <code>xi</code> (the current index), <code>xs</code> (the current
+  source collection) and <code>xl</code> (the length of the original sequence). Each of these changes uniformly if you rename the variable; so for instance:
 
-  seq in [1, 2, 3] /bar[bar + bar0 + bari + barl]
+  seq in [1, 2, 3] /bar[bar + bar0 + bari + barl + bars]
 
     Prefixes.
     Sometimes you want to fold into an existing element. For example, suppose you want the sum of the squares of numbers from 1 to 10. This code won't work:

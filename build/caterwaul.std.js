@@ -793,7 +793,7 @@ caterwaul.words(caterwaul.js())(function ($) {
 
                     -where [// High-level form specializations
                             unrecognized(reason)                   = raise [new Error(reason)],
-                            use_form(form, xs, body, init, vars)   = form ? form.replace({_f: body, _init: init}).replace($.merge({_xs: xs}, vars)) :
+                            use_form(form, xs, body, init, vars)   = form ? form.replace({_f: body, _init: init}).replace($.merge({_s: xs}, vars)) :
                                                                             unrecognized('unsupported sequence operator or modifiers used on #{body}'),
 
                             operator_case(forms)(match)            = parse_modifiers(match._thing,
@@ -825,13 +825,13 @@ caterwaul.words(caterwaul.js())(function ($) {
                             block_with_closure                     = anon('+_x'),
                             block_with_seq                         = anon('~_x'),
 
-                            standard_names                         = {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl'},
-                            prefixed_names(p)                      = {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l'},
+                            standard_names                         = {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs'},
+                            prefixed_names(p)                      = {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l', _xs: '#{p}s'},
 
-                            function_promotion                     = anon('_f(_x, _x0, _xi, _xl)'),
+                            function_promotion                     = anon('_f(_x, _x0, _xi, _xl, _xs)'),
                             promote_function(f)                    = function_promotion.replace({_f: f}),
 
-                            closure_wrapper                        = anon('(function (_x, _x0, _xi, _xl) {return _f}).call(this, _x, _x0, _xi, _xl)'),
+                            closure_wrapper                        = anon('(function (_x, _x0, _xi, _xl, _xs) {return _f}).call(this, _x, _x0, _xi, _xl, _xs)'),
                             close_body(vars, f)                    = closure_wrapper.replace(vars).replace({_f: f}),
 
                             seq_pattern                            = anon('S[_x]'),
@@ -863,56 +863,56 @@ caterwaul.words(caterwaul.js())(function ($) {
                                                                           (result =  bang_modifier.match(tree)) ?  bang(result._x) : normal(tree)) -where [result = null]]
 
                     -where [// Setup for form definitions (see below)
-                            loop_anon   = $.anonymizer('xs', 'ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
-                            scope       = anon('(function (xs) {var _x, _x0, _xi, _xl; _body}).call(this, S[_xs])'),
+                            loop_anon   = $.anonymizer('ys', 'x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
+                            scope       = anon('(function (_xs) {var _x, _x0, _xi, _xl; _body}).call(this, S[_s])'),
                             scoped(t)   = scope.replace({_body: t}),
                             expand(s)   = s.replace(/@/g, 'Array.prototype.slice.call').replace(/#/g, 'Object.prototype.hasOwnProperty.call'),
 
                             form(x)     = x /!expand /!anon /!scoped /!loop_anon,
 
                             // Form definitions
-                            map         = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], ys.push((_f));              return ys'),
-                            each        = form('for (var                            _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], (_f);                       return xs'),
-                            flatmap     = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length; _xi < _xl; ++_xi) _x = xs[_xi], ys.push.apply(ys, @((_f))); return ys'),
+                            map         = form('for (var ys = new _xs.constructor(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], ys.push((_f));              return ys'),
+                            each        = form('for (var                             _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], (_f);                       return _xs'),
+                            flatmap     = form('for (var ys = new _xs.constructor(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], ys.push.apply(ys, @((_f))); return ys'),
 
-                            iterate     = form('for (var _x = xs, _xi = 0, _x0, _xl;                      _x0 = (_init); ++_xi) _x = (_f);                                return _x'),
+                            iterate     = form('for (var _x = _xs, _xi = 0, _x0, _xl;                       _x0 = (_init); ++_xi) _x = (_f);                                 return _x'),
 
-                            filter      = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) && ys.push(_x);        return ys'),
-                            filter_not  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0;     _xi < _xl; ++_xi) _x = xs[_xi], (_f) || ys.push(_x);        return ys'),
-                            map_filter  = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0, _y; _xi < _xl; ++_xi) _x = xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
+                            filter      = form('for (var ys = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0;     _xi < _xl; ++_xi) _x = _xs[_xi], (_f) && ys.push(_x);        return ys'),
+                            filter_not  = form('for (var ys = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0;     _xi < _xl; ++_xi) _x = _xs[_xi], (_f) || ys.push(_x);        return ys'),
+                            map_filter  = form('for (var ys = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0, _y; _xi < _xl; ++_xi) _x = _xs[_xi], (_y = (_f)) && ys.push(_y); return ys'),
 
-                            imap_filter = form('for (var ys = new xs.constructor(), _xi = 0, _xl = xs.length, _x0; _xi < _xl; ++_xi) _x = xs[_xi], (_x0 = (_init)) && ys.push(_f); return ys'),
+                            imap_filter = form('for (var ys = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0; _xi < _xl; ++_xi) _x = _xs[_xi], (_x0 = (_init)) && ys.push(_f); return ys'),
 
-                            foldl       = form('for (var _x0 = xs[0], _xi = 1, _xl = xs.length;            _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f); return _x0'),
-                            foldr       = form('for (var _xl = xs.length, _xi = _xl - 2, _x0 = xs[_xl - 1]; _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f); return _x0'),
-                            unfold      = form('for (var ys = [], _x = xs, _xi = 0;                      _x !== null; ++_xi) ys.push(_x), _x = (_f);   return ys'),
+                            foldl       = form('for (var _x0 = _xs[0], _xi = 1, _xl = _xs.length;            _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f); return _x0'),
+                            foldr       = form('for (var _xl = _xs.length, _xi = _xl - 2, _x0 = _xs[_xl - 1]; _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f); return _x0'),
+                            unfold      = form('for (var ys = [], _x = _xs, _xi = 0;                       _x !== null; ++_xi) ys.push(_x), _x = (_f);    return ys'),
 
-                            ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = xs.length;      _xi < _xl; ++_xi) _x = xs[_xi], _x0 = (_f);     return _x0'),
-                            ifoldr      = form('for (var _xl = xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = xs[_xi], _x0 = (_f);     return _x0'),
-                            iunfold     = form('for (var ys = [], _x = xs, _xi = 0, _x0;           _x0 = (_init); ++_xi) ys.push(_x), _x = (_f);       return ys'),
+                            ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = _xs.length;      _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f);     return _x0'),
+                            ifoldr      = form('for (var _xl = _xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f);     return _x0'),
+                            iunfold     = form('for (var ys = [], _x = _xs, _xi = 0, _x0;           _x0 = (_init); ++_xi) ys.push(_x), _x = (_f);        return ys'),
 
-                            exists      = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return x} return false'),
-                            not_exists  = form('for (var _x = xs[0], _xi = 0, _xl = xs.length, x; _xi < _xl; ++_xi) {_x = xs[_xi]; if (x = (_f)) return false} return true'),
+                            exists      = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'),
+                            not_exists  = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'),
 
                             concat      = anon('(S[_xs]).concat((S[_ys]))'),
 
-                            zip         = form('for (var ys = (S[_ys]), pairs = [], i = 0, l = xs.length; i < l; ++i) pairs.push([xs[i], ys[i]]); return pairs'),
-                            cross       = form('for (var ys = (S[_ys]), pairs = [], i = 0, l = xs.length, lj = ys.length; i < l; ++i) ' +
-                                                 'for (var j = 0; j < lj; ++j) pairs.push([xs[i], ys[j]]);' + 'return pairs'),
+                            zip         = form('for (var ys = (S[_ys]), pairs = [], i = 0, l = _xs.length; i < l; ++i) pairs.push([_xs[i], ys[i]]); return pairs'),
+                            cross       = form('for (var ys = (S[_ys]), pairs = [], i = 0, l = _xs.length, lj = ys.length; i < l; ++i) ' +
+                                                 'for (var j = 0; j < lj; ++j) pairs.push([_xs[i], ys[j]]);' + 'return pairs'),
 
-                            kmap        = form('var r = new xs.constructor();    for (var _x in xs) if (#(xs, _x)) r[_f] = xs[_x]; return r'),
-                            keach       = form('                                 for (var _x in xs) if (#(xs, _x)) _f;             return xs'),
+                            kmap        = form('var r = new _xs.constructor();    for (var _x in _xs) if (#(_xs, _x)) r[_f] = _xs[_x]; return r'),
+                            keach       = form('                                  for (var _x in _xs) if (#(_xs, _x)) _f;              return _xs'),
 
-                            kfilter     = form('var r = new xs.constructor();    for (var _x in xs) if (#(xs, _x) &&      (_f))  r[_x] = xs[_x]; return r'),
-                            kfilter_not = form('var r = new xs.constructor();    for (var _x in xs) if (#(xs, _x) &&    ! (_f))  r[_x] = xs[_x]; return r'),
-                            kmap_filter = form('var r = new xs.constructor(), x; for (var _x in xs) if (#(xs, _x) && (x = (_f))) r[x]  = xs[_x]; return r'),
+                            kfilter     = form('var r = new _xs.constructor();    for (var _x in _xs) if (#(_xs, _x) &&      (_f))  r[_x] = _xs[_x]; return r'),
+                            kfilter_not = form('var r = new _xs.constructor();    for (var _x in _xs) if (#(_xs, _x) &&    ! (_f))  r[_x] = _xs[_x]; return r'),
+                            kmap_filter = form('var r = new _xs.constructor(), x; for (var _x in _xs) if (#(_xs, _x) && (x = (_f))) r[x]  = _xs[_x]; return r'),
 
-                            vmap        = form('var r = new xs.constructor();    for (var  k in xs) if (#(xs, k)) _x = xs[k], r[k] = (_f); return r'),
-                            veach       = form('                                 for (var  k in xs) if (#(xs, k)) _x = xs[k], _f;          return xs'),
+                            vmap        = form('var r = new _xs.constructor();    for (var  k in _xs) if (#(_xs, k)) _x = _xs[k], r[k] = (_f); return r'),
+                            veach       = form('                                  for (var  k in _xs) if (#(_xs, k)) _x = _xs[k], _f;          return _xs'),
 
-                            vfilter     = form('var r = new xs.constructor();    for (var  k in xs) if (#(xs, k)) _x = xs[k],        (_f) && (r[k] = _x); return r'),
-                            vfilter_not = form('var r = new xs.constructor();    for (var  k in xs) if (#(xs, k)) _x = xs[k],        (_f) || (r[k] = _x); return r'),
-                            vmap_filter = form('var r = new xs.constructor(), x; for (var  k in xs) if (#(xs, k)) _x = xs[k], x = (_f), x && (r[k] =  x); return r')],
+                            vfilter     = form('var r = new _xs.constructor();    for (var  k in _xs) if (#(_xs, k)) _x = _xs[k],        (_f) && (r[k] = _x); return r'),
+                            vfilter_not = form('var r = new _xs.constructor();    for (var  k in _xs) if (#(_xs, k)) _x = _xs[k],        (_f) || (r[k] = _x); return r'),
+                            vmap_filter = form('var r = new _xs.constructor(), x; for (var  k in _xs) if (#(_xs, k)) _x = _xs[k], x = (_f), x && (r[k] =  x); return r')],
 
          word_macros     = [rule('S[n[_upper]]',                n),  rule('S[ni[_upper]]',                ni),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),
                             rule('S[n[_lower, _upper]]',        n),  rule('S[ni[_lower, _upper]]',        ni),  rule('S[_o /values]', values),  rule('S[_o -object]', object),
