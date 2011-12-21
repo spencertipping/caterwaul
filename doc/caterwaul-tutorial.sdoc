@@ -38,7 +38,7 @@ interested in using Caterwaul for production projects.
 
   For example, here's how to get a compiler that compiles all of the macros discussed on this page:
 
-  | var compiler = caterwaul.jquery(caterwaul.js_all());
+  | var compiler = caterwaul('js_all jquery');
 
   What we're saying here is "build a compiler with all Javascript core macros, then add jQuery support." A compiler is a function that recompiles any function you give it:
 
@@ -47,12 +47,12 @@ interested in using Caterwaul for production projects.
   Generally you create the compiler inline and use it to transform your app's initialization function:
 
   | // For jQuery apps:
-    $(caterwaul.jquery(caterwaul.js_all())(function () {
+    $(caterwaul('js_all jquery')(function () {
       $('body').append(jquery in div('hi there!'));
     }));
 
   | // For non-jQuery apps, or libraries:
-    caterwaul.js_all()(function () {
+    caterwaul('js_all')(function () {
       // app code
     })();
 
@@ -509,9 +509,10 @@ ni[1, 10] *[x * x] /seq
 
   Notice that for folding we have a new variable <code>x0</code>. <code>x0</code> is always used as the accumulator; that is, the inductive step is <code>x0 = f(x0, x)</code>. There are
   actually a few variables you have access to depending on what you're doing. Inside any block you'll have <code>x</code>, <code>xi</code> (the current index), <code>xs</code> (the current
-  source collection) and <code>xl</code> (the length of the original sequence). Each of these changes uniformly if you rename the variable; so for instance:
+  source collection), <code>xr</code> (the result collection), and <code>xl</code> (the length of the original sequence). Each of these changes uniformly if you rename the variable; so for
+  instance:
 
-  seq in [1, 2, 3] /bar[bar + bar0 + bari + barl + bars]
+  seq in [1, 2, 3] /bar[bar + bar0 + bari + barl + bars + barr]
 
     Prefixes.
     Sometimes you want to fold into an existing element. For example, suppose you want the sum of the squares of numbers from 1 to 10. This code won't work:
