@@ -11,7 +11,7 @@ fi
 mkdir -p stable/$1
 cp -r build/* caterwaul waul stable/$1/
 
-branchname=$(git status -sb | awk '{print $2}')
+branchname=$(git status -sb | awk '{print $2}' | sed 's/\.\.\..*$//' | head -n1)
 
 git add stable/$1
 git commit -am "Automatic commit for version $1"
