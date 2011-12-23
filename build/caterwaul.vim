@@ -17,6 +17,8 @@ endif
 syn case match
 setlocal iskeyword=48-57,95,36,A-Z,a-z
 
+syn region    jsNodeShebang             start=/^#!/ end=/$/
+
 syn region    jsParenGroup              matchgroup=jsParen   start=/(/  end=/)/  contains=TOP
 syn region    jsBracketGroup            matchgroup=jsBracket start=/\[/ end=/\]/ contains=TOP
 syn region    jsBraceGroup              matchgroup=jsBrace   start=/{/  end=/}/  contains=TOP
@@ -129,6 +131,8 @@ syn sync fromstart
 if main_syntax == "caterwaul"
   syn sync ccomment javaScriptComment
 endif
+
+hi def link jsNodeShebang               Special
 
 hi def link jsClosers                   Error
 

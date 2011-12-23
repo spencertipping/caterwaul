@@ -205,7 +205,7 @@
                                                                                                                                                         xs[j].as('(');
                                                                               var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
                                                                                   new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
-                                                                                  new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty
+                                                                                  new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty,
 
                                                                                   template    = function_assignment_template.replace(
                                                                                                   {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});

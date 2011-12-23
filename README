@@ -10,6 +10,7 @@ said, if you do happen to use one and find a problem, e-mail me and I'll fix it
 before releasing a non-beta.
 
 There's a Vim syntax highlighter in build/. You can use it by copying it to your
-~/.vim/syntax, then adding this line to your .vimrc:
+~/.vim/syntax, then adding this to your .vimrc:
 
-au BufReadPost,BufNewFile *.js set syntax=caterwaul
+au BufReadPost,BufNewFile *.js   set syntax=caterwaul
+au BufReadPost,BufNewFile *.waul set syntax=caterwaul
