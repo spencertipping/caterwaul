@@ -9,12 +9,14 @@ fi
 ./caterwaul render || exit 1
 
 mkdir -p stable/$1
-cp -r build/* caterwaul stable/$1/
+cp -r build/* caterwaul waul stable/$1/
+
+branchname=$(git status -sb | awk '{print $2}')
 
 git add stable/$1
 git commit -am "Automatic commit for version $1"
 git tag version-$1
-cp .git/refs/heads/* stable/$1/commit-id
+cp .git/refs/heads/$branchname stable/$1/commit-id
 tar -cj stable/$1 > stable/$1.tar.bz2
 git add stable/$1*
 git commit -am "Automatic commit for version $1 deployment"
