@@ -463,7 +463,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-reference-manual.8NDh/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-reference-manual.drrf/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', './');
@@ -1063,6 +1063,10 @@ __
 meta::function('vim', <<'__');
 # Installs VIM highlighters.
 file::write("$ENV{'HOME'}/.vim/syntax/$_.vim", retrieve("vim_highlighter::$_")) for grep s/^vim_highlighter:://o, keys %data;
+__
+meta::hook('before-shell::ad', <<'__');
+ad('section::');
+
 __
 meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
 meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
@@ -1957,7 +1961,272 @@ meta::section('main', <<'__');
 
   - include section::caterwaul-global
   - include section::syntax-trees
+  - include section::nodejs-preprocessor
 - end
+
+__
+meta::section('nodejs-preprocessor', <<'__');
+- sc Example: a node.js source preprocessor
+  Now that you've seen the gory details of what Caterwaul is made of, let's put it to good use by writing a handy preprocessor for node.js. The most trivial way to preprocess things is to just
+  parse them and convert them back to strings, so let's do that first. Here's the basic setup:
+
+  - verbatim << end
+    $ ls
+    caterwaul.node.js  my-preprocessor.js
+    $ cat my-preprocessor.js
+    var caterwaul = require('./caterwaul.node.js').caterwaul;
+    $
+  - end
+
+  Normally you do asynchronous IO in node, but since this application doesn't need to field any HTTP requests we can afford to block. Here's a basic identity preprocessor:
+
+  - resource examples/nodejs-preprocessor/identity.js << end
+    var caterwaul = require('./caterwaul.node.js').caterwaul;
+    var filename  = process.argv[2];
+    var source    = require('fs').readFileSync(filename, 'utf8');
+    var parsed    = caterwaul.parse(source);
+    require('fs').writeFileSync(
+      filename.replace(/\.js$/, '.out.js'),
+      parsed.toString(),
+      'utf8');
+  - end
+
+  We can now run this on itself to make sure it works (if you've got the Caterwaul repo checked out, it's in {\tt doc/examples/nodejs-preprocessor}):
+
+  - verbatim << end
+    $ ls
+    caterwaul.node.js  identity.js  ...
+    $ node identity.js identity.js
+    $ ls
+    caterwaul.node.js  identity.js  identity.out.js  ...
+    $
+  - end
+
+  At this point, {\tt identity.out.js} is a less-readable version of the program above. If you run it on itself, it should produce itself again; Caterwaul's parse/serialize cycle stabilizes
+  after a single iteration.\footnote{I'm not absolutely sure about this, but I strongly suspect it to be the case and have never seen it fail to converge.} 
+
+  - s1 Writing a debugging macro
+    Ok, let's make this thing useful. As a use case, let's say that you want to be able to write {\tt /log} after any expression to side-effectfully log it but still return its usual value.
+    Normally a similar effect can be achieved by writing a {\tt trace} function that looks something like this:
+
+    - verbatim << end
+      var trace = function (x) {
+        console.log(x);
+        return x;
+      };
+    - end
+
+    But being strongly anti-Lisp (and thus anti-parenthesis),\footnote{Irony of putting anti-parenthetical sentiments inside parentheses fully intended.} you want a less disruptive way to
+    write it. So you're opting for the more Caterwaul-idiomatic operator form. Here's the basic transformation you want:
+
+    - verbatim << end
+      x /log  ->  (function (y) {console.log(y); return y})(x);
+    - end
+
+    It doesn't matter what the function parameter is called, so we can just name it something generic like {\tt x} or {\tt y}. Division is also high-enough precedence that we don't need to
+    worry about changing the meaning of a comma inside {\tt x}.\footnote{Imagine if we wanted to write {\tt x, log}. Because the comma left-associates, {\tt x, y, log} would end up rewriting
+    into a function call on {\tt (x, y)}, which Javascript will interpret as two separate arguments rather than as one argument which is a comma. When this danger is present, you need to wrap
+    the argument in another set of parentheses. Fortunately, it won't happen here because {\tt /} is much higher-precedence than comma.} There are more and less tedious ways to write this
+    transformation. Here's one way to do it:
+
+    - verbatim << end
+      var log_template = caterwaul.parse('_x /log');
+      var expansion_template = caterwaul.parse(
+        '(function (x) {console.log(x); return x})(_x)');
+      var each = function (subtree) {
+        var match = log_template.match(subtree);
+        return match && expansion_template.replace(match);
+      };
+      var transform = function (tree) {
+        return tree.rmap(each);
+      };
+    - end
+
+    This will mostly work. There's only one significant problem, and it arises due to the way {\tt rmap()} works. Let's suppose {\tt each()} replaces a sub-tree. {\tt rmap()} won't then
+    descend into that subtree to re-expand any {\tt /log} expressions that it contains. (For example, consider something like {\tt f(x /log) /log}.) We can fix this by explicitly expanding the
+    match body like this:
+
+    - verbatim << end
+      var each = function (subtree) {
+        var match = log_template.match(subtree);
+        return match && expansion_template.replace({_x: transform(match._x)});
+      };
+    - end
+
+    Here's the complete program:
+
+    - resource examples/nodejs-preprocessor/debugger-rmap.js << end
+      var caterwaul = require('./caterwaul.node.js').caterwaul;
+      var filename  = process.argv[2];
+      var source    = require('fs').readFileSync(filename, 'utf8');
+      var parsed    = caterwaul.parse(source);
+
+      var log_template = caterwaul.parse('_x /log');
+      var expansion_template = caterwaul.parse(
+        '(function (x) {console.log(x); return x})(_x)');
+      var each = function (subtree) {
+        var match = log_template.match(subtree);
+        return match && expansion_template.replace({_x: transform(match._x)});
+      };
+      var transform = function (tree) {
+        return tree.rmap(each);
+      };
+
+      require('fs').writeFileSync(
+        filename.replace(/\.js$/, '.out.js'),
+        transform(parsed).toString(),
+        'utf8');
+    - end
+
+    And a test case:
+
+    - resource examples/nodejs-preprocessor/debugger-test.js << end
+      var f = function (x) {
+        return x + 1;
+      };
+      f(5 /log, 10 /log) /log;
+    - end
+
+    If this seems like a lot of work to go to just for one macro, that's probably because it is. A simpler way to go about it is to create a custom compiler that implements our macro for us.
+    This gets rid of the explicit {\tt rmap} and provides us with a way to indicate that we want to re-expand something. Here's what that looks like:
+
+    - verbatim << end
+      var each = function (subtree) {
+        var match = log_template.match(subtree);
+        return match && expansion_template.replace({_x: this(match._x)});
+      };
+      var transform = caterwaul(each);
+    - end
+
+    Notice the strange call to {\tt this()} inside {\tt each}. When you hand a macroexpander function like {\tt each} to Caterwaul, it invokes it on each node in the syntax tree just like {\tt
+    rmap} does. However, it also passes the current compiler in as {\tt this}. This lets you easily re-expand subtrees like we're doing here. It also makes it so that we don't need an external
+    reference to the {\tt transform()} function; now we can inline that into the main logic:
+
+    - resource examples/nodejs-preprocessor/debugger-caterwaul.js << end
+      var caterwaul = require('./caterwaul.node.js').caterwaul;
+      var filename  = process.argv[2];
+      var source    = require('fs').readFileSync(filename, 'utf8');
+      var parsed    = caterwaul.parse(source);
+
+      var log_template = caterwaul.parse('_x /log');
+      var expansion_template = caterwaul.parse(
+        '(function (x) {console.log(x); return x})(_x)');
+      var each = function (subtree) {
+        var match = log_template.match(subtree);
+        return match && expansion_template.replace({_x: this(match._x)});
+      };
+
+      require('fs').writeFileSync(
+        filename.replace(/\.js$/, '.out.js'),
+        caterwaul(each)(parsed).toString(),
+        'utf8');
+    - end
+
+  - s1 Using Caterwaul inside Caterwaul
+    This is where things get fun. The example above can be condensed like crazy once we have the Caterwaul standard library to work with. To do this, let's first build a node.js file that
+    contains what we need:
+
+    - resource examples/nodejs-preprocessor/build-node-std << end
+      #!/bin/bash
+      curl caterwauljs.org/build/caterwaul.{node,std}.js > caterwaul.node.std.js
+    - end
+
+    When this is {\tt require}d, we'll have a Caterwaul instance that can be customized with \verb|js_all|. First, let's make sure this works by writing a small test:
+
+    - resource examples/nodejs-preprocessor/caterwaul-test.js << end
+      var caterwaul = require('./caterwaul.node.std.js').caterwaul;
+      caterwaul('js_all')(function () {
+        console /~log/ 'hello from inside caterwaul!'})();
+    - end
+
+    So far so good. Now let's start leveraging some of the awesomeness that is the Caterwaul standard library. A couple of optimizations immediately jump out. First, we can use quotation
+    instead of invoking {\tt caterwaul.parse} directly. Quotation is both a modifier and a flag we can put onto string literals. Either will work in this case; I'll use the modifier. Now we
+    can write this:
+
+    - verbatim << end
+      var log_template = _x /log -qs;
+      var expansion_template = (function (x) {
+        console.log(x);
+        return x;
+      })(_x) -qs;
+    - end
+
+    This is an important bit of progress. When you mark something with the {\tt qs} modifier, Caterwaul parses it up-front and drops a reference to the parse tree into your code. This behavior
+    is different from invoking {\tt caterwaul.parse}, which will re-parse the same code every time you call it. This means that now we can inline the log template and the expansion template
+    into our code:
+
+    - verbatim << end
+      var each = function (subtree) {
+        var match = (_x /log -qs).match(subtree);
+        ...
+      };
+    - end
+
+    Using some of Caterwaul's syntactic niceties, we can end up writing this:
+
+    - verbatim << end
+      each(subtree) = expansion_template /~replace/ {_x: this(match._x)} /when.match
+              -where [match              = qs[_x /log] /~match/ subtree,
+                      expansion_template = qse[_x -se- console.log(it)]];
+    - end
+
+    One of the cool parts here is {\tt qse}, which is just like {\tt qs} but quotes the tree {\em after Caterwaul has macroexpanded it}. This means that {\tt -se-} will disappear and turn into
+    something remarkably similar to our original expansion template.\footnote{The only semantic difference is that {\tt -se-} invokes the function by using {\tt .call(this, x)}, which makes it
+    so that any references to {\tt this} inside the side-effect refer to the outer {\tt this}.}
+
+    Once you've loaded {\tt caterwaul.std.js} (which we did by appending it to {\tt caterwaul.node.js}), the {\tt caterwaul} global has some extra functions that are particularly useful for
+    writing macros like this. They are {\tt pattern}, {\tt expander}, {\tt reexpander}, {\tt replacer}, and {\tt rereplacer}. Here's what each one does:
+
+    - enumerate << end
+      - item[] {\tt pattern}
+        Takes a string or syntax tree and returns a function that calls its matcher. Logically, {\tt caterwaul.pattern(x)(tree) = caterwaul.parse(x).match(caterwaul.parse(tree))}, though {\tt
+        pattern()} doesn't re-parse its argument every time.
+
+      - item[] {\tt expander}
+        Takes a string or syntax tree and returns a function that calls its replacer. Logically, {\tt caterwaul.expander(x)(object) = caterwaul.parse(x).replace(object)}.
+
+      - item[] {\tt reexpander}
+        Just like {\tt expander}, but returns a function that invokes {\tt this} on the expansion output.
+
+      - item[] {\tt replacer}
+        Takes two string-or-syntax-trees and returns a function that matches its argument against the first argument and replaces using the second. It's basically like the {\tt each} we
+        defined earlier, but it doesn't re-expand the matching region(s).
+
+      - item[] {\tt rereplacer}
+        Just like {\tt replacer}, but the output after replacement is re-expanded using {\tt this}. This is basically identical to the semantics of {\tt each}, so we'll use this to write our
+        new-and-improved macroexpander.
+    - end
+
+    Here's the idiomatic Caterwaul implementation of our preprocessor (I've aliased \verb|$| to {\tt caterwaul} for conciseness):
+
+    - resource examples/nodejs-preprocessor/caterwaul-implementation.js << end
+      var caterwaul = require('./caterwaul.node.std.js').caterwaul;
+      caterwaul('js_all')(function () {
+        fs.writeFileSync(output_file, $(expand)(parsed).toString(), 'utf8')
+        -where [fs          = require('fs'),
+                output_file = process.argv[2].replace(/\.js$/, '.out.js'),
+                parsed      = $.parse(fs.readFileSync(process.argv[2], 'utf8')),
+                expand      = $.rereplacer(_x /log -qs, _x -se- console.log(it) -qse)]},
+        {$: caterwaul, require: require})();
+    - end
+
+    The only particularly interesting thing is that we're binding some variables outside of the function's context. In particular, we're binding {\tt require} to itself, which probably seems
+    strange. I was kind of surprised the first time I found that this was necessary. It turns out that {\tt require} isn't global in node.js; it's a lexically-scoped variable that is available
+    at the toplevel but not from inside a globally-compiled function. So if you remove the binding for {\tt require}, the program will fail with a {\tt ReferenceError}.
+
+    - quote << end
+      {\bf An interesting aside:} If you run this program on itself it will emit something that's invalid! This is kind of an interesting point, I think. Our macroexpander doesn't know
+      anything about Caterwaul's standard library or quotation or anything; it's just a blind replacer that looks for trees of the form {\tt something /log}. Well, we happen to have a tree
+      like that in the original: \verb|_x /log -qs|. Our macroexpander will happily preprocess this into its expansion, \verb|(function (x) {console.log(x); return x})(_x)|. We'll then end up
+      with a program that contains something like this gem:
+
+      - verbatim << end
+        $.reexpander((function (it) {console.log(it); return it}).call(this, _x) -qs,
+                     _x -se- console.log(it) -qse);
+      - end
+
+      This re-expander, of course, doesn't do anything (except that it will infinite-loop if something matches the pattern, since the pattern and the expansion are the same).
+    - end
 
 __
 meta::section('syntax-trees', <<'__');
