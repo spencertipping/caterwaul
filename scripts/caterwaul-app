@@ -42,7 +42,7 @@ cat > index.html <<end
   <script src='caterwaul.all.min.js'></script>
 
   <script>
-    \$(caterwaul.jquery(caterwaul.js_all())(function () {
+    \$(caterwaul('js_all jquery')(function () {
       \$('body').append('#{exclamation} Your new app works!')
       -where [exclamation = 'Woot!'];
     }));
