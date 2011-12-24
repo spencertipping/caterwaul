@@ -5020,7 +5020,14 @@ Waul will chuck a wobbly if your file doesn't have this form. Within the functio
 
 Normally this would fail because you can't put arbitrary values on the left-hand side of an assignment, but because .waul files are never interpreted as Javascript it isn't a problem.
 
-- pinclude js::caterwaul.all
+Dependencies.
+This program depends on Caterwaul, which is baked in minified here:
+
+- include build/caterwaul.min.js
+- include build/caterwaul.std.min.js
+
+Waul main program.
+This implements a totally lame option parser and reconstructs Caterwaul from its functions' toString representations.
 
 caterwaul('js_all')(function ($) {
   input_files *!waul -seq
