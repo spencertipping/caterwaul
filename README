@@ -14,3 +14,6 @@ There's a Vim syntax highlighter in build/. You can use it by copying it to your
 
 au BufReadPost,BufNewFile *.js   set syntax=caterwaul
 au BufReadPost,BufNewFile *.waul set syntax=caterwaul
+
+For automatic Waul file detection, follow the instructions in
+build/caterwaul-filetype.vim.

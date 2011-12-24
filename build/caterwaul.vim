@@ -17,7 +17,8 @@ endif
 syn case match
 setlocal iskeyword=48-57,95,36,A-Z,a-z
 
-syn region    jsNodeShebang             start=/^#!/ end=/$/
+syn region    jsWaulComment             start=/#/ end=/$/
+syn region    jsNodeShebang             start=/\%^#!/ end=/$/
 
 syn region    jsParenGroup              matchgroup=jsParen   start=/(/  end=/)/  contains=TOP
 syn region    jsBracketGroup            matchgroup=jsBracket start=/\[/ end=/\]/ contains=TOP
@@ -51,7 +52,7 @@ syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString contain
   syn match   jsRegexpSpecial           /\\[sSbBwWdDnr\\\[\]]\|[+*|?]\|\[\([^]\\\/]\|\\.\)\+\]/ contained
 
   syn match   jsStringEscape            /\\\d\{3\}\|\\u[0-9A-Za-z]\{4\}\|\\[a-z"'\\]/ contained
-  syn region  jsCaterwaulEscape         start=/#{/ end=/}/                            contained contains=TOP keepend
+  syn region  jsCaterwaulEscape         start=/#{/ end=/}/                            contained contains=TOP,jsWaulComment keepend
   syn match   jsCaterwaulNumericHex     /xl\?\(_\?[0-9a-f]\{2\}_\?\)\+/
   syn match   jsCaterwaulNumericBinary  /bl\?\(_\?[01]\{2\}_\?\)\{4,\}/
 
@@ -181,6 +182,7 @@ hi def link jsFunctionGroup             Identifier
 
 hi def link jsQuotationGroup            String
 
+hi def link jsWaulComment               Comment
 hi def link jsLineComment               Comment
 hi def link jsBlockComment              Comment
 hi def link jsCommentTags               Todo
