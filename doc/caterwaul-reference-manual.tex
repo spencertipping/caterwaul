@@ -97,7 +97,7 @@ ReferenceError: x is not defined
 \end{enumerate}
 
   Aside from a few utility methods like {\tt merge()}, those methods are all that you're likely to care about on the Caterwaul global. In addition to those methods, Caterwaul also gives you
-  access to two kinds of syntax trees:
+  access to three kinds of syntax trees:
 
 \begin{enumerate}
 \item[{\tt caterwaul.syntax}]
@@ -121,6 +121,20 @@ true
 > tree = caterwaul.parse('foo(bar)')
 > ref = new caterwaul.ref(function (x) {return x + 1})
 > caterwaul.compile(tree.replace({foo: ref}), {bar: 5})
+6
+>
+\end{verbatim}
+
+\item[{\tt caterwaul.expression\_ref}]
+  This is kind of an odd one. It behaves like a ref, but tells {\tt compile} to evaluate a given expression and insert that expression's result into the code. If you can, you should use
+  this instead of {\tt ref} because it enables Waul to precompile your source. (The reason is that expressions can be serialized, whereas arbitrary refs can't.) Usage is just like {\tt
+  ref}, but you pass in an expression instead of a value:
+
+\begin{verbatim}
+> tree = caterwaul.parse('foo(bar)');
+> code = caterwaul.parse('function (x) {return x + 1}');
+> e = new caterwaul.expression_ref(code);
+> caterwaul.compile(tree.replace({foo: e}, {bar: 5}));
 6
 >
 \end{verbatim}
@@ -568,7 +582,7 @@ caterwaul('js_all')(function () {
     strange. I was kind of surprised the first time I found that this was necessary. It turns out that {\tt require} isn't global in node.js; it's a lexically-scoped variable that is available
     at the toplevel but not from inside a globally-compiled function. So if you remove the binding for {\tt require}, the program will fail with a {\tt ReferenceError}.
 
-\begin{quotation}
+\begin{quote}
 {\bf An interesting aside:} If you run this program on itself it will emit something that's invalid! This is kind of an interesting point, I think. Our macroexpander doesn't know
 anything about Caterwaul's standard library or quotation or anything; it's just a blind replacer that looks for trees of the form {\tt something /log}. Well, we happen to have a tree
 like that in the original: \verb|_x /log -qs|. Our macroexpander will happily preprocess this into its expansion, \verb|(function (x) {console.log(x); return x})(_x)|. We'll then end up
@@ -580,6 +594,6 @@ $.reexpander((function (it) {console.log(it); return it}).call(this, _x) -qs,
 \end{verbatim}
 
 This re-expander, of course, doesn't do anything (except that it will infinite-loop if something matches the pattern, since the pattern and the expansion are the same).
-\end{quotation}
+\end{quote}
 
 \end{document}
