@@ -115,8 +115,8 @@
     lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
     lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}?:'),     lex_opener = lex_table('([{?:'),                  lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
       lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
-     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
      lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
+     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),  lex_dot = '.'.charCodeAt(0),  lex_hash = '#'.charCodeAt(0),
 
   // Parse data.
 //   The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
@@ -678,9 +678,13 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       This includes bracket resetting (the top case, where an open-bracket of any sort triggers regexp mode) and comment removal. Both line and block comments are removed by comparing against
 //       lex_slash, which represents /, and lex_star, which represents *.
 
+      // Caterwaul 1.1.6 adds recognition of # comments, which are treated just like other line comments. This is relevant in practice because node.js supports shebang-line invocation of
+//       Javascript files.
+
             if                                        (lex_bracket[c])                                                                    {t = !! ++i; re = lex_opener[c]}
        else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) {while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);  t = !  ++i}
        else if            (c === lex_slash && cs(i + 1) === lex_slash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
+       else if                                        (c === lex_hash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
 
       // Regexp and string literal lexing.
 //       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically

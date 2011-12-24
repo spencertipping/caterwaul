@@ -1,0 +1,5 @@
+#!/usr/bin/env waulrun
+# A Waul implementation of the standard UNIX cat program.
+
+caterwaul('js_all')(function (require) {
+  process.argv.slice(3) *![require('fs').readFileSync(x, 'utf8') /-process.stdout.write/ 'utf8'] -seq})(require);

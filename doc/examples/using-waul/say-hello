@@ -1,0 +1,9 @@
+#!/usr/bin/env waulrun
+// This file is in the canonical Waul format, which includes:
+// 1. A toplevel Caterwaul invocation
+// 2. A function passed directly in, and
+// 3. A direct invocation of Caterwaul's output.
+
+caterwaul('js_all')(function () {
+  console.log('#{message} from a Waul script!')
+  -where [message = 'hello']})();
