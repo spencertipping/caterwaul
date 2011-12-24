@@ -534,8 +534,8 @@
   // Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
 //   However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
 
-    using: $.reexpander(function (match) {var o = $.compile(this(match._parameters)), comma = new $.syntax(',');
-                                            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.ref(o[k])));
+    using: $.reexpander(function (match) {var m = this(match._parameters), o = $.compile(m), comma = new $.syntax(','), expression_ref = new $.expression_ref(m);
+                                          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) comma.push(new $.syntax('=', k, new $.syntax('.', expression_ref, k)));
                                           return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}),
 
   // Conditionals.
