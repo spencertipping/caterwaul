@@ -4,14 +4,15 @@
 caterwaul('js_all')(function ($) {
   'starting benchmark' /!console.log,
 
-  bench('no dispatch',        1000, "numbers                 /[0][x0 + x + 1] -seq".qf),
-  bench('immediate dispatch', 1000, "numbers                 /[0][x0 + (function (x) {return x + 1})(x)] -seq".qf),
-  bench('closures (unique)',  1000, "uncached_adder_closures /[0][x0 + x(1)] -seq".qf),
-  bench('closures (cached)',  1000, "cached_adder_closures   /[0][x0 + x(1)] -seq".qf),
-  bench('closures (random)',  1000, "random_adder_closures   /[0][x0 + x(1)] -seq".qf),
-  bench('classes (closures)', 1000, "cached_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
-  bench('classes (inline)',   1000, "inline_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
-  bench('classes (random)',   1000, "random_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
+  bench('no dispatch',         1000, "numbers                 /[0][x0 + x + 1] -seq".qf),
+  bench('continuous dispatch', 1000, "originals               /[0][x0 + (x & 7) + 1] -seq".qf),
+  bench('immediate dispatch',  1000, "numbers                 /[0][x0 + (function (x) {return x + 1})(x)] -seq".qf),
+  bench('closures (unique)',   1000, "uncached_adder_closures /[0][x0 + x(1)] -seq".qf),
+  bench('closures (cached)',   1000, "cached_adder_closures   /[0][x0 + x(1)] -seq".qf),
+  bench('closures (random)',   1000, "random_adder_closures   /[0][x0 + x(1)] -seq".qf),
+  bench('classes (closures)',  1000, "cached_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
+  bench('classes (inline)',    1000, "inline_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
+  bench('classes (random)',    1000, "random_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
 
   where [adder(x)(y)             = x + y,
          cached_adders           = n[8] *adder -seq,
@@ -25,6 +26,7 @@ caterwaul('js_all')(function ($) {
          inline_adder_objects    = n[100000] *[new inline_adder_prototypes[x & 7]()] -seq,
          random_adder_objects    = n[100000] *[new inline_adder_prototypes[Math.random() * 8 >>> 0]()] -seq,
 
+         originals               = n[100000] -seq,
          numbers                 = n[100000] *[x & 7] -seq,
 
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
