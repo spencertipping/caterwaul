@@ -4,7 +4,7 @@
 caterwaul('js_all')(function ($) {
   'starting benchmark' /!console.log,
 
-  bench('array trampoline', 500, function () {
+  bench('array trampoline', 1000, function () {
     var l = numbers.length;
     var sum_cps = function (total, i) {return i < l ? [sum_cps, total + numbers[i], i + 1] : total};
     var continuation = [sum_cps, 0, 0];
@@ -12,7 +12,7 @@ caterwaul('js_all')(function ($) {
       continuation = continuation[0](continuation[1], continuation[2]);
     return continuation}),
 
-  bench('array exception trampoline', 500, function () {
+  false && bench('array exception trampoline', 1000, function () {               # Not running this one because it's so slow
     var l = numbers.length;
     var sum_cps = function (total, i) {if (i < l) throw [sum_cps, total + numbers[i], i + 1]; return total};
     var continuation = [sum_cps, 0, 0];
@@ -20,21 +20,34 @@ caterwaul('js_all')(function ($) {
       try {return continuation[0](continuation[1], continuation[2])}
       catch (c) {continuation = c}}}),
 
-  bench('switch-case delegation', 500, function () {
+  bench('switch-case delegation (numeric)', 1000, function () {
     var l = numbers.length, total = 0, i = 0;
     while (true) {
       switch (+(i++ < l)) {
         case 0: return total;
         case 1: total += i; break}}}),
 
-  bench('while loop', 500, function () {
+  bench('switch-case delegation (boolean)', 1000, function () {
+    var l = numbers.length, total = 0, i = 0;
+    while (true) {
+      switch (i++ < l) {
+        case false: return total;
+        case true:  total += i; break}}}),
+
+  bench('if-then delegation', 1000, function () {
+    var l = numbers.length, total = 0, i = 0;
+    while (true) {
+      if (i < l) total += numbers[i++];
+      else       return total}}),
+
+  bench('while loop', 1000, function () {
     var l = numbers.length, total = 0, i = 0;
     while (i < l) {
       total += numbers[i];
       ++i}
     return total}),
 
-  bench('for loop', 500, function () {
+  bench('for loop', 1000, function () {
     for (var i = 0, l = numbers.length, total = 0; i < l; ++i) total += numbers[i];
     return total}),
 
