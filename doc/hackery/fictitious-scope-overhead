@@ -1,0 +1,21 @@
+#!/usr/bin/env waulrun
+# fictitious-scope-overhead: Measure the impact of adding fictitious scopes to computations.
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('direct', 1000, function () {for (var i = 0, l = data.length, total; i < l; ++i) total += data[i]; return total}),
+  bench('trivial scope', 1000, function () {return (function () {for (var i = 0, l = data.length, total; i < l; ++i) total += data[i]; return total})()}),
+  bench('nontrivial scope', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total})(data)}),
+  bench('nontrivial thiscall scope', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total}).call(this, data)}),
+
+  bench('seq form', 1000, function () {return data /[x + x0] -seq}),
+
+  where [data = n[200000] -seq,
+         bench(name, n, f) = '#{name}: #{average}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance)}ms stddev' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);

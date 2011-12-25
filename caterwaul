@@ -2300,10 +2300,10 @@ function::run-forever                                       e5b227e835b00b82d439
 internal_function::dep                                      9f5c8b82af8796a0ef9909de9c28d56b
 message_color::test                                         03621cd6ac0b1a40d703f41e26c5807f
 meta::type::js                                              e292996c992f4bc110e9577266c94784
-parent::/home/spencertipping/bin/repository                 5b2a3158563910cc089b10ca719b56f5
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  80a565297328b30d6e95028d03bd7861
+parent::/home/spencertipping/bin/repository                 c9d4572a563910ccc4e3defd9fa638f8
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  739656777fc0bcad0d9b72d77c4302bc
 parent::notes                                               017f7493aa63b6db4a4668a237aa7538
-parent::preprocessor                                        09a56657d0fde76fcf3fa664d2c6b4ca
+parent::preprocessor                                        7172206e753310217b5f67ac8366c8bf
 
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
@@ -3879,6 +3879,7 @@ These operate on caterwaul in some way, but don't necessarily have an effect on 
 
 - pinclude pp::js::extensions/std/macro
 - pinclude pp::js::extensions/std/anonymize
+- pinclude pp::js::extensions/std/module
 
 Language specializations.
 These provide configurations that specialize caterwaul to operate well with a given programming language. This is relevant because not all languages compile to Javascript the same way, and
@@ -4270,6 +4271,16 @@ Global macroexpansion.
 This is a shorthand to enable one-off macroexpansion. The idea is that we build a temporary caterwaul function to do some temporary work.
 
   $.macroexpand = function (tree) {return $($.alternatives(Array.prototype.slice.call(arguments, 1)))(tree)}})(caterwaul);
+
+__
+meta::sdoc('js::extensions/std/module', <<'__');
+Caterwaul module system | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Until the Waul precompiler was written, there wasn't much point in creating extra structure for Caterwaul modules. It was sufficient for scripts to just assign attributes to the Caterwaul
+global. However, a more structured approach has some advantages. For example, it would be nice to have replayable module initialization functions so that you could send modules as code from
+the server to the client. This library manages that abstraction.
 
 __
 meta::sdoc('js::extensions/std/seq', <<'__');
