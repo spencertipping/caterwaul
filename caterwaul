@@ -724,19 +724,17 @@ $('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.
 /* Caterwaul JS page style | Spencer Tipping*/
 /* Licensed under the terms of the MIT source code license*/
 
-body {font-family: 'Neuton', 'Garamond', serif; background: #111; margin: 0; color: #eee}
+body {font-family: 'Neuton', 'Garamond', serif; background: #ddd; margin: 0; color: #111}
 
 a {text-decoration: none}
 
-.header * {background: rgba(17, 17, 17, 0.5)}
-
 .header .title {font-size: 20pt; text-transform: uppercase}
-.header .title .caterwaul {color: #fff; border-right: solid 4px #444; padding: 120px 10px 0 50px; z-index: 10}
-.header .title .js        {color: #aaa; padding: 120px 0 0 10px; text-transform: lowercase; font-size: 16pt; z-index: 5}
+.header .title .caterwaul {color: #222; border-right: solid 1px #444; padding: 120px 10px 0 50px; z-index: 10}
+.header .title .js        {color: #444; padding: 120px 0 0 10px; text-transform: lowercase; font-size: 16pt; z-index: 5}
 
 .header {padding-bottom: 40px; margin-top: 100px}
 
-.accent {color: #fa4; z-index: 20}
+.accent {color: #555; z-index: 20}
 
 .identify {background: #752 !important}
 
@@ -754,37 +752,37 @@ a {text-decoration: none}
 #sdoc-page a.back:before {content: '<< '; color: #444}
 
 #sdoc-page a.back:hover {color: #ccc}
-#sdoc-page a.back:hover:before {content: '<< '; color: #fa4}
+#sdoc-page a.back:hover:before {content: '<< '; color: #555}
 
-#sdoc-page .file > h1                  {color: #999; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
-#sdoc-page .file > h1 .path            {color: #444}
-#sdoc-page .file > h1 .extension       {display: none; color: #444}
+#sdoc-page .file > h1                  {color: #444; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
+#sdoc-page .file > h1 .path            {color: #999}
+#sdoc-page .file > h1 .extension       {display: none; color: #999}
 
-#sdoc-page .file > h1:hover .path      {color: #ccc}
-#sdoc-page .file > h1:hover .extension {display: none; color: #ccc}
+#sdoc-page .file > h1:hover .path      {color: #222}
+#sdoc-page .file > h1:hover .extension {display: none; color: #222}
 
-#sdoc-page .file > h1:hover            {color: #ccc}
-#sdoc-page .file > h1:after            {content: ' >>'; color: #444}
-#sdoc-page .file > h1:hover:after      {content: ' >>'; color: #fa4}
+#sdoc-page .file > h1:hover            {color: #222}
+#sdoc-page .file > h1:after            {content: ' >>'; color: #999}
+#sdoc-page .file > h1:hover:after      {content: ' >>'; color: #555}
 
 #sdoc-page .section {margin-top: 50px}
 
-#sdoc-page .section h1:before, #sdoc-page .section h2:before, #sdoc-page .section h3:before {content: '< '; color: #fa4}
-#sdoc-page .section h1:after,  #sdoc-page .section h2:after,  #sdoc-page .section h3:after  {content: ' >'; color: #fa4}
+#sdoc-page .section h1:before, #sdoc-page .section h2:before, #sdoc-page .section h3:before {content: '< '; color: #555}
+#sdoc-page .section h1:after,  #sdoc-page .section h2:after,  #sdoc-page .section h3:after  {content: ' >'; color: #555}
 
-#sdoc-page .section h4:before {content: '> '; color: #fa4}
+#sdoc-page .section h4:before {content: '> '; color: #555}
 
 #sdoc-page .section h1 {font-size: 16pt}
 #sdoc-page .section h2 {font-size: 13pt}
 #sdoc-page .section h3 {font-size: 11pt}
 #sdoc-page .section h4 {font-size: 10pt}
 
-#sdoc-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#sdoc-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
+#sdoc-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 1px #444}
+#sdoc-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 1px #444}
 #sdoc-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
 #sdoc-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
 
-#sdoc-page p {color: #eee; font-family: 'Rosario', sans-serif; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
+#sdoc-page p {color: #111; font-family: sans-serif; font-size: 10pt; line-height: 1.44em; max-width: 500px; text-align: justify}
 
 #sdoc-page pre.code {border: solid 1px #333; color: white; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; padding: 4px; background: black; white-space: pre; word-wrap: none}
 #sdoc-page pre.code {line-height: 1.8em}
@@ -794,46 +792,46 @@ a {text-decoration: none}
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
-#tutorial-page p {font-family: 'Rosario', sans-serif; font-size: 11pt}
+#tutorial-page p {font-family: sans-serif; font-size: 11pt}
 #tutorial-page blockquote .signature {float: right; color: #aaa; font-variant: italic}
 #tutorial-page blockquote {clear: right; margin-top: 10px}
 
-#tutorial-page p a              {color: #888; text-decoration: none}
+#tutorial-page p a              {color: #222; text-decoration: none}
 #tutorial-page p a:before       {content: '['; color: #444}
 #tutorial-page p a:after        {content: ']'; color: #444}
-#tutorial-page p a:hover        {color: #eee}
-#tutorial-page p a:hover:before {content: '['; color: #fa4}
-#tutorial-page p a:hover:after  {content: ']'; color: #fa4}
+#tutorial-page p a:hover        {color: #555}
+#tutorial-page p a:hover:before {content: '['; color: #555}
+#tutorial-page p a:hover:after  {content: ']'; color: #555}
 
 #tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
 {color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
 
 #tutorial-page .popdown       {position: fixed; top: 0; left: 50px; border-bottom: solid 1px #444; padding-bottom: 2px}
-#tutorial-page .popdown:hover {border-bottom: solid 1px #fa4; padding-bottom: 10px}
+#tutorial-page .popdown:hover {border-bottom: solid 1px #555; padding-bottom: 10px}
 
-#tutorial-page .popdown.open  {background: rgba(0, 0, 0, 0.9); left: 40px; border-bottom: solid 4px #fa4; padding-bottom: 10px; padding-left: 10px; padding-right: 10px}
+#tutorial-page .popdown.open  {background: rgba(0, 0, 0, 0.9); left: 40px; border-bottom: solid 4px #555; padding-bottom: 10px; padding-left: 10px; padding-right: 10px}
 
 #tutorial-page .popdown       .label        {font-size: 14pt; color: #888; text-transform: lowercase; cursor: pointer}
-#tutorial-page .popdown       .label:hover  {color: #eee}
+#tutorial-page .popdown       .label:hover  {color: #444}
 #tutorial-page .popdown       .label:before {content: '< '; color: #444}
 #tutorial-page .popdown       .label:after  {content: ' >'; color: #444}
-#tutorial-page .popdown:hover .label:before {content: '< '; color: #fa4}
-#tutorial-page .popdown:hover .label:after  {content: ' >'; color: #fa4}
+#tutorial-page .popdown:hover .label:before {content: '< '; color: #555}
+#tutorial-page .popdown:hover .label:after  {content: ' >'; color: #555}
 
 #tutorial-page .popdown      .contents {display: none}
 #tutorial-page .popdown.open .contents {display: block; overflow-y: auto; overflow-x: hidden; max-height: 400px}
 
-#tutorial-page .toc h1:hover,       #tutorial-page .toc h2:hover,       #tutorial-page .toc h3:hover,       #tutorial-page .toc h4:hover       {color: #eee}
+#tutorial-page .toc h1:hover,       #tutorial-page .toc h2:hover,       #tutorial-page .toc h3:hover,       #tutorial-page .toc h4:hover       {color: #111}
 #tutorial-page .toc h1:after,       #tutorial-page .toc h2:after,       #tutorial-page .toc h3:after,       #tutorial-page .toc h4:after       {content: ' >>'; color: #888}
-#tutorial-page .toc h1:hover:after, #tutorial-page .toc h2:hover:after, #tutorial-page .toc h3:hover:after, #tutorial-page .toc h4:hover:after {content: ' >>'; color: #fa4}
+#tutorial-page .toc h1:hover:after, #tutorial-page .toc h2:hover:after, #tutorial-page .toc h3:hover:after, #tutorial-page .toc h4:hover:after {content: ' >>'; color: #555}
 
 #tutorial-page .toc h1 {font-size: 16pt}
 #tutorial-page .toc h2 {font-size: 13pt; padding-left: 20px}
 #tutorial-page .toc h3 {font-size: 11pt; padding-left: 40px}
 #tutorial-page .toc h4 {font-size: 10pt; padding-left: 60px}
 
-#tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '< '; color: #fa4}
-#tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ' >'; color: #fa4}
+#tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: ''; color: #555}
+#tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ''; color: #555}
 
 #tutorial-page .shell {position: fixed; border-radius: 0px; right: 50px; top: 0; bottom: 0; left: 600px; border: solid 2px #222; border-width: 0 1px; overflow-y: auto; overflow-x: hidden}
 #tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
@@ -842,7 +840,7 @@ a {text-decoration: none}
 
 #tutorial-page .shell .syntax {border-bottom: dotted 1px #468; cursor: default}
 
-#tutorial-page .shell .structure              {color: #797; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .structure              {color: #555; display: block; margin: 4px; padding: 4px 0}
 #tutorial-page .shell .structure:hover:before {color: #888; content: 'parse tree: '; padding-right: 4px}
 
 #tutorial-page .shell .shadow              {color: #888; display: block; margin: 4px; padding: 4px 0}
@@ -854,6 +852,7 @@ a {text-decoration: none}
 
 #tutorial-page .shell .input:focus {border: none !important; outline: none !important}
 
+#tutorial-page .shell code, #tutorial-page .shell pre {background: transparent; border: none}
 #tutorial-page .shell .history {position: relative}
 #tutorial-page .shell .history pre {font-family: 'Droid Sans Mono', monospace; font-size: 10pt}
 #tutorial-page .shell .history .entry, .shell .history .result, .shell .history .error, .shell .history .log {margin: 4px}
@@ -871,7 +870,7 @@ a {text-decoration: none}
 #tutorial-page #seq-decipher input                {border: solid 1px #444; background: black; padding: 4px; font-family: 'Droid Sans Mono', monospace; color: white; outline: none !important}
 #tutorial-page #seq-decipher table.result         {font-size: 9pt}
 #tutorial-page #seq-decipher td.name              {text-transform: lowercase; color: #aaa}
-#tutorial-page #seq-decipher td.fragment          {font-family: 'Droid Sans Mono', monospace; color: #fa4}
+#tutorial-page #seq-decipher td.fragment          {font-family: 'Droid Sans Mono', monospace; color: #555}
 #tutorial-page #seq-decipher tr.variables td.desc {font-family: 'Droid Sans Mono', monospace}
 
 #tutorial-page .section h1, #tutorial-page .section h2, #tutorial-page .section h3, #tutorial-page .section h4 {padding-top: 50px}
@@ -880,18 +879,18 @@ a {text-decoration: none}
 #tutorial-page .section h2 {font-size: 13pt}
 #tutorial-page .section h3 {font-size: 11pt}
 
-#tutorial-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
-#tutorial-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
+#tutorial-page .section h1 {text-transform: lowercase; color: #222; font-weight: normal; border-bottom: solid 1px #444}
+#tutorial-page .section h2 {text-transform: lowercase; color: #222; font-weight: normal; border-bottom: solid 1px #444}
+#tutorial-page .section h3 {text-transform: lowercase; color: #222; font-weight: normal}
+#tutorial-page .section h4 {text-transform: lowercase; color: #222; font-weight: normal}
 
-#tutorial-page p {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
-#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page p {color: #111; font-size: 10pt; line-height: 1.44em; text-align: justify}
+#tutorial-page code {color: #444; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: #ccc; padding: 2px; border: solid 1px #888}
+#tutorial-page pre  {color: #444; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: #ccc; padding: 2px; border: solid 1px #888}
 
 #tutorial-page pre.code {cursor: pointer; padding: 10px 4px}
-#tutorial-page pre.code:before {content: '> '; color: #fa4}
-#tutorial-page pre.code:hover {background: #222; color: #fa4}
+#tutorial-page pre.code:before {content: '> '; color: #555}
+#tutorial-page pre.code:hover {background: #222; color: #555}
 
 /* Generated by SDoc */
 
@@ -2648,19 +2647,17 @@ meta::sdoc('data::style.css', <<'__');
 Caterwaul JS page style | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-body {font-family: 'Neuton', 'Garamond', serif; background: #111; margin: 0; color: #eee}
+body {font-family: 'Neuton', 'Garamond', serif; background: #ddd; margin: 0; color: #111}
 
 a {text-decoration: none}
 
-.header * {background: rgba(17, 17, 17, 0.5)}
-
 .header .title {font-size: 20pt; text-transform: uppercase}
-.header .title .caterwaul {color: #fff; border-right: solid 4px #444; padding: 120px 10px 0 50px; z-index: 10}
-.header .title .js        {color: #aaa; padding: 120px 0 0 10px; text-transform: lowercase; font-size: 16pt; z-index: 5}
+.header .title .caterwaul {color: #222; border-right: solid 1px #444; padding: 120px 10px 0 50px; z-index: 10}
+.header .title .js        {color: #444; padding: 120px 0 0 10px; text-transform: lowercase; font-size: 16pt; z-index: 5}
 
 .header {padding-bottom: 40px; margin-top: 100px}
 
-.accent {color: #fa4; z-index: 20}
+.accent {color: #555; z-index: 20}
 
 .identify {background: #752 !important}
 
@@ -2678,37 +2675,37 @@ This is optimized for long lines and lots of text.
 #sdoc-page a.back:before {content: '<< '; color: #444}
 
 #sdoc-page a.back:hover {color: #ccc}
-#sdoc-page a.back:hover:before {content: '<< '; color: #fa4}
+#sdoc-page a.back:hover:before {content: '<< '; color: #555}
 
-#sdoc-page .file > h1                  {color: #999; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
-#sdoc-page .file > h1 .path            {color: #444}
-#sdoc-page .file > h1 .extension       {display: none; color: #444}
+#sdoc-page .file > h1                  {color: #444; cursor: pointer; font-weight: normal; font-size: 16pt; white-space: nowrap; word-wrap: none}
+#sdoc-page .file > h1 .path            {color: #999}
+#sdoc-page .file > h1 .extension       {display: none; color: #999}
 
-#sdoc-page .file > h1:hover .path      {color: #ccc}
-#sdoc-page .file > h1:hover .extension {display: none; color: #ccc}
+#sdoc-page .file > h1:hover .path      {color: #222}
+#sdoc-page .file > h1:hover .extension {display: none; color: #222}
 
-#sdoc-page .file > h1:hover            {color: #ccc}
-#sdoc-page .file > h1:after            {content: ' >>'; color: #444}
-#sdoc-page .file > h1:hover:after      {content: ' >>'; color: #fa4}
+#sdoc-page .file > h1:hover            {color: #222}
+#sdoc-page .file > h1:after            {content: ' >>'; color: #999}
+#sdoc-page .file > h1:hover:after      {content: ' >>'; color: #555}
 
 #sdoc-page .section {margin-top: 50px}
 
-#sdoc-page .section h1:before, #sdoc-page .section h2:before, #sdoc-page .section h3:before {content: '< '; color: #fa4}
-#sdoc-page .section h1:after,  #sdoc-page .section h2:after,  #sdoc-page .section h3:after  {content: ' >'; color: #fa4}
+#sdoc-page .section h1:before, #sdoc-page .section h2:before, #sdoc-page .section h3:before {content: '< '; color: #555}
+#sdoc-page .section h1:after,  #sdoc-page .section h2:after,  #sdoc-page .section h3:after  {content: ' >'; color: #555}
 
-#sdoc-page .section h4:before {content: '> '; color: #fa4}
+#sdoc-page .section h4:before {content: '> '; color: #555}
 
 #sdoc-page .section h1 {font-size: 16pt}
 #sdoc-page .section h2 {font-size: 13pt}
 #sdoc-page .section h3 {font-size: 11pt}
 #sdoc-page .section h4 {font-size: 10pt}
 
-#sdoc-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#sdoc-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
+#sdoc-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 1px #444}
+#sdoc-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 1px #444}
 #sdoc-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
 #sdoc-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
 
-#sdoc-page p {color: #eee; font-family: 'Rosario', sans-serif; font-size: 10pt; line-height: 2.1em; max-width: 500px; text-align: justify}
+#sdoc-page p {color: #111; font-family: sans-serif; font-size: 10pt; line-height: 1.44em; max-width: 500px; text-align: justify}
 
 #sdoc-page pre.code {border: solid 1px #333; color: white; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; padding: 4px; background: black; white-space: pre; word-wrap: none}
 #sdoc-page pre.code {line-height: 1.8em}
@@ -2718,46 +2715,46 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page {width: 500px; padding-bottom: 100px; padding-right: 200px; padding-left: 50px; position: relative}
 
-#tutorial-page p {font-family: 'Rosario', sans-serif; font-size: 11pt}
+#tutorial-page p {font-family: sans-serif; font-size: 11pt}
 #tutorial-page blockquote .signature {float: right; color: #aaa; font-variant: italic}
 #tutorial-page blockquote {clear: right; margin-top: 10px}
 
-#tutorial-page p a              {color: #888; text-decoration: none}
+#tutorial-page p a              {color: #222; text-decoration: none}
 #tutorial-page p a:before       {content: '['; color: #444}
 #tutorial-page p a:after        {content: ']'; color: #444}
-#tutorial-page p a:hover        {color: #eee}
-#tutorial-page p a:hover:before {content: '['; color: #fa4}
-#tutorial-page p a:hover:after  {content: ']'; color: #fa4}
+#tutorial-page p a:hover        {color: #555}
+#tutorial-page p a:hover:before {content: '['; color: #555}
+#tutorial-page p a:hover:after  {content: ']'; color: #555}
 
 #tutorial-page .toc h1, #tutorial-page .toc h2, #tutorial-page .toc h3, #tutorial-page .toc h4
 {color: #999; cursor: pointer; font-weight: normal; white-space: nowrap; word-wrap: none; text-transform: lowercase}
 
 #tutorial-page .popdown       {position: fixed; top: 0; left: 50px; border-bottom: solid 1px #444; padding-bottom: 2px}
-#tutorial-page .popdown:hover {border-bottom: solid 1px #fa4; padding-bottom: 10px}
+#tutorial-page .popdown:hover {border-bottom: solid 1px #555; padding-bottom: 10px}
 
-#tutorial-page .popdown.open  {background: rgba(0, 0, 0, 0.9); left: 40px; border-bottom: solid 4px #fa4; padding-bottom: 10px; padding-left: 10px; padding-right: 10px}
+#tutorial-page .popdown.open  {background: rgba(0, 0, 0, 0.9); left: 40px; border-bottom: solid 4px #555; padding-bottom: 10px; padding-left: 10px; padding-right: 10px}
 
 #tutorial-page .popdown       .label        {font-size: 14pt; color: #888; text-transform: lowercase; cursor: pointer}
-#tutorial-page .popdown       .label:hover  {color: #eee}
+#tutorial-page .popdown       .label:hover  {color: #444}
 #tutorial-page .popdown       .label:before {content: '< '; color: #444}
 #tutorial-page .popdown       .label:after  {content: ' >'; color: #444}
-#tutorial-page .popdown:hover .label:before {content: '< '; color: #fa4}
-#tutorial-page .popdown:hover .label:after  {content: ' >'; color: #fa4}
+#tutorial-page .popdown:hover .label:before {content: '< '; color: #555}
+#tutorial-page .popdown:hover .label:after  {content: ' >'; color: #555}
 
 #tutorial-page .popdown      .contents {display: none}
 #tutorial-page .popdown.open .contents {display: block; overflow-y: auto; overflow-x: hidden; max-height: 400px}
 
-#tutorial-page .toc h1:hover,       #tutorial-page .toc h2:hover,       #tutorial-page .toc h3:hover,       #tutorial-page .toc h4:hover       {color: #eee}
+#tutorial-page .toc h1:hover,       #tutorial-page .toc h2:hover,       #tutorial-page .toc h3:hover,       #tutorial-page .toc h4:hover       {color: #111}
 #tutorial-page .toc h1:after,       #tutorial-page .toc h2:after,       #tutorial-page .toc h3:after,       #tutorial-page .toc h4:after       {content: ' >>'; color: #888}
-#tutorial-page .toc h1:hover:after, #tutorial-page .toc h2:hover:after, #tutorial-page .toc h3:hover:after, #tutorial-page .toc h4:hover:after {content: ' >>'; color: #fa4}
+#tutorial-page .toc h1:hover:after, #tutorial-page .toc h2:hover:after, #tutorial-page .toc h3:hover:after, #tutorial-page .toc h4:hover:after {content: ' >>'; color: #555}
 
 #tutorial-page .toc h1 {font-size: 16pt}
 #tutorial-page .toc h2 {font-size: 13pt; padding-left: 20px}
 #tutorial-page .toc h3 {font-size: 11pt; padding-left: 40px}
 #tutorial-page .toc h4 {font-size: 10pt; padding-left: 60px}
 
-#tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: '< '; color: #fa4}
-#tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ' >'; color: #fa4}
+#tutorial-page .section h1:before, #tutorial-page .section h2:before, #tutorial-page .section h3:before {content: ''; color: #555}
+#tutorial-page .section h1:after,  #tutorial-page .section h2:after,  #tutorial-page .section h3:after  {content: ''; color: #555}
 
 #tutorial-page .shell {position: fixed; border-radius: 0px; right: 50px; top: 0; bottom: 0; left: 600px; border: solid 2px #222; border-width: 0 1px; overflow-y: auto; overflow-x: hidden}
 #tutorial-page .shell {font-family: 'Droid Sans Mono', monospace; font-size: 10pt; color: white; background: rgba(0, 0, 0, 0.9)}
@@ -2766,7 +2763,7 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page .shell .syntax {border-bottom: dotted 1px #468; cursor: default}
 
-#tutorial-page .shell .structure              {color: #797; display: block; margin: 4px; padding: 4px 0}
+#tutorial-page .shell .structure              {color: #555; display: block; margin: 4px; padding: 4px 0}
 #tutorial-page .shell .structure:hover:before {color: #888; content: 'parse tree: '; padding-right: 4px}
 
 #tutorial-page .shell .shadow              {color: #888; display: block; margin: 4px; padding: 4px 0}
@@ -2778,6 +2775,7 @@ These styles, while they should be more or less consistent across pages, are des
 
 #tutorial-page .shell .input:focus {border: none !important; outline: none !important}
 
+#tutorial-page .shell code, #tutorial-page .shell pre {background: transparent; border: none}
 #tutorial-page .shell .history {position: relative}
 #tutorial-page .shell .history pre {font-family: 'Droid Sans Mono', monospace; font-size: 10pt}
 #tutorial-page .shell .history .entry, .shell .history .result, .shell .history .error, .shell .history .log {margin: 4px}
@@ -2795,7 +2793,7 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page #seq-decipher input                {border: solid 1px #444; background: black; padding: 4px; font-family: 'Droid Sans Mono', monospace; color: white; outline: none !important}
 #tutorial-page #seq-decipher table.result         {font-size: 9pt}
 #tutorial-page #seq-decipher td.name              {text-transform: lowercase; color: #aaa}
-#tutorial-page #seq-decipher td.fragment          {font-family: 'Droid Sans Mono', monospace; color: #fa4}
+#tutorial-page #seq-decipher td.fragment          {font-family: 'Droid Sans Mono', monospace; color: #555}
 #tutorial-page #seq-decipher tr.variables td.desc {font-family: 'Droid Sans Mono', monospace}
 
 #tutorial-page .section h1, #tutorial-page .section h2, #tutorial-page .section h3, #tutorial-page .section h4 {padding-top: 50px}
@@ -2804,18 +2802,18 @@ These styles, while they should be more or less consistent across pages, are des
 #tutorial-page .section h2 {font-size: 13pt}
 #tutorial-page .section h3 {font-size: 11pt}
 
-#tutorial-page .section h1 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h2 {text-transform: lowercase; color: #999; font-weight: normal; border-bottom: solid 4px #222}
-#tutorial-page .section h3 {text-transform: lowercase; color: #999; font-weight: normal}
-#tutorial-page .section h4 {text-transform: lowercase; color: #999; font-weight: normal}
+#tutorial-page .section h1 {text-transform: lowercase; color: #222; font-weight: normal; border-bottom: solid 1px #444}
+#tutorial-page .section h2 {text-transform: lowercase; color: #222; font-weight: normal; border-bottom: solid 1px #444}
+#tutorial-page .section h3 {text-transform: lowercase; color: #222; font-weight: normal}
+#tutorial-page .section h4 {text-transform: lowercase; color: #222; font-weight: normal}
 
-#tutorial-page p {color: #eee; font-size: 10pt; line-height: 2.1em; text-align: justify}
-#tutorial-page code {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
-#tutorial-page pre  {color: #fff; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: black; padding: 4px; border: solid 1px #333}
+#tutorial-page p {color: #111; font-size: 10pt; line-height: 1.44em; text-align: justify}
+#tutorial-page code {color: #444; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: #ccc; padding: 2px; border: solid 1px #888}
+#tutorial-page pre  {color: #444; font-size: 10pt; font-family: 'Droid Sans Mono', monospace; background: #ccc; padding: 2px; border: solid 1px #888}
 
 #tutorial-page pre.code {cursor: pointer; padding: 10px 4px}
-#tutorial-page pre.code:before {content: '> '; color: #fa4}
-#tutorial-page pre.code:hover {background: #222; color: #fa4}
+#tutorial-page pre.code:before {content: '> '; color: #555}
+#tutorial-page pre.code:hover {background: #222; color: #555}
 
 __
 meta::sdoc('js::caterwaul', <<'__');
