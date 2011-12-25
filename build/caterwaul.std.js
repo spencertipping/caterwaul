@@ -417,11 +417,18 @@
 // In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
 
 (function ($) {
-  var scope_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
+  var scope_template           = $.parse('(function () {var _variables; return (_expression)}).call(this)'),
+      trivial_node_template    = $.parse('new caterwaul.syntax(_data)'),
+      nontrivial_node_template = $.parse('new caterwaul.syntax(_data, _xs)');
 
   $.words = function (caterwaul_function) {$.merge(caterwaul_function.modifiers,               $.words.modifiers);
                                            $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers);
                                            return caterwaul_function};
+
+  $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
+                                                              return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
+                                                                                                         _xs: comma.unflatten()})}
+                                                        else return trivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'})};
 
 // Unparameterized modifiers.
 // These are basically flags that you can set on chunks of code.
@@ -433,8 +440,8 @@
 //   that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
 //   reuse.
 
-    qs:  function (match) {return new $.ref(match._expression, 'qs')},
-    qse: function (match) {return new $.ref(this(match._expression), 'qse')},
+    qs:  function (match) {return new $.expression_ref($.syntax_to_expression(match._expression), 'qs')},
+    qse: function (match) {return new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse')},
 
   // Macroexpansion control.
 //   Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.

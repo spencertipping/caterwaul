@@ -69,6 +69,8 @@ interested in using Caterwaul for production projects.
   <li><a href='http://github.com/spencertipping/caterwaul-futures' target='_blank'>Futures implementation</a></li>
   <li><a href='http://github.com/spencertipping/caterwaul-factory' target='_blank'>Value generation combinators (for testing, etc)</a></li>
   <li><a href='http://github.com/spencertipping/caterwaul-numerical-integration' target='_blank'>Numerical integration with error function</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-serialization' target='_blank'>Mediocre serialization library</a></li>
+  <li><a href='http://github.com/spencertipping/caterwaul-invariant' target='_blank'>State transition/invariant library</a></li>
   </ul>
 
   I should mention that they're in various states of disrepair and sometimes break. However, if you'd like to use one in production, feel free to <a
