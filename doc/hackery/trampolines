@@ -1,0 +1,37 @@
+#!/usr/bin/env waulrun
+# trampolines: Various encodings of continuations.
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('array trampoline', 500, function () {
+    var l = numbers.length;
+    var sum_cps = function (total, i) {return i < l ? [sum_cps, total + numbers[i], i + 1] : total};
+    var continuation = [sum_cps, 0, 0];
+    while (continuation.constructor === Array)
+      continuation = continuation[0](continuation[1], continuation[2]);
+    return continuation}),
+
+  bench('array exception trampoline', 500, function () {
+    var l = numbers.length;
+    var sum_cps = function (total, i) {if (i < l) throw [sum_cps, total + numbers[i], i + 1]; return total};
+    var continuation = [sum_cps, 0, 0];
+    while (true) {
+      try {return continuation[0](continuation[1], continuation[2])}
+      catch (c) {continuation = c}}}),
+
+  bench('switch-case delegation', 500, function () {
+    var l = numbers.length, total = 0, i = 0;
+    while (true) {
+      switch (+(i++ < l)) {
+        case 0: return total;
+        case 1: total += i; break}}}),
+
+  where [numbers = n[100000] -seq,
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
