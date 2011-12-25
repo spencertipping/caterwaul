@@ -5,6 +5,7 @@ caterwaul('js_all')(function ($) {
   'starting benchmark' /!console.log,
 
   bench('seq form (implicitly polymorphic)', 1000, function () {return heterogeneous_array /[x + x0] -seq}),
+  bench('seq form (init) (implicitly polymorphic)', 1000, function () {return heterogeneous_array /[0][x + x0] -seq}),
 
   bench('polymorphic fold', 1000, function () {
     for (var i = 0, l = heterogeneous_array.length, total = 0; i < l; ++i) total += heterogeneous_array[i];
