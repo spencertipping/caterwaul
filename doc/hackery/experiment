@@ -22,5 +22,6 @@ caterwaul('js_all')(function ($) {
 end
 
   chmod u+x $name
+  git add $name
   vim $name
 fi

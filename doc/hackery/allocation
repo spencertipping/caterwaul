@@ -18,6 +18,14 @@ caterwaul('js_all')(function ($) {
     for (var i = 0, l = flat_points_1.length, result = []; i < l; i += 2) result.push(flat_points_1[i] + flat_points_2[i], flat_points_1[i + 1] + flat_points_2[i + 1]);
     return result}),
 
+  bench('classes (no allocation)', 100, "points_1 *![x.x += points_2[xi].x, x.y += points_2[xi].y] -seq".qf),
+  bench('objects (no allocation)', 100, "points_1 *![x.x += points_2[xi].x, x.y += points_2[xi].y] -seq".qf),
+  bench('arrays (no allocation)',  100, "points_1 *![x[0] += points_2[xi][0], x[1] += points_2[xi][1]] -seq".qf),
+
+  bench('flat (no allocation)', 100, function () {
+    for (var i = 0, l = flat_points_1.length; i < l; i += 2) flat_points_1[i] += flat_points_2[i], flat_points_1[i + 1] += flat_points_2[i + 1];
+    return flat_points_1}),
+
   where [point(x, y) = (this.x = x, this.y = y, this),
          points_1        = n[100000] *[new point(Math.sqrt(x), Math.sqrt(x + 0.5))] -seq,
          points_2        = n[100000] *[new point(Math.sqrt(x + 100000), Math.sqrt(x + 100000.5))] -seq,
