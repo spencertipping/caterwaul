@@ -6,10 +6,17 @@ caterwaul('js_all')(function ($) {
 
   point.prototype.plus(other) = new point(this.x + other.x, this.y + other.y),
 
-  bench('classes',  100, "points_1 *[x.plus(points_2[xi])] -seq".qf),
-  bench('objects',  100, "object_points_1 *[add_objects(x, object_points_2[xi])] -seq".qf),
-  bench('arrays',   100, "array_points_1 *[add_arrays(x, array_points_2[xi])] -seq".qf),
-  bench('closures', 100, "closure_points_1 *[add_closures(x, closure_points_2[xi])] -seq".qf),
+  bench('classes',          100, "points_1 *[x.plus(points_2[xi])] -seq".qf),
+  bench('classes (inline)', 100, "points_1 *[new point(x.x + points_2[xi].x, x.y + points_2[xi].y)] -seq".qf),
+  bench('objects',          100, "object_points_1 *[add_objects(x, object_points_2[xi])] -seq".qf),
+  bench('objects (inline)', 100, "object_points_1 *[{x: x.x + object_points_2[xi].x, y: x.y + object_points_2[xi].y}] -seq".qf),
+  bench('arrays',           100, "array_points_1 *[add_arrays(x, array_points_2[xi])] -seq".qf),
+  bench('arrays (inline)',  100, "array_points_1 *[[x[0] + array_points_2[xi][0], x[1] + array_points_2[xi][1]]] -seq".qf),
+  bench('closures',         100, "closure_points_1 *[add_closures(x, closure_points_2[xi])] -seq".qf),
+
+  bench('flat',             100, function () {
+    for (var i = 0, l = flat_points_1.length, result = []; i < l; i += 2) result.push(flat_points_1[i] + flat_points_2[i], flat_points_1[i + 1] + flat_points_2[i + 1]);
+    return result}),
 
   where [point(x, y) = (this.x = x, this.y = y, this),
          points_1        = n[100000] *[new point(Math.sqrt(x), Math.sqrt(x + 0.5))] -seq,
@@ -27,6 +34,9 @@ caterwaul('js_all')(function ($) {
          closure_points_1 = n[100000] *[closure_point(Math.sqrt(x), Math.sqrt(x + 0.5))] -seq,
          closure_points_2 = n[100000] *[closure_point(Math.sqrt(x + 100000), Math.sqrt(x + 100000.5))] -seq,
          add_closures(c1, c2) = c1(given [x1, y1] in c2(given [x2, y2] in closure_point(x1 + x2, y1 + y2))),
+
+         flat_points_1 = n[100000] *~![[Math.sqrt(x), Math.sqrt(x + 0.5)]] -seq,
+         flat_points_2 = n[100000] *~![[Math.sqrt(x + 100000), Math.sqrt(x + 100000.5)]] -seq,
 
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
