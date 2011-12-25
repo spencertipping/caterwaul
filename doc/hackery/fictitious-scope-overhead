@@ -11,8 +11,16 @@ caterwaul('js_all')(function ($) {
 
   bench('seq form', 1000, function () {return data /[x + x0] -seq}),
 
-  where [data = n[200000] -seq,
-         bench(name, n, f) = '#{name}: #{average}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance)}ms stddev' /!console.log
+  bench('direct (fp)', 1000, function () {for (var i = 0, l = floats.length, total; i < l; ++i) total += floats[i]; return total}),
+  bench('trivial scope (fp)', 1000, function () {return (function () {for (var i = 0, l = floats.length, total; i < l; ++i) total += floats[i]; return total})()}),
+  bench('nontrivial scope (fp)', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total})(floats)}),
+  bench('nontrivial thiscall scope (fp)', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total}).call(this, floats)}),
+
+  bench('seq form (fp)', 1000, function () {return floats /[x + x0] -seq}),
+
+  where [data = n[100000] -seq,
+         floats = data *Math.sqrt -seq,
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
                              average  = samples /[x + x0] -seq -re- it / 8,
                              max      = samples /[x /-Math.max/ x0] -seq,

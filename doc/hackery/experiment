@@ -2,14 +2,17 @@
 name=$1
 shift
 
-cat > $name <<end
+if [[ -e $name ]]; then
+  vim $name
+else
+  cat > $name <<end
 #!/usr/bin/env waulrun
 # $name: $*
 
 caterwaul('js_all')(function ($) {
   'starting benchmark' /!console.log,
   bench('example', 1000, "1 + 1".qf),
-  where [bench(name, n, f) = '#{name}: #{average}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance)}ms stddev' /!console.log
+  where [bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
                              average  = samples /[x + x0] -seq -re- it / 8,
                              max      = samples /[x /-Math.max/ x0] -seq,
@@ -18,5 +21,6 @@ caterwaul('js_all')(function ($) {
          run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
 end
 
-chmod u+x $name
-vim $name
+  chmod u+x $name
+  vim $name
+fi

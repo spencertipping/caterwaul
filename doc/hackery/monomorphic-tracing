@@ -52,7 +52,7 @@ caterwaul('js_all')(function ($) {
            (function (xs) {for (var i = 1, l = xs.length, t2 = 0; i < l; i += 2) t2 += xs[i]; return t2}).call(this, heterogeneous_array)}),
 
   where [heterogeneous_array = n[200000] *[x & 1 ? Math.sqrt(x) : Math.sqrt(x) >>> 0] -seq,
-         bench(name, n, f) = '#{name}: #{average}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance)}ms stddev' /!console.log
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
                              average  = samples /[x + x0] -seq -re- it / 8,
                              max      = samples /[x /-Math.max/ x0] -seq,
