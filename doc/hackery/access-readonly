@@ -1,0 +1,27 @@
+#!/usr/bin/env waulrun
+# access: Determine access times for different kinds of values.
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('local', 1000, function () {for (var i = 0, t = 10, total = 0; i < 100000; ++i) total += t + i; return total}),
+  bench('array', 1000, function () {for (var i = 0, xs = [10], total = 0; i < 100000; ++i) total += xs[0] + i; return total}),
+  bench('object', 1000, function () {for (var i = 0, o = {foo: 10}, total = 0; i < 100000; ++i) total += o.foo + i; return total}),
+  bench('closure (1 level)', 1000, function () {for (var i = 0, total = 0; i < 100000; ++i) total += closure + i; return total}),
+  bench('closure (2 levels)', 1000, function () {return (function () {for (var i = 0, total = 0; i < 100000; ++i) total += closure_2 + i; return total})()}),
+  bench('closure (3 levels)', 1000, function () {return (function () {return (function () {for (var i = 0, total = 0; i < 100000; ++i) total += closure_3 + i; return total})()})()}),
+  bench('closure (4 levels)', 1000, function () {return (function () {return (function () {return (function () {
+    for (var i = 0, total = 0; i < 100000; ++i) total += closure_4 + i; return total})()})()})()}),
+
+  where [closure = 10,
+         closure_2 = 10,
+         closure_3 = 10,
+         closure_4 = 10,
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
