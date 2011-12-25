@@ -8,18 +8,22 @@ caterwaul('js_all')(function ($) {
   bench('immediate dispatch', 1000, "numbers                 /[0][x0 + (function (x) {return x + 1})(x)] -seq".qf),
   bench('closures (unique)',  1000, "uncached_adder_closures /[0][x0 + x(1)] -seq".qf),
   bench('closures (cached)',  1000, "cached_adder_closures   /[0][x0 + x(1)] -seq".qf),
+  bench('closures (random)',  1000, "random_adder_closures   /[0][x0 + x(1)] -seq".qf),
   bench('classes (closures)', 1000, "cached_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
   bench('classes (inline)',   1000, "inline_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
+  bench('classes (random)',   1000, "random_adder_objects    /[0][x0 + x.add(1)] -seq".qf),
 
   where [adder(x)(y)             = x + y,
          cached_adders           = n[8] *adder -seq,
          uncached_adder_closures = n[100000] *[adder(x & 7)] -seq,
          cached_adder_closures   = n[100000] *[cached_adders[x & 7]] -seq,
+         random_adder_closures   = n[100000] *[cached_adders[Math.random() * 8 >>> 0]] -seq,
 
          cached_adder_prototypes = n[8] *["this".qf -se [it.prototype = {add: adder(x)}]] -seq,
          inline_adder_prototypes = ["_ + 0".qf, "_ + 1".qf, "_ + 2".qf, "_ + 3".qf, "_ + 4".qf, "_ + 5".qf, "_ + 6".qf, "_ + 7".qf] *["this".qf -se [it.prototype.add = x]] -seq,
          cached_adder_objects    = n[100000] *[new cached_adder_prototypes[x & 7]()] -seq,
          inline_adder_objects    = n[100000] *[new inline_adder_prototypes[x & 7]()] -seq,
+         random_adder_objects    = n[100000] *[new inline_adder_prototypes[Math.random() * 8 >>> 0]()] -seq,
 
          numbers                 = n[100000] *[x & 7] -seq,
 
