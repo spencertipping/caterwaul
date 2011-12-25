@@ -1,0 +1,37 @@
+#!/usr/bin/env waulrun
+# allocation: Determine the relative performance of various object allocation strategies.
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  point.prototype.plus(other) = new point(this.x + other.x, this.y + other.y),
+
+  bench('classes',  100, "points_1 *[x.plus(points_2[xi])] -seq".qf),
+  bench('objects',  100, "object_points_1 *[add_objects(x, object_points_2[xi])] -seq".qf),
+  bench('arrays',   100, "array_points_1 *[add_arrays(x, array_points_2[xi])] -seq".qf),
+  bench('closures', 100, "closure_points_1 *[add_closures(x, closure_points_2[xi])] -seq".qf),
+
+  where [point(x, y) = (this.x = x, this.y = y, this),
+         points_1        = n[100000] *[new point(Math.sqrt(x), Math.sqrt(x + 0.5))] -seq,
+         points_2        = n[100000] *[new point(Math.sqrt(x + 100000), Math.sqrt(x + 100000.5))] -seq,
+
+         object_points_1 = n[100000] *[{x: Math.sqrt(x), y: Math.sqrt(x + 0.5)}] -seq,
+         object_points_2 = n[100000] *[{x: Math.sqrt(x + 100000), y: Math.sqrt(x + 100000.5)}] -seq,
+         add_objects(p1, p2) = {x: p1.x + p2.x, y: p1.y + p2.y},
+
+         array_points_1 = n[100000] *[[Math.sqrt(x), Math.sqrt(x + 0.5)]] -seq,
+         array_points_2 = n[100000] *[[Math.sqrt(x + 100000), Math.sqrt(x + 100000.5)]] -seq,
+         add_arrays(a1, a2) = [a1[0] + a2[0], a1[1] + a2[1]],
+
+         closure_point(x, y)(f) = f(x, y),
+         closure_points_1 = n[100000] *[closure_point(Math.sqrt(x), Math.sqrt(x + 0.5))] -seq,
+         closure_points_2 = n[100000] *[closure_point(Math.sqrt(x + 100000), Math.sqrt(x + 100000.5))] -seq,
+         add_closures(c1, c2) = c1(given [x1, y1] in c2(given [x2, y2] in closure_point(x1 + x2, y1 + y2))),
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
