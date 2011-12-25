@@ -5025,6 +5025,10 @@ You can make this happen automatically by using a shebang line:
   // Javascript code
 
 This will work because Caterwaul's parser recognizes # as a line comment marker. Note that if you use --run, only the file after --run will be executed. The others will be inactive arguments.
+Another way to do it is to symlink 'waul' as 'waulrun':
+
+| #!/usr/bin/env waulrun
+  // Javascript code
 
 Waul file format.
 A .waul file is a syntactic superset of a .js file. Any valid Javascript is valid Caterwaul, and because Caterwaul's parser is considerably more lenient than Javascript's, you can actually get
