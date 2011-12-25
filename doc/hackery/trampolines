@@ -27,6 +27,17 @@ caterwaul('js_all')(function ($) {
         case 0: return total;
         case 1: total += i; break}}}),
 
+  bench('while loop', 500, function () {
+    var l = numbers.length, total = 0, i = 0;
+    while (i < l) {
+      total += numbers[i];
+      ++i}
+    return total}),
+
+  bench('for loop', 500, function () {
+    for (var i = 0, l = numbers.length, total = 0; i < l; ++i) total += numbers[i];
+    return total}),
+
   where [numbers = n[100000] -seq,
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
