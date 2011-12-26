@@ -1,0 +1,36 @@
+#!/usr/bin/env waulrun
+# access-order: How much does array access order matter?
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('primer (ignore this)', 10, "data /[x + x0] -seq".qf),
+
+  bench('sequential', 100, "sequential /[0][x0 + data[x]] -seq".qf),
+  bench('reverse',    100, "reverse    /[0][x0 + data[x]] -seq".qf),
+  bench('random 1',   100, "random_1   /[0][x0 + data[x]] -seq".qf),
+  bench('random 2',   100, "random_2   /[0][x0 + data[x]] -seq".qf),
+  bench('random 3',   100, "random_3   /[0][x0 + data[x]] -seq".qf),
+
+  bench('partial random 1000', 100, "partial_random_1000 /[0][x0 + data[x]] -seq".qf),
+  bench('partial random 100',  100, "partial_random_100  /[0][x0 + data[x]] -seq".qf),
+  bench('partial random 10',   100, "partial_random_10   /[0][x0 + data[x]] -seq".qf),
+
+  where [data       = n[100000] *[Math.random()] -seq,
+         sequential = n[100000] -seq,
+         reverse    = ni[99999, 0, -1] -seq,
+         random_1   = n[100000] -seq -re- it.sort("Math.random() > 0.5 ? 1 : -1".qf),
+         random_2   = n[100000] -seq -re- it.sort("Math.random() > 0.5 ? 1 : -1".qf),
+         random_3   = n[100000] -seq -re- it.sort("Math.random() > 0.5 ? 1 : -1".qf),
+
+         partial_random_1000 = n[1000] *~![n[100] -seq -re- it.sort("Math.random() > 0.5 ? 1 : -1".qf)] -seq,
+         partial_random_100  = n[100] *~![n[1000] -seq -re- it.sort("Math.random() > 0.5 ? 1 : -1".qf)] -seq,
+         partial_random_10   = n[10] *~![n[10000] -seq -re- it.sort("Math.random() > 0.5 ? 1 : -1".qf)] -seq,
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
