@@ -9,6 +9,11 @@ caterwaul('js_all')(function ($) {
   bench('indexOf hard',                1000, "hard_string /~indexOf/ 'x/!Math.round'".qf),
   bench('indexOf hard (long pattern)', 1000, "hard_string /~indexOf/ 'woot(foo.bar.bif) + y === x/!Math.round ? max : min'".qf),
 
+  bench('regexp easy',                1000, "/!!!!!!!!/ .test(easy_string)".qf),
+  bench('regexp easy (long pattern)', 1000, "/!!!!!!!!!!!!!!!!/ .test(easy_string)".qf),
+  bench('regexp hard',                1000, given._ in /x\/!Math\.round/.test(hard_string)),
+  bench('regexp hard (long pattern)', 1000, given._ in /woot\(foo\.bar\.bif\) \+ y === x\/!Math\.round \? max : min/.test(hard_string)),
+
   bench('boyermoore easy',                1000, "easy_string /-boyer_moore/ '!!!!!!!!'".qf),
   bench('boyermoore easy (long pattern)', 1000, "easy_string /-boyer_moore/ '!!!!!!!!!!!!!!!!'".qf),
   bench('boyermoore hard',                1000, "hard_string /-boyer_moore/ 'x/!Math.round'".qf),
