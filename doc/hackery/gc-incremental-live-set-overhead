@@ -1,0 +1,20 @@
+#!/usr/bin/env waulrun
+# gc-incremental-live-set-overhead: How linear is structure allocation in the live set created by the structure?
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('1000  x 100', 10, "n[1000]  *[n[100] *[[]] -seq] -seq".qf),
+  bench('2000  x 100', 10, "n[2000]  *[n[100] *[[]] -seq] -seq".qf),
+  bench('4000  x 100', 10, "n[4000]  *[n[100] *[[]] -seq] -seq".qf),
+  bench('8000  x 100', 10, "n[8000]  *[n[100] *[[]] -seq] -seq".qf),
+  bench('16000 x 100', 10, "n[16000] *[n[100] *[[]] -seq] -seq".qf),
+  bench('32000 x 100', 10, "n[32000] *[n[100] *[[]] -seq] -seq".qf),
+
+  where [bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);

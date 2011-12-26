@@ -1,0 +1,34 @@
+#!/usr/bin/env waulrun
+# gc-live-set-overhead: Determine how much load is imposed by having complex objects in the live set.
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('no live set minor',           10, "n[1000] *![n[10000] *[a] -seq] -seq -where [a = []]".qf),
+  bench('100 x 100 live set minor',    10, "n[1000] *![n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[100] *[n[100] *[{}] -seq] -seq]),
+  bench('1000 x 100 live set minor',   10, "n[1000] *![n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[1000] *[n[100] *[{}] -seq] -seq]),
+  bench('10000 x 100 live set minor',  10, "n[1000] *![n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[10000] *[n[100] *[{}] -seq] -seq]),
+  bench('100000 x 100 live set minor', 10, "n[1000] *![n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[100000] *[n[100] *[{}] -seq] -seq]),
+
+  bench('no live set major',           10,  "n[1000] *[n[10000] *[a] -seq] -seq -where [a = []]".qf),
+  bench('100 x 100 live set major',    10,  "n[1000] *[n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[100] *[n[100] *[{}] -seq] -seq]),
+  bench('1000 x 100 live set major',   10,  "n[1000] *[n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[1000] *[n[100] *[{}] -seq] -seq]),
+  bench('10000 x 100 live set major',  10,  "n[1000] *[n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[10000] *[n[100] *[{}] -seq] -seq]),
+  bench('100000 x 100 live set major', 10,  "n[1000] *[n[10000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = n[100000] *[n[100] *[{}] -seq] -seq]),
+
+  bench('binary tree 2 minor',         100, "n[1000] *![n[1000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = tree(2)]),
+  bench('binary tree 4 minor',         100, "n[1000] *![n[1000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = tree(4)]),
+  bench('binary tree 8 minor',         100, "n[1000] *![n[1000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = tree(8)]),
+  bench('binary tree 16 minor',        100, "n[1000] *![n[1000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = tree(16)]),
+  bench('binary tree 20 minor',        100, "n[1000] *![n[1000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = tree(20)]),
+  bench('binary tree 22 minor',        100, "n[1000] *![n[1000] *[a] -seq] -seq -where [a = xs]".qf -where [xs = tree(22)]),
+
+  where [tree(depth) = depth > 0 ? [tree(depth - 1), tree(depth - 1)] : [],
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
