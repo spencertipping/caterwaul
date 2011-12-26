@@ -1,0 +1,28 @@
+#!/usr/bin/env waulrun
+# branch-prediction: Do branch-prediction optimizations matter?
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('always taken', 1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x2000000)  total += 2; else total += 3; return total}),
+  bench('never taken',  1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if (!(i & 0x2000000)) total += 2; else total += 3; return total}),
+  bench('1/1',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x0000001)  total += 2; else total += 3; return total}),
+  bench('2/2',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x0000002)  total += 2; else total += 3; return total}),
+  bench('4/4',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x0000004)  total += 2; else total += 3; return total}),
+
+  bench('1/3',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x0000003)  total += 2; else total += 3; return total}),
+  bench('3/1',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if (!(i & 0x0000003)) total += 2; else total += 3; return total}),
+  bench('1/7',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x0000007)  total += 2; else total += 3; return total}),
+  bench('7/1',          1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if (!(i & 0x0000007)) total += 2; else total += 3; return total}),
+  bench('1/15',         1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x000000f)  total += 2; else total += 3; return total}),
+  bench('15/1',         1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if (!(i & 0x000000f)) total += 2; else total += 3; return total}),
+  bench('31/7',         1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if   (i & 0x000001f)  total += 2; else total += 3; return total}),
+  bench('7/31',         1000, function () {for (var i = 0, total = 0; i < 1000000; ++i) if (!(i & 0x000001f)) total += 2; else total += 3; return total}),
+
+  where [bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
