@@ -1,0 +1,34 @@
+#!/usr/bin/env waulrun
+# cache-line-contention: Are Javascript arrays regularly enough laid out that they are subject to cache line contention?
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('sequential traversal',  100, function () {for (var i = 0, l = data.length, total = 0; i < l; ++i) total += data[i];
+                                                   return total}),
+
+  bench('half traversal',        100, function () {for (var i = 0, l = data.length >>> 1, total = 0; i < l; ++i) total += data[i] + data[i + 524288];
+                                                   return total}),
+
+  bench('half traversal (r)',    100, function () {for (var i = 0, l = data.length >>> 1, total = 0; i < l; ++i) total += data[i + 524288] + data[i];
+                                                   return total}),
+
+  bench('quarter traversal',     100, function () {for (var i = 0, l = data.length >>> 2, total = 0; i < l; ++i) total += data[i] + data[i + 262144] + data[i + 524288] + data[i + 786332];
+                                                   return total}),
+
+  bench('quarter traversal (i)', 100, function () {for (var i = 0, l = data.length >>> 2, total = 0; i < l; ++i) total += data[i] + data[i + 524288] + data[i + 262144] + data[i + 786332];
+                                                   return total}),
+
+  ni[8, 14] *!shift[ni[-4, 4] *!adjustment[cache_line_bench((1 << shift) + adjustment, adjustment)] -seq] -seq
+  -where [cache_line_bench(stride, adjustment) = bench('#{stride} apart (#{adjustment})', 10, function () {
+            for (var i = 0, l = data.length, total = 0; i < stride; ++i) for (var j = i; j < l; j += stride) total += data[j]; return total})],
+
+  where [data = n[1048576] -seq,
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
