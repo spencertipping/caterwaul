@@ -4,6 +4,15 @@
 caterwaul('js_all')(function ($) {
   'starting benchmark' /!console.log,
 
+  bench('local (1M iterations)', 100, function () {for (var i = 0, t = 0; i < 1000000; ++i) t += i; return t}),
+  bench('array (1M iterations)', 100, function () {for (var i = 0, t = 0, xs = [0]; i < 1000000; ++i) t += i; return xs[0] = t}),
+  bench('object (1M iterations)', 100, function () {for (var i = 0, t = 0, o = {foo: 0}; i < 1000000; ++i) t += i; return o.foo = t}),
+  bench('closure (1 level) (1M iterations)', 100, function () {for (var i = 0, t = 0; i < 1000000; ++i) t += i; return closure_total = t}),
+  bench('closure (2 levels) (1M iterations)', 100, function () {return (function () {for (var i = 0, t = 0; i < 1000000; ++i) t += i; return closure_total_2 = t})()}),
+  bench('closure (3 levels) (1M iterations)', 100, function () {return (function () {return (function () {for (var i = 0, t = 0; i < 1000000; ++i) t += i; return closure_total_3 = t})()})()}),
+  bench('closure (4 levels) (1M iterations)', 100, function () {return (function () {return (function () {return (function () {
+    for (var i = 0, t = 0; i < 1000000; ++i) t += i; return closure_total_4 = t})()})()})()}),
+
   bench('local', 1000, function () {for (var i = 0, t = 0; i < 100000; ++i) t += i; return t}),
   bench('array', 1000, function () {for (var i = 0, t = 0, xs = [0]; i < 100000; ++i) t += i; return xs[0] = t}),
   bench('object', 1000, function () {for (var i = 0, t = 0, o = {foo: 0}; i < 100000; ++i) t += i; return o.foo = t}),
