@@ -9,14 +9,16 @@ caterwaul('js_all')(function ($) {
   bench('nontrivial scope', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total})(data)}),
   bench('nontrivial thiscall scope', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total}).call(this, data)}),
 
-  bench('seq form', 1000, function () {return data /[x + x0] -seq}),
+  bench('seq form',        1000, function () {return data /[x + x0] -seq}),
+  bench('seq form (init)', 1000, function () {return data /[0][x + x0] -seq}),
 
   bench('direct (fp)', 1000, function () {for (var i = 0, l = floats.length, total; i < l; ++i) total += floats[i]; return total}),
   bench('trivial scope (fp)', 1000, function () {return (function () {for (var i = 0, l = floats.length, total; i < l; ++i) total += floats[i]; return total})()}),
   bench('nontrivial scope (fp)', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total})(floats)}),
   bench('nontrivial thiscall scope (fp)', 1000, function () {return (function (xs) {for (var i = 0, l = xs.length, total; i < l; ++i) total += xs[i]; return total}).call(this, floats)}),
 
-  bench('seq form (fp)', 1000, function () {return floats /[x + x0] -seq}),
+  bench('seq form (fp)',        1000, function () {return floats /[x + x0] -seq}),
+  bench('seq form (init) (fp)', 1000, function () {return floats /[0][x + x0] -seq}),
 
   where [data = n[100000] -seq,
          floats = data *Math.sqrt -seq,
