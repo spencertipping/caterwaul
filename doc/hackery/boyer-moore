@@ -1,0 +1,33 @@
+#!/usr/bin/env waulrun
+# boyer-moore: Can a pure Javascript Boyer-Moore implementation outperform native indexOf?
+
+caterwaul('js_all')(function ($) {
+  'starting benchmark' /!console.log,
+
+  bench('indexOf easy',                1000, "easy_string /~indexOf/ '!!!!!!!!'".qf),
+  bench('indexOf easy (long pattern)', 1000, "easy_string /~indexOf/ '!!!!!!!!!!!!!!!!'".qf),
+  bench('indexOf hard',                1000, "hard_string /~indexOf/ 'x/!Math.round'".qf),
+  bench('indexOf hard (long pattern)', 1000, "hard_string /~indexOf/ 'woot(foo.bar.bif) + y === x/!Math.round ? max : min'".qf),
+
+  bench('boyermoore easy',                1000, "easy_string /-boyer_moore/ '!!!!!!!!'".qf),
+  bench('boyermoore easy (long pattern)', 1000, "easy_string /-boyer_moore/ '!!!!!!!!!!!!!!!!'".qf),
+  bench('boyermoore hard',                1000, "hard_string /-boyer_moore/ 'x/!Math.round'".qf),
+  bench('boyermoore hard (long pattern)', 1000, "hard_string /-boyer_moore/ 'woot(foo.bar.bif) + y === x/!Math.round ? max : min'".qf),
+
+  where [boyer_moore = function (s, pattern) {for (var i = 0, forwards = [], x = pattern.length; i < 256; ++i) forwards.push(x);
+                                              for (var l = pattern.length, i = l - 1, p; i >= 0; --i) forwards[p] = l - i;
+                                              for (var i = 0, l = s.length, pl = pattern.length, c; i < l;)
+                                                for (var j = pl - 1; j >= 0; --j) if ((c = s.charCodeAt(i + j)) === pattern.charCodeAt(j)) {if (!j) return i}
+                                                                                  else                                                      i += forwards[c]},
+
+         easy_string = n[1000000] *['#'] -seq -re- '#{it.join("")}!!!!!!!!!!!!!!!!',
+         hard_string = n[10000] *["\033[1;32m{average /!Math.round}ms avg, {max}ms max, {min}ms min, { /!Math.round}ms stddev[0;0m'/!console.log"] -seq
+                       -re- '#{it.join("")} woot(foo.bar.bif) + y === x/!Math.round ? max : min',
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
