@@ -1023,18 +1023,62 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     return r};
 
   caterwaul_global.init = function (macroexpander) {
-    macroexpander                          || (macroexpander = function (x) {return true});
-    macroexpander.constructor === Function || (macroexpander = invoke_caterwaul_methods(macroexpander));
-    var result = function (f, environment, options) {
-      return f.constructor === Function || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
-                                                                      f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
-    result.global        = caterwaul_global;
-    result.macroexpander = macroexpander;
-    return result};
+    macroexpander || (macroexpander = function (x) {return true});
+    return macroexpander.constructor === Function
+      ? se((function () {var result = function (f, environment, options) {
+                           return typeof f === 'function' || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
+                                                                                        f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
+                         return result})(),
+          function () {this.global = caterwaul_global, this.macroexpander = macroexpander})
+      : invoke_caterwaul_methods(macroexpander)};
 
   caterwaul_global.initializer = initializer;
   caterwaul_global.clone       = function () {return se(initializer(initializer, unique).deglobalize(),
                                                         function () {for (var k in caterwaul_global) this[k] || (this[k] = caterwaul_global[k])})};
+
+// Modules.
+// Caterwaul 1.1.7 adds support for a structured form for defining modules. This isn't particularly interesting or revolutionary by itself; it's just a slightly more structured way to do what
+// most Caterwaul extensions have been doing with toplevel functions. For example, a typical extension looks something like this:
+
+// | caterwaul('js_all')(function ($) {
+//     $.something(...) = ...,
+//     where [...]})(caterwaul);
+
+// Here's what the equivalent module syntax looks like:
+
+// | caterwaul.module('foo', 'js_all', function ($) {      // equivalent to caterwaul.module('foo', caterwaul('js_all')(function ($) {...}))
+//     $.something(...) = ...,
+//     where [...]});
+
+// Note that the module name has absolutely nothing to do with what the module does. I'm adding modules for a different reason entirely. When you bind a module like this, Caterwaul stores the
+// initialization function onto the global object. So, for example, when you run caterwaul.module('foo', f), you have the property that caterwaul.foo_initializer === f. This is significant
+// because you can later reuse this function on a different Caterwaul object. In particular, you can do things like sending modules from the server to the client, since the Caterwaul global is
+// supplied as a parameter rather than being closed over.
+
+// You can invoke module() with just a name to get the initializer function for that module. This ultimately means that, given only a runtime instance of a Caterwaul function configured with one
+// or modules, you can construct a string of Javascript code sufficient to recreate an equivalent Caterwaul function elsewhere. (The replicator() method does this by returning a syntax tree.)
+
+  caterwaul_global.modules = [];
+  caterwaul_global.module = function (name, transform, f) {
+    if (arguments.length === 1) return caterwaul_global[name + '_initializer'];
+    if (!(name + '_initializer' in caterwaul_global)) caterwaul_global.modules.push(name);
+    f || (f = transform, transform = null);
+    (caterwaul_global[name + '_initializer'] = transform ? caterwaul_global(transform)(f) : f)(caterwaul_global);
+    return caterwaul_global};
+
+  var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
+      module_template = caterwaul_global.parse('module(_name, _f)');
+
+// Replication.
+// A Caterwaul function can replicate itself by returning a syntax tree that, when evaluated, returns an equivalent Caterwaul global (and in this case, installs it accordingly). This is a
+// computationally expensive function, as it involves parsing not only Caterwaul's initializer but also the initializer of every module.
+
+  caterwaul_global.replicator = function (options) {
+    if (options && options.core_only) return w_template.replace({_x: this.parse(this.initializer)});
+    for (var i = 0, ms = this.modules, c = [], l = ms.length; i < l; ++i) c.push(module_template.replace({_name: "'" + ms[i] + "'", _f: this.parse(this.module(ms[i]))}));
+    for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: this.parse(this.initializer)})); i < l; ++i) result.push(c[i]);
+    return result.unflatten()};
+
   return caterwaul = caterwaul_global});
 
 // Generated by SDoc 

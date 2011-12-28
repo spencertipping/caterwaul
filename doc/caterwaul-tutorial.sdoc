@@ -109,9 +109,6 @@ interested in using Caterwaul for production projects.
   Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 11K minified and
   gzipped. The code that it generates is about as fast as handwritten Javascript.
 
-  Here's a benchmark to test how well Caterwaul performs in your browser (entries marked with + are part of the standard Caterwaul load cycle; the others are more granular benchmarks):
-  <div id='benchmark'></div>
-
 Javascript extensions.
 Caterwaul's core macro set starts by extending Javascript syntax in some helpful ways. In particular, it enables quick function assignment, <a href='#advanced'>infix and postfix function
 application (experimental)</a>, and Ruby-style string interpolation (which works with both single and double quotes):
