@@ -926,10 +926,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 // Caterwaul 1.0 and later automatically bind a variable called 'undefined' that is set to Javascript's 'undefined' value. This is done to defend against pathological cases of 'undefined' being
 // set to something else. If you really wnat some other value of undefined, you can always bind it as an environment variable.
 
-  (function () {var bound_expression_template = caterwaul_global.parse('var _bindings; return(_expression)'),
-                    binding_template          = caterwaul_global.parse('_variable = _base._variable'),
-                    undefined_binding         = caterwaul_global.parse('undefined = void(0)'),
-                    late_bound_template       = caterwaul_global.parse('(function (_bindings) {return(_body)}).call(this, _expressions)');
+  var bound_expression_template = caterwaul_global.parse('var _bindings; return(_expression)'),
+      binding_template          = caterwaul_global.parse('_variable = _base._variable'),
+      undefined_binding         = caterwaul_global.parse('undefined = void(0)'),
+      late_bound_template       = caterwaul_global.parse('(function (_bindings) {return(_body)}).call(this, _expressions)');
 
   // Compilation options.
 //   Gensym renaming will break some things that expect the compiled code to be source-identical to the original tree. As a result, I'm introducing an options hash that lets you tell the compiler
@@ -989,7 +989,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                             var n = unseen_count[name] || 0; while (names[name + (++n).toString(36)]); return name + (unseen_count[name] = n).toString(36)};
 
       for (var renamed = {}, i = 0, l = gensyms.length, g; i < l; ++i) renamed[g = gensyms[i]] || (names[renamed[g] = next_unseen(names[g])] = true);
-      return renamed}})();
+      return renamed};
 
 // Initialization method.
 // Caterwaul 1.1 is a huge deviation from before. Now you don't use the global caterwaul as a compiler, because it isn't one. Rather, it's a compiler-generator. You pass in arguments to construct
@@ -1066,12 +1066,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     (caterwaul_global[name + '_initializer'] = transform ? caterwaul_global(transform)(f) : f)(caterwaul_global);
     return caterwaul_global};
 
-  var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
-      module_template = caterwaul_global.parse('module(_name, _f)');
-
 // Replication.
 // A Caterwaul function can replicate itself by returning a syntax tree that, when evaluated, returns an equivalent Caterwaul global (and in this case, installs it accordingly). This is a
 // computationally expensive function, as it involves parsing not only Caterwaul's initializer but also the initializer of every module.
+
+  var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
+      module_template = caterwaul_global.parse('module(_name, _f)');
 
   caterwaul_global.replicator = function (options) {
     if (options && options.core_only) return w_template.replace({_x: this.parse(this.initializer)});
