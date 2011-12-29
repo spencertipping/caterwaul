@@ -3011,7 +3011,9 @@ caterwaul('js_all')(function ($) {
                                                                     x === '--no-std'    ? it.use_std = false             : it.input_files /~push/ x] /seq,
 
          caterwaul_template         = '(function () {_caterwaul_init; _extensions; return caterwaul.deglobalize()})'.qs,
-         extension_tree(filename)   = new $.opaque_tree(fs.readFileSync(filename, 'utf8')),
+
+         waul_input(filename)       = fs.readFileSync(filename, 'utf8') -re [/\.sdoc$/i.test(filename) ? it.split(/(?:\n\s*)+\n/) %![/^\s*[A-Z|]/.test(x)] -seq -re- it.join('\n') : it],
+         extension_tree(filename)   = new $.opaque_tree(filename /!waul_input),
 
          build_caterwaul            = caterwaul_template.replace({_caterwaul_init: $ /~replicator/ {core_only: !options.use_std},
                                                                   _extensions:     new $.syntax(';', options.extensions *extension_tree -seq)}) /!$.compile,
@@ -3026,8 +3028,6 @@ caterwaul('js_all')(function ($) {
          output_for(filename)       = filename.replace(/^((?:.*\/)?)((?:(?!\.waul(?:\.sdoc)?)[^\/])+)(\.waul(?:\.sdoc)?)?/, options.output_pattern),
          waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
 
-         waul_input(filename)       = fs.readFileSync(filename, 'utf8') -re [/\.sdoc$/i.test(filename) ? it.split(/(?:\n\s*)+\n/) %![/^\s*[A-Z|]/.test(x)] -seq -re- it.join('\n') : it],
-
          waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input),
          waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)             :
                                       module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it) :
@@ -3037,7 +3037,6 @@ caterwaul('js_all')(function ($) {
          waul_repl()                = require('repl').start('waul> ').context /-$.merge/ {$: caterwaul, caterwaul: caterwaul} -where [caterwaul = build_caterwaul()],
 
          waul_identity(file, m)     = file /-waul_output/ m._,
-
          waul_transform(file, m)    = file /-waul_output/ module_template.replace({_name: m._name, _compiled: transformed_function})
                               -where [caterwaul            = build_caterwaul(),
                                       transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) /!caterwaul.late_bound_tree],
