@@ -6,10 +6,16 @@ if [[ -d stable/$1 ]]; then
   return 1
 fi
 
+cd src
+./caterwaul render || exit 1
+./std render || exit 1
+./ui render || exit 1
+cd ..
+
 ./caterwaul render || exit 1
 
 mkdir -p stable/$1
-cp -r build/* caterwaul waul stable/$1/
+cp -r build/* src caterwaul waul stable/$1/
 
 branchname=$(git status -sb | awk '{print $2}' | sed 's/\.\.\..*$//' | head -n1)
 

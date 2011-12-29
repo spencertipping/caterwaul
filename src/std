@@ -1298,6 +1298,7 @@ function::minify-yui                                        68564f46e60e2c77881e
 function::rmparent                                          49051d669554867f87c08656380a8aba
 function::waul                                              e1162e71693317dd52b5a30cac0a881a
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
+parent::/home/spencertipping/conjectures/perl-objects/js    a7e83594e1d17b121d4e566bc2d6c18d
 parent::/home/spencertipping/conjectures/perl-objects/sdoc  8088a29685f29420fd00607006958087
 parent::preprocessor                                        7172206e753310217b5f67ac8366c8bf
 
@@ -1417,6 +1418,11 @@ retriever::file                         3bbc9d8a887a536044bafff1d54def7e
 retriever::id                           4da6080168d32445150cc4200af7af6e
 retriever::object                       c7633990b4e01bdc783da7e545799f4f
 retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
+
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
+meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
+parent::/home/spencertipping/bin/object  7374722eec54c39ab752e3fb032c1886
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');

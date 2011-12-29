@@ -177,6 +177,10 @@ meta::define_form 'internal_function', sub {
   *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
 };
 __
+meta::meta('type::js', <<'__');
+meta::functor::editable 'js', extension => '.js', inherit => 1;
+
+__
 meta::meta('type::library', <<'__');
 meta::configure 'library', extension => '.pl', inherit => 1;
 meta::define_form 'library', sub {
@@ -332,10 +336,10 @@ run this script with the 'usage' argument.
 __
 meta::cache('parent-identification', <<'__');
 /home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
+/home/spencertipping/conjectures/perl-objects/js 246bc56c88e8e8daae3737dbb16a2a2c
 /home/spencertipping/conjectures/perl-objects/sdoc a1e8480e579614c01dabeecf0f963bcc
+object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
-sdoc 
-vim-highlighters 902333a0bd6ed90ff919fe8477cb4e69
 __
 meta::data('author', 'Spencer Tipping');
 meta::data('default-action', 'shell');
@@ -1314,6 +1318,7 @@ function::perl                          a0f341ea54391b63b6195e7992b6a686
 function::rd                            eea4e1cdd9133abb985205ae5daf5f15
 function::reload                        1589f4cf8374e0011991cb8907afca3e
 function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::rmparent                      49051d669554867f87c08656380a8aba
 function::save                          778c0e1043b9c6c96fb8f266f8061624
 function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
 function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
@@ -1391,6 +1396,11 @@ retriever::file                         3bbc9d8a887a536044bafff1d54def7e
 retriever::id                           4da6080168d32445150cc4200af7af6e
 retriever::object                       c7633990b4e01bdc783da7e545799f4f
 retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
+
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
+meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
+parent::/home/spencertipping/bin/object  7374722eec54c39ab752e3fb032c1886
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
