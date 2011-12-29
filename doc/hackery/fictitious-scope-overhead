@@ -1,7 +1,7 @@
-#!/usr/bin/env waulrun
+#!/usr/bin/env waul
 # fictitious-scope-overhead: Measure the impact of adding fictitious scopes to computations.
 
-caterwaul('js_all')(function ($) {
+caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
   bench('direct', 1000, function () {for (var i = 0, l = data.length, total; i < l; ++i) total += data[i]; return total}),
@@ -28,4 +28,4 @@ caterwaul('js_all')(function ($) {
                              max      = samples /[x /-Math.max/ x0] -seq,
                              min      = samples /[x /-Math.min/ x0] -seq,
                              variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
-         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();

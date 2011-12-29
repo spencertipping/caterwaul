@@ -1,7 +1,7 @@
-#!/usr/bin/env waulrun
+#!/usr/bin/env waul
 # unrolling: Determine the impact of loop unrolling on a trivial numerical loop.
 
-caterwaul('js_all')(function ($) {
+caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
   bench('seq form (fp)',        1000, "floats /[x + x0] -seq".qf),
@@ -39,4 +39,4 @@ caterwaul('js_all')(function ($) {
                              max      = samples /[x /-Math.max/ x0] -seq,
                              min      = samples /[x /-Math.min/ x0] -seq,
                              variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
-         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();

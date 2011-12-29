@@ -1,7 +1,7 @@
-#!/usr/bin/env waulrun
+#!/usr/bin/env waul
 # dynamic-dispatch: A test for various high-level dynamic dispatch encodings.
 
-caterwaul('js_all')(function ($) {
+caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
   bench('no dispatch',         1000, "numbers                 /[0][x0 + x + 1] -seq".qf),
@@ -35,4 +35,4 @@ caterwaul('js_all')(function ($) {
                              max      = samples /[x /-Math.max/ x0] -seq,
                              min      = samples /[x /-Math.min/ x0] -seq,
                              variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
-         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();

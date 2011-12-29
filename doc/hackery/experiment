@@ -6,10 +6,10 @@ if [[ -e $name ]]; then
   vim $name
 else
   cat > $name <<end
-#!/usr/bin/env waulrun
+#!/usr/bin/env waul
 # $name: $*
 
-caterwaul('js_all')(function ($) {
+caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
   bench('example', 1000, "1 + 1".qf),
   where [bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
@@ -18,7 +18,7 @@ caterwaul('js_all')(function ($) {
                              max      = samples /[x /-Math.max/ x0] -seq,
                              min      = samples /[x /-Math.min/ x0] -seq,
                              variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
-         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();
 end
 
   chmod u+x $name

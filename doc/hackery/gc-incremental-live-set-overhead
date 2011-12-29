@@ -1,7 +1,7 @@
-#!/usr/bin/env waulrun
+#!/usr/bin/env waul
 # gc-incremental-live-set-overhead: How linear is structure allocation in the live set created by the structure?
 
-caterwaul('js_all')(function ($) {
+caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
   bench('1000  x 100', 10, "n[1000]  *[n[100] *[[]] -seq] -seq".qf),
@@ -17,4 +17,4 @@ caterwaul('js_all')(function ($) {
                              max      = samples /[x /-Math.max/ x0] -seq,
                              min      = samples /[x /-Math.min/ x0] -seq,
                              variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
-         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})(caterwaul);
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();
