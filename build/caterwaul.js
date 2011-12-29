@@ -598,6 +598,15 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
                                         caterwaul_global.ref_common, {binds_an_expression: true});
 
+  // Opaque (unparsed) code references.
+//   This gives Caterwaul a way to assemble code in a more performant manner. In particular, it lets Caterwaul omit the expensive (and unnecessary) parse() operation during a replicator() call.
+//   The idea here is that this node contains subtrees, but they are unparsed; as such, it appears to have no children and simply returns the code as a string as its data. You can call the node's
+//   parse() method to return a parsed tree of its contents.
+
+    caterwaul_global.opaque_tree = caterwaul_global.syntax_subclass(function (code) {this.data = code instanceof this.constructor ? code.data : code.toString()},
+                                                                    {serialize: function (xs) {return xs.push(this.data), xs},
+                                                                         parse: function ()   {return caterwaul_global.parse(this.data)}});
+
   // Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
 //   numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
@@ -1075,17 +1084,17 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                         function () {for (var k in caterwaul_global) this[k] || (this[k] = caterwaul_global[k])})};
 
 // Replication.
-// A Caterwaul function can replicate itself by returning a syntax tree that, when evaluated, returns an equivalent Caterwaul global (and in this case, installs it accordingly). This is a
-// computationally expensive function, as it involves parsing not only Caterwaul's initializer but also the initializer of every module.
+// A Caterwaul function can replicate itself by returning a syntax tree that, when evaluated, returns an equivalent Caterwaul global (and in this case, installs it accordingly). This is not
+// particularly computationally expensive most of the time, as opaque trees are returned.
 
   var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
       module_template = caterwaul_global.parse('module(_name, _f)');
 
   caterwaul_global.replicator = function (options) {
-    if (options && options.minimal_core_only) return w_template.replace({_x: this.parse(this.core_initializer)});
-    if (options && options.core_only)         return w_template.replace({_x: this.parse(this.initializer)});
-    for (var i = 0, ms = this.modules, c = [], l = ms.length; i < l; ++i) c.push(module_template.replace({_name: "'" + ms[i] + "'", _f: this.parse(this.module(ms[i]))}));
-    for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: this.parse(this.initializer)})); i < l; ++i) result.push(c[i]);
+    if (options && options.minimal_core_only) return w_template.replace({_x: new this.opaque_tree(this.core_initializer)});
+    if (options && options.core_only)         return w_template.replace({_x: new this.opaque_tree(this.initializer)});
+    for (var i = 0, ms = this.modules, c = [], l = ms.length; i < l; ++i) c.push(module_template.replace({_name: "'" + ms[i] + "'", _f: new this.opaque_tree(this.module(ms[i]))}));
+    for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
     return result.unflatten()};
 
   return caterwaul = caterwaul_global});
