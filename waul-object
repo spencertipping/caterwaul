@@ -624,6 +624,12 @@ meta::function('rmparent', <<'__');
 my ($options, @parents) = separate_options(@_);
 my $clobber_divergent = $$options{'-D'} || $$options{'--clobber-divergent'};
 
+my %parents = map {$_ => 1} @parents;
+my @other_parents = grep !$parents{$_}, grep s/^parent:://, select_keys('--namespace' => 'parent');
+my %kept_by_another_parent;
+
+$kept_by_another_parent{$_} = 1 for grep s/^(\S+)\s.*$/\1/, split /\n/o, cat(@other_parents);
+
 for my $parent (@parents) {
   my $keep_parent_around = 0;
 
@@ -632,7 +638,7 @@ for my $parent (@parents) {
     next unless exists $data{$name};
 
     my $local_hash = fast_hash(retrieve($name));
-    if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name)}
+    if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name) unless $kept_by_another_parent{$name}}
     else {terminal::info("local attribute $name exists and is divergent; use rmparent -D $parent to delete it");
           $keep_parent_around = 1}}
 
@@ -1318,7 +1324,7 @@ function::perl                          a0f341ea54391b63b6195e7992b6a686
 function::rd                            eea4e1cdd9133abb985205ae5daf5f15
 function::reload                        1589f4cf8374e0011991cb8907afca3e
 function::rm                            6f6fd7a6c25558eb469d78ea888f8551
-function::rmparent                      49051d669554867f87c08656380a8aba
+function::rmparent                      fc2884910a6939a47898a778f277332c
 function::save                          778c0e1043b9c6c96fb8f266f8061624
 function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
 function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
@@ -1400,7 +1406,7 @@ retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
 meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
-parent::/home/spencertipping/bin/object  7374722eec54c39ab752e3fb032c1886
+parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
@@ -1409,7 +1415,7 @@ function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  7374722eec54c39ab752e3fb032c1886
+parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
@@ -1452,6 +1458,7 @@ function::perl                          a0f341ea54391b63b6195e7992b6a686
 function::rd                            eea4e1cdd9133abb985205ae5daf5f15
 function::reload                        1589f4cf8374e0011991cb8907afca3e
 function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::rmparent                      fc2884910a6939a47898a778f277332c
 function::save                          778c0e1043b9c6c96fb8f266f8061624
 function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
 function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
@@ -1535,7 +1542,7 @@ meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
 meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 7374722eec54c39ab752e3fb032c1886
+parent::object                 4d71ae092e2baa681e627f8a8ba8399e
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
