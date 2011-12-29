@@ -535,7 +535,7 @@ my ($filename) = @_;
 my $minified = $filename;
 $minified =~ s/\.js$/.min.js/;
 terminal::info("minifying $filename");
-file::write($minified, qx(yuicompressor "$filename"));
+file::write($minified, join '', qx(yuicompressor --line-break 160 "$filename"));
 
 __
 meta::function('mv', <<'__');
