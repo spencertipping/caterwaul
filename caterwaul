@@ -2839,44 +2839,47 @@ needs to be prepared to precompile things that depend on it.
 - include build/caterwaul.ui.min.js
 
 caterwaul('js_all')(function ($) {
-  options.input_files *!waul -seq
-  -where [fs                         = require('fs'),
-          options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', use_std: true}
-                                       -se [it.input_files = []]
-                                       -se- process.argv.slice(2) *![x === '--extension' ? it.extensions /~push/ xs[++xi] :
-                                                                     x === '--output'    ? it.output_pattern = xs[++xi]   :
-                                                                     x === '--no-std'    ? it.use_std = false             : it.input_files /~push/ x] /seq,
+  options.input_files.length ? options.input_files *!waul -seq : waul_repl(),
 
-          caterwaul_template         = '(function () {_caterwaul_init; _extensions; return caterwaul.deglobalize()})'.qs,
-          extension_tree(filename)   = new $.opaque_tree(fs.readFileSync(filename, 'utf8')),
+  where [fs                         = require('fs'),
+         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', use_std: true}
+                                      -se [it.input_files = []]
+                                      -se- process.argv.slice(2) *![x === '--extension' ? it.extensions /~push/ xs[++xi] :
+                                                                    x === '--output'    ? it.output_pattern = xs[++xi]   :
+                                                                    x === '--no-std'    ? it.use_std = false             : it.input_files /~push/ x] /seq,
 
-          build_caterwaul            = caterwaul_template.replace({_caterwaul_init: $ /~replicator/ {core_only: !options.use_std},
-                                                                   _extensions:     new $.syntax(';', options.extensions *extension_tree -seq)}) /!$.compile,
+         caterwaul_template         = '(function () {_caterwaul_init; _extensions; return caterwaul.deglobalize()})'.qs,
+         extension_tree(filename)   = new $.opaque_tree(fs.readFileSync(filename, 'utf8')),
 
-          immediate_pattern          = 'caterwaul(_transform)(_function)();'.qs,
+         build_caterwaul            = caterwaul_template.replace({_caterwaul_init: $ /~replicator/ {core_only: !options.use_std},
+                                                                  _extensions:     new $.syntax(';', options.extensions *extension_tree -seq)}) /!$.compile,
 
-          module_pattern             = 'caterwaul.module(_name, _transform, _function);'.qs,
-          module_pattern_explicit    = 'caterwaul.module(_name, caterwaul(_transform)(_function));'.qs,
-          module_pattern_identity    = 'caterwaul.module(_name, function (_formal) {_body});'.qs,
-          module_template            = 'caterwaul.module(_name, _compiled);'.qs,
+         immediate_pattern          = 'caterwaul(_transform)(_function)();'.qs,
 
-          output_for(filename)       = filename.replace(/^(.*\/)?([^\/]+)(\.waul)?/, options.output_pattern),
-          waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
+         module_pattern             = 'caterwaul.module(_name, _transform, _function);'.qs,
+         module_pattern_explicit    = 'caterwaul.module(_name, caterwaul(_transform)(_function));'.qs,
+         module_pattern_identity    = 'caterwaul.module(_name, function (_formal) {_body});'.qs,
+         module_template            = 'caterwaul.module(_name, _compiled);'.qs,
 
-          waul(input_file)           = input_file /-waul_process/ $.parse(fs.readFileSync(input_file, 'utf8')),
-          waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)             :
-                                       module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it) :
-                                       module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)  :
-                                         raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]],
+         output_for(filename)       = filename.replace(/^(.*\/)?([^\/]+)(\.waul)?/, options.output_pattern),
+         waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
 
-          waul_identity(file, m)     = file /-waul_output/ m._,
+         waul(input_file)           = input_file /-waul_process/ $.parse(fs.readFileSync(input_file, 'utf8')),
+         waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)             :
+                                      module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it) :
+                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)  :
+                                        raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]],
 
-          waul_transform(file, m)    = file /-waul_output/ module_template.replace({_name: m._name, _compiled: transformed_function})
-                               -where [caterwaul            = build_caterwaul(),
-                                       transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) /!caterwaul.late_bound_tree],
+         waul_repl()                = require('repl').start('waul> ').context /-$.merge/ {$: caterwaul, caterwaul: caterwaul} -where [caterwaul = build_caterwaul()],
 
-          waul_run(m)                = caterwaul(m._transform.as_escaped_string())(m._function) /-caterwaul.compile/ {require: require, caterwaul: caterwaul} -re- it()
-                               -where [caterwaul = build_caterwaul()]]}, {require: require})(caterwaul);
+         waul_identity(file, m)     = file /-waul_output/ m._,
+
+         waul_transform(file, m)    = file /-waul_output/ module_template.replace({_name: m._name, _compiled: transformed_function})
+                              -where [caterwaul            = build_caterwaul(),
+                                      transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) /!caterwaul.late_bound_tree],
+
+         waul_run(m)                = caterwaul(m._transform.as_escaped_string())(m._function) /-caterwaul.compile/ {require: require, caterwaul: caterwaul} -re- it()
+                              -where [caterwaul = build_caterwaul()]]}, {require: require})(caterwaul);
 
 __
 meta::sdoc('js::web/code-snippets', <<'__');
