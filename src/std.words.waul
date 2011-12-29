@@ -136,6 +136,7 @@ caterwaul.module('std.words', function ($) {
 
     using: $.reexpander(function (match) {var m = this(match._parameters), o = $.compile(m), comma = new $.syntax(','), expression_ref = new $.expression_ref(m);
                                           for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && /^[_$a-zA-Z][_$0-9a-zA-Z]*$/.test(k) &&
+                                                           !this.modifiers.hasOwnProperty(k) && !this.parameterized_modifiers.hasOwnProperty(k) &&
                                                            comma.push(new $.syntax('=', k, new $.syntax('.', expression_ref, k)));
                                           return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}),
 
