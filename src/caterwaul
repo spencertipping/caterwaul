@@ -540,9 +540,13 @@ meta::function('minify-yui', <<'__');
 # Minify using YUI compressor
 my ($filename) = @_;
 my $minified = $filename;
+my $minified_conservative = $filename;
 $minified =~ s/\.js$/.min.js/;
+$minified_conservative =~ s/\.js$/.minc.js/;
+
 terminal::info("minifying $filename");
 file::write($minified, join '', qx(yuicompressor --line-break 160 "$filename"));
+file::write($minified_conservative, join '', qx(yuicompressor --nomunge --line-break 160 "$filename"));
 
 __
 meta::function('mv', <<'__');
@@ -1306,7 +1310,7 @@ meta::message_color('cc', '36');
 meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::parent('../waul-object', <<'__');
-function::minify-yui                                        9c871c30007f990dbee801bf85b4531d
+function::minify-yui                                        c37bf499bffec720588822330a9ddfa0
 function::waul                                              e1162e71693317dd52b5a30cac0a881a
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
 parent::/home/spencertipping/conjectures/perl-objects/js    bc7a27dec21a2794a034ca292453d45f

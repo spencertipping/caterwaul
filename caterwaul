@@ -2994,9 +2994,9 @@ Dependencies.
 This program depends on Caterwaul, which is baked in minified here. It includes the 'ui' library even though Waul itself doesn't use it. The reason is that Waul scripts are allowed to, so Waul
 needs to be prepared to precompile things that depend on it.
 
-- include build/caterwaul.min.js
-- include build/caterwaul.std.min.js
-- include build/caterwaul.ui.min.js
+- include build/caterwaul.minc.js
+- include build/caterwaul.std.minc.js
+- include build/caterwaul.ui.minc.js
 
 caterwaul('js_all')(function ($) {
   options.input_files.length ? options.input_files *!waul -seq : waul_repl(),

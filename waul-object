@@ -533,9 +533,13 @@ meta::function('minify-yui', <<'__');
 # Minify using YUI compressor
 my ($filename) = @_;
 my $minified = $filename;
+my $minified_conservative = $filename;
 $minified =~ s/\.js$/.min.js/;
+$minified_conservative =~ s/\.js$/.minc.js/;
+
 terminal::info("minifying $filename");
 file::write($minified, join '', qx(yuicompressor --line-break 160 "$filename"));
+file::write($minified_conservative, join '', qx(yuicompressor --nomunge --line-break 160 "$filename"));
 
 __
 meta::function('mv', <<'__');
