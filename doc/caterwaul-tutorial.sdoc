@@ -622,6 +622,19 @@ ni[1, 10] *[x * x] /seq
   Also note that when possible you should use <code>%k</code> and <code>%v</code> instead of packing and unpacking objects. These prefixes are faster and, in my experience, make the code
   easier to read.
 
+  Caterwaul 1.2 introduces a new operator called <code>/mobject</code> (which can also be written as <code>-mobject</code> and <code>|mobject</code>). This is identical to
+  <code>/object</code>, but groups values by key rather than assigning a single value per key. The result is that each key is mapped to an array of values. For example:
+
+  m = [[1, 2], [1, 3], [2, 3]] /mobject -seq
+
+  m[1]
+
+  This behavior differs from <code>/object</code>, which just takes the last value:
+
+  m = [[1, 2], [1, 3], [2, 3]] /object -seq
+
+  m[1]
+
   Numerical iteration.
   Within a sequence comprehension you have access to the <code>n[]</code> operator, which generates arrays of evenly-spaced numbers. It has three uses. When invoked on one argument it returns
   integers between 0, inclusive, and the number, exclusive. When invoked with two arguments the first becomes the inclusive lower bound and the second is the exclusive upper bound. Adding a
