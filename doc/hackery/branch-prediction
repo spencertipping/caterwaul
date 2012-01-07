@@ -1,4 +1,4 @@
-#!/usr/bin/env waul
+#!/usr/bin/env waul-1.2b5
 # branch-prediction: Do branch-prediction optimizations matter?
 
 caterwaul('js_all')(function () {
