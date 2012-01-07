@@ -1,0 +1,11 @@
+Statically-linked copies of the Waul precompiler. This allows you to maintain
+offline-precompiled Caterwaul scripts that use different versions of Caterwaul
+and link them together after each is compiled.
+
+In order to take advantage of this, I recommend that you chmod +x your Waul
+source files, adding a shebang line to the top of each one to compile it:
+
+#!/usr/bin/env waul-1.2b5
+
+This takes Waul version selection out of the picture, so build scripts can
+simply execute each Waul script to compile it.

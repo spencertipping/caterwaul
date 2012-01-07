@@ -10,6 +10,7 @@ fi
 
 mkdir -p stable/$1
 cp -r build/* src caterwaul waul stable/$1/
+cp waul bin/waul-$1
 
 branchname=$(git status -sb | awk '{print $2}' | sed 's/\.\.\..*$//' | head -n1)
 
