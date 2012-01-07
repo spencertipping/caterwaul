@@ -10,6 +10,8 @@ caterwaul('js_all')(function () {
   bench('float array', 5000, function () {for (var i = 0, xs = [0.1]; i < 50000; ++i) xs[0] += i; return xs[0]}),
   bench('int object', 5000, function () {for (var i = 0, o = {foo: 0}; i < 50000; ++i) o.foo += i; return o.foo}),
   bench('float object', 5000, function () {for (var i = 0, o = {foo: 0.1}; i < 50000; ++i) o.foo += i; return o.foo}),
+  bench('int class', 5000, function () {for (var i = 0, o = new ctor(0); i < 50000; ++i) o.x += i; return o.foo}),
+  bench('float class', 5000, function () {for (var i = 0, o = new ctor(0.1); i < 50000; ++i) o.x += i; return o.foo}),
   bench('int closure (1 level)', 5000, function () {closure_total = 0; for (var i = 0; i < 50000; ++i) closure_total += i; return closure_total}),
   bench('float closure (1 level)', 5000, function () {closure_float = 0.1; for (var i = 0; i < 50000; ++i) closure_float += i; return closure_float}),
   bench('int closure (2 levels)', 5000, function () {closure_total_2 = 0; return (function () {for (var i = 0; i < 50000; ++i) closure_total_2 += i; return closure_total_2})()}),
@@ -30,6 +32,8 @@ caterwaul('js_all')(function () {
          closure_total_2 = 0, closure_float_2 = 0.1,
          closure_total_3 = 0, closure_float_3 = 0.1,
          closure_total_4 = 0, closure_float_4 = 0.1,
+
+         ctor(x) = (this.x = x, this),
 
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
