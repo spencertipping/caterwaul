@@ -2161,20 +2161,23 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
   If you create an opaque tree without specifying a table of expression refs, Caterwaul checks the object you're passing in for a table under the attribute 'caterwaul_expression_ref_table'.
   This is Caterwaul's standard way of encoding reconstructible expression references. It should be a table of this form:
 
-  | {ref_name_1: syntax_node, ref_name_2: syntax_node, ...}
+  | {ref_name_1: string, ref_name_2: string, ...}
 
-  Each syntax node represents the expression that is used to construct the expression that ends up being bound. So, for example:
+  Each string represents the expression that is used to construct the expression that ends up being bound. So, for example:
 
-  | > expression = caterwaul.parse('3 + 4')
-    > expression_ref = new caterwaul.expression_ref(expression)
-    > f = caterwaul.compile(caterwaul.parse('function () {return _foo}').replace({_foo: }))
+  | > f = caterwaul.compile(caterwaul.parse('function () {return _foo}').replace({_foo: new caterwaul.expression_ref(caterwaul.parse('3 + 4'))}))
     > f.caterwaul_expression_ref_table
-    { e_a_gensym: expression }
+    { e_a_gensym: '3+4' }
+
+  If you ask an opaque node for its expression bindings, it will return more opaque nodes of those strings. This way you can reuse the bindings from the compile() function, but it won't incur
+  any parsing overhead.
 
     caterwaul_global.opaque_tree = caterwaul_global.syntax_subclass(
                                      function (code, expression_refs) {if (code instanceof this.constructor) this.data = code.data, this.expression_refs = code.expression_refs;
                                                                        else                                  this.data            = code.toString(),
-                                                                                                             this.expression_refs = expression_refs || code.caterwaul_expression_ref_table},
+                                                                                                             this.expression_refs = expression_refs || code.caterwaul_expression_ref_table;
+                                                                       var rs = this.expression_refs;
+                                                                       for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
 
                                      {add_expressions_to: function (hash) {this.expression_refs && caterwaul_global.merge(hash, this.expression_refs)},
                                                serialize: function (xs)   {return xs.push(this.data), xs},
@@ -2633,7 +2636,7 @@ set to something else. If you really want some other value of undefined, you can
       options = caterwaul_global.merge({expression_ref_table: true}, options);
       var bindings = caterwaul_global.merge({}, environment, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(','), table = {};
       for (var k in bindings) if (own.call(bindings, k)) variables.push(new caterwaul_global.syntax(k)), expressions.push(bindings[k]),
-                                                         table[k] = caterwaul_global.syntax_to_expression(bindings[k]);
+                                                         table[k] = caterwaul_global.syntax.from_string(bindings[k].toString());
 
       var result_gensym      = caterwaul_global.gensym('result'),
           result_initializer = options.expression_ref_table ? late_bound_ref_table_template.replace({_result: result_gensym, _expression_ref_table: caterwaul_global.syntax.from_object(table)})
