@@ -1,0 +1,2599 @@
+#!/usr/bin/perl
+# 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
+
+# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
+# really gnarly). If you're curious what it's made of, I recommend reading
+# http://github.com/spencertipping/writing-self-modifying-perl.
+#
+# If you got one of these from someone and don't know what to do with it, send
+# it to spencer@spencertipping.com and I'll see if I can figure out what it
+# does.
+
+# For the benefit of HTML viewers (this is hack):
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value, %options) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value unless $options{no_binding};
+    &$delegate($name, $value) unless $options{no_delegate}}}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name")};
+
+meta::meta('configure', <<'__');
+# A function to configure transients. Transients can be used to store any number of
+# different things, but one of the more common usages is type descriptors.
+
+sub meta::configure {
+  my ($datatype, %options) = @_;
+  $transient{$_}{$datatype} = $options{$_} for keys %options;
+}
+__
+meta::meta('externalize', <<'__');
+# Function externalization. Data types should call this method when defining a function
+# that has an external interface.
+
+sub meta::externalize {
+  my ($name, $attribute, $implementation) = @_;
+  my $escaped = $name;
+  $escaped =~ s/[^A-Za-z0-9:]/_/go;
+  $externalized_functions{$name} = $externalized_functions{$escaped} = $attribute;
+  *{"::$name"} = *{"::$escaped"} = $implementation || $attribute;
+}
+
+__
+meta::meta('functor::editable', <<'__');
+# An editable type. This creates a type whose default action is to open an editor
+# on whichever value is mentioned. This can be changed using different flags.
+
+sub meta::functor::editable {
+  my ($typename, %options) = @_;
+
+  meta::configure $typename, %options;
+  meta::define_form $typename, sub {
+    my ($name, $value) = @_;
+
+    $options{on_bind} && &{$options{on_bind}}($name, $value);
+
+    meta::externalize $options{prefix} . $name, "${typename}::$name", sub {
+      my $attribute             = "${typename}::$name";
+      my ($command, @new_value) = @_;
+
+      return &{$options{default}}(retrieve($attribute)) if ref $options{default} eq 'CODE' and not defined $command;
+      return edit($attribute) if $command eq 'edit' or $options{default} eq 'edit' and not defined $command;
+      return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
+      return retrieve($attribute)}}}
+__
+meta::meta('functor::html-templates', <<'__');
+my @html_elements = qw/html head title meta script style link body div/;    # Very incomplete list
+
+for my $e (@html_elements) {
+  meta::externalize "template::$e", "template::$e", sub {
+    my ($line, $block) = @_;
+    "<$e $line>\n$block\n</$e>";
+  };
+}
+
+__
+meta::meta('type::alias', <<'__');
+meta::configure 'alias', inherit => 0;
+meta::define_form 'alias', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "alias::$name", sub {
+    # Can't pre-tokenize because shell::tokenize doesn't exist until the library::
+    # namespace has been evaluated (which will be after alias::).
+    shell::run(shell::tokenize($value), shell::tokenize(@_));
+  };
+};
+__
+meta::meta('type::bootstrap', <<'__');
+# Bootstrap attributes don't get executed. The reason for this is that because
+# they are serialized directly into the header of the file (and later duplicated
+# as regular data attributes), they will have already been executed when the
+# file is loaded.
+
+meta::configure 'bootstrap', extension => '.pl', inherit => 1;
+meta::define_form 'bootstrap', sub {};
+__
+meta::meta('type::cache', <<'__');
+meta::configure 'cache', inherit => 0;
+meta::define_form 'cache', \&meta::bootstrap::implementation;
+__
+meta::meta('type::data', 'meta::functor::editable \'data\', extension => \'\', inherit => 0, default => \'cat\';');
+meta::meta('type::function', <<'__');
+meta::configure 'function', extension => '.pl', inherit => 1;
+meta::define_form 'function', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "function::$name", meta::eval_in("sub {\n$value\n}", "function::$name");
+};
+__
+meta::meta('type::hook', <<'__');
+meta::configure 'hook', extension => '.pl', inherit => 0;
+meta::define_form 'hook', sub {
+  my ($name, $value) = @_;
+  *{"hook::$name"} = meta::eval_in("sub {\n$value\n}", "hook::$name");
+};
+__
+meta::meta('type::inc', <<'__');
+meta::configure 'inc', inherit => 1, extension => '.pl';
+meta::define_form 'inc', sub {
+  use File::Path 'mkpath';
+  use File::Basename qw/basename dirname/;
+
+  my ($name, $value) = @_;
+  my $tmpdir   = basename($0) . '-' . $$;
+  my $filename = "/tmp/$tmpdir/$name";
+
+  push @INC, "/tmp/$tmpdir" unless grep /^\/tmp\/$tmpdir$/, @INC;
+
+  mkpath(dirname($filename));
+  unless (-e $filename) {
+    open my $fh, '>', $filename;
+    print $fh $value;
+    close $fh;
+  }
+};
+__
+meta::meta('type::indicator', <<'__');
+# Shell indicator function. The output of each of these is automatically
+# appended to the shell prompt.
+
+meta::configure 'indicator', inherit => 1, extension => '.pl';
+meta::define_form 'indicator', sub {
+  my ($name, $value) = @_;
+  *{"indicator::$name"} = meta::eval_in("sub {\n$value\n}", "indicator::$name");
+};
+__
+meta::meta('type::internal_function', <<'__');
+meta::configure 'internal_function', extension => '.pl', inherit => 1;
+meta::define_form 'internal_function', sub {
+  my ($name, $value) = @_;
+  *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
+};
+__
+meta::meta('type::js', <<'__');
+meta::functor::editable 'js', extension => '.js', inherit => 1;
+
+__
+meta::meta('type::library', <<'__');
+meta::configure 'library', extension => '.pl', inherit => 1;
+meta::define_form 'library', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "library::$name");
+};
+__
+meta::meta('type::message_color', <<'__');
+meta::configure 'message_color', extension => '', inherit => 1;
+meta::define_form 'message_color', sub {
+  my ($name, $value) = @_;
+  terminal::color($name, $value);
+};
+__
+meta::meta('type::meta', <<'__');
+# This doesn't define a new type. It customizes the existing 'meta' type
+# defined in bootstrap::initialization. Note that horrible things will
+# happen if you redefine it using the editable functor.
+
+meta::configure 'meta', extension => '.pl', inherit => 1;
+__
+meta::meta('type::parent', <<'__');
+meta::define_form 'parent', \&meta::bootstrap::implementation;
+meta::configure 'parent', extension => '', inherit => 1;
+__
+meta::meta('type::retriever', <<'__');
+meta::configure 'retriever', extension => '.pl', inherit => 1;
+meta::define_form 'retriever', sub {
+  my ($name, $value) = @_;
+  $transient{retrievers}{$name} = meta::eval_in("sub {\n$value\n}", "retriever::$name");
+};
+__
+meta::meta('type::sdoc', <<'__');
+# A meta-type for other types. So retrieve('js::main') will work if you have
+# the attribute 'sdoc::js::main'. The filename will be main.js.sdoc.
+
+meta::functor::editable 'sdoc', inherit => 1, extension => sub {
+  extension_for(attribute($_[0])) . '.sdoc';
+};
+__
+meta::meta('type::slibrary', <<'__');
+meta::configure 'slibrary', extension => '.pl.sdoc', inherit => 1;
+meta::define_form 'slibrary', sub {
+  my ($name, $value) = @_;
+  meta::eval_in(sdoc("slibrary::$name"), "slibrary::$name");
+};
+
+__
+meta::meta('type::state', <<'__');
+# Allows temporary or long-term storage of states. Nothing particularly insightful
+# is done about compression, so storing alternative states will cause a large
+# increase in size. Also, states don't contain other states -- otherwise the size
+# increase would be exponential.
+
+# States are created with the save-state function.
+
+meta::configure 'state', inherit => 0, extension => '.pl';
+meta::define_form 'state', \&meta::bootstrap::implementation;
+__
+meta::meta('type::template', <<'__');
+meta::configure 'template', extension => '.pl', inherit => 1;
+meta::define_form 'template', sub {
+  my ($name, $value) = @_;
+  meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
+};
+__
+meta::meta('type::waul', <<'__');
+meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => 'edit';
+
+__
+meta::bootstrap('html', <<'__');
+<html>
+  <head>
+  <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
+  <link rel='stylesheet' href='http://spencertipping.com/perl-objects/web/style.css'/>
+
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js'></script>
+  <script src='http://spencertipping.com/caterwaul/caterwaul.all.min.js'></script>
+  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='http://spencertipping.com/perl-objects/web/attribute-parser.js'></script>
+  <script src='http://spencertipping.com/perl-objects/web/interface.js'></script>
+  </head>
+  <body></body>
+</html>
+
+__
+meta::bootstrap('initialization', <<'__');
+#!/usr/bin/perl
+# 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
+
+# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
+# really gnarly). If you're curious what it's made of, I recommend reading
+# http://github.com/spencertipping/writing-self-modifying-perl.
+#
+# If you got one of these from someone and don't know what to do with it, send
+# it to spencer@spencertipping.com and I'll see if I can figure out what it
+# does.
+
+# For the benefit of HTML viewers (this is hack):
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value, %options) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value unless $options{no_binding};
+    &$delegate($name, $value) unless $options{no_delegate}}}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name")};
+
+__
+meta::bootstrap('perldoc', <<'__');
+=head1 Self-modifying Perl script
+
+=head2 Original implementation by Spencer Tipping L<http://spencertipping.com>
+
+The prototype for this script is licensed under the terms of the MIT source code license.
+However, this script in particular may be under different licensing terms. To find out how
+this script is licensed, please contact whoever sent it to you. Alternatively, you may
+run it with the 'license' argument if they have specified a license that way.
+
+You should not edit this file directly. For information about how it was constructed, go
+to L<http://spencertipping.com/writing-self-modifying-perl>. For quick usage guidelines,
+run this script with the 'usage' argument.
+
+=cut
+
+__
+meta::cache('parent-identification', <<'__');
+../waul-object 4e04fdb8e560f4dd2ca4880b91a8e2ea
+/home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
+/home/spencertipping/conjectures/perl-objects/js 246bc56c88e8e8daae3737dbb16a2a2c
+/home/spencertipping/conjectures/perl-objects/sdoc a1e8480e579614c01dabeecf0f963bcc
+object 99aeabc9ec7fe80b1b39f5e53dc7e49e
+preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
+sdoc 
+vim-highlighters 902333a0bd6ed90ff919fe8477cb4e69
+__
+meta::data('author', 'Spencer Tipping');
+meta::data('default-action', 'shell');
+meta::data('license', <<'__');
+MIT License
+Copyright (c) 2010 Spencer Tipping
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+__
+meta::function('ad', <<'__');
+return @{$transient{path}} = () unless @_;
+push @{$transient{path}}, @_;
+
+__
+meta::function('alias', <<'__');
+my ($name, @stuff) = @_;
+@_ ? @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join(' ', @stuff), execute => 1)})
+            : retrieve("alias::$name") // "Undefined alias $name"
+   : table_display([select_keys('--namespace' => 'alias')], [map retrieve($_), select_keys('--namespace' => 'alias')]);
+
+__
+meta::function('cat', 'join "\\n", retrieve(@_);');
+meta::function('cc', <<'__');
+# Stashes a quick one-line continuation. (Used to remind me what I was doing.)
+@_ ? associate('data::current-continuation', hook('set-cc', join(' ', @_))) : retrieve('data::current-continuation');
+__
+meta::function('ccc', 'rm(\'data::current-continuation\');');
+meta::function('child', <<'__');
+around_hook('child', @_, sub {
+  my ($child_name) = @_;
+  clone($child_name);
+  enable();
+  qx($child_name update-from $0 -n);
+  disable()});
+__
+meta::function('clone', <<'__');
+for (grep length, @_) {
+  around_hook('clone', $_, sub {
+    hypothetically(sub {
+      rm('data::permanent-identity');
+      file::write($_, serialize(), noclobber => 1);
+      chmod(0700, $_)})})}
+__
+meta::function('cp', <<'__');
+my $from = shift @_;
+my $value = retrieve($from);
+associate($_, $value) for @_;
+__
+meta::function('create', <<'__');
+my ($name, $value) = @_;
+around_hook('create', $name, $value, sub {
+  return edit($name) if exists $data{$name};
+  associate($name, defined $value ? $value : '');
+  edit($name) unless defined $value});
+__
+meta::function('current-state', 'serialize(\'-pS\');');
+meta::function('disable', 'hook(\'disable\', chmod_self(sub {$_[0] & 0666}));');
+meta::function('e', <<'__');
+my @attributes = select_keys('--criteria' => "sdoc::.*$_[0]");
+edit($attributes[0]);
+
+__
+meta::function('edit', <<'__');
+my ($name, %options) = @_;
+my $extension = extension_for($name);
+
+die "$name is virtual or does not exist" unless exists $data{$name};
+die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || is($name, '-d') || exists $options{'-f'};
+
+around_hook('edit', @_, sub {
+  associate($name, invoke_editor_on($data{$name} // '', %options, attribute => $name, extension => $extension), execute => 1)});
+save() unless $data{'data::edit::no-save'};
+'';
+__
+meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
+meta::function('export', <<'__');
+# Exports data into a text file.
+#   export attr1 attr2 attr3 ... file.txt
+my $name = pop @_;
+@_ or die 'Expected filename';
+file::write($name, join "\n", retrieve(@_));
+__
+meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
+meta::function('grep', <<'__');
+# Looks through attributes for a pattern. Usage is grep pattern [options], where
+# [options] is the format as provided to select_keys.
+
+my ($pattern, @args)     = @_;
+my ($options, @criteria) = separate_options(@args);
+my @attributes           = select_keys(%$options, '--criteria' => join('|', @criteria));
+
+$pattern = qr/$pattern/;
+
+my @m_attributes;
+my @m_line_numbers;
+my @m_lines;
+
+for my $k (@attributes) {
+  next unless length $k;
+  my @lines = split /\n/, retrieve($k);
+  for (0 .. $#lines) {
+    next unless $lines[$_] =~ $pattern;
+    push @m_attributes,   $k;
+    push @m_line_numbers, $_ + 1;
+    push @m_lines,        '' . ($lines[$_] // '')}}
+
+unless ($$options{'-C'}) {
+  s/($pattern)/\033[1;31m\1\033[0;0m/g for @m_lines;
+  s/^/\033[1;34m/o for @m_attributes;
+  s/^/\033[1;32m/o && s/$/\033[0;0m/o for @m_line_numbers}
+
+table_display([@m_attributes], [@m_line_numbers], [@m_lines]);
+__
+meta::function('hash', 'fast_hash(@_);');
+meta::function('hook', <<'__');
+my ($hook, @args) = @_;
+$transient{active_hooks}{$hook} = 1;
+dangerous('', sub {&$_(@args)}) for grep /^hook::${hook}::/, sort keys %data;
+@args;
+__
+meta::function('hooks', 'join "\\n", sort keys %{$transient{active_hooks}};');
+meta::function('identity', 'retrieve(\'data::permanent-identity\') || associate(\'data::permanent-identity\', fast_hash(rand() . name() . serialize()));');
+meta::function('import', <<'__');
+my $name = pop @_;
+associate($name, @_ ? join('', map(file::read($_), @_)) : join('', <STDIN>)); 
+__
+meta::function('initial-state', '$transient{initial};');
+meta::function('is', <<'__');
+my ($attribute, @criteria) = @_;
+my ($options, @stuff) = separate_options(@criteria);
+exists $data{$attribute} and attribute_is($attribute, %$options);
+
+__
+meta::function('load-state', <<'__');
+around_hook('load-state', @_, sub {
+  my ($state_name) = @_;
+  my $state = retrieve("state::$state_name");
+
+  terminal::state('saving current state into _...');
+  save_state('_');
+
+  delete $data{$_} for grep ! /^state::/, keys %data;
+  %externalized_functions = ();
+
+  terminal::state("restoring state $state_name...");
+  meta::eval_in($state, "state::$state_name");
+  terminal::error(hook('load-state-failed', $@)) if $@;
+  reload();
+  verify()});
+
+__
+meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
+meta::function('ls', <<'__');
+my ($options, @criteria) = separate_options(@_);
+my ($external, $shadows, $sizes, $flags, $long, $hashes, $parent_hashes) = @$options{qw(-e -s -z -f -l -h -p)};
+$sizes = $flags = $hashes = $parent_hashes = 1 if $long;
+
+return table_display([grep ! exists $data{$externalized_functions{$_}}, sort keys %externalized_functions]) if $shadows;
+
+my $criteria    = join('|', @criteria);
+my @definitions = select_keys('--criteria' => $criteria, '--path' => $transient{path}, %$options);
+
+my %inverses  = map {$externalized_functions{$_} => $_} keys %externalized_functions;
+my @externals = map $inverses{$_}, grep length, @definitions;
+my @internals = grep length $inverses{$_}, @definitions;
+my @sizes     = map sprintf('%6d %6d', length(serialize_single($_)), length(retrieve($_))), @{$external ? \@internals : \@definitions} if $sizes;
+
+my @flags     = map {my $k = $_; join '', map(is($k, "-$_") ? $_ : '-', qw(d i m u))} @definitions if $flags;
+my @hashes    = map fast_hash(retrieve($_)), @definitions if $hashes;
+
+my %inherited     = parent_attributes(grep /^parent::/o, keys %data) if $parent_hashes;
+my @parent_hashes = map $inherited{$_} || '-', @definitions if $parent_hashes;
+
+join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @externals] : [@definitions],
+                                                    $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : (), $hashes ? ([@hashes]) : (), $parent_hashes ? ([@parent_hashes]) : ());
+
+__
+meta::function('minify-yui', <<'__');
+# Minify using YUI compressor
+my ($filename) = @_;
+my $minified = $filename;
+my $minified_conservative = $filename;
+$minified =~ s/\.js$/.min.js/;
+$minified_conservative =~ s/\.js$/.minc.js/;
+
+terminal::info("minifying $filename");
+file::write($minified, join '', qx(yuicompressor --line-break 160 "$filename"));
+file::write($minified_conservative, join '', qx(yuicompressor --nomunge --line-break 160 "$filename"));
+
+__
+meta::function('mv', <<'__');
+my ($from, $to) = @_;
+die "'$from' does not exist" unless exists $data{$from};
+associate($to, retrieve($from));
+rm($from);
+__
+meta::function('name', <<'__');
+my $name = $0;
+$name =~ s/^.*\///;
+$name;
+__
+meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
+meta::function('perl', <<'__');
+my $result = eval(join ' ', @_);
+$@ ? terminal::error($@) : $result;
+__
+meta::function('preprocess', <<'__');
+# Implements a simple preprocessing language.
+# Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
+# but not spanning multiple lines. The other is 'block form', which gives you access to both one-line
+# arguments and a block of lines. The line parameters are passed in verbatim, and the block is
+# indentation-adjusted and then passed in as a second parameter. (Indentation is adjusted to align
+# with the name of the command.)
+#
+# Here are the forms:
+#
+# - line arguments to function
+#
+# - block line arguments << eof
+#   block contents
+#   block contents
+#   ...
+# - eof
+
+my ($string, %options) = @_;
+my $expansions         = 0;
+my $old_string         = '';
+my $limit              = $options{expansion_limit} || 100;
+my @pieces             = ();
+
+sub adjust_spaces {
+  my ($spaces, $string) = @_;
+  $string =~ s/^$spaces  //mg;
+  chomp $string;
+  $string;
+}
+
+while ($old_string ne $string and $expansions++ < $limit) {
+  $old_string = $string;
+
+  while ((my @pieces = split  /(^(\h*)-\h \S+ \h* \V* <<\h*(\w+)$ \n .*?  ^\2-\h\3$)/xms, $string) > 1 and $expansions++ < $limit) {
+    $pieces[1 + ($_ << 2)] =~ /^ (\h*)-\h(\S+)\h*(\V*)<<\h*(\w+)$ \n(.*?) ^\1-\h\4 $/xms && $externalized_functions{"template::$2"} and
+      $pieces[1 + ($_ << 2)] = &{"template::$2"}($3, adjust_spaces($1, $5))
+      for 0 .. $#pieces / 4;
+
+    @pieces[2 + ($_ << 2), 3 + ($_ << 2)] = '' for 0 .. $#pieces / 4;
+    $string = join '', @pieces;
+  }
+
+  if ((my @pieces = split     /^(\h*-\h \S+ \h* .*)$/xom, $string) > 1) {
+    $pieces[1 + ($_ << 1)] =~ /^ \h*-\h(\S+)\h*(.*)$/xom && $externalized_functions{"template::$1"} and
+      $pieces[1 + ($_ << 1)] = &{"template::$1"}($2)
+      for 0 .. $#pieces >> 1;
+
+    $string = join '', @pieces;
+  }
+}
+
+$string;
+__
+meta::function('rd', <<'__');
+my $pattern = join '|', @_;
+@{$transient{path}} = grep $_ !~ /^$pattern$/, @{$transient{path}};
+
+__
+meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
+meta::function('render', <<'__');
+my @pieces = qw/macro anonymize js js-literals words seq/;
+
+file::write("std.$_.waul", retrieve("waul::std.$_")) for @pieces;
+waul("std.$_", output => "build/std.$_.js") for @pieces;
+
+file::write('build/caterwaul.std.js', cat('pp::caterwaul.std.js'));
+minify_yui('build/caterwaul.std.js');
+
+__
+meta::function('rm', <<'__');
+around_hook('rm', @_, sub {
+  exists $data{$_} or terminal::warning("$_ does not exist") for @_;
+  delete @data{@_}});
+__
+meta::function('rmparent', <<'__');
+# Removes one or more parents.
+my ($options, @parents) = separate_options(@_);
+my $clobber_divergent = $$options{'-D'} || $$options{'--clobber-divergent'};
+
+my %parents = map {$_ => 1} @parents;
+my @other_parents = grep !$parents{$_}, grep s/^parent:://, select_keys('--namespace' => 'parent');
+my %kept_by_another_parent;
+
+$kept_by_another_parent{$_} = 1 for grep s/^(\S+)\s.*$/\1/, split /\n/o, cat(@other_parents);
+
+for my $parent (@parents) {
+  my $keep_parent_around = 0;
+
+  for my $line (split /\n/, retrieve("parent::$parent")) {
+    my ($name, $hash) = split /\s+/, $line;
+    next unless exists $data{$name};
+
+    my $local_hash = fast_hash(retrieve($name));
+    if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name) unless $kept_by_another_parent{$name}}
+    else {terminal::info("local attribute $name exists and is divergent; use rmparent -D $parent to delete it");
+          $keep_parent_around = 1}}
+
+  $keep_parent_around ? terminal::info("not deleting parent::$parent so that you can run", "rmparent -D $parent if you want to nuke divergent attributes too")
+                      : rm("parent::$parent")}
+
+__
+meta::function('save', 'around_hook(\'save\', sub {dangerous(\'\', sub {file::write($0, serialize()); $transient{initial} = state()}) if verify()});');
+meta::function('save-state', <<'__');
+# Creates a named copy of the current state and stores it.
+my ($state_name) = @_;
+around_hook('save-state', $state_name, sub {
+  associate("state::$state_name", current_state(), execute => 1)});
+
+__
+meta::function('sdoc', <<'__');
+# Applies SDoc processing to a file or attribute. Takes the file or attribute
+# name as the first argument and returns the processed text.
+
+my %comments_for_extension = 
+  qw|c     /*,*/  cpp   //    cc   //    h    //    java //  py  #    rb   #    pl  #   pm   #         ml   (*,*)  js  //
+     hs    --     sh    #     lisp ;;;   lsp  ;;;   s    ;   scm ;;;  sc   ;;;  as  //  html <!--,-->  mli  (*,*)  cs  //
+     vim   "      elisp ;     bas  '     ada  --    asm  ;   awk #    bc   #    boo #   tex  %         fss  (*,*)  erl %
+     scala //     hx    //    io   //    j    NB.   lua  --  n   //   m    %    php //  sql  --        pov  //     pro %
+     r     #      self  ","   tcl  #     texi @c    tk   #   csh #    vala //   vbs '   v    /*,*/     vhdl --     ss  ;;;
+     haml  -#     sass  /*,*/ scss /*,*/ css  /*,*/ fig  /   waul #|;
+
+# No extension suggests a shebang line, which generally requires # to denote a comment.
+$comments_for_extension{''} = '#';
+
+my $generated_string = 'Generated by SDoc';
+
+sub is_code    {map /^\s*[^A-Z\|\s]/o, @_}
+sub is_blank   {map /^\n/o, @_}
+sub comment    {my ($text, $s, $e) = @_; join "\n", map("$s $_$e", split /\n/, $text)}
+
+sub paragraphs {map split(/((?:\n\h*){2,})/, $_), @_}
+
+my ($filename) = @_;
+
+# Two possibilities here. One is that the filename is an attribute, in which case
+# we want to look up the extension in the transients table. The other is that
+# it's a real filename.
+my ($extension)       = $filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo;
+my ($other_extension) = extension_for($filename);
+$other_extension =~ s/\.sdoc$//io;
+$other_extension =~ s/^\.//o;
+
+my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $extension)} // $comments_for_extension{''} // '#';
+
+join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
+         "\n$start $generated_string $end\n";
+
+__
+meta::function('sdoc-html', <<'__');
+# Converts SDoc to logically-structured HTML. Sections end up being nested,
+# and code sections and examples are marked as such. For instance, here is some
+# sample output:
+
+# <div class='section level1'>
+#   <h1 class='title'>Foo</h1>
+#   <p>This is a paragraph...</p>
+#   <p>This is another paragraph...</p>
+#   <pre class='code'>int main () {return 0;}</pre>
+#   <pre class='quoted'>int main () {return 0} // Won't compile</pre>
+#   <div class='section level2'>
+#     <h2 class='title'>Bar</h2>
+#     ...
+#   </div>
+# </div>
+
+# It is generally good about escaping things that would interfere with HTML,
+# but within text paragraphs it lets you write literal HTML. The heuristic is
+# that known tags that are reasonably well-formed are allowed, but unknown ones
+# are escaped.
+
+my ($attribute)   = @_;
+my @paragraphs    = split /\n(?:\s*\n)+/, retrieve($attribute);
+
+my $known_tags    = join '|', qw[html head body meta script style link title div a span input button textarea option select form label iframe blockquote code caption
+                                 table tbody tr td th thead tfoot img h1 h2 h3 h4 h5 h6 li ol ul noscript p pre samp sub sup var canvas audio video];
+my $section_level = 0;
+my @markup;
+
+my $indent        = sub {'  ' x ($_[0] || $section_level)};
+my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//gm};
+
+my $escape_all    = sub {s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g};
+my $escape_some   = sub {s/&/&amp;/g; s/<(?!\/|($known_tags)[^>]*>.*<\/\1>)/&lt;/gs};
+
+my $code          = sub {&$escape_all(); &$unindent(); s/^c\n//;                   push @markup, &$indent() . "<pre class='code'>$_</pre>"};
+my $quoted        = sub {&$escape_all(); &$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, &$indent() . "<pre class='quoted'>$_</pre>"};
+
+my $paragraph     = sub {&$escape_some(); push @markup, &$indent() . "<p>$_</p>"};
+
+my $section       = sub {my $h = $_[0] > 6 ? 6 : $_[0]; push @markup, &$indent($_[0] - 1) . "<div class='section level$_[0]'>", &$indent($_[0]) . "<h$h>$2</h$h>"};
+my $close_section = sub {push @markup, &$indent($_[0]) . "</div>"};
+
+my $title = sub {
+  my $indentation = (length($1) >> 1) + 1;
+  &$close_section($section_level) while $section_level-- >= $indentation;
+  &$section($indentation);
+  $section_level = $indentation;
+};
+
+for (@paragraphs) {
+  &$code(),   next unless /^\h*[A-Z|]/;
+  &$quoted(), next if     /^\h*\|/;
+
+  &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") - 10 < length($3);
+  &$paragraph();
+}
+
+&$close_section($section_level) while $section_level--;
+
+join "\n", @markup;
+__
+meta::function('sdocp', <<'__');
+# Renders an attribute as SDocP. This logic was taken directly from the sdoc script.
+my $attribute = retrieve($_[0]);
+sub escape {my @results = map {s/\\/\\\\/go; s/\n/\\n/go; s/'/\\'/go; $_} @_; wantarray ? @results : $results[0]}
+"sdocp('" . escape($_[0]) . "', '" . escape($attribute) . "');";
+__
+meta::function('serialize', <<'__');
+my ($options, @criteria) = separate_options(@_);
+my $partial     = $$options{'-p'};
+my $criteria    = join '|', @criteria;
+my @attributes  = map serialize_single($_), select_keys(%$options, '-m' => 1, '--criteria' => $criteria), select_keys(%$options, '-M' => 1, '--criteria' => $criteria);
+my @final_array = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__END__']};
+join "\n", @final_array;
+__
+meta::function('serialize-single', <<'__');
+# Serializes a single attribute and optimizes for content.
+
+my $name          = $_[0] || $_;
+my $contents      = $data{$name};
+my $meta_function = 'meta::' . namespace($name);
+my $invocation    = attribute($name);
+my $escaped       = $contents;
+$escaped =~ s/\\/\\\\/go;
+$escaped =~ s/'/\\'/go;
+
+return "$meta_function('$invocation', '$escaped');" unless $escaped =~ /\v/;
+
+my $delimiter = '__' . fast_hash($contents);
+my $chars     = 2;
+
+++$chars until $chars >= length($delimiter) || index("\n$contents", "\n" . substr($delimiter, 0, $chars)) == -1;
+$delimiter = substr($delimiter, 0, $chars);
+
+"$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
+__
+meta::function('sh', 'system(@_);');
+meta::function('shb', <<'__');
+# Backgrounded shell job.
+exec(@_) unless fork;
+
+__
+meta::function('shell', <<'__');
+my ($options, @arguments) = separate_options(@_);
+$transient{repl_prefix} = $$options{'--repl-prefix'};
+
+terminal::cc(retrieve('data::current-continuation')) if length $data{'data::current-continuation'};
+around_hook('shell', sub {shell::repl(%$options)});
+
+__
+meta::function('size', <<'__');
+my $size = 0;
+$size += length $data{$_} for keys %data;
+sprintf "% 7d % 7d % 7d", length(serialize()), $size, length(serialize('-up'));
+
+__
+meta::function('snapshot', <<'__');
+my ($name) = @_;
+file::write(my $finalname = temporary_name($name), serialize(), noclobber => 1);
+chmod 0700, $finalname;
+hook('snapshot', $finalname);
+__
+meta::function('state', <<'__');
+my @keys = sort keys %data;
+my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
+$hash = fast_hash("$data{$_}|$hash") for @keys;
+$hash;
+__
+meta::function('touch', 'associate($_, \'\') for @_;');
+meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
+meta::function('update', <<'__');
+update_from(@_, grep s/^parent:://o, sort keys %data);
+
+__
+meta::function('update-from', <<'__');
+# Upgrade all attributes that aren't customized. Customization is defined when the data type is created,
+# and we determine it here by checking for $transient{inherit}{$type}.
+
+# Note that this assumes you trust the remote script. If you don't, then you shouldn't update from it.
+
+around_hook('update-from-invocation', separate_options(@_), sub {
+  my ($options, @targets) = @_;
+  my %parent_id_cache = cache('parent-identification');
+  my %already_seen;
+
+  @targets or return;
+
+  my @known_targets     = grep s/^parent:://, parent_ordering(map "parent::$_", grep exists $data{"parent::$_"}, @targets);
+  my @unknown_targets   = grep ! exists $data{"parent::$_"}, @targets;
+  @targets = (@known_targets, @unknown_targets);
+
+  my $save_state        = ! ($$options{'-n'} || $$options{'--no-save'});
+  my $no_parents        =    $$options{'-P'} || $$options{'--no-parent'} || $$options{'--no-parents'};
+  my $force             =    $$options{'-f'} || $$options{'--force'};
+  my $clobber_divergent =    $$options{'-D'} || $$options{'--clobber-divergent'};
+
+  save_state('before-update') if $save_state;
+
+  for my $target (@targets) {
+    dangerous("updating from $target", sub {
+    around_hook('update-from', $target, sub {
+      my $identity = $parent_id_cache{$target} ||= join '', qx($target identity);
+      next if $already_seen{$identity};
+      $already_seen{$identity} = 1;
+
+      my $attributes = join '', qx($target ls -ahiu);
+      my %divergent;
+      die "skipping unreachable $target" unless $attributes;
+
+      for my $to_rm (split /\n/, retrieve("parent::$target")) {
+        my ($name, $hash) = split(/\s+/, $to_rm);
+        next unless exists $data{$name};
+
+        my $local_hash = fast_hash(retrieve($name));
+        if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name)}
+        else {terminal::info("preserving local version of divergent attribute $name (use update -D to clobber it)");
+              $divergent{$name} = retrieve($name)}}
+
+      associate("parent::$target", $attributes) unless $no_parents;
+
+      dangerous('', sub {eval qx($target serialize -ipmu)});
+      dangerous('', sub {eval qx($target serialize -ipMu)});
+
+      map associate($_, $divergent{$_}), keys %divergent unless $clobber_divergent;
+
+      reload()})})}
+
+  cache('parent-identification', %parent_id_cache);
+
+  if (verify()) {hook('update-from-succeeded', $options, @targets);
+                 terminal::info("Successfully updated. Run 'load-state before-update' to undo this change.") if $save_state}
+  elsif ($force) {hook('update-from-failed', $options, @targets);
+                  terminal::warning('Failed to verify: at this point your object will not save properly, though backup copies will be created.',
+                                    'Run "load-state before-update" to undo the update and return to a working state.') if $save_state}
+  else {hook('update-from-failed', $options, @targets);
+        terminal::error('Verification failed after the upgrade was complete.');
+        terminal::info("$0 has been reverted to its pre-upgrade state.", "If you want to upgrade and keep the failure state, then run 'update-from $target --force'.") if $save_state;
+        return load_state('before-update') if $save_state}});
+
+__
+meta::function('usage', '"Usage: $0 action [arguments]\\nUnique actions (run \'$0 ls\' to see all actions):" . ls(\'-u\');');
+meta::function('verify', <<'__');
+file::write(my $other = $transient{temporary_filename} = temporary_name(), my $serialized_data = serialize());
+chomp(my $observed = join '', qx|perl '$other' state|);
+
+unlink $other if my $result = $observed eq (my $state = state());
+terminal::error("Verification failed; expected $state but got $observed from $other") unless $result;
+hook('after-verify', $result, observed => $observed, expected => $state);
+$result;
+__
+meta::function('waul', <<'__');
+# Runs one or more Waul attributes with the waulrun interpreter, which is
+# assumed to be on the $PATH somewhere.
+
+my ($name, %options) = @_;
+$name =~ s/^waul:://;
+my $output = $options{output} || "$name.js";
+with_exported("waul::$name", sub {
+  my ($exported) = @_;
+  sh("waul --output '$output' $exported")});
+
+__
+meta::hook('before-shell::ad', <<'__');
+ad('sdoc::');
+
+__
+meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
+meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
+meta::indicator('path', <<'__');
+join "\033[1;30m|\033[0;0m", @{$transient{path}};
+
+__
+meta::internal_function('around_hook', <<'__');
+# around_hook('hookname', @args, sub {
+#   stuff;
+# });
+
+# Invokes 'before-hookname' on @args before the sub runs, invokes the
+# sub on @args, then invokes 'after-hookname' on @args afterwards.
+# The after-hook is not invoked if the sub calls 'die' or otherwise
+# unwinds the stack.
+
+my $hook = shift @_;
+my $f    = pop @_;
+
+hook("before-$hook", @_);
+my $result = &$f(@_);
+hook("after-$hook", @_);
+$result;
+__
+meta::internal_function('associate', <<'__');
+my ($name, $value, %options) = @_;
+die "Namespace does not exist" unless exists $datatypes{namespace($name)};
+$data{$name} = $value;
+execute($name) if $options{'execute'};
+$value;
+__
+meta::internal_function('attribute', <<'__');
+my ($name) = @_;
+$name =~ s/^[^:]*:://;
+$name;
+__
+meta::internal_function('attribute_is', <<'__');
+my ($a, %options) = @_;
+my %inherited     = parent_attributes(grep /^parent::/o, sort keys %data) if grep exists $options{$_}, qw/-u -U -d -D/;
+my $criteria      = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
+my $path          = $options{'--path'} ? join('|', @{$options{'--path'}}) : '.';
+
+my %tests = ('-u' => sub {! $inherited{$a}},
+             '-d' => sub {$inherited{$a} && fast_hash(retrieve($a)) ne $inherited{$a}},
+             '-i' => sub {$transient{inherit}{namespace($a)}},
+             '-s' => sub {$a =~ /^state::/o},
+             '-m' => sub {$a =~ /^meta::/o});
+
+return 0 unless scalar keys %tests == scalar grep ! exists $options{$_}    ||   &{$tests{$_}}(), keys %tests;
+return 0 unless scalar keys %tests == scalar grep ! exists $options{uc $_} || ! &{$tests{$_}}(), keys %tests;
+$a =~ /$criteria/ and $a =~ /$path/;
+
+__
+meta::internal_function('cache', <<'__');
+my ($name, %pairs) = @_;
+if (%pairs) {associate("cache::$name", join "\n", map {$pairs{$_} =~ s/\n//g; "$_ $pairs{$_}"} sort keys %pairs)}
+else        {map split(/\s/, $_, 2), split /\n/, retrieve("cache::$name")}
+__
+meta::internal_function('chmod_self', <<'__');
+my ($mode_function)      = @_;
+my (undef, undef, $mode) = stat $0;
+chmod &$mode_function($mode), $0;
+__
+meta::internal_function('dangerous', <<'__');
+# Wraps a computation that may produce an error.
+my ($message, $computation) = @_;
+terminal::info($message) if $message;
+my @result = eval {&$computation()};
+terminal::warning(translate_backtrace($@)), return undef if $@;
+wantarray ? @result : $result[0];
+__
+meta::internal_function('debug_trace', <<'__');
+terminal::debug(join ', ', @_);
+wantarray ? @_ : $_[0];
+__
+meta::internal_function('execute', <<'__');
+my ($name, %options) = @_;
+my $namespace = namespace($name);
+eval {&{$datatypes{$namespace}}(attribute($name), retrieve($name))};
+warn $@ if $@ && $options{'carp'};
+
+__
+meta::internal_function('exported', <<'__');
+# Allocates a temporary file containing the concatenation of attributes you specify,
+# and returns the filename. The filename will be safe for deletion anytime.
+my $filename = temporary_name();
+file::write($filename, cat(@_));
+$filename;
+__
+meta::internal_function('extension_for', <<'__');
+my $extension = $transient{extension}{namespace($_[0])};
+$extension = &$extension($_[0]) if ref $extension eq 'CODE';
+$extension || '';
+__
+meta::internal_function('fast_hash', <<'__');
+my ($data)     = @_;
+my $piece_size = length($data) >> 3;
+
+my @pieces     = (substr($data, $piece_size * 8) . length($data), map(substr($data, $piece_size * $_, $piece_size), 0 .. 7));
+my @hashes     = (fnv_hash($pieces[0]));
+
+push @hashes, fnv_hash($pieces[$_ + 1] . $hashes[$_]) for 0 .. 7;
+
+$hashes[$_] ^= $hashes[$_ + 4] >> 16 | ($hashes[$_ + 4] & 0xffff) << 16 for 0 .. 3;
+$hashes[0]  ^= $hashes[8];
+
+sprintf '%08x' x 4, @hashes[0 .. 3];
+__
+meta::internal_function('file::read', <<'__');
+my $name = shift;
+open my($handle), "<", $name;
+my $result = join "", <$handle>;
+close $handle;
+$result;
+__
+meta::internal_function('file::write', <<'__');
+use File::Path     'mkpath';
+use File::Basename 'dirname';
+
+my ($name, $contents, %options) = @_;
+die "Choosing not to overwrite file $name" if $options{noclobber} and -f $name;
+mkpath(dirname($name)) if $options{mkpath};
+
+open my($handle), $options{append} ? '>>' : '>', $name or die "Can't open $name for writing";
+print $handle $contents;
+close $handle;
+__
+meta::internal_function('fnv_hash', <<'__');
+# A rough approximation to the Fowler-No Voll hash. It's been 32-bit vectorized
+# for efficiency, which may compromise its effectiveness for short strings.
+
+my ($data) = @_;
+
+my ($fnv_prime, $fnv_offset) = (16777619, 2166136261);
+my $hash                     = $fnv_offset;
+my $modulus                  = 2 ** 32;
+
+$hash = ($hash ^ ($_ & 0xffff) ^ ($_ >> 16)) * $fnv_prime % $modulus for unpack 'L*', $data . substr($data, -4) x 8;
+$hash;
+__
+meta::internal_function('hypothetically', <<'__');
+# Applies a temporary state and returns a serialized representation.
+# The original state is restored after this, regardless of whether the
+# temporary state was successful.
+
+my %data_backup   = %data;
+my ($side_effect) = @_;
+my $return_value  = eval {&$side_effect()};
+%data = %data_backup;
+
+die $@ if $@;
+$return_value;
+__
+meta::internal_function('internal::main', <<'__');
+disable();
+
+$SIG{'INT'} = sub {snapshot(); exit 1};
+
+$transient{initial}      = state();
+chomp(my $default_action = retrieve('data::default-action'));
+
+my $function_name = shift(@ARGV) || $default_action || 'usage';
+terminal::warning("unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
+
+around_hook('main-function', $function_name, @ARGV, sub {
+  dangerous('', sub {
+    chomp(my $result = &$function_name(@ARGV));
+    print "$result\n" if $result})});
+
+save() unless state() eq $transient{initial};
+
+END {
+  enable();
+}
+__
+meta::internal_function('invoke_editor_on', <<'__');
+my ($data, %options) = @_;
+my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
+my $options   = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
+my $attribute = $options{attribute};
+$attribute =~ s/\//-/g;
+my $filename  = temporary_name() . "-$attribute$options{extension}";
+
+file::write($filename, $data);
+system("$editor $options '$filename'");
+
+my $result = file::read($filename);
+unlink $filename;
+$result;
+__
+meta::internal_function('is_locked', '!((stat($0))[2] & 0222);');
+meta::internal_function('namespace', <<'__');
+my ($name) = @_;
+$name =~ s/::.*$//;
+$name;
+__
+meta::internal_function('parent_attributes', <<'__');
+my $attributes = sub {my ($name, $value) = split /\s+/o, $_; $name => ($value || 1)};
+map &$attributes(), split /\n/o, join("\n", retrieve(@_));
+__
+meta::internal_function('parent_ordering', <<'__');
+# Topsorts the parents by dependency chain. The simplest way to do this is to
+# transitively compute the number of parents referred to by each parent.
+
+my @parents = @_;
+my %all_parents = map {$_ => 1} @parents;
+
+my %parents_of = map {
+  my $t = $_;
+  my %attributes = parent_attributes($_);
+  $t => [grep /^parent::/, keys %attributes]} @parents;
+
+my %parent_count;
+my $parent_count;
+$parent_count = sub {
+  my ($key) = @_;
+  return $parent_count{$key} if exists $parent_count{$key};
+  my $count = 0;
+  $count += $parent_count->($_) + exists $data{$_} for @{$parents_of{$key}};
+  $parent_count{$key} = $count};
+
+my %inverses;
+push @{$inverses{$parent_count->($_)} ||= []}, $_ for @parents;
+grep exists $all_parents{$_}, map @{$inverses{$_}}, sort keys %inverses;
+__
+meta::internal_function('retrieve', <<'__');
+my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
+wantarray ? @results : $results[0];
+__
+meta::internal_function('retrieve_with_hooks', <<'__');
+# Uses the hooks defined in $transient{retrievers}, and returns undef if none work.
+my ($attribute) = @_;
+my $result      = undef;
+
+defined($result = &$_($attribute)) and return $result for map $transient{retrievers}{$_}, sort keys %{$transient{retrievers}};
+return undef;
+__
+meta::internal_function('select_keys', <<'__');
+my %options = @_;
+grep attribute_is($_, %options), sort keys %data;
+__
+meta::internal_function('separate_options', <<'__');
+# Things with one dash are short-form options, two dashes are long-form.
+# Characters after short-form are combined; so -auv4 becomes -a -u -v -4.
+# Also finds equivalences; so --foo=bar separates into $$options{'--foo'} eq 'bar'.
+# Stops processing at the -- option, and removes it. Everything after that
+# is considered to be an 'other' argument.
+
+# The only form not supported by this function is the short-form with argument.
+# To pass keyed arguments, you need to use long-form options.
+
+my @parseable;
+push @parseable, shift @_ until ! @_ or $_[0] eq '--';
+
+my @singles = grep /^-[^-]/, @parseable;
+my @longs   = grep /^--/,    @parseable;
+my @others  = grep ! /^-/,   @parseable;
+
+my @singles = map /-(.{2,})/ ? map("-$_", split(//, $1)) : $_, @singles;
+
+my %options;
+/^([^=]+)=(.*)$/ and $options{$1} = $2 for @longs;
+++$options{$_} for grep ! /=/, @singles, @longs;
+
+({%options}, @others, @_);
+
+__
+meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
+meta::internal_function('table_display', <<'__');
+# Displays an array of arrays as a table; that is, with alignment. Arrays are
+# expected to be in column-major order.
+
+sub maximum_length_in {
+  my $maximum = 0;
+  length > $maximum and $maximum = length for @_;
+  $maximum;
+}
+
+my @arrays    = @_;
+my @lengths   = map maximum_length_in(@$_), @arrays;
+my @row_major = map {my $i = $_; [map $$_[$i], @arrays]} 0 .. $#{$arrays[0]};
+my $format    = join '  ', map "%-${_}s", @lengths;
+
+join "\n", map strip(sprintf($format, @$_)), @row_major;
+__
+meta::internal_function('temporary_name', <<'__');
+use File::Temp 'tempfile';
+my (undef, $temporary_filename) = tempfile("$0." . 'X' x 4, OPEN => 0);
+$temporary_filename;
+__
+meta::internal_function('translate_backtrace', <<'__');
+my ($trace) = @_;
+$trace =~ s/\(eval (\d+)\)/$locations{$1 - 1}/g;
+$trace;
+__
+meta::internal_function('with_exported', <<'__');
+# Like exported(), but removes the file after running some function.
+# Usage is with_exported(@files, sub {...});
+my $f      = pop @_;
+my $name   = exported(@_);
+my $result = eval {&$f($name)};
+terminal::warning("$@ when running with_exported()") if $@;
+unlink $name;
+$result;
+__
+meta::library('shell', <<'__');
+# Functions for shell parsing and execution.
+package shell;
+use Term::ReadLine;
+
+sub tokenize {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
+
+sub parse {
+  my ($fn, @args) = @_;
+  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @args;
+  {function => $fn, args => [@args]}}
+
+sub execute {
+  my %command = %{$_[0]};
+  die "undefined command: $command{function}" unless exists $externalized_functions{$command{function}};
+  &{"::$command{function}"}(@{$command{args}})}
+
+sub run {execute(parse(tokenize(@_)))}
+
+sub prompt {
+  my %options = @_;
+  my $name    = $options{name} // ::name();
+
+  my $indicators = join '', map &{"::$_"}(), ::select_keys('--namespace' => 'indicator');
+  my $prefix     = $transient{repl_prefix} // '';
+
+  "$prefix\033[1;32m$name\033[0;0m$indicators "}
+
+sub repl {
+  my %options = @_;
+
+  my $term = new Term::ReadLine "$0 shell";
+  $term->ornaments(0);
+  my $attribs = $term->Attribs;
+  $attribs->{completion_entry_function} = $attribs->{list_completion_function};
+
+  my $autocomplete = $options{autocomplete} || sub {[sort(keys %data), grep !/-/, sort keys %externalized_functions]};
+  my $prompt       = $options{prompt}       || \&prompt;
+  my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
+  my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
+
+  length $_ && &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
+
+__
+meta::library('terminal', <<'__');
+# Functions for nice-looking terminal output.
+package terminal;
+
+my $process = ::name();
+
+sub message {print STDERR "[$_[0]] $_[1]\n"}
+sub color {
+  my ($name, $color) = @_;
+  *{"terminal::$name"} = sub {chomp($_), print STDERR "\033[1;30m$process(\033[1;${color}m$name\033[1;30m)\033[0;0m $_\n" for map join('', $_), @_}}
+
+my %preloaded = (info => 32, progress => 32, state => 34, debug => 34, warning => 33, error => 31);
+color $_, $preloaded{$_} for keys %preloaded;
+__
+meta::message_color('cc', '36');
+meta::message_color('state', 'purple');
+meta::message_color('states', 'yellow');
+meta::parent('../waul-object', <<'__');
+function::minify-yui                                        c37bf499bffec720588822330a9ddfa0
+function::waul                                              e1162e71693317dd52b5a30cac0a881a
+meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
+parent::/home/spencertipping/conjectures/perl-objects/js    bc7a27dec21a2794a034ca292453d45f
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  c328e1359e74d8eb1b3520c9d3888b90
+parent::preprocessor                                        ce0627808a7fa6f2692af7437f98a731
+
+__
+meta::parent('/home/spencertipping/bin/object', <<'__');
+bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
+bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
+bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
+function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
+function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
+function::cat                           f684de6c8776617a437b76009114f52e
+function::cc                            12ea9176e388400704d823433c209b7a
+function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
+function::child                         f5764adf0b4e892f147a9b6b68d4816f
+function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
+function::cp                            3fe69d1b58d90045ad520048977538c4
+function::create                        3010d55f4dfa59a998742e07823ed54d
+function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::disable                       53b449708cc2ffdefa352e53bb7d847d
+function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
+function::export                        2374cd1dbf7616cb38cafba4e171075d
+function::extern                        1290a5223e2824763eecfb3a54961eff
+function::grep                          55c3cea8ff4ec2403be2a9d948e59f14
+function::hash                          6ee131d093e95b80039b4df9c7c84a02
+function::hook                          675cdb98b5dd8567bdd5a02ead6184b5
+function::hooks                         3d989899c616f7440429a2d9bf1cc44b
+function::identity                      6523885762fcc2f354fc25cf6ed126ce
+function::import                        5d0f0634cbd01274f2237717507198a2
+function::initial-state                 03d8ed608855a723124e79ca184d8e73
+function::is                            41564c8f21b12ab80824ac825266d805
+function::load-state                    b6cf278a1f351f316fa6e070359b6081
+function::lock                          5d8db258704e6a8623fac796f62fac02
+function::ls                            01a23d51d5b529e03943bd57e33f92df
+function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::name                          955ba2d1fe1d67cd78651a4042283b00
+function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
+function::perl                          a0f341ea54391b63b6195e7992b6a686
+function::rd                            eea4e1cdd9133abb985205ae5daf5f15
+function::reload                        1589f4cf8374e0011991cb8907afca3e
+function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::rmparent                      fc2884910a6939a47898a778f277332c
+function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
+function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
+function::serialize-single              aa77af032272f5a2664e21713739a223
+function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
+function::shb                           7b2685a4041c25bc495816e472bdace5
+function::shell                         a87f389b94713e5855e62241d649d01d
+function::size                          8d4bd7a84ece556717f8ba3bf258d33c
+function::snapshot                      56939a47f2758421669641e15ebd66eb
+function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::touch                         3991b1b7c7187566f50e5e58ce01fa06
+function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
+function::update                        ac391dc90e507e7586c81850e7c2ecdd
+function::update-from                   631721c4dc30e11b2023a6703cbcef52
+function::usage                         5bdd370f5a56cfbf199e08d398091444
+function::verify                        0c0cc1dfeab7d705919df122f7850a4f
+indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
+indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
+indicator::path                         8a9685787cda6af8f63594f6dcde7582
+internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
+internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
+internal_function::attribute_is         a145549f6ce44abbcf66308b426d30ec
+internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
+internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
+internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
+internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
+internal_function::execute              f0924e087d978ff2ab1e117124db3042
+internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
+internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
+internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
+internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
+internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
+internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
+internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
+internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
+internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
+internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
+internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
+internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
+internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
+internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
+internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
+internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
+internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
+library::shell                          6b9f3befb61a01e9132a440601f8ea0a
+library::terminal                       7e2d045782405934a9614fe04bcfe559
+message_color::cc                       2218ef0f7425de5c717762ffb100eb43
+message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
+message_color::states                   ac66eeeff487b5f43f88a78ea18b3d56
+meta::configure                         69c2e727c124521d074fde21f8bbc4db
+meta::externalize                       aa44e27e0bbee6f0ca4de25d603a1fc7
+meta::functor::editable                 48246c608f363de66511400e00b26164
+meta::type::alias                       889d26d2df385e9ff8e2da7de4e48374
+meta::type::bootstrap                   51108ab2ddb8d966e927c8f62d9ef3e5
+meta::type::cache                       9267171f2eace476f64a1a670eaaf2c7
+meta::type::data                        120e1649a468d3b3fd3fb783b4168499
+meta::type::function                    8ea626198861dc59dd7f303eecb5ff88
+meta::type::hook                        ff92aef328b6bdc6f87ddd0821f3e42f
+meta::type::inc                         78e0375b6725487cb1f0deca41e96bbe
+meta::type::indicator                   feb54a2624e6983617685047c717427f
+meta::type::internal_function           eff3cf31e2635f51c83836f116c99d2f
+meta::type::library                     7622e8d65e03066668bade74715d65ad
+meta::type::message_color               557a1b44979cbf77a7251fbdc4c5b82c
+meta::type::meta                        c6250056816b58a9608dd1b2614246f8
+meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
+meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
+meta::type::state                       84da7d5220471307f1f990c5057d3319
+retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::id                           4da6080168d32445150cc4200af7af6e
+retriever::object                       c7633990b4e01bdc783da7e545799f4f
+retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
+
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
+meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
+parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
+function::sdoc                           f3f3f3127961399a4c38152771c966ab
+function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
+function::sdocp                          c3d738d982ba87418a298ff58478a85b
+meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
+meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
+parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
+retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
+retriever::sdocp                         330694ea14a23bb04b65c761075cd946
+
+__
+meta::parent('object', <<'__');
+bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
+bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
+bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
+function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
+function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
+function::cat                           f684de6c8776617a437b76009114f52e
+function::cc                            12ea9176e388400704d823433c209b7a
+function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
+function::child                         f5764adf0b4e892f147a9b6b68d4816f
+function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
+function::cp                            3fe69d1b58d90045ad520048977538c4
+function::create                        3010d55f4dfa59a998742e07823ed54d
+function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::disable                       53b449708cc2ffdefa352e53bb7d847d
+function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
+function::export                        2374cd1dbf7616cb38cafba4e171075d
+function::extern                        1290a5223e2824763eecfb3a54961eff
+function::grep                          55c3cea8ff4ec2403be2a9d948e59f14
+function::hash                          6ee131d093e95b80039b4df9c7c84a02
+function::hook                          675cdb98b5dd8567bdd5a02ead6184b5
+function::hooks                         3d989899c616f7440429a2d9bf1cc44b
+function::identity                      6523885762fcc2f354fc25cf6ed126ce
+function::import                        5d0f0634cbd01274f2237717507198a2
+function::initial-state                 03d8ed608855a723124e79ca184d8e73
+function::is                            41564c8f21b12ab80824ac825266d805
+function::load-state                    b6cf278a1f351f316fa6e070359b6081
+function::lock                          5d8db258704e6a8623fac796f62fac02
+function::ls                            01a23d51d5b529e03943bd57e33f92df
+function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::name                          955ba2d1fe1d67cd78651a4042283b00
+function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
+function::perl                          a0f341ea54391b63b6195e7992b6a686
+function::rd                            eea4e1cdd9133abb985205ae5daf5f15
+function::reload                        1589f4cf8374e0011991cb8907afca3e
+function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::rmparent                      49051d669554867f87c08656380a8aba
+function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
+function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
+function::serialize-single              aa77af032272f5a2664e21713739a223
+function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
+function::shb                           7b2685a4041c25bc495816e472bdace5
+function::shell                         a87f389b94713e5855e62241d649d01d
+function::size                          8d4bd7a84ece556717f8ba3bf258d33c
+function::snapshot                      56939a47f2758421669641e15ebd66eb
+function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::touch                         3991b1b7c7187566f50e5e58ce01fa06
+function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
+function::update                        ac391dc90e507e7586c81850e7c2ecdd
+function::update-from                   631721c4dc30e11b2023a6703cbcef52
+function::usage                         5bdd370f5a56cfbf199e08d398091444
+function::verify                        0c0cc1dfeab7d705919df122f7850a4f
+indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
+indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
+indicator::path                         8a9685787cda6af8f63594f6dcde7582
+internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
+internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
+internal_function::attribute_is         a145549f6ce44abbcf66308b426d30ec
+internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
+internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
+internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
+internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
+internal_function::execute              f0924e087d978ff2ab1e117124db3042
+internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
+internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
+internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
+internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
+internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
+internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
+internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
+internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
+internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
+internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
+internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
+internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
+internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
+internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
+internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
+internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
+internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
+library::shell                          6b9f3befb61a01e9132a440601f8ea0a
+library::terminal                       7e2d045782405934a9614fe04bcfe559
+message_color::cc                       2218ef0f7425de5c717762ffb100eb43
+message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
+message_color::states                   ac66eeeff487b5f43f88a78ea18b3d56
+meta::configure                         69c2e727c124521d074fde21f8bbc4db
+meta::externalize                       aa44e27e0bbee6f0ca4de25d603a1fc7
+meta::functor::editable                 48246c608f363de66511400e00b26164
+meta::type::alias                       889d26d2df385e9ff8e2da7de4e48374
+meta::type::bootstrap                   51108ab2ddb8d966e927c8f62d9ef3e5
+meta::type::cache                       9267171f2eace476f64a1a670eaaf2c7
+meta::type::data                        120e1649a468d3b3fd3fb783b4168499
+meta::type::function                    8ea626198861dc59dd7f303eecb5ff88
+meta::type::hook                        ff92aef328b6bdc6f87ddd0821f3e42f
+meta::type::inc                         78e0375b6725487cb1f0deca41e96bbe
+meta::type::indicator                   feb54a2624e6983617685047c717427f
+meta::type::internal_function           eff3cf31e2635f51c83836f116c99d2f
+meta::type::library                     7622e8d65e03066668bade74715d65ad
+meta::type::message_color               557a1b44979cbf77a7251fbdc4c5b82c
+meta::type::meta                        c6250056816b58a9608dd1b2614246f8
+meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
+meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
+meta::type::state                       84da7d5220471307f1f990c5057d3319
+retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::id                           4da6080168d32445150cc4200af7af6e
+retriever::object                       c7633990b4e01bdc783da7e545799f4f
+retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
+
+__
+meta::parent('preprocessor', <<'__');
+function::preprocess           ab5526a02ff417d4c162357dc327e7c4
+meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
+meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
+parent::object                 4d71ae092e2baa681e627f8a8ba8399e
+retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
+template::comment              dfe273d2dad3d8159b847545e4e5c309
+template::eval                 1a0e2124a05056be4abc11803883c294
+template::failing_conditional  e3a4523110dd859e828f342185de7c62
+template::include              47b5552d609d97fe7f2522d5c1027014
+template::pinclude             c07ff79bf8d642cceaa9ef844bfcb189
+template::script-include       76be051ad116449ddebd10e7c3729afd
+template::style-include        8e5a06b70e1b00379765f319bf6c8066
+
+__
+meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
+meta::retriever('html-sdoc', <<'__');
+my ($attribute) = @_;
+return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute};
+sdoc_html($attribute);
+
+__
+meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
+meta::retriever('object', <<'__');
+# Fetch a property from another Perl object. This uses the 'cat' function.
+return undef unless $_[0] =~ /^object::(.*?)::(.*)$/ && -x $1 && qx|$1 is '$2'|;
+join '', qx|$1 cat '$2'|;
+
+__
+meta::retriever('perl', <<'__');
+# Lets you use the result of evaluating some Perl expression
+return undef unless $_[0] =~ /^perl::(.*)$/;
+eval $1;
+
+__
+meta::retriever('pp', <<'__');
+return undef unless namespace($_[0]) eq 'pp';
+my $attr = retrieve(attribute($_[0]));
+defined $attr ? preprocess($attr) : undef;
+__
+meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
+meta::retriever('sdocp', <<'__');
+my $attribute = attribute($_[0]);
+exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
+__
+meta::sdoc('caterwaul.std.js', <<'__');
+Caterwaul standard library | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Internal libraries.
+These operate on caterwaul in some way, but don't necessarily have an effect on generated code.
+
+- include build/std.macro.js
+- include build/std.anonymize.js
+
+Language specializations.
+These provide configurations that specialize caterwaul to operate well with a given programming language. This is relevant because not all languages compile to Javascript the same way, and
+caterwaul should be able to adapt to the syntactic limitations of generated code (and thus be usable with non-Javascript languages like Coffeescript).
+
+Also included is a standard set of words that can be combined with the Javascript forms to produce useful macros. Together these form a base language that is used by other parts of the
+standard library.
+
+- include build/std.js.js
+- include build/std.js-literals.js
+- include build/std.words.js
+
+Libraries.
+These apply more advanced syntactic transforms to the code and can depend on everything above.
+
+- include build/std.seq.js
+
+  caterwaul.module('std', function ($) {$.js_all = function () {return this('js js_literals words seq')}});
+
+__
+meta::sdoc('waul::std.anonymize', <<'__');
+Symbol anonymization | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+A recurring pattern in previous versions of caterwaul was to clone the global caterwaul function and set it up as a DSL processor by defining a macro that manually dictated tree traversal
+semantics. This was often difficult to implement because any context had to be encoded bottom-up and in terms of searching rather than top-down inference. This library tries to solve the
+problem by implementing a grammar-like structure for tree traversal.
+
+  Use cases.
+  One fairly obvious use case is code tracing. When we trace some code, we need to keep track of whether it should be interpreted in sequence or expression context. Although there are only two
+  states here, it still is too complex for a single-layer macroexpander to handle gracefully; so we create two separate caterwaul functions that delegate control to one another. We then create
+  a set of annotations to indicate which state or states should be chosen next. For example, here are some expansions from the tracing behavior:
+
+  | E[_x = _y]  ->  H[_x = E[_y]]
+    S[_x = _y]  ->  _x = E[_y]
+
+  It's straightforward enough to define macros this way; all that needs to be done is to mark the initial state and put state information into the macro patterns. The hard part is making sure
+  that the markers don't interfere with the existing syntax. This requires that all of the markers be replaced by gensyms before the macroexpansion happens.
+
+  Gensym anonymizing.
+  Replacing symbols in macro patterns is trivial with the replace() method. The only hard part is performing this same substitution on the macroexpansions. (In fact, this is impossible to do
+  transparently given Turing-complete macros.) In order to work around this, strings are automatically expanded (because it's easy to do), but functions must call translate_state_markers() on
+  any patterns they intend to use. This call must happen before substituting syntax into the patterns (!) because otherwise translate_state_markers() may rewrite code that happens to contain
+  markers, thus reintroducing the collision problem that all of this renaming is intended to avoid.
+
+Usage.
+To anonymize a set of macros you first need to create an anonymizer. This is easy; you just give it a list of symbols to anonymize and then use that anonymizer to transform a series of macros
+(this process is non-destructive):
+
+| var anonymize = caterwaul.anonymizer('X', 'Y', 'Z');
+  var m = caterwaul.replacer(anonymize('X[foo]'), ...);    // Matches against gensym_1_aj49Az0_885nr1q[foo]
+
+Each anonymizer uses a separate symbol table. This means that two anonymizers that match against 'A' (or any other macro pattern) will always map them to different gensyms.
+
+caterwaul.module('std.anon', function ($) {
+  $.anonymizer = function () {for (var translation_table = {}, i = 0, l = arguments.length; i < l; ++i) translation_table[arguments[i]] = $.gensym(arguments[i]);
+                                return function (node) {return $.parse(node).replace(translation_table)}}});
+
+__
+meta::sdoc('waul::std.js', <<'__');
+Javascript-specific macros | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+caterwaul.module('std.js', function ($) {
+
+Structured forms in Javascript.
+These aren't macros, but forms. Each language has its own ways of expressing certain idioms; in Javascript we can set up some sensible defaults to make macros more consistent. For example,
+caterwaul pre-1.0 had the problem of wildly divergent macros. The fn[] macro was always prefix and required parameters, whereas /se[] was always postfix and had a single optional parameter.
+/cps[] was similarly postfix, which was especially inappropriate considering that it could theoretically handle multiple parameters.
+
+In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
+pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
+
+  $.js = function (macroexpander) {
+
+Javascript-specific shorthands.
+Javascript has some syntactic weaknesses that it's worth correcting. These don't relate to any structured macros, but are hacks designed to make JS easier to use.
+
+  String interpolation.
+  Javascript normally doesn't have this, but it's straightforward enough to add. This macro implements Ruby-style interpolation; that is, "foo#{bar}" becomes "foo" + bar. A caveat (though not
+  bad one in my experience) is that single and double-quoted strings are treated identically. This is because Spidermonkey rewrites all strings to double-quoted form.
+
+  This version of string interpolation is considerably more sophisticated than the one implemented in prior versions of caterwaul. It still isn't possible to reuse the same quotation marks
+  used on the string itself, but you can now include balanced braces in the interpolated text. For example, this is now valid:
+
+  | 'foo #{{bar: "bif"}.bar}'
+
+  There are some caveats; if you have unbalanced braces (even in substrings), it will get confused and misread the boundary of your text. So stuff like this won't work properly:
+
+  | 'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
+
+    var string_interpolator = function (node) {
+      var s = node.data, q = s.charAt(0), syntax = $.syntax;
+      if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
+
+      for (var pieces = [], is_code = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
+        if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || (pieces.push(s.substring(start, i)), is_code.push(true)) && (start = i + 1), got_hash = false;
+                    else                                brace_depth += c === '{';
+   else                  if ((c = s.charAt(i)) === '#') got_hash = true;
+                    else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), is_code.push(false), start = i + 1, ++brace_depth;
+                    else                                got_hash = false;
+
+      pieces.push(s.substring(start, l)), is_code.push(false);
+
+      for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = is_code[i] ? this($.parse(pieces[i].replace(quoted, q)).as('(')) :
+                                                                                                                    new syntax(q + pieces[i] + q);
+      return new syntax('+', pieces).unflatten().as('(')};
+
+  Destructuring function creation.
+  This is a beautiful hack made possible by Internet Explorer. We can intercept cases of assigning into a function and rewrite them to create a function body. For example, f(x) = y becomes the
+  regular assignment f = function (x) {return y}. Because this macro is repeatedly applied we get currying for free.
+
+  You can put non-formal expressions into the argument list. There are, in fact, three kinds of things you can use:
+
+  | 1. Formal parameters -- these are transcribed literally into the compiled function's argument list.
+    2. Before-result side effects -- these are compiled into local variables or statements prior to executing the function body.
+    3. After-result side effects -- these are compiled into statements after executing the function body; the function's result is in scope as a variable called 'result'.
+
+  The general form of destructuring function definitions is:
+
+  | f(formals, [before], [after]) = ...
+
+  This is the compiled output (dependent on whether 'before' and 'after' are specified):
+
+  | // general case                     // no 'before' cases                  // no 'after' cases                     // neither
+    f = function(formals) {             f = function (formals) {              f = function (formals) {                f = function (formals) {
+      before;                             var result = ...;                     before;                                 ;               // <- I'm too lazy to fix this
+      var result = ...;                   after;                                return ...;                             return ...;
+      after;                              return result;                      };                                      };
+      return result;                    };
+    };
+
+  There are some rules governing how 'before' and 'after' statements are detected and compiled. They are:
+
+  | 1. Everything is assumed to be a formal until the first parameter that is not a simple identifier.
+    2. Everything that isn't a formal is assumed to be a 'before' expression until the first expression that mentions 'result'.
+    3. Everything after that is assumed to be an 'after' expression.
+    4. Any 'before' or 'after' expression of the form '_variable = ...' is compiled into a local variable definition rather than a simple assignment. This prevents global scope contention.
+
+  This notation doesn't preclude the possibility of some form of destructuring binds in the future, since there wouldn't be much point to writing a toplevel array or object literal and
+  intending it to be used as a side-effect. (Doing that would just put the value into void context; at that point you might as well leave it out.)
+
+    var function_local_template = $.parse('var _x = _y'),  function_bind_pattern = $.parse('_x = _y'),  function_result_pattern  = $.parse('result'),
+
+        function_with_afters         = $.parse('function (_formals) {_befores; var result = _result; _afters; return result}'),
+        function_without_afters      = $.parse('function (_formals) {_befores; return _result}'),
+        function_assignment_template = $.parse('_f = _x'),
+
+        function_is_result           = function (n) {return n.is_empty() && n.data === 'result'},
+
+        function_destructure = $.rereplacer('_f(_xs) = _y', function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length; i < l; ++i)
+                                                                                (afters.length  || ps[i].contains(function_is_result) ? afters  :
+                                                                                 befores.length || ps[i].length                       ? befores : formals).push(ps[i]);
+
+                                                                              // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
+                                                                              // into expression context by wrapping them in parentheses.
+                                                                              for (var contains_locals = [befores, afters], i = 0, l = contains_locals.length; i < l; ++i)
+                                                                                for (var xs = contains_locals[i], j = 0, lj = xs.length, m; j < lj; ++j)
+                                                                                  xs[j] = (m = function_bind_pattern.match(xs[j])) && m._x.is_empty() ? function_local_template.replace(m) :
+                                                                                                                                                        xs[j].as('(');
+                                                                              var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
+                                                                                  new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
+                                                                                  new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty,
+
+                                                                                  template    = function_assignment_template.replace(
+                                                                                                  {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});
+
+                                                                              return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
+
+  Infix function application.
+  Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. x /y /... /-f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax; that is, x
+  |y |... |-f| z also becomes f(x, y, ..., z). This macro respects associativity, so you can do this:
+
+  | x /!f /-g/ y                // -> g(f(x), y)
+
+  There used to be two different syntaxes depending on whether you wanted binary or n-ary function application. I realized this was probably overkill since the macro now distributes across
+  parse trees appropriately.
+
+    var infix_function = function (node) {var d = node.data, left, fn;
+                                          if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0]))
+                                            return new $.syntax('()', fn, this(node[0][0]).flatten(d).push(this(node[1])).with_data(',').unflatten())};
+
+  Infix method application.
+  This is subtly different from infix function application in that a method is called. You might want this when dealing with lots of nested methods, which can otherwise become hard to manage.
+  Like infix function application, this macro respects precedence and associativity.
+
+  | f /g /~a/ h /~b/ i          // -> ((f).a(g, h)).b(i)
+
+    var infix_method = function (node) {var d = node.data, left, fn;
+                                        if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u~' && (fn = left[1][0])) {
+                                          var xs = [].slice.call(this(node[0][0]).flatten(d)), object = xs.shift();
+                                          return new $.syntax('()', new $.syntax('.', new $.syntax('(', object), fn), new $.syntax(',', xs, this(node[1])).unflatten())}};
+
+  Postfix function application.
+  This is a bit simpler than infix function application and is used when you have a unary function. Sometimes it's simpler to think of a function as a filter than as a wrapper, and this macro
+  makes it easier to do that. This is particularly useful when you have many nested function calls, for instance if you're defining multi-level function composition:
+
+  | compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
+    x /y /z /!f                                 // -> f(x, y, z)
+
+    var postfix_function_template = $.parse('_f(_x)'),
+        postfix_function          = $.rereplacer('_x /!_f', function (match) {return postfix_function_template.replace({_f: match._f,
+                                                                                                                        _x: this(match._x).flatten('/').with_data(',').unflatten()})});
+
+  Literal modification.
+  Caterwaul 1.1.2 introduces literal modification, which provides ways to reinterpret various types of literals at compile-time. These are always written as postfix property accesses, e.g.
+  /foo bar/.x -- here, 'x' is the modifier. Cool as it would be to be able to stack modifiers up, right now Caterwaul doesn't support this. Part of the reason is that I'm too lazy/uninsightful
+  to know how to do it performantly considering the present architecture, but another part of it is that the bugs would become strange and subtle. My goal is to keep the compilation process
+  reasonably transparent, and you can imagine the bizarre chain of events that would occur if someone wrote a modifier that, for instance, returned a different type of literal. It would be
+  utter chaos (though a really cool form of it).
+
+  Sadly, you can't modify object literals. The reason has to do with syntactic ambiguity. Suppose you've got a function like this:
+
+  | function () {
+      {foo: 'bar'}.modifier
+      return true;
+    }
+
+  This function fails to parse under SpiderMonkey, since it assumes that {foo: 'bar'} is a statement-level block with a label 'foo' and a discarded string literal 'bar'. Rather than open this
+  can of worms, I'm just nixing the whole idea of modifying object literals (besides, it doesn't seem particularly useful anyway, though perhaps I'm being myopic about it).
+
+    var modified_literal_form   = $.pattern('_literal._modifier'),
+
+        lookup_literal_modifier = function (caterwaul, type, modifier) {var hash = caterwaul.literal_modifiers[type];
+                                                                        return hash.hasOwnProperty(modifier) && hash[modifier]},
+
+        literal_modifier        = function (node) {var modified_literal = modified_literal_form.call(this, node), literal, expander;
+                                                   if (modified_literal && (literal  = modified_literal._literal) &&
+                                                                           (expander = literal.is_identifier() ? lookup_literal_modifier(this, 'identifier', modified_literal._modifier.data) :
+                                                                                       literal.is_array()      ? lookup_literal_modifier(this, 'array',      modified_literal._modifier.data) :
+                                                                                       literal.is_regexp()     ? lookup_literal_modifier(this, 'regexp',     modified_literal._modifier.data) :
+                                                                                       literal.is_number()     ? lookup_literal_modifier(this, 'number',     modified_literal._modifier.data) :
+                                                                                       literal.is_string()     ? lookup_literal_modifier(this, 'string',     modified_literal._modifier.data) :
+                                                                                                                 null))
+                                                     return expander.call(this, literal)};
+
+  Modifier syntax.
+  These are the 'structured forms' I was talking about above. Prior to caterwaul 1.1 these were stored as individual pre-expanded macros. This had a number of problems, perhaps most notably
+  that it was extremely inefficient. I loaded up caterwaul in the REPL and found that caterwaul.js_ui(caterwaul.js_all()) had 329 macros installed. This meant 329 tree-match tests for every
+  function.
+
+  Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
+  fact match. However, there are only a few checks that need to happen before determining whether a modifier match is possible, unlike before.
+
+    var bracket_modifier_form = $.pattern('_modifier[_expression]'),               slash_modifier_form = $.pattern('_expression /_modifier'),
+        minus_modifier_form   = $.pattern('_expression -_modifier'),               in_modifier_form    = $.pattern('_modifier in _expression'),
+        pipe_modifier_form    = $.pattern('_expression |_modifier'),               comma_modifier_form = $.pattern('_expression, _modifier'),
+
+        dot_parameters        = $.pattern('_modifier._parameters'),                bracket_parameters  = $.pattern('_modifier[_parameters]'),
+
+        parameterized_wickets = $.pattern('_expression <_modifier> _parameters'),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'),
+
+        modifier = function (node) {var modifier, parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
+                                    if (parameterized_match && this.parameterized_modifiers.hasOwnProperty(modifier = parameterized_match._modifier.data)) {
+                                      var r = this.parameterized_modifiers[modifier].call(this, parameterized_match);
+                                      if (r) return r}
+
+                                    var regular_match = bracket_modifier_form.call(this, node) || slash_modifier_form.call(this, node) ||
+                                                        minus_modifier_form  .call(this, node) || in_modifier_form   .call(this, node) ||
+                                                        pipe_modifier_form   .call(this, node) || comma_modifier_form.call(this, node);
+
+                                    if (regular_match) {
+                                      // Could still be a parameterized function; try to match one of the parameter forms against the modifier.
+                                      var parameter_match = dot_parameters    .call(this, regular_match._modifier) ||
+                                                            bracket_parameters.call(this, regular_match._modifier);
+
+                                      if (parameter_match) {
+                                        regular_match._modifier   = parameter_match._modifier;
+                                        regular_match._parameters = parameter_match._parameters;
+
+                                        return this.parameterized_modifiers.hasOwnProperty(modifier = regular_match._modifier.data) &&
+                                               this.parameterized_modifiers[modifier].call(this, regular_match)}
+                                      else
+                                        return this.modifiers.hasOwnProperty(modifier = regular_match._modifier.data) && this.modifiers[modifier].call(this, regular_match)}};
+
+  Tying it all together.
+  This is where we write a big macroexpander to perform all of the tasks mentioned above. It just falls through cases, which is now a fairly standard pattern for macros. There is a high-level
+  optimization that we can perform: leaf nodes can only be expanded by the string interpolator, so we try this one first and reject any further matching attempts if the node has no children.
+  Because roughly half of the nodes will have no children, this saves on average 5 matching attempts per node.
+
+  I've got two closures here to avoid putting a conditional in either one of them. In particular, we know already whether we got a macroexpander, so there's no need to test it inside the
+  function (which will be called lots of times).
+
+    var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
+                                            node.length && (modifier.call(this, node) || function_destructure.call(this, node) ||
+                                                            infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
+
+        result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
+                                    $(each_node);
+
+    result.modifiers               = {};
+    result.parameterized_modifiers = {};
+
+    result.literal_modifiers = {regexp: {}, array: {}, string: {}, number: {}, identifier: {}};
+
+    return result}});
+
+__
+meta::sdoc('waul::std.js-literals', <<'__');
+Javascript literal notation | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+These macros provide some convenient literal notation for various Javascript literals. For obvious reasons they have names that are unlikely to collide with methods.
+
+caterwaul.module('std.js-literals', function ($) {
+  $.js_literals = function (caterwaul_function) {
+
+    var function_template = $.parse('function (_) {return _body}');
+
+  Regular expression literals.
+  Right now we just support the 'x' flag, which causes all whitespace within the regular expression to be ignored. This is a straightforward preprocessing transformation, since we have access
+  to the regexp in string form anyway.
+
+  To make Javascript's regular expressions more useful I've also included the 'qf' modifier. This turns a regular expression into a matching function; for example, /foo/.qf becomes (function
+  (s) {return /foo/.exec(s)}).
+
+    (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
+
+                   var call_exec_template = $.parse('_regexp.exec(_)');
+                   r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
+
+  String literals.
+  There are a couple of things we can do with strings. First, there's the 'qw' modifier, which causes a string to be split into an array of words at compile-time. So, for instance, the
+  expression 'foo bar bif'.qw would be compiled into ['foo', 'bar', 'bif']. Another modifier is 'qh', which is like 'qw' but creates a hash instead. So 'foo bar bif baz'.qh would result in
+  {foo: 'bar', bif: 'baz'}. There's also qr, which converts from a string to a regular expression and does all of the appropriate escape conversions. Some care should be taken with this,
+  however, because not all regexp escapes are valid in strings. In particular, you can't do things like 'foo\[bar\]'.qr because \[ isn't recognized in strings.
+
+  Another modifier is 'qs', which is rarely used outside of the context of writing macros. The idea here is to have Caterwaul parse the string and return a reference to the parse tree. So, for
+  example, 'foo.bar'.qs is compiled into a reference to the parse tree for foo.bar. A caveat here is that the parse happens only once, so any mutations that happen to the syntax tree are
+  persisted across invocations. (Unlike the way that array and object literals are interpreted, which is to create a new array or object each time that node is evaluated.)
+
+  Functions can be written concisely using qf. This causes the string to be interpreted as the body of a function whose sole argument is called _. This may change at some point in the future.
+
+    (function (s) {s.qw = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
+                                                                 pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
+                                                          comma.push(new $.syntax(delimiter + pieces[i] + delimiter));
+                                                        return array_node.push(comma.unflatten())});
+
+                   s.qh = $.reexpander(function (node) {for (var hash_node = new $.syntax('{'), comma = new $.syntax(','), delimiter = node.data.charAt(0),
+                                                                 pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; i += 2)
+                                                          comma.push(new $.syntax(':', new $.syntax(delimiter + pieces[i] + delimiter), new $.syntax(delimiter + pieces[i + 1] + delimiter)));
+                                                        return hash_node.push(comma.unflatten())});
+
+                   s.qr = $.reexpander(function (node) {return node.with_data('/' + node.as_escaped_string().replace(/\//g, '\\/') + '/')});
+
+                   s.qs = function (node) {return new $.ref($.parse(node.as_unescaped_string()))};
+
+                   s.qf = $.reexpander(function (node) {return function_template.replace({_body: $.parse(node.as_unescaped_string())})})})(caterwaul_function.literal_modifiers.string);
+
+    return caterwaul_function}});
+
+__
+meta::sdoc('waul::std.macro', <<'__');
+Macro authoring utilities | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Macro definitions.
+A macro is simply a partial function from source trees to source trees. It returns a falsy value if it cannot be applied to a given tree; otherwise it returns the replacement (as shown
+above). Because most macros end up replacing one pattern with another, caterwaul lets you use strings instead of requiring you to construct recognizer functions.
+
+The expander() method distributes across arrays. That is, you can give it an array of things that can be converted into expanders (strings, functions, syntax trees, or arrays), and it will
+build a function that runs backwards through the array, taking the last entry.
+
+caterwaul.module('std.macro', function ($) {
+  var syntax_manipulator = function (base_case) {
+    var result = function (x) {if (x.constructor === Array) {for (var i = 0, l = x.length, ys = []; i < l; ++i) ys.push(result(x[i]));
+                                                             return function (tree) {for (var i = ys.length - 1, r; i >= 0; --i) if (r = ys[i].call(this, tree)) return r}}
+
+                          else return x.constructor === String   ? result($.parse(x)) :
+                                      x.constructor === $.syntax ? base_case.call(this, x) : x};
+    return result};
+
+  $.pattern      = syntax_manipulator(function (pattern)     {return function (tree)  {return pattern.match(tree)}});
+  $.expander     = syntax_manipulator(function (expander)    {return function (match) {return expander.replace(match)}});
+  $.alternatives = syntax_manipulator(function (alternative) {throw new Error('must use replacer functions with caterwaul.alternatives()')});
+
+  $.reexpander   = function (expander) {var e = $.expander(expander);
+                                        return function (match) {var r = e.call(this, match); return r && this(r)}};
+
+  var composer = function (expander_base_case) {
+    return function (pattern, expander) {var new_pattern = $.pattern(pattern), new_expander = expander_base_case(expander);
+                                         return function (tree) {var match = new_pattern.call(this, tree); return match && new_expander.call(this, match)}}};
+
+  $.replacer   = composer($.expander);
+  $.rereplacer = composer($.reexpander);
+
+Global macroexpansion.
+This is a shorthand to enable one-off macroexpansion. The idea is that we build a temporary caterwaul function to do some temporary work.
+
+  $.macroexpand = function (tree) {return $($.alternatives(Array.prototype.slice.call(arguments, 1)))(tree)}});
+
+__
+meta::sdoc('waul::std.seq', <<'__');
+Sequence comprehensions | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Caterwaul pre-1.0 had a module called 'seq' that provided a finite and an infinite sequence class and localized operator overloading to make them easier to use. Using wrapper classes was both
+unnecessary (since most sequence operations were done inside the seq[] macro anyway) and problematic, as it required the user to remember to cast sequences back into arrays and such. It also
+reduced runtime performance and created a lot of unnecessary copying.
+
+Caterwaul 1.0 streamlines the seq[] macro by removing the sequence classes and operating directly on arrays or array-like things. Not everything in Javascript is an array, but I'm going to
+pretend that everything is (or at least looks like one) and rely on the [i] and .length properties. This allows the sequence library to (1) have a very thin design, and (2) compile down to
+tight loops without function calls.
+
+Distributive property.
+The seq[] modifier distributes across several operators. They are:
+
+| 1. Ternary ?:
+  2. Short-circuit && and ||
+  3. Parentheses
+
+It won't cross a square-bracket or invocation boundary, however. This includes distributing over array elements and [] dereferencing. You can cause it to cross an array boundary by prefixing
+the array with ~ (which should be familiar, as it is the same syntax that's used to cause function bodies to be interpreted in sequence context). For instance:
+
+| [1, 2, 3, X] -seq             // <- X is interpreted in regular Javascript context
+  ~[1, 2, 3, X] -seq            // <- X is interpreted in sequence context
+
+Notation.
+The notation is mostly a superset of the pre-1.0 sequence notation. Operators that have the same functionality as before (others are reserved for future meanings, but probably won't do what
+they used to):
+
+| *  = map                      e.g.  [1, 2, 3] *[x + 1] |seq            ->  [2, 3, 4]
+  *! = each                     e.g.  [1, 2, 3] *![console.log(x)] |seq  ->  [1, 2, 3]  (and logs 1, 2, 3)
+  /  = foldl                    e.g.  [1, 2, 3] /[x - next] |seq         ->  -4
+  /! = foldr                    e.g.  [1, 2, 3] /![x - next] |seq        ->  2
+  %  = filter                   e.g.  [1, 2, 3] %[x & 1] |seq            ->  [1, 3]
+  %! = filter-not               e.g.  [1, 2, 3] %![x & 1] |seq           ->  [2]
+  +  = concatenate              e.g.  [1, 2, 3] + [4, 5] |seq            ->  [1, 2, 3, 4, 5]
+  -  = cartesian product        e.g.  [1, 2] - [3, 4] |seq               ->  [[1, 3], [1, 4], [2, 3], [2, 4]]
+  ^  = zip                      e.g.  [1, 2, 3] ^ [4, 5, 6] |seq         ->  [[1, 4], [2, 5], [3, 6]]
+  |  = exists                   e.g.  [1, 2, 3] |[x === 2] |seq          ->  true
+  |! = not-exists               e.g.  [1, 2, 3] |![x >= 4] |seq          ->  true
+
+Note that ^ has higher precedence than |, so we can use it in a sequence comprehension without interfering with the |seq macro (so long as the |seq macro is placed on the right).
+
+  Modifiers.
+  Modifiers are unary operators that come after the primary operator. These have the same (or similar) functionality as before:
+
+  | ~ = interpret something in sequence context   e.g.  [[1], [2], [3]] *~[x *[x + 1]] |seq  ->  [[2], [3], [4]]
+    x = rename the variable from 'x'              e.g.  [1, 2, 3] *y[y + 1] |seq             ->  [2, 3, 4]
+
+  Here, 'x' means any identifier. Caterwaul 1.0 introduces some new stuff. The map function now has a new variant, *~!. Filter also supports this variant. Like other operators, they support
+  variable renaming and sequence context. You can do this by putting those modifiers after the *~!; for instance, xs *~!~[exp] interprets 'exp' in sequence context. Similarly, *~!y[exp] uses
+  'y' rather than 'x'.
+
+  | *~! = flatmap         e.g. [1, 2, 3] *~![[x, x + 1]] |seq      ->  [1, 2, 2, 3, 3, 4]
+    %~! = map/filter      e.g. [1, 2, 3] %~![x & 1 && x + 1] |seq  ->  [2, 4]
+    /~! = unfold          e.g. 1 /~![x < 5 ? x + 1 : null] |seq    ->  [1, 2, 3, 4, 5]
+
+  Variables.
+  All of the variables from before are still available and the naming is still mostly the same. Each block has access to 'x', which is the immediate element. 'xi' is the index, and 'x0' is the
+  alternative element for folds. Because all sequences are finite, a new variable 'xl' is available -- this is the total number of elements in the source sequence. The sequence object is no
+  longer accessible because there may not be a concrete sequence. (I'm leaving room for cross-operation optimizations in the future.) The renaming is done exactly as before:
+
+  | [1, 2, 3] *[x + 1] |seq             -> [2, 3, 4]
+    [1, 2, 3] *y[y + 1] |seq            -> [2, 3, 4]
+    [1, 2, 3] *[xi] |seq                -> [0, 1, 2]
+    [1, 2, 3] *foo[fooi] |seq           -> [0, 1, 2]
+
+  Word operators.
+  Some operators are designed to work with objects, just like in prior versions. However, the precedence has been changed to improve ergonomics. For example, it's uncommon to use objects as an
+  intermediate form because all of the sequence operators are built around arrays. Similarly, it's very common to unpack objects immediately before using them. Therefore the unpack operators
+  should be very high precedence and the pack operator should have very low precedence:
+
+  | {foo: 'bar'} /keys |seq             -> ['foo']
+    {foo: 'bar'} /values |seq           -> ['bar']
+    {foo: 'bar'} /pairs |seq            -> [['foo', 'bar']]
+    {foo: 'bar'} /pairs |object |seq    -> {foo: 'bar'}
+    {foo: 'bar'} /pairs |mobject |seq   -> {foo: ['bar']}
+
+  Note that unlike regular modifiers you can't use a variety of operators with each word. Each one is defined for just one form. I may change this in the future, but I'm reluctant to start
+  with it because it would remove a lot of syntactic flexibility.
+
+  Update: After using this in the field, I've found that the low-precedence |object form is kind of a pill. Now the sequence library supports several variants, /object, -object, and |object.
+  The same is true of mobject, introduced in Caterwaul 1.2.
+
+  Prefixes.
+  New in Caterwaul 1.0.3 is the ability to specify the scope of operation for sequence macros. For instance, you might want to operate on one of several types of data. Normally the sequence
+  macro assumes arrays, but you may want to modify a unary operator such as *[] to transform an object's keys or values. Prefixes let you do this.
+
+  | o %k*[x.substr(1)] -seq     (equivalent to  o /pairs *[[x[0].substr(1), x[1]]]  -object -seq)
+    o %v*[x.split(/a/)] -seq    (equivalent to  o /pairs *[[x[0], x[1].split(/a/)]] -object -seq)
+
+  Prefixes are generally faster than manual unpacking and repacking. However, some operations (e.g. fold and its variants) don't work with prefixes. The reason is that it's unclear what to do
+  with the values that correspond to a folded key, for instance. (Imagine what this would mean: o %k/[x + x0] -seq) The following operators can be used with prefixes:
+
+  | *   = map
+    *!  = each          <- returns the original object
+    %   = filter        <- removes key/value pairs
+    %!  = filter-not
+    %~! = map-filter    <- changes some key-value pairs, removes others
+
+  These operators support the standard set of modifiers, including ~ prefixing and variable renaming. However, indexing variables such as xi and xl are unavailable because no temporary arrays
+  are constructed.
+
+  The following operators cannot be used with prefixes because it's difficult to imagine what purpose they would serve:
+
+  | *~! = flatmap
+    /   = foldl
+    /!  = foldr
+    /~! = unfold
+
+  None of the binary operators (e.g. +, -, ^, etc) can be used with prefixes because of precedence. Any prefix would bind more strongly to the left operand than it would to the binary
+  operator, which would disrupt the syntax tree.
+
+  Folding prefixes.
+  New in Caterwaul 1.1 is the ability to specify fold prefixes. This allows you to specify the initial element of a fold:
+
+  | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
+    xs /~[[]][x0 + [x, x + 1]] -seq     (equivalent to  xs *~![[x, x + 1]] -seq)
+
+  From 1.1.5 onwards, these fold prefixes can be used with other operators as well. For example:
+
+  | 1 /~![xi < 10][x + 1] -seq          (return the array [1, 2, ..., 9]: the first block conditionalizes the unfold)
+    xs %~![x < 0][-x] -seq              (return an array of the negation of all negative elements in the first)
+    xs *~![xi < 10][f(x)] -seq          (return the tenth composition of f over x)
+
+  Function promotion.
+  Caterwaul 1.1 also adds support for implicit function promotion of sequence block expressions:
+
+  | f(x) = x + 1
+    seq in [1, 2, 3] *f
+    seq in [-1, 0, 1] %f
+
+  You can use this to make method calls, which will remain bound to the original object:
+
+  | xs *foo.bar -seq            (equivalent to  xs *[foo.bar(x)] -seq)
+    xs *(bar + bif).baz -seq    (equivalent to  xs *[(bar + bif).baz(x)] -seq)
+
+  The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't invoke a promoted function in sequence
+  context, since it is unclear what the intent would be.
+
+    Calling convention.
+    All functions you promote will always be called with these arguments, in this order:
+
+    | f(x, x0, xi, xl)
+
+    This may seem strange, since x0 may or may not be defined. I chose this setup to simplify code generation, even if it is a bit redundant. If x0 isn't provided by the current operator, then
+    its value will be undefined.
+
+  Scope wrapping.
+  Normally sequences use thin compilation; that is, the body of each sequence element is inserted directly into a for-loop. This increases performance by eliminating a function call, but it
+  has the usual caveats about variable sharing. For instance:
+
+  | fs = [1, 2, 3] *[delay in x] -seq
+    fs[0]()                     -> 3  (counterintuitive)
+    fs[1]()                     -> 3  (counterintuitive)
+    fs[2]()                     -> 3  (expected)
+
+  The problem is that all three closures get the same value of 'x', which is a single lexically-scoped variable. To fix this, caterwaul 1.1 introduces the unary + modifier on blocks. This
+  wraps them in a closure to give each iteration its own lexical scope:
+
+  | fs = [1, 2, 3] *+[delay in x] -seq
+    fs[0]()                     -> 1
+    fs[1]()                     -> 2
+    fs[2]()                     -> 3
+
+  Numbers.
+  Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macros
+  available are n[] and ni[], which generate finite sequences of evenly-spaced numbers. The only difference between n[] and ni[] is that ni[] uses an inclusive upper bound, whereas n[] is
+  exclusive.
+
+  | n[1, 10] -seq               ->  [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  | ni[1, 10] -seq              ->  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    n[10] -seq                  ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ni[10] -seq                 ->  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    n[0, 10, 2] -seq            ->  [0, 2, 4, 6, 8]
+    ni[0, 10, 2] -seq           ->  [0, 2, 4, 6, 8, 10]
+
+  Slicing.
+  There are two reasons you might want to slice something. One is that you're legitimately taking a subsequence of the original thing; in that case, you can invoke the .slice() method
+  manually. The more interesting case is when you want to promote a non-array into an array. This is such a common thing to do (and has so much typing overhead) that I've dedicated a shorthand
+  to it:
+
+  | +xs -seq, where [xs = arguments]            -> Array.prototype.slice.call(arguments)
+
+Generated code.
+Previously the code was factored into separate methods that took callback functions. (Basically the traditional map/filter/each arrangement in functional languages.) However, now the library
+optimizes the methods out of the picture. This means that now we manage all of the dataflow between the different sequence operators. I thought about allocating gensym variables -- one for
+each temporary result -- but this means that the temporary results won't be garbage-collected until the entire sequence comprehension is complete. So instead it generates really gnarly code,
+with each dependent sequence listed in the for-loop variable initialization.
+
+Luckily this won't matter because, like, there aren't any bugs or anything ;)
+
+  Type closure.
+  Caterwaul 1.1.3 includes a modification that makes the sequence library closed over types. Suppose you've got a special collection type that you want to use instead of arrays. A sequence
+  operation will assume that your collection type implements .length and [i], but any maps or flat maps that you do will return new instances of your type rather than generalizing to a regular
+  array. For example:
+
+  | xs = new my_sequence();
+    ys = xs *f -seq;
+    ys.constructor === xs.constructor           // -> true
+
+  In order for this to work, your sequence classes need to implement a nullary constructor that creates an empty instance. They should also implement a variadic push() method.
+
+  Note that this is a breaking change! The fix is to prepend sequence variables with '+' (see 'Slicing' above). This breaks any code that relies on the seq library taking care of Arguments
+  objects by promoting them into arrays.
+
+Portability.
+The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
+such (from a design perspective).
+
+caterwaul.module('std.seq', 'js words', function ($) {
+  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq(match) = seq_expand.call(seq_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
+                                              -where [anon_pattern = anon('S[_x]'),
+                                                      seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
+
+  where [anon            = $.anonymizer('S'),
+         rule(p, e)      = $.rereplacer(p.constructor === String ? anon(p) : p, e.constructor === String ? anon(e) : e),
+
+         operator_macros = [rule('S[_x]', '_x'),  rule('S[_xs + _ys]', concat),  rule('S[_xs ^ _ys]', zip),  rule('S[_xs - _ys]', cross),
+
+                                                  // Distributive property
+                                                  rule('S[(_x)]', '(S[_x])'),  rule('S[_x[_y]]', 'S[_x][_y]'),     rule('S[_xs(_ys)]', 'S[_xs](_ys)'),
+                                                  rule('S[[_x]]', '[_x]'),     rule('S[_x, _y]', 'S[_x], S[_y]'),  rule('S[_xs._p]',   'S[_xs]._p'),
+
+                                                  rule('S[~[_x]]',     '[S[_x]]'),              // ~ modifier on arrays
+                                                  rule('S[~_xs(_ys)]', 'S[_xs](S[_ys])'),       // ~ modifier on function calls
+
+                                                  rule('S[_x ? _y : _z]', '(S[_x]) ? (S[_y]) : (S[_z])'), rule('S[_x && _y]', '(S[_x]) && (S[_y])'), rule('S[_x || _y]', '(S[_x]) || (S[_y])'),
+
+                                                  // Unary seq operators
+                                                  rule('S[+_xs]', 'Array.prototype.slice.call((_xs))'),
+
+                                                  rule('S[_xs %_thing]',   handle_filter_forms),   rule('S[_xs *_thing]',   handle_map_forms),
+                                                  rule('S[_xs /_thing]',   handle_fold_forms),     rule('S[_xs |_thing]',   handle_exists_forms),
+
+                                                  rule('S[_xs %k*_thing]', handle_kmap_forms),     rule('S[_xs %v*_thing]', handle_vmap_forms),
+                                                  rule('S[_xs %k%_thing]', handle_kfilter_forms),  rule('S[_xs %v%_thing]', handle_vfilter_forms)]
+
+                    -where [// High-level form specializations
+                            unrecognized(reason)                   = raise [new Error(reason)],
+                            use_form(form, xs, body, init, vars)   = form ? form.replace({_f: body, _init: init}).replace($.merge({_s: xs}, vars)) :
+                                                                            unrecognized('unsupported sequence operator or modifiers used on #{body}'),
+
+                            operator_case(forms)(match)            = parse_modifiers(match._thing,
+                                                                                     use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
+
+                                                                     -where [xs                                     = match._xs,
+                                                                             expander                               = this,
+                                                                             form_function(form)(body, vars)        = use_form(form, xs, body, null, vars),
+                                                                             iform_function(form)(body, init, vars) = use_form(form, xs, body, init, vars),
+                                                                             use(form, iform)(body)                 = parse_body(body, expander, form_function(form), iform_function(iform))],
+
+                            handle_map_forms                       = operator_case({normal: map,     bang: each,        tbang: flatmap,                                   itbang: iterate}),
+                            handle_filter_forms                    = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                itbang: imap_filter}),
+                            handle_fold_forms                      = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,    inormal: ifoldl, ibang: ifoldr, itbang: iunfold}),
+
+                            handle_kmap_forms                      = operator_case({normal: kmap,    bang: keach}),
+                            handle_kfilter_forms                   = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
+                            handle_vmap_forms                      = operator_case({normal: vmap,    bang: veach}),
+                            handle_vfilter_forms                   = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
+
+                            handle_exists_forms                    = operator_case({normal: exists,  bang: not_exists}),
+
+                            // Body parsing
+                            block                                  = anon('[_x]'),
+                            block_with_variable                    = anon('_var[_x]'),
+                            block_with_init                        = anon('[_init][_x]'),
+                            block_with_variable_and_init           = anon('_var[_init][_x]'),
+
+                            block_with_closure                     = anon('+_x'),
+                            block_with_seq                         = anon('~_x'),
+
+                            standard_names                         = {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs', _xr:    'xr'},
+                            prefixed_names(p)                      = {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l', _xs: '#{p}s', _xr: '#{p}r'},
+
+                            function_promotion                     = anon('(_f).call({_x0: _x0, _xi: _xi, _xl: _xl, _xs: _xs, _xr: _xr}, _x)'),
+                            promote_function(f)                    = function_promotion.replace({_f: f}),
+
+                            closure_wrapper                        = anon('(function (_x, _x0, _xi, _xl, _xs, _xr) {return _f}).call(this, _x, _x0, _xi, _xl, _xs, _xr)'),
+                            close_body(vars, f)                    = closure_wrapper.replace(vars).replace({_f: f}),
+
+                            seq_pattern                            = anon('S[_x]'),
+                            promote_seq(f)                         = seq_pattern.replace({_x: f}),
+
+                            parse_body(tree, expand, normal, init) = ((r = block_with_seq.match(tree))               ? parse_body(r._x, expand, sequence_context_normal, sequence_context_init) :
+                                                                      (r = block_with_closure.match(tree))           ? parse_body(r._x, expand, wrapping_normal, wrapping_init) :
+
+                                                                      (r = block_with_variable_and_init.match(tree)) ? init(r._x, r._init, prefixed_names(r._var)) :
+                                                                      (r = block_with_init.match(tree))              ? init(r._x, r._init, standard_names) :
+
+                                                                      (r = block_with_variable.match(tree))          ? normal(r._x, prefixed_names(r._var)) :
+                                                                      (r = block.match(tree))                        ? normal(r._x, standard_names) :
+                                                                                                                       normal(promote_function(tree), standard_names))
+
+                                                                     -where [in_sequence_context(f)                           = expand.call(expand, promote_seq(f)),
+                                                                             sequence_context_normal(f, names)                = normal(in_sequence_context(f), names),
+                                                                             sequence_context_init(f, init_expression, names) = init  (in_sequence_context(f), init_expression, names),
+
+                                                                             wrapping_normal(f, names)                        = normal(close_body(names, f), names),
+                                                                             wrapping_init(f, init_expression, names)         = init  (close_body(names, f), init_expression, names),
+
+                                                                             r                                                = null],
+                            // Modifier parsing
+                            tbang_modifier = anon('~!_x'),
+                            bang_modifier  = anon('!_x'),
+
+                            parse_modifiers(tree, normal, bang, tbang) = ((result = tbang_modifier.match(tree)) ? tbang(result._x) :
+                                                                          (result =  bang_modifier.match(tree)) ?  bang(result._x) : normal(tree)) -where [result = null]]
+
+                    -where [// Setup for form definitions (see below)
+                            loop_anon   = $.anonymizer('x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
+                            scope       = anon('(function (_xs) {var _x, _x0, _xi, _xl, _xr; _body}).call(this, S[_s])'),
+                            scoped(t)   = scope.replace({_body: t}),
+                            expand(s)   = s.replace(/@/g, 'Array.prototype.slice.call').replace(/#/g, 'Object.prototype.hasOwnProperty.call').replace(/%%/g, '.constructor'),
+
+                            form(x)     = x /!expand /!anon /!scoped /!loop_anon,
+
+                            // Form definitions
+                            map         = form('for (var _xr = new _xs%%(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], _xr.push((_f));               return _xr'),
+                            each        = form('for (var                    _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], (_f);                         return _xs'),
+                            flatmap     = form('for (var _xr = new _xs%%(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], _xr.push.apply(_xr, @((_f))); return _xr'),
+
+                            iterate     = form('for (var _x = _xs, _xi = 0, _x0, _xl;              _x0 = (_init); ++_xi) _x = (_f);                                   return _x'),
+
+                            filter      = form('for (var _xr = new _xs%%(), _xi = 0, _xl = _xs.length, _x0;     _xi < _xl; ++_xi) _x = _xs[_xi], (_f) && _xr.push(_x);        return _xr'),
+                            filter_not  = form('for (var _xr = new _xs%%(), _xi = 0, _xl = _xs.length, _x0;     _xi < _xl; ++_xi) _x = _xs[_xi], (_f) || _xr.push(_x);        return _xr'),
+                            map_filter  = form('for (var _xr = new _xs%%(), _xi = 0, _xl = _xs.length, _x0, _y; _xi < _xl; ++_xi) _x = _xs[_xi], (_y = (_f)) && _xr.push(_y); return _xr'),
+
+                            imap_filter = form('for (var _xr = new _xs%%(), _xi = 0, _xl = _xs.length, _x0; _xi < _xl; ++_xi) _x = _xs[_xi], (_x0 = (_init)) && _xr.push(_f); return _xr'),
+
+                            foldl       = form('for (var _x0 = _xs[0], _xi = 1, _xl = _xs.length;            _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f); return _x0'),
+                            foldr       = form('for (var _xl = _xs.length, _xi = _xl - 2, _x0 = _xs[_xl - 1]; _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f); return _x0'),
+                            unfold      = form('for (var _xr = [], _x = _xs, _xi = 0;                      _x !== null; ++_xi) _xr.push(_x), _x = (_f);   return _xr'),
+
+                            ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = _xs.length;      _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f);     return _x0'),
+                            ifoldr      = form('for (var _xl = _xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f);     return _x0'),
+                            iunfold     = form('for (var _xr = [], _x = _xs, _xi = 0, _x0;          _x0 = (_init); ++_xi) _xr.push(_x), _x = (_f);       return _xr'),
+
+                            exists      = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'),
+                            not_exists  = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'),
+
+                            concat      = anon('(S[_xs]).concat((S[_ys]))'),
+
+                            zip         = form('for (var _xr = (S[_ys]), pairs = [], i = 0, l = _xs.length; i < l; ++i) pairs.push([_xs[i], _xr[i]]); return pairs'),
+                            cross       = form('for (var _xr = (S[_ys]), pairs = [], i = 0, l = _xs.length, lj = _xr.length; i < l; ++i) ' +
+                                                 'for (var j = 0; j < lj; ++j) pairs.push([_xs[i], _xr[j]]);' + 'return pairs'),
+
+                            kmap        = form('var _xr = new _xs%%();  for (var _x in _xs) if (#(_xs, _x)) _xr[_f] = _xs[_x]; return _xr'),
+                            keach       = form('                        for (var _x in _xs) if (#(_xs, _x)) _f;                return _xs'),
+
+                            kfilter     = form('var _xr = new _xs%%();    for (var _x in _xs) if (#(_xs, _x) &&      (_f))  _xr[_x] = _xs[_x]; return _xr'),
+                            kfilter_not = form('var _xr = new _xs%%();    for (var _x in _xs) if (#(_xs, _x) &&    ! (_f))  _xr[_x] = _xs[_x]; return _xr'),
+                            kmap_filter = form('var _xr = new _xs%%(), x; for (var _x in _xs) if (#(_xs, _x) && (x = (_f))) _xr[x]  = _xs[_x]; return _xr'),
+
+                            vmap        = form('var _xr = new _xs%%();    for (var  k in _xs) if (#(_xs, k)) _x = _xs[k], _xr[k] = (_f); return _xr'),
+                            veach       = form('                          for (var  k in _xs) if (#(_xs, k)) _x = _xs[k], _f;            return _xs'),
+
+                            vfilter     = form('var _xr = new _xs%%();    for (var  k in _xs) if (#(_xs, k)) _x = _xs[k],        (_f) && (_xr[k] = _x); return _xr'),
+                            vfilter_not = form('var _xr = new _xs%%();    for (var  k in _xs) if (#(_xs, k)) _x = _xs[k],        (_f) || (_xr[k] = _x); return _xr'),
+                            vmap_filter = form('var _xr = new _xs%%(), x; for (var  k in _xs) if (#(_xs, k)) _x = _xs[k], x = (_f), x && (_xr[k] =  x); return _xr')],
+
+         word_macros     = [rule('S[n[_u]]',            n),  rule('S[ni[_u]]',            ni),  rule('S[_o /keys]',   keys),    rule('S[_o |object]', object),  rule('S[_o /mobject', mobject),
+                            rule('S[n[_l, _u]]',        n),  rule('S[ni[_l, _u]]',        ni),  rule('S[_o /values]', values),  rule('S[_o -object]', object),  rule('S[_o -mobject', mobject),
+                            rule('S[n[_l, _u, _step]]', n),  rule('S[ni[_l, _u, _step]]', ni),  rule('S[_o /pairs]',  pairs),   rule('S[_o /object]', object),  rule('S[_o |mobject', mobject)]
+
+                    -where [n(match)   = n_pattern .replace($.merge({_l: '0', _step: '1'}, match)),
+                            ni(match)  = ni_pattern.replace($.merge({_l: '0', _step: '1'}, match)),
+
+                            n_pattern  = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                                   'for (var r = [], d = u - i; d > 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_l), (_u), (_step))'),
+
+                            ni_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return [];' +                // Check for degenerate iteration
+                                                                   'for (var r = [], d = u - i; d > 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_l), (_u), (_step))'),
+
+                            scope      = anon('(function (o) {_body}).call(this, (S[_o]))'),
+                            scoped(t)  = scope.replace({_body: t}),
+
+                            form(p)    = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
+                            keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'),
+                            values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'),
+                            pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'),
+
+                            object     = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r'),
+                            mobject    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], (r[x[0]] || (r[x[0]] = [])).push(x[1]); return r')]]});
+
+__
+meta::sdoc('waul::std.words', <<'__');
+Common adjectives and adverbs | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This behavior installs a bunch of common words and sensible behaviors for them. The goal is to handle most Javascript syntactic cases by using words rather than Javascript primitive syntax.
+For example, constructing lambdas can be done with 'given' rather than the normal function() construct:
+
+| [1, 2, 3].map(x + 1, given.x)         // -> [1, 2, 3].map(function (x) {return x + 1})
+
+In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
+
+caterwaul.module('std.words', function ($) {
+  var scope_template           = $.parse('(function () {var _variables; return (_expression)}).call(this)'),
+      trivial_node_template    = $.parse('new caterwaul.syntax(_data)'),
+      nontrivial_node_template = $.parse('new caterwaul.syntax(_data, _xs)');
+
+  $.words = function (caterwaul_function) {$.merge(caterwaul_function.modifiers,               $.words.modifiers);
+                                           $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers);
+                                           return caterwaul_function};
+
+  $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
+                                                              return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
+                                                                                                         _xs: comma.unflatten()})}
+                                                        else return trivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'})};
+
+Unparameterized modifiers.
+These are basically flags that you can set on chunks of code.
+
+  $.words.modifiers = {
+
+  Quotation.
+  qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant
+  that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
+  reuse.
+
+    qs:  function (match) {return new $.expression_ref($.syntax_to_expression(match._expression), 'qs')},
+    qse: function (match) {return new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse')},
+
+  Macroexpansion control.
+  Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
+
+    reexpand: function (match) {return this(this(match._expression))},
+    noexpand: function (match) {return match._expression},
+
+  Error handling.
+  Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
+
+    raise: $.reexpander('(function () {throw _expression}).call(this)'),
+
+  Evaluation.
+  Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
+  and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
+
+    eval: function (match) {return new $.ref($.compile(this(match._expression)), 'eval')},
+
+  Nullary function words.
+  These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
+  each time, and another is to compute the value lazily and return the cached value for each future invocation. The modifiers are called 'delay' and 'lazy', and they always bind to the
+  surrounding context (analogous to bgiven).
+
+  Here are their operational semantics by example:
+
+  | var x = 10;
+    var f = ++x -delay;
+    f()         -> 11
+    f()         -> 12
+    var g = ++x -lazy;
+    g()         -> 13
+    g()         -> 13
+
+    delay: $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'),
+    lazy:  $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'),
+
+  Object construction.
+  This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
+  can also use regular assignments, each of which will be converted into a key/value pair:
+
+  | var o = capture [f(x) = 10, g(x)(y) = x + y];
+    o.g(10)(20)         // -> 30
+
+  A variant, wcapture, provides local 'where'-style bindings as well as returning the object. This allows the definitions to refer to one another.
+
+    capture:  function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
+                                  comma.push(this(bindings[i]).with_data(':'));
+                                return new $.syntax('{', comma.unflatten())},
+
+    wcapture: function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
+                                  (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
+                                return scope_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})}};
+
+Parameterized modifiers.
+These act like binary operators in the sense that they have a left and a right-hand side.
+
+  $.words.parameterized_modifiers = {
+
+  Function words.
+  These define functions in some form. given[] and bgiven[] are modifiers to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure binding.
+  For example:
+
+  | var f = x + 1 -given [x];
+    var f = x + 1 -given.x;
+
+    given:  $.reexpander('(function (_parameters) {return _expression})'),
+    bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
+
+  Error handling.
+  Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
+
+    rescue: $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+
+  Side-effecting.
+  The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /se[] adverb. Older versions of caterwaul
+  bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
+
+  | hash(k, v) = {} /se[it[k] = v];
+    compose(f, g)(x) = g(x) -re- f(it);
+
+    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'),
+    re: $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'),
+
+  Scoping.
+  You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
+
+  | where[x = 10][alert(x)]
+    alert(x), where[x = 10]
+
+    where: $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
+
+  Importation.
+  This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
+
+  | log(x) -using- console              // -> (function () {var log = console.log; return log(x)}).call(this)
+
+  Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
+  However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
+
+    using: $.reexpander(function (match) {var m = this(match._parameters), o = $.compile(m), comma = new $.syntax(','), expression_ref = new $.expression_ref(m);
+                                          for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && /^[_$a-zA-Z][_$0-9a-zA-Z]*$/.test(k) &&
+                                                           !this.modifiers.hasOwnProperty(k) && !this.parameterized_modifiers.hasOwnProperty(k) &&
+                                                           comma.push(new $.syntax('=', k, new $.syntax('.', expression_ref, k)));
+                                          return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}),
+
+  Conditionals.
+  These impact whether an expression gets evaluated. x /when.y evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
+  truthy. 'and' and 'or' are provided so that you can change the syntax of short-circuit && and ||.
+
+    when:   $.reexpander('((_parameters) && (_expression))'),    and: $.reexpander('((_expression) && (_parameters))'),
+    unless: $.reexpander('(! (_parameters) && (_expression))'),  or:  $.reexpander('((_expression) || (_parameters))')}});
+
+__
+meta::template('comment', '\'\';     # A mechanism for line or block comments.');
+meta::template('eval', <<'__');
+my $result = eval $_[0];
+terminal::warning("Error during template evaluation: $@") if $@;
+$result;
+__
+meta::template('failing_conditional', <<'__');
+my ($commands)    = @_;
+my $should_return = $commands =~ / if (.*)$/ && ! eval $1;
+terminal::warning("eval of template condition failed: $@") if $@;
+$should_return;
+__
+meta::template('include', <<'__');
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+join "\n", map retrieve($_), split /\s+/, $commands;
+__
+meta::template('pinclude', <<'__');
+# Just like the regular include, but makes sure to insert paragraph boundaries
+# (this is required for SDoc to function properly).
+
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
+"\n\n$text\n\n";
+__
+meta::template('script-include', <<'__');
+my ($name) = @_;
+my $s      = 'script';
+my $script = retrieve($name);
+"<$s>\n$script\n</$s>";
+
+__
+meta::template('style-include', <<'__');
+my ($name) = @_;
+my $s      = 'style';
+my $style  = retrieve($name);
+"<$s>\n$style\n</$s>";
+
+__
+internal::main();
+
+__END__
