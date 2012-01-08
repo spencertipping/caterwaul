@@ -390,6 +390,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
       add_bindings_to:    function (hash) {},           // No-ops for most syntax nodes, but see caterwaul_global.ref and caterwaul_global.expression_ref below.
       add_expressions_to: function (hash) {},
 
+      resolve: function () {return this},               // Identity for most nodes. This is necessary to allow opaque refs to construct expression closures.
+
     // Containment.
 //     You can ask a tree whether it contains any nodes that satisfy a given predicate. This is done using the .contains() method and is significantly more efficient than using .collect() if your
 //     tree does in fact contain a matching node.
@@ -634,9 +636,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                        var rs = this.expression_refs;
                                                                        for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
 
-                                     {add_expressions_to: function (hash) {this.expression_refs && caterwaul_global.merge(hash, this.expression_refs)},
-                                               serialize: function (xs)   {return xs.push(this.data), xs},
-                                                   parse: function ()     {return caterwaul_global.parse(this.data)}});
+                                     {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(this) : this},
+                                    serialize: function (xs) {return xs.push(this.data), xs},
+                                        parse: function ()   {return caterwaul_global.parse(this.data)}});
 
   // Syntax node constructor.
 //   Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
@@ -1089,6 +1091,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
     caterwaul_global.late_bound_tree = function (tree, environment, options) {
       options = caterwaul_global.merge({expression_ref_table: true}, options);
+      tree    = tree.rmap(function (node) {return node.resolve()});
+
       var bindings = caterwaul_global.merge({}, environment, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(','), table = {};
       for (var k in bindings) if (own.call(bindings, k)) variables.push(new caterwaul_global.syntax(k)), expressions.push(bindings[k]),
                                                          table[k] = caterwaul_global.syntax.from_string(bindings[k].toString());
