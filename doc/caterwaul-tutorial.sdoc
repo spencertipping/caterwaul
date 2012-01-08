@@ -106,8 +106,10 @@ interested in using Caterwaul for production projects.
   are created in the global scope and lexical scopes are not first-class in Javascript.)
 
   Performance.
-  Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 12K minified and
-  gzipped. The code that it generates is about as fast as handwritten Javascript.
+  Caterwaul 1.1 parses, transforms, and compiles Javascript very quickly. It's also quite compact; the core with <code>std</code> and <code>ui</code> libraries is about 19K conservatively
+  minified and gzipped. The code that it generates is about as fast as well-abstracted handwritten Javascript, and a little slower than manually-inlined hand-written code.
+
+  Caterwaul 1.2 introduces a precompiler that prevents you from having to include the full Caterwaul build in your programs. (Documentation for this is forthcoming...)
 
 Javascript extensions.
 Caterwaul's core macro set starts by extending Javascript syntax in some helpful ways. In particular, it enables quick function assignment, <a href='#advanced'>infix and postfix function

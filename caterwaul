@@ -3037,11 +3037,12 @@ caterwaul('js_all')(function ($) {
   options.input_files.length ? options.input_files *!waul -seq : waul_repl(),
 
   where [fs                         = require('fs'),
-         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', use_std: true}
+         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', use_std: true, expression_ref_table: true}
                                       -se [it.input_files = []]
-                                      -se- process.argv.slice(2) *![x === '--extension' ? it.extensions /~push/ xs[++xi] :
-                                                                    x === '--output'    ? it.output_pattern = xs[++xi]   :
-                                                                    x === '--no-std'    ? it.use_std = false             : it.input_files /~push/ x] /seq,
+                                      -se- process.argv.slice(2) *![x === '--extension' ? it.extensions /~push/ xs[++xi]  :
+                                                                    x === '--output'    ? it.output_pattern = xs[++xi]    :
+                                                                    x === '--no-table'  ? it.expression_ref_table = false :
+                                                                    x === '--no-std'    ? it.use_std = false              : it.input_files /~push/ x] /seq,
 
          caterwaul_template         = '(function () {_caterwaul_init; caterwaul._environment = {caterwaul: caterwaul}; _extensions; return caterwaul.deglobalize()})'.qs,
 
@@ -3072,7 +3073,7 @@ caterwaul('js_all')(function ($) {
          waul_identity(file, m)     = file /-waul_output/ m._,
          waul_transform(file, m)    = file /-waul_output/ module_template.replace({_name: m._name, _compiled: transformed_function})
                               -where [caterwaul            = build_caterwaul(),
-                                      transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) /!caterwaul.late_bound_tree],
+                                      transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) / null /-caterwaul.late_bound_tree/ options],
 
          waul_run(m)                = caterwaul(m._transform.as_escaped_string())(m._function) /-caterwaul.compile/ {require: require, caterwaul: caterwaul} -re- it()
                               -where [caterwaul = build_caterwaul()]]}, {require: require})(caterwaul);
