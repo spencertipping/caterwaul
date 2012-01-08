@@ -31,11 +31,6 @@ caterwaul.module('std.macro', function ($) {
   $.replacer   = composer($.expander);
   $.rereplacer = composer($.reexpander);
 
-# Expression ref generators.
-# This is useful when you want to write precompilable references to syntax trees. The qs[] and .qs modifiers use this so that you can include quoted code without invoking the parser. (This
-# results in libraries which load more quickly, at the expense of being somewhat larger.)
-
-
 # Global macroexpansion.
 # This is a shorthand to enable one-off macroexpansion. The idea is that we build a temporary caterwaul function to do some temporary work.
 
