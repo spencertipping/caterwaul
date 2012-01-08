@@ -1,4 +1,4 @@
-caterwaul.module( 'std.words' ,function($) {var scope_template=$.parse( '(function () {var _variables; return (_expression)}).call(this)' ) ,trivial_node_template=$.parse( 'new caterwaul.syntax(_data)' ) ,nontrivial_node_template=$.parse( 'new caterwaul.syntax(_data, _xs)' ) ;
+caterwaul.module( 'std.words' ,function($) {var scope_template=$.parse( '(function () {var _variables; return (_expression)}).call(this)' ) ;
 $.words=function(caterwaul_function) {$.merge(caterwaul_function.modifiers,$.words.modifiers) ;
 $.merge(caterwaul_function.parameterized_modifiers,$.words.parameterized_modifiers) ;
 return caterwaul_function} ;

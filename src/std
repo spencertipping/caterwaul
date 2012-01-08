@@ -2014,6 +2014,9 @@ Expression ref generators.
 This is useful when you want to write precompilable references to syntax trees. The qs[] and .qs modifiers use this so that you can include quoted code without invoking the parser. (This
 results in libraries which load more quickly, at the expense of being somewhat larger.)
 
+  var trivial_node_template    = $.parse('new caterwaul.syntax(_data)'),
+      nontrivial_node_template = $.parse('new caterwaul.syntax(_data, _xs)');
+
   $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
                                                               return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
                                                                                                          _xs: comma.unflatten()})}
@@ -2424,9 +2427,7 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
 
 caterwaul.module('std.words', function ($) {
-  var scope_template           = $.parse('(function () {var _variables; return (_expression)}).call(this)'),
-      trivial_node_template    = $.parse('new caterwaul.syntax(_data)'),
-      nontrivial_node_template = $.parse('new caterwaul.syntax(_data, _xs)');
+  var scope_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
 
   $.words = function (caterwaul_function) {$.merge(caterwaul_function.modifiers,               $.words.modifiers);
                                            $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers);

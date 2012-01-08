@@ -16,6 +16,7 @@ return function(tree) {var match=new_pattern.call(this,tree) ;
 return match&&new_expander.call(this,match) } } } ;
 $.replacer=composer($.expander) ;
 $.rereplacer=composer($.reexpander) ;
+var trivial_node_template=$.parse( 'new caterwaul.syntax(_data)' ) ,nontrivial_node_template=$.parse( 'new caterwaul.syntax(_data, _xs)' ) ;
 $.syntax_to_expression=function(tree) {if(tree.length) {for(var comma=new $.syntax( ',' ) ,i=0,l=tree.length;
 i<l;
  ++i)comma.push($.syntax_to_expression(tree[i] ) ) ;

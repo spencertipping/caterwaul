@@ -35,6 +35,9 @@ caterwaul.module('std.macro', function ($) {
 # This is useful when you want to write precompilable references to syntax trees. The qs[] and .qs modifiers use this so that you can include quoted code without invoking the parser. (This
 # results in libraries which load more quickly, at the expense of being somewhat larger.)
 
+  var trivial_node_template    = $.parse('new caterwaul.syntax(_data)'),
+      nontrivial_node_template = $.parse('new caterwaul.syntax(_data, _xs)');
+
   $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
                                                               return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
                                                                                                          _xs: comma.unflatten()})}
