@@ -537,7 +537,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
                                             case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return push(d.replace(/^u/, '')), this[0].serialize(xs);
                                                else if (has(parse_group, d))                         return push(d), this[0].serialize(xs), push(parse_group[d]);
-                                               else if (has(parse_lr, d))                            return push('/* unary ' + d + ' node */'), this[0].serialize(xs);
+                                               else if (has(parse_lr, d))                            return this[0].serialize(xs);
                                                else                                                  return this[0].serialize(xs), push(d);
 
                                             case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
