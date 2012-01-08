@@ -30,8 +30,8 @@ this.each(function(n){n.reach(f)});return this},rmap:function(f){var r=f(this);r
 i&&i.data===d;i=i[1]){n.push(i[0])}n.push(i)},this)):se(new this.constructor(d),bind(function(n){for(var i=this,ns=[];i.data===d;i=i[0]){i[1]&&ns.push(i[1])}ns.push(i);
 for(i=ns.length-1;i>=0;--i){n.push(ns[i])}},this))},unflatten:function(){var t=this,right=has(parse_associates_right,this.data);return this.length<=2?this:se(new this.constructor(this.data),function(n){if(right){for(var i=0,l=t.length-1;
 i<l;++i){n=n.push(t[i]).push(i<l-2?new t.constructor(t.data):t[i])[1]}}else{for(var i=t.length-1;i>=1;--i){n=n.push(i>1?new t.constructor(t.data):t[0]).push(t[i])[0]
-}}})},as:function(d){return this.data===d?this:new this.constructor(d).push(this)},bindings:function(hash){var result=hash||{};this.reach(function(n){n.add_bindings_to(hash)
-});return result},expressions:function(hash){var result=hash||{};this.reach(function(n){n.add_expressions_to(hash)});return result},add_bindings_to:function(hash){},add_expressions_to:function(hash){},contains:function(f){var result=f(this);
+}}})},as:function(d){return this.data===d?this:new this.constructor(d).push(this)},bindings:function(hash){var result=hash||{};this.reach(function(n){n.add_bindings_to(result)
+});return result},expressions:function(hash){var result=hash||{};this.reach(function(n){n.add_expressions_to(result)});return result},add_bindings_to:function(hash){},add_expressions_to:function(hash){},contains:function(f){var result=f(this);
 if(result){return result}for(var i=0,l=this.length;i<l;++i){if(result=this[i].contains(f)){return result}}},match:function(target,variables){target=target.constructor===String?caterwaul_global.parse(target):target;
 variables||(variables={_:target});if(this.is_wildcard()){return variables[this.data]=target,variables}else{if(this.length===target.length&&this.data===target.data){for(var i=0,l=this.length;
 i<l;++i){if(!this[i].match(target[i],variables)){return null}}return variables}}},toString:function(){var xs=[""];this.serialize(xs);return xs.join("")},structure:function(){if(this.length){return"("+['"'+this.data+'"'].concat(map(function(x){return x.structure()
@@ -94,13 +94,13 @@ var bindings=caterwaul_global.merge({},this._environment,environment,tree.bindin
 }}var variable_definitions=new this.syntax(",",variables).unflatten(),function_body=bound_expression_template.replace({_bindings:variable_definitions,_expression:tree});
 if(options.gensym_renaming){var renaming_table=this.gensym_rename_table(function_body);for(var k in bindings){own.call(bindings,k)&&(bindings[renaming_table[k]||k]=bindings[k])
 }function_body=function_body.replace(renaming_table);s=renaming_table[s]}var code=function_body.toString();try{return(new Function(s,code)).call(bindings["this"],bindings)
-}catch(e){throw new Error((e.message||e)+" while compiling "+code)}};var trivial_node_template=$.parse("new caterwaul.syntax(_data)"),nontrivial_node_template=$.parse("new caterwaul.syntax(_data, _xs)");
-caterwaul_global.syntax_to_expression=function(tree){if(tree.length){for(var comma=new $.syntax(","),i=0,l=tree.length;i<l;++i){comma.push($.syntax_to_expression(tree[i]))
+}catch(e){throw new Error((e.message||e)+" while compiling "+code)}};var trivial_node_template=caterwaul_global.parse("new caterwaul.syntax(_data)"),nontrivial_node_template=caterwaul_global.parse("new caterwaul.syntax(_data, _xs)");
+caterwaul_global.syntax_to_expression=function(tree){if(tree.length){for(var comma=new caterwaul_global.syntax(","),i=0,l=tree.length;i<l;++i){comma.push(caterwaul_global.syntax_to_expression(tree[i]))
 }return nontrivial_node_template.replace({_data:caterwaul_global.syntax.from_string(tree.data),_xs:comma.unflatten()})}else{return trivial_node_template.replace({_data:caterwaul_global.syntax.from_string(tree.data)})
 }};caterwaul_global.late_bound_tree=function(tree,environment,options){options=caterwaul_global.merge({expression_ref_table:true},options);var bindings=caterwaul_global.merge({},environment,tree.expressions()),variables=new caterwaul_global.syntax(","),expressions=new caterwaul_global.syntax(","),table={};
 for(var k in bindings){if(own.call(bindings,k)){variables.push(new caterwaul_global.syntax(k)),expressions.push(bindings[k]),table[k]=caterwaul_global.syntax_to_expression(bindings[k])
 }}var result_gensym=caterwaul_global.gensym("result"),result_initializer=options.expression_ref_table?late_bound_ref_table_template.replace({_result:result_gensym,_expression_ref_table:caterwaul_global.syntax.from_object(table)}):caterwaul.empty;
-return variables.length?late_bound_template.replace({_bindings:variables.unflatten(),_expressions:expressions.unflatten(),_result_init:result_initializer,_body:tree}):tree
+return variables.length?late_bound_template.replace({_bindings:variables.unflatten(),_expressions:expressions.unflatten(),_result:result_gensym,_result_init:result_initializer,_body:tree}):tree
 };caterwaul_global.gensym_rename_table=function(tree){var names={},gensyms=[];tree.reach(function(node){var d=node.data;if(is_gensym(d)){names[d]||gensyms.push(d)
 }names[d]=d.replace(/^(.*)_[a-z0-9]+_.{22}$/,"$1")||"anon"});var unseen_count={},next_unseen=function(name){if(!(name in names)){return name}var n=unseen_count[name]||0;
 while(names[name+(++n).toString(36)]){}return name+(unseen_count[name]=n).toString(36)};for(var renamed={},i=0,l=gensyms.length,g;i<l;++i){renamed[g=gensyms[i]]||(names[renamed[g]=next_unseen(names[g])]=true)
