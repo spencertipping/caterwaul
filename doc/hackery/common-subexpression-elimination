@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b5
+#!/usr/bin/env waul-1.2b6
 # common-subexpression-elimination: Does V8 perform common subexpression elimination?
 
 caterwaul('js_all')(function () {

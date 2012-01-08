@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b5
+#!/usr/bin/env waul-1.2b6
 # fictitious-scope-overhead: Measure the impact of adding fictitious scopes to computations.
 
 caterwaul('js_all')(function () {

@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b5
+#!/usr/bin/env waul-1.2b6
 # trampolines: Various encodings of continuations.
 
 caterwaul('js_all')(function () {

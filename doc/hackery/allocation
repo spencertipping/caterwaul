@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b5
+#!/usr/bin/env waul-1.2b6
 # allocation: Determine the relative performance of various object allocation strategies.
 
 caterwaul('js_all')(function () {

@@ -6,7 +6,7 @@ if [[ -e $name ]]; then
   vim $name
 else
   cat > $name <<end
-#!/usr/bin/env waul-1.2b5
+#!/usr/bin/env waul-1.2b6
 # $name: $*
 
 caterwaul('js_all')(function () {

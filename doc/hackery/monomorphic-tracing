@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b5
+#!/usr/bin/env waul-1.2b6
 # monomorphic-tracing: Determine whether manual separation into monomorphic traces helps Javascript efficiency.
 
 caterwaul('js_all')(function () {
