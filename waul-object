@@ -913,9 +913,11 @@ meta::function('waul', <<'__');
 my ($name, %options) = @_;
 $name =~ s/^waul:://;
 my $output = $options{output} || "$name.js";
+my $waul   = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+
 with_exported("waul::$name", sub {
   my ($exported) = @_;
-  sh("waul --output '$output' $exported")});
+  sh("$waul --output '$output' $exported")});
 
 __
 meta::hook('before-shell::ad', <<'__');
