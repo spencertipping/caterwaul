@@ -31,6 +31,15 @@ caterwaul.module('std.macro', function ($) {
   $.replacer   = composer($.expander);
   $.rereplacer = composer($.reexpander);
 
+# Expression ref generators.
+# This is useful when you want to write precompilable references to syntax trees. The qs[] and .qs modifiers use this so that you can include quoted code without invoking the parser. (This
+# results in libraries which load more quickly, at the expense of being somewhat larger.)
+
+  $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
+                                                              return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
+                                                                                                         _xs: comma.unflatten()})}
+                                                        else return trivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'})};
+
 # Global macroexpansion.
 # This is a shorthand to enable one-off macroexpansion. The idea is that we build a temporary caterwaul function to do some temporary work.
 

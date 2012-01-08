@@ -18,11 +18,6 @@ caterwaul.module('std.words', function ($) {
                                            $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers);
                                            return caterwaul_function};
 
-  $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
-                                                              return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
-                                                                                                         _xs: comma.unflatten()})}
-                                                        else return trivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'})};
-
 # Unparameterized modifiers.
 # These are basically flags that you can set on chunks of code.
 

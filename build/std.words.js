@@ -2,10 +2,6 @@ caterwaul.module( 'std.words' ,function($) {var scope_template=$.parse( '(functi
 $.words=function(caterwaul_function) {$.merge(caterwaul_function.modifiers,$.words.modifiers) ;
 $.merge(caterwaul_function.parameterized_modifiers,$.words.parameterized_modifiers) ;
 return caterwaul_function} ;
-$.syntax_to_expression=function(tree) {if(tree.length) {for(var comma=new $.syntax( ',' ) ,i=0,l=tree.length;
-i<l;
- ++i)comma.push($.syntax_to_expression(tree[i] ) ) ;
-return nontrivial_node_template.replace( {_data: '"' +tree.data.replace( /"/g , '\\"' ) .replace( /\n/g , '\\n' ) + '"' ,_xs:comma.unflatten() } ) }else return trivial_node_template.replace( {_data: '"' +tree.data.replace( /"/g , '\\"' ) .replace( /\n/g , '\\n' ) + '"' } ) } ;
 $.words.modifiers= {qs:function(match) {return new $.expression_ref($.syntax_to_expression(match._expression) , 'qs' ) } ,qse:function(match) {return new $.expression_ref($.syntax_to_expression(this(match._expression) ) , 'qse' ) } ,reexpand:function(match) {return this(this(match._expression) ) } ,noexpand:function(match) {return match._expression} ,raise:$.reexpander( '(function () {throw _expression}).call(this)' ) ,eval:function(match) {return new $.ref($.compile(this(match._expression) ) , 'eval' ) } ,delay:$.reexpander( '(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))' ) ,lazy:$.reexpander( '(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))' ) ,capture:function(match) {for(var comma=new $.syntax( ',' ) ,bindings=match._expression.flatten( ',' ) ,i=0,l=bindings.length;
 i<l;
  ++i)comma.push(this(bindings[i] ) .with_data( ':' ) ) ;
