@@ -2178,7 +2178,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                        var rs = this.expression_refs;
                                                                        for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
 
-                                     {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(this) : this},
+                                     {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(new this.constructor(this.data), this.expression_refs) : this},
                                     serialize: function (xs) {return xs.push(this.data), xs},
                                         parse: function ()   {return caterwaul_global.parse(this.data)}});
 
