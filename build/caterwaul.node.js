@@ -26,6 +26,23 @@
   caterwaul_global.deglobalize      = function () {caterwaul = original_global; return caterwaul_global};
   caterwaul_global.core_initializer = initializer;
 
+// The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
+// hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
+
+// | for (var k in {toString: 5}) alert(k);        // no alert on IE
+//   ({toString: 5}).hasOwnProperty('toString')    // false on IE
+
+// To compensate, merge() manually copies toString if it is present on the extension object.
+
+  caterwaul_global.merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
+    // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (has(_, k)) o[k] = _[k]; return o} :
+
+    // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
+                    if (_ = arguments[i]) {for (var k in _) if (has(_, k)) o[k] = _[k];
+                                           if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
+
 // Modules.
 // Caterwaul 1.1.7 adds support for a structured form for defining modules. This isn't particularly interesting or revolutionary by itself; it's just a slightly more structured way to do what
 // most Caterwaul extensions have been doing with toplevel functions. For example, a typical extension looks something like this:
@@ -74,7 +91,6 @@
 //   6. map     Maps a function over an array-like object and returns an array of the results.
 //   7. rmap    Recursively maps a function over arrays.
 //   8. hash    Takes a string, splits it into words, and returns a hash mapping each of those words to true. This is used to construct sets.
-//   9. merge   Takes an object and one or more extensions, and copies all properties from each extension onto the object. Returns the object.
 
 // Side-effecting is used to initialize things statefully; for example:
 
@@ -98,23 +114,6 @@
       rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
       hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
 
-// The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
-// hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
-
-// | for (var k in {toString: 5}) alert(k);        // no alert on IE
-//   ({toString: 5}).hasOwnProperty('toString')    // false on IE
-
-// To compensate, merge() manually copies toString if it is present on the extension object.
-
-     merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
-               // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
-               function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (has(_, k)) o[k] = _[k]; return o} :
-
-               // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
-               function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
-                               if (_ = arguments[i]) {for (var k in _) if (has(_, k)) o[k] = _[k];
-                                                      if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
-
   // Optimizations.
 //   The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
 //   syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
@@ -133,7 +132,7 @@
       annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
                 has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
-   caterwaul_global = merge(caterwaul, {merge: merge, map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym}),
+   caterwaul_global = caterwaul.merge(caterwaul, {map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym}),
 
 // Shared parser data.
 // This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
@@ -430,7 +429,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   1.1.2 this method is nondestructive with respect to the constructor and other arguments.
 
     caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1), proxy = function () {return ctor.apply(this, arguments)};
-                                                        merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
+                                                        caterwaul_global.merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
                                                         proxy.prototype.constructor = proxy;
                                                         return proxy};
 
@@ -566,17 +565,17 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
   // Caterwaul 1.0 adds named gensyms, and one of the things you can do is name your refs accordingly. If you don't name one it will just be called 'ref', but you can make it more descriptive by
 //   passing in a second constructor argument. This name will automatically be wrapped in a gensym, but that gensym will be removed at compile-time unless you specify not to rename gensyms.
 
-    caterwaul_global.ref_common = merge({}, caterwaul_global.javascript_tree_type_methods,
-                                            caterwaul_global.javascript_tree_serialization_methods,
+    caterwaul_global.ref_common = caterwaul_global.merge({}, caterwaul_global.javascript_tree_type_methods,
+                                                             caterwaul_global.javascript_tree_serialization_methods,
 
   // Reference replace() support.
 //   Refs aren't normal nodes; in particular, invoking the constructor as we do in replace() will lose the ref's value and cause all kinds of problems. In order to avoid this we override the
 //   replace() method for syntax refs to behave more sensibly. Note that you can't replace a ref with a syntax 
 
-                                            {replace: function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
-                                                                                               r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) :
-                                                                                               r : this},
-                                              length: 0});
+                                                             {replace: function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
+                                                                         r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) :
+                                                                         r : this},
+                                                               length: 0});
 
     caterwaul_global.ref = caterwaul_global.syntax_subclass(
                              function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
@@ -988,10 +987,10 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   things like "don't rename the gensyms this time around". Right now gensym_renaming is the only option, and it defaults to true.
 
     caterwaul_global.compile = function (tree, environment, options) {
-      options = merge({gensym_renaming: true}, options);
+      options = caterwaul_global.merge({gensym_renaming: true}, options);
       tree    = caterwaul_global.late_bound_tree(tree);
 
-      var bindings = merge({}, this._environment || {}, environment || {}, tree.bindings()), variables = [undefined_binding], s = gensym('base');
+      var bindings = caterwaul_global.merge({}, this._environment || {}, environment || {}, tree.bindings()), variables = [undefined_binding], s = gensym('base');
       for (var k in bindings) if (own.call(bindings, k) && k !== 'this') variables.push(binding_template.replace({_variable: k, _base: s}));
 
       var variable_definitions = new this.syntax(',', variables).unflatten(),
@@ -1017,7 +1016,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
   // You can also pass in your own environment expressions to supplement the ones in the syntax tree.
 
     caterwaul_global.late_bound_tree = function (tree, environment) {
-      var bindings = merge({}, environment || {}, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(',');
+      var bindings = caterwaul_global.merge({}, environment || {}, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(',');
       for (var k in bindings) if (own.call(bindings, k)) variables.push(new caterwaul_global.syntax(k)), expressions.push(bindings[k]);
 
       return variables.length ? late_bound_template.replace({_bindings: variables.unflatten(), _expressions: expressions.unflatten(), _body: tree}) : tree};

@@ -11,6 +11,23 @@
   caterwaul_global.deglobalize      = function () {caterwaul = original_global; return caterwaul_global};
   caterwaul_global.core_initializer = initializer;
 
+// The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
+// hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
+
+// | for (var k in {toString: 5}) alert(k);        // no alert on IE
+//   ({toString: 5}).hasOwnProperty('toString')    // false on IE
+
+// To compensate, merge() manually copies toString if it is present on the extension object.
+
+  caterwaul_global.merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
+    // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (has(_, k)) o[k] = _[k]; return o} :
+
+    // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
+                    if (_ = arguments[i]) {for (var k in _) if (has(_, k)) o[k] = _[k];
+                                           if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
+
 // Modules.
 // Caterwaul 1.1.7 adds support for a structured form for defining modules. This isn't particularly interesting or revolutionary by itself; it's just a slightly more structured way to do what
 // most Caterwaul extensions have been doing with toplevel functions. For example, a typical extension looks something like this:
