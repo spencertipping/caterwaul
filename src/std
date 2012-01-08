@@ -2018,9 +2018,8 @@ results in libraries which load more quickly, at the expense of being somewhat l
       nontrivial_node_template = $.parse('new caterwaul.syntax(_data, _xs)');
 
   $.syntax_to_expression = function (tree) {if (tree.length) {for (var comma = new $.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push($.syntax_to_expression(tree[i]));
-                                                              return nontrivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"',
-                                                                                                         _xs: comma.unflatten()})}
-                                                        else return trivial_node_template.replace({_data: '"' + tree.data.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"'})};
+                                                              return nontrivial_node_template.replace({_data: caterwaul.syntax.from_string(tree.data), _xs: comma.unflatten()})}
+                                                        else return trivial_node_template.replace({_data: caterwaul.syntax.from_string(tree.data)})};
 
 Global macroexpansion.
 This is a shorthand to enable one-off macroexpansion. The idea is that we build a temporary caterwaul function to do some temporary work.
