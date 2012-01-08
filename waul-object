@@ -915,6 +915,8 @@ $name =~ s/^waul:://;
 my $output = $options{output} || "$name.js";
 my $waul   = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
 
+terminal::info("compiling waul::$name using $waul");
+
 with_exported("waul::$name", sub {
   my ($exported) = @_;
   sh("$waul --output '$output' $exported")});

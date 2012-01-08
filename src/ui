@@ -931,9 +931,13 @@ meta::function('waul', <<'__');
 my ($name, %options) = @_;
 $name =~ s/^waul:://;
 my $output = $options{output} || "$name.js";
+my $waul   = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+
+terminal::info("compiling waul::$name using $waul");
+
 with_exported("waul::$name", sub {
   my ($exported) = @_;
-  sh("waul --output '$output' $exported")});
+  sh("$waul --output '$output' $exported")});
 
 __
 meta::hook('before-shell::ad', <<'__');
@@ -1308,7 +1312,7 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::parent('../waul-object', <<'__');
 function::minify-yui                                        dd0d6afd6be3108180637436f058a181
-function::waul                                              e1162e71693317dd52b5a30cac0a881a
+function::waul                                              4a5277531984cdc643ba1f505acaf34f
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
 parent::/home/spencertipping/conjectures/perl-objects/js    bc7a27dec21a2794a034ca292453d45f
 parent::/home/spencertipping/conjectures/perl-objects/sdoc  c328e1359e74d8eb1b3520c9d3888b90
@@ -1622,6 +1626,8 @@ Right now I've only got a set of combinators for jQuery.
 
 __
 meta::sdoc('waul::ui.jquery', <<'__');
+#!/usr/bin/env waul-1.2b8
+
 JQuery DOM combinators | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
