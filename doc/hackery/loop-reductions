@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b8
+#!/usr/bin/env waul-1.2b9
 # loop-reductions: How much work does V8 eliminate from a loop?
 
 caterwaul('js_all')(function () {

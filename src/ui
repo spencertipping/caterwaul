@@ -1626,7 +1626,7 @@ Right now I've only got a set of combinators for jQuery.
 
 __
 meta::sdoc('waul::ui.jquery', <<'__');
-#!/usr/bin/env waul-1.2b8
+#!/usr/bin/env waul-1.2b9
 
 JQuery DOM combinators | Spencer Tipping
 Licensed under the terms of the MIT source code license

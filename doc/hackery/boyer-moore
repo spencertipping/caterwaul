@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b8
+#!/usr/bin/env waul-1.2b9
 # boyer-moore: Can a pure Javascript Boyer-Moore implementation outperform native indexOf?
 
 caterwaul('js_all')(function () {
