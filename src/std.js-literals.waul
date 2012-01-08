@@ -1,13 +1,15 @@
+#!/usr/bin/env waul-1.2b8
+
 # Javascript literal notation | Spencer Tipping
 # Licensed under the terms of the MIT source code license
 
 # Introduction.
 # These macros provide some convenient literal notation for various Javascript literals. For obvious reasons they have names that are unlikely to collide with methods.
 
-caterwaul.module('std.js-literals', function ($) {
+caterwaul.module('std.js-literals', 'js js_literals', function ($) {
   $.js_literals = function (caterwaul_function) {
 
-    var function_template = $.parse('function (_) {return _body}');
+    var function_template = 'function (_) {return _body}'.qs;
 
   # Regular expression literals.
 #   Right now we just support the 'x' flag, which causes all whitespace within the regular expression to be ignored. This is a straightforward preprocessing transformation, since we have access
@@ -18,7 +20,7 @@ caterwaul.module('std.js-literals', function ($) {
 
     (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
 
-                   var call_exec_template = $.parse('_regexp.exec(_)');
+                   var call_exec_template = '_regexp.exec(_)'.qs;
                    r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
 
   # String literals.

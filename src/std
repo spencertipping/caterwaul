@@ -1684,10 +1684,12 @@ caterwaul.module('std.anon', function ($) {
 
 __
 meta::sdoc('waul::std.js', <<'__');
+#!/usr/bin/env waul-1.2b8
+
 Javascript-specific macros | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-caterwaul.module('std.js', function ($) {
+caterwaul.module('std.js', 'js js_literals', function ($) {
 
 Structured forms in Javascript.
 These aren't macros, but forms. Each language has its own ways of expressing certain idioms; in Javascript we can set up some sensible defaults to make macros more consistent. For example,
@@ -1766,32 +1768,33 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   This notation doesn't preclude the possibility of some form of destructuring binds in the future, since there wouldn't be much point to writing a toplevel array or object literal and
   intending it to be used as a side-effect. (Doing that would just put the value into void context; at that point you might as well leave it out.)
 
-    var function_local_template = $.parse('var _x = _y'),  function_bind_pattern = $.parse('_x = _y'),  function_result_pattern  = $.parse('result'),
+    var function_local_template = 'var _x = _y'.qs,  function_bind_pattern = '_x = _y'.qs,  function_result_pattern  = 'result'.qs,
 
-        function_with_afters         = $.parse('function (_formals) {_befores; var result = _result; _afters; return result}'),
-        function_without_afters      = $.parse('function (_formals) {_befores; return _result}'),
-        function_assignment_template = $.parse('_f = _x'),
+        function_with_afters         = 'function (_formals) {_befores; var result = _result; _afters; return result}'.qs,
+        function_without_afters      = 'function (_formals) {_befores; return _result}'.qs,
+        function_assignment_template = '_f = _x'.qs,
 
         function_is_result           = function (n) {return n.is_empty() && n.data === 'result'},
 
-        function_destructure = $.rereplacer('_f(_xs) = _y', function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length; i < l; ++i)
-                                                                                (afters.length  || ps[i].contains(function_is_result) ? afters  :
-                                                                                 befores.length || ps[i].length                       ? befores : formals).push(ps[i]);
+        function_destructure = $.rereplacer('_f(_xs) = _y'.qs,
+                                            function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length; i < l; ++i)
+                                                                (afters.length  || ps[i].contains(function_is_result) ? afters  :
+                                                                 befores.length || ps[i].length                       ? befores : formals).push(ps[i]);
 
-                                                                              // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
-                                                                              // into expression context by wrapping them in parentheses.
-                                                                              for (var contains_locals = [befores, afters], i = 0, l = contains_locals.length; i < l; ++i)
-                                                                                for (var xs = contains_locals[i], j = 0, lj = xs.length, m; j < lj; ++j)
-                                                                                  xs[j] = (m = function_bind_pattern.match(xs[j])) && m._x.is_empty() ? function_local_template.replace(m) :
-                                                                                                                                                        xs[j].as('(');
-                                                                              var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
-                                                                                  new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
-                                                                                  new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty,
+                                                              // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
+                                                              // into expression context by wrapping them in parentheses.
+                                                              for (var contains_locals = [befores, afters], i = 0, l = contains_locals.length; i < l; ++i)
+                                                                for (var xs = contains_locals[i], j = 0, lj = xs.length, m; j < lj; ++j)
+                                                                  xs[j] = (m = function_bind_pattern.match(xs[j])) && m._x.is_empty() ? function_local_template.replace(m) :
+                                                                                                                                        xs[j].as('(');
+                                                              var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
+                                                                  new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
+                                                                  new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty,
 
-                                                                                  template    = function_assignment_template.replace(
-                                                                                                  {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});
+                                                                  template    = function_assignment_template.replace(
+                                                                                  {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});
 
-                                                                              return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
+                                                              return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
 
   Infix function application.
   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. x /y /... /-f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax; that is, x
@@ -1824,9 +1827,9 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   | compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
     x /y /z /!f                                 // -> f(x, y, z)
 
-    var postfix_function_template = $.parse('_f(_x)'),
-        postfix_function          = $.rereplacer('_x /!_f', function (match) {return postfix_function_template.replace({_f: match._f,
-                                                                                                                        _x: this(match._x).flatten('/').with_data(',').unflatten()})});
+    var postfix_function_template = '_f(_x)'.qs,
+        postfix_function          = $.rereplacer('_x /!_f'.qs, function (match) {return postfix_function_template.replace({_f: match._f,
+                                                                                                                           _x: this(match._x).flatten('/').with_data(',').unflatten()})});
 
   Literal modification.
   Caterwaul 1.1.2 introduces literal modification, which provides ways to reinterpret various types of literals at compile-time. These are always written as postfix property accesses, e.g.
@@ -1845,7 +1848,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   This function fails to parse under SpiderMonkey, since it assumes that {foo: 'bar'} is a statement-level block with a label 'foo' and a discarded string literal 'bar'. Rather than open this
   can of worms, I'm just nixing the whole idea of modifying object literals (besides, it doesn't seem particularly useful anyway, though perhaps I'm being myopic about it).
 
-    var modified_literal_form   = $.pattern('_literal._modifier'),
+    var modified_literal_form   = $.pattern('_literal._modifier'.qs),
 
         lookup_literal_modifier = function (caterwaul, type, modifier) {var hash = caterwaul.literal_modifiers[type];
                                                                         return hash.hasOwnProperty(modifier) && hash[modifier]},
@@ -1868,13 +1871,13 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
   fact match. However, there are only a few checks that need to happen before determining whether a modifier match is possible, unlike before.
 
-    var bracket_modifier_form = $.pattern('_modifier[_expression]'),               slash_modifier_form = $.pattern('_expression /_modifier'),
-        minus_modifier_form   = $.pattern('_expression -_modifier'),               in_modifier_form    = $.pattern('_modifier in _expression'),
-        pipe_modifier_form    = $.pattern('_expression |_modifier'),               comma_modifier_form = $.pattern('_expression, _modifier'),
+    var bracket_modifier_form = $.pattern('_modifier[_expression]'.qs),               slash_modifier_form = $.pattern('_expression /_modifier'.qs),
+        minus_modifier_form   = $.pattern('_expression -_modifier'.qs),               in_modifier_form    = $.pattern('_modifier in _expression'.qs),
+        pipe_modifier_form    = $.pattern('_expression |_modifier'.qs),               comma_modifier_form = $.pattern('_expression, _modifier'.qs),
 
-        dot_parameters        = $.pattern('_modifier._parameters'),                bracket_parameters  = $.pattern('_modifier[_parameters]'),
+        dot_parameters        = $.pattern('_modifier._parameters'.qs),                bracket_parameters  = $.pattern('_modifier[_parameters]'.qs),
 
-        parameterized_wickets = $.pattern('_expression <_modifier> _parameters'),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'),
+        parameterized_wickets = $.pattern('_expression <_modifier> _parameters'.qs),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'.qs),
 
         modifier = function (node) {var modifier, parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
                                     if (parameterized_match && this.parameterized_modifiers.hasOwnProperty(modifier = parameterized_match._modifier.data)) {
@@ -1911,8 +1914,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
                                             node.length && (modifier.call(this, node) || function_destructure.call(this, node) ||
                                                             infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
 
-        result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) :
-                                    $(each_node);
+        result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) : $(each_node);
 
     result.modifiers               = {};
     result.parameterized_modifiers = {};
@@ -1923,16 +1925,18 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
 __
 meta::sdoc('waul::std.js-literals', <<'__');
+#!/usr/bin/env waul-1.2b8
+
 Javascript literal notation | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
 These macros provide some convenient literal notation for various Javascript literals. For obvious reasons they have names that are unlikely to collide with methods.
 
-caterwaul.module('std.js-literals', function ($) {
+caterwaul.module('std.js-literals', 'js js_literals', function ($) {
   $.js_literals = function (caterwaul_function) {
 
-    var function_template = $.parse('function (_) {return _body}');
+    var function_template = 'function (_) {return _body}'.qs;
 
   Regular expression literals.
   Right now we just support the 'x' flag, which causes all whitespace within the regular expression to be ignored. This is a straightforward preprocessing transformation, since we have access
@@ -1943,7 +1947,7 @@ caterwaul.module('std.js-literals', function ($) {
 
     (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
 
-                   var call_exec_template = $.parse('_regexp.exec(_)');
+                   var call_exec_template = '_regexp.exec(_)'.qs;
                    r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
 
   String literals.
@@ -2405,6 +2409,8 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
 
 __
 meta::sdoc('waul::std.words', <<'__');
+#!/usr/bin/env waul-1.2b8
+
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -2416,42 +2422,40 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 
 In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
 
-caterwaul.module('std.words', function ($) {
-  var scope_template = $.parse('(function () {var _variables; return (_expression)}).call(this)');
+caterwaul.module('std.words', 'js js_literals words', function ($) {
+  $.words(caterwaul_function) = ($.merge(caterwaul_function.modifiers,               $.words.modifiers),
+                                 $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers),
+                                 caterwaul_function),
 
-  $.words = function (caterwaul_function) {$.merge(caterwaul_function.modifiers,               $.words.modifiers);
-                                           $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers);
-                                           return caterwaul_function};
+  $.words.modifiers = capture [
 
 Unparameterized modifiers.
 These are basically flags that you can set on chunks of code.
-
-  $.words.modifiers = {
 
   Quotation.
   qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant
   that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
   reuse.
 
-    qs:  function (match) {return new $.expression_ref($.syntax_to_expression(match._expression), 'qs')},
-    qse: function (match) {return new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse')},
+    qs(match)  = new $.expression_ref($.syntax_to_expression(match._expression), 'qs'),
+    qse(match) = new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse'),
 
   Macroexpansion control.
   Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
 
-    reexpand: function (match) {return this(this(match._expression))},
-    noexpand: function (match) {return match._expression},
+    reexpand(match) = this(this(match._expression)),
+    noexpand(match) = match._expression,
 
   Error handling.
   Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
-    raise: $.reexpander('(function () {throw _expression}).call(this)'),
+    raise = $.reexpander('(function () {throw _expression}).call(this)'.qs),
 
   Evaluation.
   Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
   and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
 
-    eval: function (match) {return new $.ref($.compile(this(match._expression)), 'eval')},
+    eval(match) = new $.ref($.compile(this(match._expression)), 'eval'),
 
   Nullary function words.
   These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
@@ -2468,8 +2472,8 @@ These are basically flags that you can set on chunks of code.
     g()         -> 13
     g()         -> 13
 
-    delay: $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'),
-    lazy:  $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'),
+    delay = $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'.qs),
+    lazy  = $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'.qs),
 
   Object construction.
   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
@@ -2480,13 +2484,13 @@ These are basically flags that you can set on chunks of code.
 
   A variant, wcapture, provides local 'where'-style bindings as well as returning the object. This allows the definitions to refer to one another.
 
-    capture:  function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
-                                  comma.push(this(bindings[i]).with_data(':'));
-                                return new $.syntax('{', comma.unflatten())},
+    capture  = function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
+                                   comma.push(this(bindings[i]).with_data(':'));
+                                 return new $.syntax('{', comma.unflatten())},
 
-    wcapture: function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
-                                  (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
-                                return scope_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})}};
+    wcapture = function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
+                                   (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
+                                 return scope_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})}],
 
 Parameterized modifiers.
 These act like binary operators in the sense that they have a left and a right-hand side.
@@ -2500,13 +2504,13 @@ These act like binary operators in the sense that they have a left and a right-h
   | var f = x + 1 -given [x];
     var f = x + 1 -given.x;
 
-    given:  $.reexpander('(function (_parameters) {return _expression})'),
-    bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'),
+    given:  $.reexpander('(function (_parameters) {return _expression})'.qs),
+    bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'.qs),
 
   Error handling.
   Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
 
-    rescue: $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'),
+    rescue: $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'.qs),
 
   Side-effecting.
   The goal here is to take an existing value, modify it somehow, and then return it without allocating an actual variable. This can be done using the /se[] adverb. Older versions of caterwaul
@@ -2515,8 +2519,8 @@ These act like binary operators in the sense that they have a left and a right-h
   | hash(k, v) = {} /se[it[k] = v];
     compose(f, g)(x) = g(x) -re- f(it);
 
-    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'),
-    re: $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'),
+    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),
+    re: $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'.qs),
 
   Scoping.
   You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
@@ -2524,7 +2528,7 @@ These act like binary operators in the sense that they have a left and a right-h
   | where[x = 10][alert(x)]
     alert(x), where[x = 10]
 
-    where: $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'),
+    where: $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'.qs),
 
   Importation.
   This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets you statically import an object. For example:
@@ -2544,8 +2548,10 @@ These act like binary operators in the sense that they have a left and a right-h
   These impact whether an expression gets evaluated. x /when.y evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
   truthy. 'and' and 'or' are provided so that you can change the syntax of short-circuit && and ||.
 
-    when:   $.reexpander('((_parameters) && (_expression))'),    and: $.reexpander('((_expression) && (_parameters))'),
-    unless: $.reexpander('(! (_parameters) && (_expression))'),  or:  $.reexpander('((_expression) || (_parameters))')}});
+    when:   $.reexpander('((_parameters) && (_expression))'.qs),    and: $.reexpander('((_expression) && (_parameters))'.qs),
+    unless: $.reexpander('(! (_parameters) && (_expression))'.qs),  or:  $.reexpander('((_expression) || (_parameters))'.qs)},
+
+  where [scope_template = '(function () {var _variables; return (_expression)}).call(this)'.qs]});
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
