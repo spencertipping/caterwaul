@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b6
+#!/usr/bin/env waul-1.2b7
 # charat-overhead: Find out how much overhead is associated with each method of traversing a string.
 
 caterwaul('js_all')(function () {

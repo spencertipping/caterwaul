@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b6
+#!/usr/bin/env waul-1.2b7
 # dynamic-dispatch: A test for various high-level dynamic dispatch encodings.
 
 caterwaul('js_all')(function () {

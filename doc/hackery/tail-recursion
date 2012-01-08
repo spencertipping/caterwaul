@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b6
+#!/usr/bin/env waul-1.2b7
 # tail-recursion: Just to see whether V8 does this efficiently.
 
 caterwaul('js_all')(function () {

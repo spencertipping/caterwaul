@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b6
+#!/usr/bin/env waul-1.2b7
 # cache-line-contention: Are Javascript arrays regularly enough laid out that they are subject to cache line contention?
 
 caterwaul('js_all')(function () {

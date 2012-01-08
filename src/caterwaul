@@ -626,8 +626,8 @@ meta::function('render', <<'__');
 file::write('caterwaul.js',      retrieve('pp::js::caterwaul'));
 file::write('caterwaul.core.js', retrieve('pp::js::caterwaul.core'));
 
--s 'build/caterwaul.js'      or link 'caterwaul.js',      'build/caterwaul.js'      or die 'failed to link build/caterwaul.js';
--s 'build/caterwaul.core.js' or link 'caterwaul.core.js', 'build/caterwaul.core.js' or die 'failed to link build/caterwaul.core.js';
+file::write('build/caterwaul.js',      retrieve('caterwaul.js'));
+file::write('build/caterwaul.core.js', retrieve('caterwaul.core.js'));
 
 minify_yui('build/caterwaul.js');
 minify_yui('build/caterwaul.core.js');
@@ -2719,9 +2719,9 @@ particularly computationally expensive most of the time, as opaque trees are ret
     if (options && options.minimal_core_only) return w_template.replace({_x: new this.opaque_tree(this.core_initializer)});
     if (options && options.core_only)         return w_template.replace({_x: new this.opaque_tree(this.initializer)});
     for (var i = 0, ms = options && options.modules || this.modules, c = [], l = ms.length; i < l; ++i)
-      c.push(module_template.replace({_name: "'" + ms[i] + "'", _f: new this.opaque_tree(this.module(ms[i]), this.module(ms[i]).caterwaul_expression_ref_table)}));
+      c.push(module_template.replace({_name: this.syntax.from_string(ms[i]), _f: new this.opaque_tree(this.module(ms[i]))}));
     for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
-    return result.unflatten()};
+    return this.late_bound_tree(result.unflatten())};
 
   return caterwaul = caterwaul_global});
 

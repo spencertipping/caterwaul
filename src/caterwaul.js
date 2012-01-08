@@ -1172,9 +1172,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     if (options && options.minimal_core_only) return w_template.replace({_x: new this.opaque_tree(this.core_initializer)});
     if (options && options.core_only)         return w_template.replace({_x: new this.opaque_tree(this.initializer)});
     for (var i = 0, ms = options && options.modules || this.modules, c = [], l = ms.length; i < l; ++i)
-      c.push(module_template.replace({_name: "'" + ms[i] + "'", _f: new this.opaque_tree(this.module(ms[i]), this.module(ms[i]).caterwaul_expression_ref_table)}));
+      c.push(module_template.replace({_name: this.syntax.from_string(ms[i]), _f: new this.opaque_tree(this.module(ms[i]))}));
     for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
-    return result.unflatten()};
+    return this.late_bound_tree(result.unflatten())};
 
   return caterwaul = caterwaul_global});
 
