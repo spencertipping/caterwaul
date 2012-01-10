@@ -2238,7 +2238,6 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq(match) = seq_expand.call(seq_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
                                               -where [anon_pattern = anon('S[_x]'.qs),
                                                       seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
-
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(anon(p), e.constructor === $.syntax ? anon(e) : e),
 
@@ -2331,7 +2330,6 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
 
                             parse_modifiers(tree, normal, bang, tbang) = ((result = tbang_modifier.match(tree)) ? tbang(result._x) :
                                                                           (result =  bang_modifier.match(tree)) ?  bang(result._x) : normal(tree)) -where [result = null]]
-
                     -where [// Setup for form definitions (see below)
                             loop_anon   = $.anonymizer('x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
                             scope       = anon('(function (_xs) {var _x, _x0, _xi, _xl, _xr; _body}).call(this, S[_s])'.qs),
@@ -2399,7 +2397,7 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   scope      = anon('(function (o) {_body}).call(this, (S[_o]))'.qs),
   scoped(t)  = scope.replace({_body: t}),
 
-  form(p)    = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
+  form(p)    = "tree /~replace/ _".qf -where [tree = scoped(anon(p))],
   keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'.qs),
   values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'.qs),
   pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'.qs),
@@ -2416,11 +2414,6 @@ Licensed under the terms of the MIT source code license
 
 Introduction.
 This behavior installs a bunch of common words and sensible behaviors for them. The goal is to handle most Javascript syntactic cases by using words rather than Javascript primitive syntax.
-For example, constructing lambdas can be done with 'given' rather than the normal function() construct:
-
-| [1, 2, 3].map(x + 1, given.x)         // -> [1, 2, 3].map(function (x) {return x + 1})
-
-In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
 
 caterwaul.module('std.words', 'js js_literals words', function ($) {
   $.words(caterwaul_function) = ($.merge(caterwaul_function.modifiers,               $.words.modifiers),
@@ -2432,48 +2425,10 @@ caterwaul.module('std.words', 'js js_literals words', function ($) {
 Unparameterized modifiers.
 These are basically flags that you can set on chunks of code.
 
-  Quotation.
-  qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just like quote in Lisp. The idea is that qs[something] returns 'something' as a syntax tree. qse[] is a variant
-  that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
-  reuse.
-
-    qs(match)  = new $.expression_ref($.syntax_to_expression(match._expression), 'qs'),
-    qse(match) = new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse'),
-
-  Macroexpansion control.
-  Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
-
-    reexpand(match) = this(this(match._expression)),
-    noexpand(match) = match._expression,
-
   Error handling.
   Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
     raise = $.reexpander('(function () {throw _expression}).call(this)'.qs),
-
-  Evaluation.
-  Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
-  and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
-
-    eval(match) = new $.ref($.compile(this(match._expression)), 'eval'),
-
-  Nullary function words.
-  These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
-  each time, and another is to compute the value lazily and return the cached value for each future invocation. The modifiers are called 'delay' and 'lazy', and they always bind to the
-  surrounding context (analogous to bgiven).
-
-  Here are their operational semantics by example:
-
-  | var x = 10;
-    var f = ++x -delay;
-    f()         -> 11
-    f()         -> 12
-    var g = ++x -lazy;
-    g()         -> 13
-    g()         -> 13
-
-    delay = $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'.qs),
-    lazy  = $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'.qs),
 
   Object construction.
   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
@@ -2497,16 +2452,6 @@ These act like binary operators in the sense that they have a left and a right-h
 
   $.words.parameterized_modifiers = {
 
-  Function words.
-  These define functions in some form. given[] and bgiven[] are modifiers to turn an expression into a function; given[] creates a regular closure while bgiven[] preserves the closure binding.
-  For example:
-
-  | var f = x + 1 -given [x];
-    var f = x + 1 -given.x;
-
-    given:  $.reexpander('(function (_parameters) {return _expression})'.qs),
-    bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'.qs),
-
   Error handling.
   Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
 
@@ -2519,7 +2464,10 @@ These act like binary operators in the sense that they have a left and a right-h
   | hash(k, v) = {} /se[it[k] = v];
     compose(f, g)(x) = g(x) -re- f(it);
 
-    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),
+  Cheaper are the -rei- form, which doesn't create closures. V8 theoretically could inline the closures created by -se- and -re-, but I don't think it does. The downside to using rei instead
+  of re is that the 'it' variable is not bound.
+
+    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),  rei: $.reexpander('((_expression), (_parameters))'.qs),
     re: $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'.qs),
 
   Scoping.

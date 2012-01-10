@@ -46,29 +46,6 @@
 # | div.foo > span.first + span.second,   ->  <div class='foo'><span class='first'></span><span class='second'></span></div>
 #   div.bar > span.third + span.fourth        <div class='bar'><span class='third'></span><span class='fourth'></span></div>
 
-# Also, you can now dig through the DOM using HTML selectors. Here's what that looks like:
-
-# | element >> div.foo               ->  element.filter('div.foo')
-#   element >> _.foo                 ->  element.filter('*.foo')
-#   element >>> div.foo              ->  element.find('div.foo')
-#   element << div.foo               ->  element.parents('div.foo')
-#   element >> div.foo /first        ->  element.filter('div.foo:first')
-#   element >> div.foo /contains(x)  ->  element.filter('div.foo:contains("#{x}")')
-#   element >> div.foo + div.bar     ->  element.filter('div.foo, div.bar')
-#   element >> (span >> p)           ->  element.filter('span p')
-#   element >> (span >>> p)          ->  element.filter('span p')
-#   element >> (span > p)            ->  element.filter('span > p')
-#   element >> span[foo]             ->  element.filter('span[foo]')
-#   element >> span[data_bar]        ->  element.filter('span[data-bar]')                    <- note conversion of _ to -
-#   element >> span[foo=x]           ->  element.filter('span[foo="#{string_escape(x)}"]')
-
-# Note that this isn't really intended to be a replacement for jQuery's builtin methods; it's just an easy way to do some simple selection. I highly recommend using native jQuery selectors if
-# you need something more powerful.
-
-# You shouldn't try to get too elaborate with these; I'm not sure how much stuff jQuery's CSS parser can handle. Also note that CSS3's operator precedence differs from Javascript's. In
-# particular, doing things like div > span + div > code is incorrect because it will be parsed as 'div > (span, div) > code' (though it may render properly as a CSS pattern). It's a good idea to
-# parenthesize in this case, just to communicate your intent to whoever's reading your code. Caterwaul removes the parentheses to make it a valid CSS selector.
-
 # Unlike the montenegro html[] macro, this one doesn't do any autodetection. The good part about this is that you can create custom HTML elements this way. For example:
 
 # | my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
@@ -80,21 +57,19 @@ caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
 
   # Transforms.
 #   There are a lot of stages here, but most of them are fairly trivial. The first, J[], is used to indicate that something needs to be expanded under the jquery grammar. This is responsible for
-#   turning elements into jQuery calls, dot operators into classes, etc, and it does most of the heavy lifting. The other large stage is P[], which converts the pattern language into a jQuery
-#   CSS selector.
+#   turning elements into jQuery calls, dot operators into classes, etc, and it does most of the heavy lifting.
 
-  # The small stages are S[], which just turns something into a string with underscore-to-dash conversion; TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>"); and PS[], which
-#   quotes a compiled pattern.
+  # The small stages are S[], which just turns something into a string with underscore-to-dash conversion, and TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>").
 
   where [jq            = 'jQuery'.qs,
-         anon          = $.anonymizer('J', 'TS', 'S', 'P', 'PS'),
+         anon          = $.anonymizer('J', 'TS', 'S'),
          hyphenate(s)  = s.replace(/_/g, '-'),
 
-         rule(p, e)    = $.rereplacer(anon(p), e.constructor === Function ? e.call(this, match) -given.match : anon(e)),
+         rule(p, e)    = $.rereplacer(anon(p), e.constructor === Function ? "e.call(this, _)".qf : anon(e)),
 
-         p             = where [p_pattern = anon('P[_thing]'.qs)] in p_pattern.replace({_thing: node}) -given.node,
+         p             = "p_pattern.replace({_thing: _})".qf -where [p_pattern = anon('P[_thing]'.qs)],
 
-         jquery_macros = [rule('J[_element]'.qs,                 given.match [match._element.is_constant() || match._element.length ? wrap_in_jquery(match) : become_dom_node(match)]),
+         jquery_macros = [rule('J[_element]'.qs,                 "_._element.is_constant() || _._element.length ? wrap_in_jquery(_) : become_dom_node(_)".qf),
 
                           rule('J[_element._class]'.qs,          'J[_element].addClass(S[_class])'.qs),
 
@@ -113,10 +88,6 @@ caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
                           rule('J[_element1, _element2]'.qs,     'J[_element1].add(J[_element2])'.qs),
                           rule('J[_element1 + _element2]'.qs,    'J[_element1].add(J[_element2])'.qs),
 
-                          rule('J[_element >> _pattern]'.qs,     'J[_element].filter(PS[_pattern])'.qs),
-                          rule('J[_element >>> _pattern]'.qs,    'J[_element].find(PS[_pattern])'.qs),
-                          rule('J[_element << _pattern]'.qs,     'J[_element].parents(PS[_pattern])'.qs),
-
                           rule('J[(_element)]'.qs,               '(J[_element])'.qs),
                           rule('J[[_element]]'.qs,               '[J[_element]]'.qs),
 
@@ -125,32 +96,9 @@ caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
                           -where [dom_node_template      = anon('#{jq}(TS[_element])'),       jquery_template       = anon('#{jq}("<span>" + (_element) + "</span>")'),
                                   become_dom_node(match) = dom_node_template.replace(match),  wrap_in_jquery(match) = jquery_template.replace(match)],
 
-         string_macros = [rule('TS[_identifier]'.qs, string('<#{hyphenate(match._identifier.data)}>') -given.match),
-                          rule('S[_identifier]'.qs,  string(    hyphenate(match._identifier.data))    -given.match),
-                          rule('PS[_identifier]'.qs, string(     expand(p(match._identifier)).data)   -given.match)]
+         string_macros = [rule('TS[_identifier]'.qs, "string('<#{hyphenate(_._identifier.data)}>')".qf),
+                          rule('S[_identifier]'.qs,  "string(    hyphenate(_._identifier.data))".qf)]
 
-                  -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
-
-         search_macros = [rule('P[_element]'.qs,                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                  -given.match),
-                          rule('P[_element._class]'.qs,             new $.syntax('#{this(p(match._element)).data}.#{hyphenate(match._class.data)}')           -given.match),
-
-                          rule('P[_element[_attributes]]'.qs,       new $.syntax('#{this(p(match._element)).data}[#{this(p(match._attributes))}]')            -given.match),
-                          rule('P[_attribute = _value]'.qs,         new $.syntax('#{this(p(match._attribute)).data}="#{' + interpolated(match._value) + '}"') -given.match),
-
-                          rule('P[(_element)]'.qs,                 'P[_element]'),        // No paren support
-
-                          rule('P[_element1 +   _element2]'.qs,     binary(', ')),
-                          rule('P[_element1,    _element2]'.qs,     binary(', ')),
-                          rule('P[_element1 >>  _element2]'.qs,     binary(' ')),
-                          rule('P[_element1 >>> _element2]'.qs,     binary(' ')),
-                          rule('P[_element1 >   _element2]'.qs,     binary(' > ')),
-                          rule('P[_element1(_element2)]'.qs,        binary(' > ')),
-
-                          rule('P[_element /_selector]'.qs,         new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')     -given.match),
-                          rule('P[_element /_selector(_value)]'.qs, new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
-                                                                                 '{' + interpolated(match._value) + '}")')                                   -given.match)]
-
-                  -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
-                          binary(op)(match)  = new $.syntax('#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}')]]});
+                  -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')]]});
 
 # Generated by SDoc 
