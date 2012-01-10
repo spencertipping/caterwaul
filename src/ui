@@ -1681,7 +1681,7 @@ Unlike the montenegro html[] macro, this one doesn't do any autodetection. The g
 caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
   $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery(match) = jquery_expand.call(jquery_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
                                                  -where [anon_pattern  = anon('J[_x]'.qs),
-                                                         jquery_expand = $($.alternatives(jquery_macros.concat(string_macros).concat(search_macros)))],
+                                                         jquery_expand = $($.alternatives(jquery_macros /~concat/ string_macros))],
 
   Transforms.
   There are a lot of stages here, but most of them are fairly trivial. The first, J[], is used to indicate that something needs to be expanded under the jquery grammar. This is responsible for
