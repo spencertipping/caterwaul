@@ -1,0 +1,11 @@
+#!/usr/bin/env waul
+# A REPL for profiling syntax node distribution within Caterwaul, which I'm using as a representative code corpus.
+
+caterwaul('js_all')(function () {
+  require('repl').start('syntax profiler> ', undefined, evaluate)
+
+  -where [evaluate(s, _1, _2, cc) = cc(null, evaluator(s, environment)) -rescue- cc(e, undefined),
+          evaluator               = caterwaul('js_all'),
+
+          environment             = capture [p(f)  = {} -se- caterwaul.parse(f) /~reach/ "it[_.data] = (it[_.data] || 0) + 1, when   [_.length]".qf,
+                                             p0(f) = {} -se- caterwaul.parse(f) /~reach/ "it[_.data] = (it[_.data] || 0) + 1, unless [_.length]".qf]]})();

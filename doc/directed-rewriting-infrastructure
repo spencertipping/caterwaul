@@ -545,6 +545,10 @@ die "'$from' does not exist" unless exists $data{$from};
 associate($to, retrieve($from));
 rm($from);
 __
+meta::function('n', <<'__');
+create("sdoc::waul::$_[0]");
+
+__
 meta::function('name', <<'__');
 my $name = $0;
 $name =~ s/^.*\///;
@@ -1597,6 +1601,18 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
+meta::sdoc('waul::inlining', <<'__');
+Inlining consecutive rewrites.
+This is a problem inherited from Havoc. The idea is that it's worth detecting cases where the RHS of one rewrite is trivially equivalent to the LHS of another one, and to then fuse the two
+rewrites together. Specifically, if T1 -> E[T2] and T2 -> E[T3], then the first and second equations should be composed to replace the first one. Recursive cases can also be handled as long as
+they are known to be productive. For example:
+
+| map(_f, cons(_x, _xs)) = cons(_f(_x), map(_f, _xs))
+
+This is not technically a recursive rewrite because the abstract quantity _xs is not known to be of the form 'cons(_x, _y)'. As such, it won't cause the compiler to infinite-loop. In general,
+any rewriting that happens should be provably terminating. (I'm not necessarily willing to commit to this, but it's a good idea.)
+
+__
 meta::sdoc('waul::introduction', <<'__');
 Introduction.
 Previous versions of Caterwaul have used an ad-hoc macroexpansion process. Caterwaul 1.2 adds directed expansion, which is a library that generates fast macroexpanders based on destructuring
@@ -1606,6 +1622,24 @@ binds. These binds work by using curried functions in the form of syntax trees. 
 
 Here, seq() is a pattern-matching marker. Variables bound on the left via the underscore prefix are also bound on the right; unbound variables are replaced with gensyms. (This affects _a, _i,
 _l, and _ys.) Everything else is represented literally.
+
+__
+meta::sdoc('waul::matching', <<'__');
+Match optimization.
+The key to doing this right is assigning the right amount of entropy to each tree element. Fortunately, this is easily done. Caterwaul knows about < 32 operators, about 10 of which are used on
+a regular basis. [1]
+
+| [1] See doc/syntax-profiling for the code that I used to conclude this.
+
+__
+meta::sdoc('waul::optimizations', <<'__');
+Rewrite optimization.
+At a high level, optimizations are about reducing the amount of work that it takes to rewrite things. These generally fall into several categories:
+
+| 1. Allocating less memory. This is probably the largest-impact class of optimization that is likely to help Caterwaul.
+  2. Reducing comparisons. Caterwaul < 1.0 was rewrite-bound due to the large number of macros that existed; in that case the pattern matcher was inefficient.
+  3. Removing intermediate steps. All current versions of Caterwaul (<= 1.2b9) create unnecessary intermediate results and then uselessly traverse them. (Though actually, up until now I
+     haven't bothered to specify that Caterwaul should work this way.)
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
