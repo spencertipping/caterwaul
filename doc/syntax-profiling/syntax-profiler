@@ -7,5 +7,21 @@ caterwaul('js_all')(function () {
   -where [evaluate(s, _1, _2, cc) = cc(null, evaluator(s, environment)) -rescue- cc(e, undefined),
           evaluator               = caterwaul('js_all'),
 
-          environment             = capture [p(f)  = {} -se- caterwaul.parse(f) /~reach/ "it[_.data] = (it[_.data] || 0) + 1, when   [_.length]".qf,
-                                             p0(f) = {} -se- caterwaul.parse(f) /~reach/ "it[_.data] = (it[_.data] || 0) + 1, unless [_.length]".qf]]})();
+          environment             = wcapture [p(f)  = {} -se- caterwaul.parse(f) /~reach/ "it[_.data] = (it[_.data] || 0) + 1, when   [_.length]".qf,
+                                              p0(f) = {} -se- caterwaul.parse(f) /~reach/ "it[_.data] = (it[_.data] || 0) + 1, unless [_.length]".qf,
+
+                                              hpi() = caterwaul.initializer /!p /!h /!console.log,
+                                              hps() = caterwaul.module('std.seq') /!p /!h /!console.log,
+
+                                              hpm() = caterwaul.modules *!['#{x}\n#{h(p(caterwaul.module(x)))}\n' /!console.log] -seq,
+
+                                              h(o)  = rows_for(o %v%[x && x.constructor === Number] -seq).join('\n')
+                                                     -where [row(p)          = {name: p[0], n: p[1], c: 0, bar: bar(p[1])},
+                                                             accumulate(rs)  = rs *![x.c = (c += x.n)] -seq -where [c = 0],
+                                                             create_bars(rs) = rs *![x.bar = bar(x.n / maximum(rs) * 162 >>> 0)] -seq,
+                                                             maximum(rs)     = rs *[x.n] /[0][Math.max(x || 0, x0)] -seq -se [maximum_of(_) = it],
+                                                             row_order(x, y) = y.n - x.n,
+
+                                                             format(r)       = '\033[1;32m#{r.name}\033[20G\033[0;0m#{r.n} (#{r.c})\033[30G#{r.bar}',
+                                                             bar(n)          = n[n] *['='] -seq -re- it.join(''),
+                                                             rows_for(o)     = o /pairs *row -seq -re- create_bars(accumulate(it.sort(row_order))) *format /seq]]]})();
