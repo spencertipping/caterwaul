@@ -1643,6 +1643,13 @@ At a high level, optimizations are about reducing the amount of work that it tak
      haven't bothered to specify that Caterwaul should work this way.)
 
 __
+meta::sdoc('waul::usability', <<'__');
+Usability for common problems.
+I'm not 100% sure that a declarative rewriting approach will be powerful enough to cover all of the possibilities. For example, is it possible to encode all of the seq library rules?
+(Actually, I know the answer to this. It isn't possible at present because there is no way to declare the arity of a syntax variable.) So arity-specific matching is a must. I could commandeer
+@ as an identifier character to make this work.
+
+__
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
 my $result = eval $_[0];
