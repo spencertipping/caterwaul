@@ -624,6 +624,10 @@ my $pattern = join '|', @_;
 
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
+meta::function('render', <<'__');
+file::write("directed-rewriting-$_.waul.sdoc", retrieve("sdoc::waul::$_")) for grep s/^sdoc::waul:://, sort keys %data;
+
+__
 meta::function('rm', <<'__');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -929,6 +933,10 @@ terminal::info("compiling waul::$name using $waul");
 with_exported("waul::$name", sub {
   my ($exported) = @_;
   sh("$waul --output '$output' $exported")});
+
+__
+meta::hook('after-shell-command::render', <<'__');
+render();
 
 __
 meta::hook('before-shell::ad', <<'__');

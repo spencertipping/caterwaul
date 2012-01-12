@@ -1,0 +1,7 @@
+Rewrite optimization.
+At a high level, optimizations are about reducing the amount of work that it takes to rewrite things. These generally fall into several categories:
+
+| 1. Allocating less memory. This is probably the largest-impact class of optimization that is likely to help Caterwaul.
+  2. Reducing comparisons. Caterwaul < 1.0 was rewrite-bound due to the large number of macros that existed; in that case the pattern matcher was inefficient.
+  3. Removing intermediate steps. All current versions of Caterwaul (<= 1.2b9) create unnecessary intermediate results and then uselessly traverse them. (Though actually, up until now I
+     haven't bothered to specify that Caterwaul should work this way.)

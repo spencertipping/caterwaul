@@ -1,0 +1,2 @@
+Representation transcoding.
+Should the VM be able to detect statistically nonuniform occurrences of data structures and construct isomorphisms onto more efficient data structures automatically?
