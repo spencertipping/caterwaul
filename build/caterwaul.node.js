@@ -417,12 +417,17 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
     // The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
 //     as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
 
+    // Caterwaul 1.2 introduces syntax node metadata using @. This is not returned in the match result; for instance:
+
+    // | var pattern = caterwaul.parse('_x@0 + foo');
+//       pattern.match('bar + foo')        -> {_x: {'bar'}, _: {'bar + foo'}}
+
       match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
                                            variables || (variables = {_: target});
-                                           if (this.is_wildcard())                                          return variables[this.data] = target, variables;
-                                      else if (this.length === target.length && this.data === target.data) {for (var i = 0, l = this.length; i < l; ++i)
-                                                                                                              if (! this[i].match(target[i], variables)) return null;
-                                                                                                            return variables}},
+                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.data] = target, variables;
+                                      else if (this.length === target.length && this.data === target.data)      {for (var i = 0, l = this.length; i < l; ++i)
+                                                                                                                   if (! this[i].match(target[i], variables)) return null;
+                                                                                                                 return variables}},
 
     // Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). In the past, stray 'r' links were serialized as block
@@ -479,8 +484,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
                is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
                 is_array: function () {return this.data === '['},                        as_unescaped_string: function () {return unescape_string(this.as_escaped_string())},
 
-             is_wildcard: function () {return this.data.charCodeAt(0) === 95},
-           is_identifier: function () {return this.length === 0 && /^[A-Za-z_$]\w*$/.test(this.data) && ! this.is_boolean() && ! this.is_null_or_undefined() && ! has(lex_op, this.data)},
+     could_be_identifier: function () {return /^[A-Za-z_$@][A-Za-z0-9$_@]*$/.test(this.data)},
+           is_identifier: function () {return this.length === 0 && this.could_be_identifier() && ! this.is_boolean() && ! this.is_null_or_undefined() && ! has(lex_op, this.data)},
 
        has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
     is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
@@ -497,6 +502,20 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
        is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
                  accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
+
+  // Tree metadata.
+//   When you're writing macros, you often want a concise way to indicate the role of a given tree node. Caterwaul's lexer parses a large superset of Javascript proper, which gives you room to
+//   indicate things like this by inserting special characters into identifiers. The rules are:
+
+  // | 1. Nodes beginning with an underscore are wildcards.
+//     2. Nodes beginning with @ are gensym-erased; they are guaranteed to match no other symbol. (This is also true of the character @ alone, used as an identifier.)
+//     3. Nodes can use @ later on to indicate the presence of match constraints. For example, you can indicate that a wildcard matches only leaf nodes by adding @0 to the end.
+
+    caterwaul_global.javascript_tree_metadata_methods = {
+      could_have_metadata: function () {return this.could_be_identifier()},     without_metadata: function () {return this.data.replace(/@.*$/g, '')},
+
+              is_wildcard: function () {return this.data.charCodeAt(0) === 95},  leaf_nodes_only: function () {return /@0/.test(this.data)},
+                is_opaque: function () {return this.data.charCodeAt(0) === 64}};
 
   // Javascript-specific serialization.
 //   These methods are specific to the Javascript language. Other languages will have different serialization logic.
