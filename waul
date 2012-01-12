@@ -244,11 +244,12 @@ caterwaul('js_all')(function ($) {
   options.input_files.length ? options.input_files *!waul -seq : waul_repl(),
 
   where [fs                         = require('fs'),
-         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', use_std: true, expression_ref_table: true}
+         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true}
                                       -se [it.input_files = []]
                                       -se- process.argv.slice(2) *![x === '--extension' ? it.extensions /~push/ xs[++xi]  :
                                                                     x === '--output'    ? it.output_pattern = xs[++xi]    :
                                                                     x === '--no-table'  ? it.expression_ref_table = false :
+                                                                    x === '--configure' ? it.configuration = xs[++xi]     :
                                                                     x === '--no-std'    ? it.use_std = false              : it.input_files /~push/ x] /seq,
 
          caterwaul_template         = '(function () {_caterwaul_init; caterwaul._environment = {caterwaul: caterwaul}; _extensions; return caterwaul.deglobalize()})'.qs,
@@ -275,7 +276,10 @@ caterwaul('js_all')(function ($) {
                                       module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)  :
                                         raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]],
 
-         waul_repl()                = require('repl').start('waul> ').context /-$.merge/ {$: caterwaul, caterwaul: caterwaul} -where [caterwaul = build_caterwaul()],
+         waul_repl()                = require('repl').start('waul> ', undefined, evaluator)
+                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: caterwaul, caterwaul: caterwaul})) -rescue- cc(e, undefined),
+                                      caterwaul                = build_caterwaul(),
+                                      instance                 = caterwaul(options.configuration)],
 
          waul_identity(file, m)     = file /-waul_output/ m._,
          waul_transform(file, m)    = file /-waul_output/ module_template.replace({_name: m._name, _compiled: transformed_function})

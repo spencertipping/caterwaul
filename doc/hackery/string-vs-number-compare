@@ -1,0 +1,49 @@
+#!/usr/bin/env waul-1.2b9
+# string-vs-number-compare: How long do strings need to be before numeric comparisons are significantly faster?
+
+caterwaul('js_all')(function () {
+  'starting benchmark' /!console.log,
+
+  bench('ints <',       100, "ints       /[x < x0 ? x : x0] -seq".qf),
+  bench('floats <',     100, "floats     /[x < x0 ? x : x0] -seq".qf),
+  bench('immediates <', 100, "immediates /[x < x0 ? x : x0] -seq".qf),
+  bench('ones <',       100, "ones       /[x < x0 ? x : x0] -seq".qf),
+  bench('twos <',       100, "twos       /[x < x0 ? x : x0] -seq".qf),
+  bench('fours <',      100, "fours      /[x < x0 ? x : x0] -seq".qf),
+  bench('eights <',     100, "eights     /[x < x0 ? x : x0] -seq".qf),
+  bench('sixteens <',   100, "sixteens   /[x < x0 ? x : x0] -seq".qf),
+
+  bench('ints ==',       100, "ints       /[x == x0 ? x : x0] -seq".qf),
+  bench('floats ==',     100, "floats     /[x == x0 ? x : x0] -seq".qf),
+  bench('immediates ==', 100, "immediates /[x == x0 ? x : x0] -seq".qf),
+  bench('ones ==',       100, "ones       /[x == x0 ? x : x0] -seq".qf),
+  bench('twos ==',       100, "twos       /[x == x0 ? x : x0] -seq".qf),
+  bench('fours ==',      100, "fours      /[x == x0 ? x : x0] -seq".qf),
+  bench('eights ==',     100, "eights     /[x == x0 ? x : x0] -seq".qf),
+  bench('sixteens ==',   100, "sixteens   /[x == x0 ? x : x0] -seq".qf),
+
+  bench('ints ===',       100, "ints       /[x === x0 ? x : x0] -seq".qf),
+  bench('floats ===',     100, "floats     /[x === x0 ? x : x0] -seq".qf),
+  bench('immediates ===', 100, "immediates /[x === x0 ? x : x0] -seq".qf),
+  bench('ones ===',       100, "ones       /[x === x0 ? x : x0] -seq".qf),
+  bench('twos ===',       100, "twos       /[x === x0 ? x : x0] -seq".qf),
+  bench('fours ===',      100, "fours      /[x === x0 ? x : x0] -seq".qf),
+  bench('eights ===',     100, "eights     /[x === x0 ? x : x0] -seq".qf),
+  bench('sixteens ===',   100, "sixteens   /[x === x0 ? x : x0] -seq".qf),
+
+  where [ints       = n[100000] -seq,
+         floats     = n[100000] *[Math.sqrt(x)] -seq,
+         immediates = n[100000] *[String.fromCharCode(x & 0xffff)] -seq,
+         ones       = n[100000] *['.#{String.fromCharCode(x & 0xffff)}'] -seq,
+         twos       = n[100000] *['..#{String.fromCharCode(x & 0xffff)}'] -seq,
+         fours      = n[100000] *['....#{String.fromCharCode(x & 0xffff)}'] -seq,
+         eights     = n[100000] *['........#{String.fromCharCode(x & 0xffff)}'] -seq,
+         sixteens   = n[100000] *['................#{String.fromCharCode(x & 0xffff)}'] -seq,
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();
