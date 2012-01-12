@@ -1,0 +1,104 @@
+#!/usr/bin/env waul-1.2b9
+
+# JQuery DOM combinators | Spencer Tipping
+# Licensed under the terms of the MIT source code license
+
+# Introduction.
+# DOM drivers are macro systems that transform HAML-like markup into underlying DOM calls. For instance:
+
+# | div.foo /jquery                       ->  $('<div>').addClass('foo')
+#   table(tr(td('hi')), tbody) /jquery    ->  $('<table>').append($('<tr>').append($('<td>').append('hi')).add($('<tbody>')))
+
+# None of the macroexpansions here rely on opaque syntax refs, so they can all be precompiled. Also, the generated code refers to jQuery rather than $ -- this gives you more flexibility about
+# setting noConflict(). If you need to set noConflict(true) (which removes the global jQuery variable), you can bind it locally to make the DOM stuff work:
+
+# | div.foo /jquery -where [jQuery = stashed_copy_of_jquery]
+
+# Notation.
+# Caterwaul didn't previously have a DOM plugin in its core distribution. The html[] macro in previous versions of caterwaul came from montenegro, a web framework I was developing in tandem with
+# caterwaul. However, it's useful to have DOM functionality so I'm including it in the main caterwaul distribution.
+
+# Most of the syntax is copied from the html[] macro in montenegro:
+
+# | element.class                 ->  $('<element>').addClass('class')
+#   element *foo('bar')           ->  $('<element>').attr('foo', 'bar')
+#   element *!foo('bar')          ->  $('<element>').data('foo', 'bar')                                   <- new!
+#   element /foo('bar')           ->  $('<element>').foo('bar')
+#   element /!foo(bar)            ->  $('<element>').bind('foo', bar)                                     <- new!
+#   +element                      ->  element                                                             <- new!
+#   element %foo                  ->  foo($('<element>'))
+#   element(child)                ->  $('<element>').append(child /jquery)                                <- here the /jquery marker indicates that 'child' will be re-expanded
+#   element(child1, child2)       ->  $('<element>').append((child1 /jquery).add((child2 /jquery)))
+#   element[child]                ->  $('<element>').append(child)                                        <- no re-expansion here
+#   element[child1, child2]       ->  $('<element>').append(child1.add(child2))
+#   element < tree                ->  $('<element>').append(tree.toString())                              <- used to build populated <script> nodes from syntax trees
+#   element > child               ->  $('<element>').append(child /jquery)
+#   element >= child              ->  $('<element>').append(child)
+#   element1, element2            ->  (element1 /jquery).add((element2 /jquery))
+
+# There's also some new syntax to make certain things easier. In particular, I didn't like the way nesting worked in previous versions, so this driver supports some new operators to make it more
+# intuitive:
+
+# | element1 + element2           ->  (element1 /jquery).add((element2 /jquery))
+
+# The result of this operator is that you have options as far as nesting is concerned:
+
+# | div.foo > span.first + span.second,   ->  <div class='foo'><span class='first'></span><span class='second'></span></div>
+#   div.bar > span.third + span.fourth        <div class='bar'><span class='third'></span><span class='fourth'></span></div>
+
+# Unlike the montenegro html[] macro, this one doesn't do any autodetection. The good part about this is that you can create custom HTML elements this way. For example:
+
+# | my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
+
+caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
+  $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery(match) = jquery_expand.call(jquery_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
+                                                 -where [anon_pattern  = anon('J[_x]'.qs),
+                                                         jquery_expand = $($.alternatives(jquery_macros /~concat/ string_macros))],
+
+  # Transforms.
+#   There are a lot of stages here, but most of them are fairly trivial. The first, J[], is used to indicate that something needs to be expanded under the jquery grammar. This is responsible for
+#   turning elements into jQuery calls, dot operators into classes, etc, and it does most of the heavy lifting.
+
+  # The small stages are S[], which just turns something into a string with underscore-to-dash conversion, and TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>").
+
+  where [jq            = 'jQuery'.qs,
+         anon          = $.anonymizer('J', 'TS', 'S'),
+         hyphenate(s)  = s.replace(/_/g, '-'),
+
+         rule(p, e)    = $.rereplacer(anon(p), e.constructor === Function ? "e.call(this, _)".qf : anon(e)),
+
+         p             = "p_pattern.replace({_thing: _})".qf -where [p_pattern = anon('P[_thing]'.qs)],
+
+         jquery_macros = [rule('J[_element]'.qs,                 "_._element.is_constant() || _._element.length ? wrap_in_jquery(_) : become_dom_node(_)".qf),
+
+                          rule('J[_element._class]'.qs,          'J[_element].addClass(S[_class])'.qs),
+
+                          rule('J[_element *_attr(_val)]'.qs,    'J[_element].attr(S[_attr], _val)'.qs),
+                          rule('J[_element *!_name(_val)]'.qs,   'J[_element].data(S[_name], _val)'.qs),
+                          rule('J[_element /_method(_args)]'.qs, 'J[_element]._method(_args)'.qs),
+                          rule('J[_element /!_event(_args)]'.qs, 'J[_element].bind(S[_event], _args)'.qs),
+                          rule('J[_element %_function]'.qs,      '_function(J[_element])'.qs),
+
+                          rule('J[_element(_children)]'.qs,      'J[_element].append(J[_children])'.qs),
+                          rule('J[_element[_children]]'.qs,      'J[_element].append(_children)'.qs),
+                          rule('J[_element < _tree]'.qs,         'J[_element].append((_tree).toString())'.qs),
+                          rule('J[_element > _child]'.qs,        'J[_element].append(J[_child])'.qs),
+                          rule('J[_element >= _child]'.qs,       'J[_element].append(_child)'.qs),
+
+                          rule('J[_element1, _element2]'.qs,     'J[_element1].add(J[_element2])'.qs),
+                          rule('J[_element1 + _element2]'.qs,    'J[_element1].add(J[_element2])'.qs),
+
+                          rule('J[(_element)]'.qs,               '(J[_element])'.qs),
+                          rule('J[[_element]]'.qs,               '[J[_element]]'.qs),
+
+                          rule('J[+_expression]'.qs,             '_expression'.qs)]
+
+                          -where [dom_node_template      = anon('#{jq}(TS[_element])'),       jquery_template       = anon('#{jq}("<span>" + (_element) + "</span>")'),
+                                  become_dom_node(match) = dom_node_template.replace(match),  wrap_in_jquery(match) = jquery_template.replace(match)],
+
+         string_macros = [rule('TS[_identifier]'.qs, "string('<#{hyphenate(_._identifier.data)}>')".qf),
+                          rule('S[_identifier]'.qs,  "string(    hyphenate(_._identifier.data))".qf)]
+
+                  -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')]]});
+
+# Generated by SDoc 
