@@ -3043,11 +3043,11 @@ caterwaul('js_all')(function ($) {
   where [fs                         = require('fs'),
          options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true}
                                       -se [it.input_files = []]
-                                      -se- process.argv.slice(2) *![x === '--extension' ? it.extensions /~push/ xs[++xi]  :
-                                                                    x === '--output'    ? it.output_pattern = xs[++xi]    :
-                                                                    x === '--no-table'  ? it.expression_ref_table = false :
-                                                                    x === '--configure' ? it.configuration = xs[++xi]     :
-                                                                    x === '--no-std'    ? it.use_std = false              : it.input_files /~push/ x] /seq,
+                                      -se- process.argv.slice(2) *![x === '--extension' || x === '-e' ? it.extensions /~push/ xs[++xi]  :
+                                                                    x === '--output'    || x === '-o' ? it.output_pattern = xs[++xi]    :
+                                                                    x === '--no-table'  || x === '-T' ? it.expression_ref_table = false :
+                                                                    x === '--configure' || x === '-c' ? it.configuration = xs[++xi]     :
+                                                                    x === '--no-std'    || x === '-n' ? it.use_std = false              : it.input_files /~push/ x] /seq,
 
          caterwaul_template         = '(function () {_caterwaul_init; caterwaul._environment = {caterwaul: caterwaul}; _extensions; return caterwaul.deglobalize()})'.qs,
 
