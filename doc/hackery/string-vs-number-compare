@@ -4,6 +4,20 @@
 caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
+  bench('string member immediates', 100, "immediates /[set[x] ? x : x0] -seq".qf),
+  bench('string member ones',       100, "ones       /[set[x] ? x : x0] -seq".qf),
+  bench('string member twos',       100, "twos       /[set[x] ? x : x0] -seq".qf),
+  bench('string member fours',      100, "fours      /[set[x] ? x : x0] -seq".qf),
+  bench('string member eights',     100, "eights     /[set[x] ? x : x0] -seq".qf),
+  bench('string member sixteens',   100, "sixteens   /[set[x] ? x : x0] -seq".qf),
+
+  bench('hasOwnProperty immediates', 100, "immediates /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
+  bench('hasOwnProperty ones',       100, "ones       /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
+  bench('hasOwnProperty twos',       100, "twos       /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
+  bench('hasOwnProperty fours',      100, "fours      /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
+  bench('hasOwnProperty eights',     100, "eights     /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
+  bench('hasOwnProperty sixteens',   100, "sixteens   /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
+
   bench('ints <',       100, "ints       /[x < x0 ? x : x0] -seq".qf),
   bench('floats <',     100, "floats     /[x < x0 ? x : x0] -seq".qf),
   bench('immediates <', 100, "immediates /[x < x0 ? x : x0] -seq".qf),
@@ -12,6 +26,17 @@ caterwaul('js_all')(function () {
   bench('fours <',      100, "fours      /[x < x0 ? x : x0] -seq".qf),
   bench('eights <',     100, "eights     /[x < x0 ? x : x0] -seq".qf),
   bench('sixteens <',   100, "sixteens   /[x < x0 ? x : x0] -seq".qf),
+
+  bench('ints ===',       100, "ints       /[x === x0 ? x : x0] -seq".qf),
+  bench('ints & ===',     100, "ints       /[(x & x0) === x0 ? x : x0] -seq".qf),
+
+  bench('floats ===',     100, "floats     /[x === x0 ? x : x0] -seq".qf),
+  bench('immediates ===', 100, "immediates /[x === x0 ? x : x0] -seq".qf),
+  bench('ones ===',       100, "ones       /[x === x0 ? x : x0] -seq".qf),
+  bench('twos ===',       100, "twos       /[x === x0 ? x : x0] -seq".qf),
+  bench('fours ===',      100, "fours      /[x === x0 ? x : x0] -seq".qf),
+  bench('eights ===',     100, "eights     /[x === x0 ? x : x0] -seq".qf),
+  bench('sixteens ===',   100, "sixteens   /[x === x0 ? x : x0] -seq".qf),
 
   bench('ints ==',       100, "ints       /[x == x0 ? x : x0] -seq".qf),
   bench('floats ==',     100, "floats     /[x == x0 ? x : x0] -seq".qf),
@@ -22,15 +47,6 @@ caterwaul('js_all')(function () {
   bench('eights ==',     100, "eights     /[x == x0 ? x : x0] -seq".qf),
   bench('sixteens ==',   100, "sixteens   /[x == x0 ? x : x0] -seq".qf),
 
-  bench('ints ===',       100, "ints       /[x === x0 ? x : x0] -seq".qf),
-  bench('floats ===',     100, "floats     /[x === x0 ? x : x0] -seq".qf),
-  bench('immediates ===', 100, "immediates /[x === x0 ? x : x0] -seq".qf),
-  bench('ones ===',       100, "ones       /[x === x0 ? x : x0] -seq".qf),
-  bench('twos ===',       100, "twos       /[x === x0 ? x : x0] -seq".qf),
-  bench('fours ===',      100, "fours      /[x === x0 ? x : x0] -seq".qf),
-  bench('eights ===',     100, "eights     /[x === x0 ? x : x0] -seq".qf),
-  bench('sixteens ===',   100, "sixteens   /[x === x0 ? x : x0] -seq".qf),
-
   where [ints       = n[100000] -seq,
          floats     = n[100000] *[Math.sqrt(x)] -seq,
          immediates = n[100000] *[String.fromCharCode(x & 0xffff)] -seq,
@@ -39,6 +55,8 @@ caterwaul('js_all')(function () {
          fours      = n[100000] *['....#{String.fromCharCode(x & 0xffff)}'] -seq,
          eights     = n[100000] *['........#{String.fromCharCode(x & 0xffff)}'] -seq,
          sixteens   = n[100000] *['................#{String.fromCharCode(x & 0xffff)}'] -seq,
+
+         set        = n[1000] *[[x, true]] /object -seq,
 
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,

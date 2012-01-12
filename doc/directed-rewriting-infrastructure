@@ -1606,6 +1606,12 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
+meta::sdoc('waul::entropy', <<'__');
+Entropy.
+Syntax nodes have a strongly nonuniform distribution of values, and this distribution varies depending on the length. This means that it is possible to encode common occurrences of
+shallowly-nested syntax nodes easily.
+
+__
 meta::sdoc('waul::inlining', <<'__');
 Inlining consecutive rewrites.
 This is a problem inherited from Havoc. The idea is that it's worth detecting cases where the RHS of one rewrite is trivially equivalent to the LHS of another one, and to then fuse the two
@@ -1648,6 +1654,11 @@ At a high level, optimizations are about reducing the amount of work that it tak
      haven't bothered to specify that Caterwaul should work this way.)
 
 __
+meta::sdoc('waul::representation-transcoding', <<'__');
+Representation transcoding.
+Should the VM be able to detect statistically nonuniform occurrences of data structures and construct isomorphisms onto more efficient data structures automatically?
+
+__
 meta::sdoc('waul::rewrite-operations', <<'__');
 Rewriting operations.
 The idea here is to focus on specific rewriting operations and various ways they could be efficiently implemented. match() and replace() are a great start, though the intermediate object can
@@ -1664,6 +1675,25 @@ The other large performance aspect is diving into a non-matching tree. This happ
 
 Here, three length checks, two string compares, and ten pointer dereferences must be performed before it is determined that no match is possible. With hashing, this could be reduced to one
 'and', one compare, and three pointer dereferences (two for the hashes, one for the hash mask of the pattern).
+
+__
+meta::sdoc('waul::unboxing', <<'__');
+Unboxing complex syntax trees.
+Caterwaul's syntax tree representation is fairly inefficient. Every 'if', parenthesis, brace, and other element is stored as a token, not as an encoded quantity. Put differently, Caterwaul's
+representation is unstructured enough that it allows you to encode possibilities that are syntactically invalid. I personally like the flexibility; it makes it easy to do things like
+annotating trees in statement mode.
+
+Each rule can be represented as a unique number containing children directly. This will accelerate pattern matching. For example:
+
+| @seq(_xs *[_body])    ->   {data: 1, '0': {'_xs'}, '1': {'_body'}}
+
+This also creates some interesting challenges for the matcher. Cross-level matching won't be possible until you manually unbox the trees and repack them according to a different scheme.
+(Actually, this might be a feature instead of a bug.)
+
+Detecting unboxing candidates.
+This is where entropy hashes come into play. Only commonly-occurring nodes need to be unboxed; the overhead isn't worth it for nodes that occur just once or twice. So, given a program,
+pattern, and replacement space, we compute per-node entropy hashes. These hashes are then sorted into a max-heap by frequency. (Note that entropy hashes include information about immediate
+children.) [Incomplete thought ... finish this later]
 
 __
 meta::sdoc('waul::usability', <<'__');
