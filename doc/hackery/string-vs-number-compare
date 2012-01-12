@@ -18,6 +18,11 @@ caterwaul('js_all')(function () {
   bench('hasOwnProperty eights',     100, "eights     /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
   bench('hasOwnProperty sixteens',   100, "sixteens   /[Object.prototype.hasOwnProperty.call(set, x) ? x : x0] -seq".qf),
 
+  bench('ints === 0',   100, "ints      /[x === 0 ? x : x0] -seq".qf),
+  bench('!ints',        100, "ints      /[!x      ? x : x0] -seq".qf),
+  bench('floats === 0', 100, "floats    /[x === 0 ? x : x0] -seq".qf),
+  bench('!floats',      100, "floats    /[!x      ? x : x0] -seq".qf),
+
   bench('ints <',       100, "ints       /[x < x0 ? x : x0] -seq".qf),
   bench('floats <',     100, "floats     /[x < x0 ? x : x0] -seq".qf),
   bench('immediates <', 100, "immediates /[x < x0 ? x : x0] -seq".qf),

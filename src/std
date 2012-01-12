@@ -2287,9 +2287,9 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
 
                             // Body parsing
                             block                                  = anon('[_x]'.qs),
-                            block_with_variable                    = anon('_var[_x]'.qs),
+                            block_with_variable                    = anon('_var@0[_x]'.qs),
                             block_with_init                        = anon('[_init][_x]'.qs),
-                            block_with_variable_and_init           = anon('_var[_init][_x]'.qs),
+                            block_with_variable_and_init           = anon('_var@0[_init][_x]'.qs),
 
                             block_with_closure                     = anon('+_x'.qs),
                             block_with_seq                         = anon('~_x'.qs),
