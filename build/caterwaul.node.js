@@ -593,6 +593,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   passing in a second constructor argument. This name will automatically be wrapped in a gensym, but that gensym will be removed at compile-time unless you specify not to rename gensyms.
 
     caterwaul_global.ref_common = caterwaul_global.merge({}, caterwaul_global.javascript_tree_type_methods,
+                                                             caterwaul_global.javascript_tree_metadata_methods,
                                                              caterwaul_global.javascript_tree_serialization_methods,
 
   // Reference replace() support.
@@ -677,6 +678,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                           this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}},
 
                                    caterwaul_global.javascript_tree_type_methods,
+                                   caterwaul_global.javascript_tree_metadata_methods,
                                    caterwaul_global.javascript_tree_serialization_methods),
 
                                  function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"')};

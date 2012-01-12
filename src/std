@@ -1644,6 +1644,8 @@ These apply more advanced syntactic transforms to the code and can depend on eve
 
 __
 meta::sdoc('waul::std.anonymize', <<'__');
+#!/usr/bin/env waul-1.2b9
+
 Symbol anonymization | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
@@ -1982,6 +1984,8 @@ caterwaul.module('std.js-literals', 'js js_literals', function ($) {
 
 __
 meta::sdoc('waul::std.macro', <<'__');
+#!/usr/bin/env waul-1.2b9
+
 Macro authoring utilities | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
