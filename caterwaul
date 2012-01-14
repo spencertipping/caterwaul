@@ -3074,7 +3074,7 @@ caterwaul('js_all')(function ($) {
                                         raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]],
 
          waul_repl()                = require('repl').start('waul> ', undefined, evaluator)
-                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: caterwaul, caterwaul: caterwaul})) -rescue- cc(e, undefined),
+                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: caterwaul, caterwaul: caterwaul, require: require})) -rescue- cc(e, undefined),
                                       caterwaul                = build_caterwaul(),
                                       instance                 = caterwaul(options.configuration)],
 
