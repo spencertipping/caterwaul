@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 # access-order: How much does array access order matter?
 
 caterwaul('js_all')(function () {

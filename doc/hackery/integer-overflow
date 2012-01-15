@@ -1,18 +1,16 @@
 #!/usr/bin/env waul-1.2b11
-# bitmasking: Is it faster to use boxed storage or a bitmask?
+# integer-overflow: How expensive is overflowing, and when can it be prevented?
 
 caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
-  bench('low 12 bits',         1000, "bit_data /[0][x0 + (x & 0x00000fff) & 0x0fffffff] -seq".qf),
-  bench('middle 12 bits',      1000, "bit_data /[0][x0 + (x & 0x003ffc00) & 0x0fffffff] -seq".qf),
-  bench('almost high 12 bits', 1000, "bit_data /[0][x0 + (x & 0x7ff80000) & 0x0fffffff] -seq".qf),
-  bench('high 12 bits',        1000, "bit_data /[0][x0 + (x & 0xfff00000) & 0x0fffffff] -seq".qf),
+  bench('no overflow',                 1000, "data /[0][(x0 & 0xffff) + x] -seq".qf),
+  bench('uncaught overflow',           1000, "data /[0][x0 + (x & 0x3fffffff)] -seq".qf),
+  bench('filtered overflow (30 bits)', 1000, "data /[0][x0 + x & 0x3fffffff] -seq".qf),
+  bench('filtered overflow (31 bits)', 1000, "data /[0][x0 + x & 0x7fffffff] -seq".qf),
+  bench('filtered overflow (32 bits)', 1000, "data /[0][x0 + x & 0xffffffff] -seq".qf),
 
-  bench('boxed', 1000, "boxed_data /[0][x0 + x.data & 0x0fffffff] -seq".qf),
-
-  where [bit_data   = n[100000] *[Math.random() * 0x00100000 >>> 0] -seq,
-         boxed_data = n[100000] *[{stuff: 0, data: bit_data[xi]}] -seq,
+  where [data = n[100000] -seq,
 
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
                      -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,

@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 # gc-live-set-overhead: Determine how much load is imposed by having complex objects in the live set.
 
 caterwaul('js_all')(function () {
