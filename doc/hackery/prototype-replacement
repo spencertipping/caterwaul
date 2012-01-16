@@ -6,15 +6,19 @@ caterwaul('js_all')(function () {
 
   # Prime the benchmark:
   bench('primer (ignore this)', 10, "memoized_elements *![x.hashed()] -seq".qf),
+  bench('primer (ignore this)', 10, "cached_elements   *![x.hashed()] -seq".qf),
   bench('primer (ignore this)', 10, "naive_elements    *![x.hashed()] -seq".qf),
 
   bench('memoized', 1000, "memoized_elements /[0][x0 + x.hashed()] -seq".qf),
+  bench('cached',   1000, "cached_elements   /[0][x0 + x.hashed()] -seq".qf),
   bench('naive',    1000, "naive_elements    /[0][x0 + x.hashed()] -seq".qf),
 
   where [memoized_ctor = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = (this.hashed() = h).call(this) -where [h = this.data % 31]],
+         cached_ctor   = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = this.hash || (this.hash = this.data % 31)],
          naive_ctor    = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = this.data % 31],
 
          memoized_elements = n[100000] *[new memoized_ctor(x)] -seq,
+         cached_elements   = n[100000] *[new cached_ctor(x)]   -seq,
          naive_elements    = n[100000] *[new naive_ctor(x)]    -seq,
 
          bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
