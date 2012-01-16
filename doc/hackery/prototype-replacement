@@ -7,6 +7,7 @@ caterwaul('js_all')(function () {
   # Prime the benchmark:
   bench('primer (ignore this)', 8, "memoized_elements      *![x.hashed()] -seq".qf),
   bench('primer (ignore this)', 8, "cached_elements        *![x.hashed()] -seq".qf),
+  bench('primer (ignore this)', 8, "boxed_elements         *![x.hashed()] -seq".qf),
   bench('primer (ignore this)', 8, "heuristic_elements     *![x.hashed()] -seq".qf),
   bench('primer (ignore this)', 8, "reflective_elements    *![x.hashed()] -seq".qf),
   bench('primer (ignore this)', 8, "strict_cached_elements *![x.hashed()] -seq".qf),
@@ -14,6 +15,7 @@ caterwaul('js_all')(function () {
 
   bench('memoized',      1000, "memoized_elements      /[0][x0 + x.hashed()] -seq".qf),
   bench('cached',        1000, "cached_elements        /[0][x0 + x.hashed()] -seq".qf),
+  bench('boxed',         1000, "boxed_elements         /[0][x0 + x.hashed()] -seq".qf),
   bench('heuristic',     1000, "heuristic_elements     /[0][x0 + x.hashed()] -seq".qf),
   bench('reflective',    1000, "reflective_elements    /[0][x0 + x.hashed()] -seq".qf),
   bench('strict cached', 1000, "strict_cached_elements /[0][x0 + x.hashed()] -seq".qf),
@@ -21,6 +23,7 @@ caterwaul('js_all')(function () {
 
   where [memoized_ctor      = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = (this.hashed() = h).call(this) -where [h = this.data % 31]],
          cached_ctor        = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = this.hash || (this.hash = this.data % 31)],
+         boxed_ctor         = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = this.hash ? this.hash[0] : (this.hash = [this.data % 31])],
          heuristic_ctor     = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = this.hash === undefined ? this.hash = this.data % 31 : this.hash],
          reflective_ctor    = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = 'hash' in this ? this.hash : this.hash = this.data % 31],
          strict_cached_ctor = "this.data = _, this".qf -se- it.prototype /-merge/ capture [hashed() = this.hash_computed ? this.hash : (this.hash_computed = true, this.hash = this.data % 31)],
@@ -28,6 +31,7 @@ caterwaul('js_all')(function () {
 
          memoized_elements      = n[100000] *[new memoized_ctor(x)]      -seq,
          cached_elements        = n[100000] *[new cached_ctor(x)]        -seq,
+         boxed_elements         = n[100000] *[new boxed_ctor(x)]         -seq,
          heuristic_elements     = n[100000] *[new heuristic_ctor(x)]     -seq,
          reflective_elements    = n[100000] *[new reflective_ctor(x)]    -seq,
          strict_cached_elements = n[100000] *[new strict_cached_ctor(x)] -seq,
