@@ -2363,7 +2363,7 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
 
   exists      = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
   not_exists  = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'.qs),
-  r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x = _xs[_xi] x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
+  r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x = _xs[_xi], x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
 
   concat      = anon('(S[_xs]).concat((S[_ys]))'.qs),
 
