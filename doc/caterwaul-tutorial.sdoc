@@ -569,6 +569,12 @@ ni[1, 10] *[x * x] /seq
 
   [1, 2, 3, 4] |![x < 0] |seq
 
+  Caterwaul 1.2 adds the <code>|~!</code> operator, which is identical to <code>|</code> but matches from the right instead of from the left. For example:
+
+  [1, 2, 3] |[x & 1] |seq
+
+  [1, 2, 3] |~![x & 1] |seq
+
   Combination.
   There are three ways you can combine things. The most obvious is concatenation, written <code>+</code>:
 
