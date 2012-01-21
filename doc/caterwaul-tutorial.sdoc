@@ -352,7 +352,7 @@ The <code>structure</code> method gives you a string containing the syntax tree 
 
 Sequence library.
 <span id='seq'></span> This is probably the gnarliest part of Caterwaul, but in my opinion it's also the most useful. The sequence library provides a modifier called <code>seq</code> that
-reinterprets some syntax within an APL-like domain-specific language. It generates very efficient code and lets you express maps, folds, cartesian products, zips, etc, with very little effort.
+reinterprets some syntax within an APL-like domain-specific language. It generates very efficient code and lets you express maps, folds, unfolds, filters, etc, with very little effort.
 
 For instance, suppose we want an array of the first 10 squares. Using the sequence library looks like this:
 
@@ -576,22 +576,9 @@ ni[1, 10] *[x * x] /seq
   [1, 2, 3] |~![x & 1 && x] |seq
 
   Combination.
-  There are three ways you can combine things. The most obvious is concatenation, written <code>+</code>:
+  You can combine sequences via concatenation, written <code>+</code>:
 
   seq in [1, 2, 3] + [4, 5, 6]
-
-  Less obvious are zipping, written <code>^</code>, and the cartesian product, written <code>-</code>. Because <code>^</code> has lower precedence than <code>in</code>, we have to switch to a
-  lower-precedence modifier form for <code>seq</code>. For example:
-
-  [1, 2, 3] ^ [4, 5, 6] |seq
-
-  The cartesian product takes every possible pairing of elements from the two sequences:
-
-  seq in [1, 2, 3] - [4, 5, 6]
-
-  Each of these operators has lower precedence than <code>*</code>, <code>/</code>, and <code>%</code> (all of which have equal precedence), so they can be used without parentheses. Zipping
-  has lower precedence than cartesian product and concatenation; this choice was made because a zip is a common operation prior to folding a bunch of pairs into an object and thus ending the
-  sequence comprehension.
 
   Objects.
   A really useful and important feature of the sequence library is that it works with objects very easily. It has four operators, <code>/keys</code>, <code>/values</code>, <code>/pairs</code>,

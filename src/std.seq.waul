@@ -36,8 +36,6 @@
 #   %  = filter                   e.g.  [1, 2, 3] %[x & 1] |seq            ->  [1, 3]
 #   %! = filter-not               e.g.  [1, 2, 3] %![x & 1] |seq           ->  [2]
 #   +  = concatenate              e.g.  [1, 2, 3] + [4, 5] |seq            ->  [1, 2, 3, 4, 5]
-#   -  = cartesian product        e.g.  [1, 2] - [3, 4] |seq               ->  [[1, 3], [1, 4], [2, 3], [2, 4]]
-#   ^  = zip                      e.g.  [1, 2, 3] ^ [4, 5, 6] |seq         ->  [[1, 4], [2, 5], [3, 6]]
 #   |  = exists                   e.g.  [1, 2, 3] |[x === 2] |seq          ->  true
 #   |! = not-exists               e.g.  [1, 2, 3] |![x >= 4] |seq          ->  true
 
@@ -219,7 +217,7 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   where [anon            = $.anonymizer('S'),
          rule(p, e)      = $.rereplacer(anon(p), e.constructor === $.syntax ? anon(e) : e),
 
-         operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),  rule('S[_xs ^ _ys]'.qs, zip),  rule('S[_xs - _ys]'.qs, cross),
+         operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
 
                                                         // Distributive property
                                                         rule('S[(_x)]'.qs, '(S[_x])'.qs),  rule('S[_x[_y]]'.qs, 'S[_x][_y]'.qs),     rule('S[_xs(_ys)]'.qs, 'S[_xs](_ys)'.qs),
@@ -342,9 +340,6 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x = _xs[_xi], x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
 
   concat      = anon('(S[_xs]).concat((S[_ys]))'.qs),
-
-  zip         = form('for (var _xr = (S[_ys]), pairs = [], i = 0, l = _xs.length; i < l; ++i) pairs.push([_xs[i], _xr[i]]); return pairs'.qs),
-  cross       = form('for (var _xr = (S[_ys]), pairs = [], i = 0, l = _xs.length, lj = _xr.length; i < l; ++i) for (var j = 0; j < lj; ++j) pairs.push([_xs[i], _xr[j]]); return pairs'.qs),
 
   kmap        = form('var _xr = new _xs.constructor(); for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x)) _xr[_f] = _xs[_x]; return _xr'.qs),
   keach       = form('                                 for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x)) _f;                return _xs'.qs),
