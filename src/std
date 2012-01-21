@@ -1644,7 +1644,7 @@ These apply more advanced syntactic transforms to the code and can depend on eve
 
 __
 meta::sdoc('waul::std.anonymize', <<'__');
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 
 Symbol anonymization | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -1686,7 +1686,7 @@ caterwaul.module('std.anon', function ($) {
 
 __
 meta::sdoc('waul::std.js', <<'__');
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 
 Javascript-specific macros | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -1927,7 +1927,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
 __
 meta::sdoc('waul::std.js-literals', <<'__');
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 
 Javascript literal notation | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -1984,7 +1984,7 @@ caterwaul.module('std.js-literals', 'js js_literals', function ($) {
 
 __
 meta::sdoc('waul::std.macro', <<'__');
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 
 Macro authoring utilities | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2026,7 +2026,7 @@ This is a shorthand to enable one-off macroexpansion. The idea is that we build 
 
 __
 meta::sdoc('waul::std.seq', <<'__');
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 
 Sequence comprehensions | Spencer Tipping
 Licensed under the terms of the MIT source code license
@@ -2415,7 +2415,7 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
 
 __
 meta::sdoc('waul::std.words', <<'__');
-#!/usr/bin/env waul-1.2b9
+#!/usr/bin/env waul-1.2b11
 
 Common adjectives and adverbs | Spencer Tipping
 Licensed under the terms of the MIT source code license
