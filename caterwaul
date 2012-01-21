@@ -573,9 +573,8 @@ $(caterwaul('js_all jquery')(function () {
 
 
 
-var shell = given.nothing in
- shell.append(history_container, shell_prompt)
- -se- setTimeout(given.nothing in shell.click(setTimeout(given.nothing in shell.find('.prompt .input').focus(), 10) -given.e), 0)
+var shell = "shell.append(history_container, shell_prompt)".qf
+ -se- setTimeout("shell.click(focus_shell)".qf, 0) /where [focus_shell() = setTimeout("shell.find('.prompt .input').focus()".qf, 10)],
 
  -where [shell = jquery in div.shell,
 
@@ -591,13 +590,11 @@ var shell = given.nothing in
  "e.text(x.toString())".qf)] :
 
  x.constructor === jQuery ? x.parent().length ? jquery in div.sandbox('(A DOM node that is already in document)')
- /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
+ /hover("x.addClass('identify')".qf, "x.removeClass('identify')".qf) :
  jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
  jquery in span /text('' + x),
 
- realign() = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
- -where [input = shell.find('.prompt .input')]
- -given.nothing, 10),
+ realign() = setTimeout("input.css({width: input.parent().width() - (input.prev().width() + 10)}) -where [input = shell.find('.prompt .input')]".qf, 10),
 
  log(xs = arguments) = xs *![shell.children('.history').append(x) -se- realign()] -seq -re- xs[0],
 
@@ -634,14 +631,14 @@ var shell = given.nothing in
  -se- setTimeout(realign, 10)
  -se- setInterval(update_shadow, 10)
 
- -se- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
+ -se- it.find('span.prompt').click("$(this).siblings('.input').focus()".qf)
+ -se- setTimeout("install_keydown(it)".qf, 0),
 
- -se- setTimeout(given.nothing in
- it.find('.input').keydown(realign() -re [history_prev() /se [e.preventDefault()] /when [e.which === 38] ||
+ -where [install_keydown(it) = it.find('.input').keydown(handle_keydown),
+ handle_keydown(e) = realign() -re [history_prev() /se [e.preventDefault()] /when [e.which === 38] ||
  history_next() /se [e.preventDefault()] /when [e.which === 40] ||
- run_it() /se [e.preventDefault()] /when [e.which === 13] || true] -given.e), 0)
-
- -where [input = jquery in input.input,
+ run_it() /se [e.preventDefault()] /when [e.which === 13] || true],
+ input = jquery in input.input,
  prompt = jquery in span.accent('&gt;'),
  structure = jquery in div.structure,
  shadow = jquery in div.shadow,
@@ -664,8 +661,8 @@ var shell = given.nothing in
 
  history_add(s) = history_n = h_index = context.history.push(s),
 
- scroll_to_end() = setTimeout(shell.scrollTop(shell.children(':last') -re [shell.scrollTop() + it.position().top + it.height()])
- -given.nothing, 0),
+ scroll_to_end() = setTimeout("shell.scrollTop(shell.children(':last') -re [shell.scrollTop() + it.position().top + it.height()])".qf,
+ 0),
 
  run_it() = history_add(t) -re- run_command(t) -re- input.val('') -re- scroll_to_end() -when.t -where [t = input.val()]]];
 
@@ -774,7 +771,7 @@ var shell = given.nothing in
  span.extension('.js')],
 
  section(x) = jquery [div.file(h1[title(x.attribute)], div.contents)]
- -se- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
+ -se- setTimeout("it.find('h1').click(toggle_contents)".qf, 0) /where [toggle_contents() = $(this).next('.contents').toggle()]
  -se- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
  sections = jquery [div *id('annotated') >= back_link >= core_sections >= extension_sections >= web_sections]
@@ -792,14 +789,13 @@ var shell = given.nothing in
  show_annotated_source() = moving = $('#sdoc-page').css({display: 'block', top: $(window).scrollTop(), left: $(window).width()}).
  animate({left: 50}, 'slow')
 
- -se- $('#tutorial-page').animate({left: '-=#{distance}'}, 'slow', given.nothing [viewing_annotated_source = true, moving = false])
+ -se- $('#tutorial-page').animate({left: '-=#{distance}'}, 'slow', "viewing_annotated_source = true, moving = false".qf)
  -se- $('.shell').animate({left: '-=#{distance}', right: '+=#{distance}', opacity: 0}, 'slow')
  -se- $('.header, .popdown').hide('slow')
 
  -where [distance = $(window).width()],
 
- hide_annotated_source() = moving = $('#sdoc-page').animate({left: $(window).width()}, 'slow',
- given.nothing [viewing_annotated_source = moving = false, $(this).css({display: 'none'})])
+ hide_annotated_source() = moving = $('#sdoc-page').animate({left: $(window).width()}, 'slow', "viewing_annotated_source = moving = false, $(this).css({display: 'none'})".qf)
 
  -se- $('.shell').animate({left: '+=#{distance}', right: '-=#{distance}', opacity: 1}, 'slow')
  -se- $('#tutorial-page').animate({left: '+=#{distance}'}, 'slow')
@@ -825,7 +821,7 @@ var shell = given.nothing in
  -se- it.find('pre.code') *![$(x).text($(x).text().replace(/^\s*/, ''))] /seq,
 
  top_wrapper_for(e, name) = jquery [div.popdown(div.label /text(name), div.contents[e])]
- -se- setTimeout(delay in it.click(given.e in it.toggleClass('open')), 10),
+ -se- setTimeout("it.click(toggle_open, 10)".qf) /where [toggle_open() = it.toggleClass('open')],
 
  toc = jquery [div.toc] -se- toc_links *~![x] *![it.append(x)] /seq
  -where [section_id_count = 0,
@@ -850,38 +846,6 @@ var shell = given.nothing in
 
 
 
-// Sequence deciphering applet.
-// This uses regular expressions to parse a sequence operator. It then populates a table describing the operation and invocation context.
-
-$('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.result[row_for('Prefix'), row_for('Operator'), row_for('Block'), row_for('Variables')])
-
--where [row_for(name) = jquery [tr(td.name[name], td.fragment, td.desc)] -se- it.addClass(name.toLowerCase()),
-
- fills_result(e) = e -se- setTimeout(delay in e.keyup(change).change(change) -se- change.call(e[0]) -where [change(e) = fill_table_from(parse($(this).val()))], 10),
- fill_table_from(p) = $('#seq-decipher table.result') -se- it.find('td.fragment, td.desc').text('')
- -se- p /pairs *![it.find(x[0].replace(/^/, 'tr.').replace(/_/, ' td.')).text(x[1])] /seq,
-
- op_names = {'*': 'map', '*!': 'each', '*~!': 'flatmap', '%': 'filter', '%!': 'filter-not', '%~!': 'map/filter',
- '/': 'fold-left', '/!': 'fold-right', '/~!': 'unfold', '|': 'exists'},
-
- simple_op(op, desc) = {operator_fragment: op, operator_desc: desc},
- parse(op) = op === '/pairs' && simple_op(op, 'convert object to array of key/value pairs') ||
- op === '/keys' && simple_op(op, 'return array of keys from object') ||
- op === '/values' && simple_op(op, 'return array of values from object') ||
- /[-\/\|]object/.test(op) && simple_op(op, 'construct object from array of key/value pairs') ||
-
- op === '+' && simple_op(op, 'concatenate arrays') ||
- op === '-' && simple_op(op, 'cartesian product of arrays') ||
- op === '^' && simple_op(op, 'zip arrays') ||
-
- /^(%[kv])?([\*%\/\|](?:~!|!)?)([~\+]{0,2})(\w+)?/.exec(op.replace(/\s/g, '')) -re-
- {operator_fragment: it[2], operator_desc: op_names[it[2]],
- prefix_fragment: it[1], prefix_desc: it[1] === '%k' ? 'object keys' : it[1] === '%v' ? 'object values' : '',
- block_fragment: it[3], block_desc: [/~/.test(it[3]) ? 'sequence context' : '', /\+/.test(it[3]) ? 'closure wrapping' : ''] %[x] -seq
- -re- it.join(' and '),
- variables_fragment: it[4], variables_desc: it[4] ? '#{it[4]}, #{it[4]}0, #{it[4]}i, #{it[4]}l' : 'x, x0, xi, xl'} /when.it];
-
-// Generated by SDoc 
 
 
 
@@ -3161,7 +3125,7 @@ object -- long story.) We also build a table of contents.
                                      -se- it.find('pre.code') *![$(x).text($(x).text().replace(/^\s*/, ''))] /seq,
 
           top_wrapper_for(e, name) = jquery [div.popdown(div.label /text(name), div.contents[e])]
-                                     -se- setTimeout(delay in it.click(given.e in it.toggleClass('open')), 10),
+                                     -se- setTimeout("it.click(toggle_open, 10)".qf) /where [toggle_open() = it.toggleClass('open')],
 
           toc                      = jquery [div.toc] -se- toc_links *~![x] *![it.append(x)] /seq
                                      -where [section_id_count    = 0,
@@ -3215,43 +3179,9 @@ in the markup.
                                                                              paragraph = jquery in p[escape_html_in(parts[2])]]];
 
 __
-meta::sdoc('js::web/seq-decipher', <<'__');
-Sequence deciphering applet.
-This uses regular expressions to parse a sequence operator. It then populates a table describing the operation and invocation context.
-
-$('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.result[row_for('Prefix'), row_for('Operator'), row_for('Block'), row_for('Variables')])
-
--where [row_for(name)       = jquery [tr(td.name[name], td.fragment, td.desc)] -se- it.addClass(name.toLowerCase()),
-
-        fills_result(e)     = e -se- setTimeout(delay in e.keyup(change).change(change) -se- change.call(e[0]) -where [change(e) = fill_table_from(parse($(this).val()))], 10),
-        fill_table_from(p)  = $('#seq-decipher table.result') -se- it.find('td.fragment, td.desc').text('')
-                                                              -se- p /pairs *![it.find(x[0].replace(/^/, 'tr.').replace(/_/, ' td.')).text(x[1])] /seq,
-
-        op_names            = {'*': 'map',       '*!': 'each',       '*~!': 'flatmap',  '%': 'filter', '%!': 'filter-not', '%~!': 'map/filter',
-                               '/': 'fold-left', '/!': 'fold-right', '/~!': 'unfold',   '|': 'exists'},
-
-        simple_op(op, desc) = {operator_fragment: op, operator_desc: desc},
-        parse(op)           = op === '/pairs'  && simple_op(op, 'convert object to array of key/value pairs') ||
-                              op === '/keys'   && simple_op(op, 'return array of keys from object') ||
-                              op === '/values' && simple_op(op, 'return array of values from object') ||
-                              /[-\/\|]object/.test(op) && simple_op(op, 'construct object from array of key/value pairs') ||
-
-                              op === '+' && simple_op(op, 'concatenate arrays') ||
-                              op === '-' && simple_op(op, 'cartesian product of arrays') ||
-                              op === '^' && simple_op(op, 'zip arrays') ||
-
-                              /^(%[kv])?([\*%\/\|](?:~!|!)?)([~\+]{0,2})(\w+)?/.exec(op.replace(/\s/g, '')) -re-
-                              {operator_fragment: it[2],   operator_desc: op_names[it[2]],
-                                 prefix_fragment: it[1],     prefix_desc: it[1] === '%k' ? 'object keys' : it[1] === '%v' ? 'object values' : '',
-                                  block_fragment: it[3],      block_desc: [/~/.test(it[3]) ? 'sequence context' : '', /\+/.test(it[3]) ? 'closure wrapping' : ''] %[x] -seq
-                                                                          -re- it.join(' and '),
-                              variables_fragment: it[4],  variables_desc: it[4] ? '#{it[4]}, #{it[4]}0, #{it[4]}i, #{it[4]}l' : 'x, x0, xi, xl'} /when.it];
-
-__
 meta::sdoc('js::web/shell', <<'__');
-var shell = given.nothing in
-            shell.append(history_container, shell_prompt)
-            -se- setTimeout(given.nothing in shell.click(setTimeout(given.nothing in shell.find('.prompt .input').focus(), 10) -given.e), 0)
+var shell = "shell.append(history_container, shell_prompt)".qf
+            -se- setTimeout("shell.click(focus_shell)".qf, 0) /where [focus_shell() = setTimeout("shell.find('.prompt .input').focus()".qf, 10)],
 
             -where [shell                 = jquery in div.shell,
 
@@ -3267,13 +3197,11 @@ var shell = given.nothing in
                                                                                                                                                                     "e.text(x.toString())".qf)] :
 
                                             x.constructor === jQuery ? x.parent().length ? jquery in div.sandbox('(A DOM node that is already in document)')
-                                                                                                     /hover(given.e in x.addClass('identify'), given.e in x.removeClass('identify')) :
+                                                                                                     /hover("x.addClass('identify')".qf, "x.removeClass('identify')".qf) :
                                                                                            jquery in span /text(jquery in span[x] /html()) + div.sandbox[x.clone(true)] :
                                                                        jquery in span /text('' + x),
 
-                    realign()             = setTimeout(input.css({width: input.parent().width() - (input.prev().width() + 10)})
-                                                       -where [input = shell.find('.prompt .input')]
-                                                       -given.nothing, 10),
+                    realign()             = setTimeout("input.css({width: input.parent().width() - (input.prev().width() + 10)}) -where [input = shell.find('.prompt .input')]".qf, 10),
 
                     log(xs = arguments)   = xs *![shell.children('.history').append(x) -se- realign()] -seq -re- xs[0],
 
@@ -3310,14 +3238,14 @@ var shell = given.nothing in
                                             -se- setTimeout(realign, 10)
                                             -se- setInterval(update_shadow, 10)
 
-                                            -se- it.find('span.prompt').click($(this).siblings('.input').focus() -given.e)
+                                            -se- it.find('span.prompt').click("$(this).siblings('.input').focus()".qf)
+                                            -se- setTimeout("install_keydown(it)".qf, 0),
 
-                                            -se- setTimeout(given.nothing in
-                                                   it.find('.input').keydown(realign() -re [history_prev() /se [e.preventDefault()] /when [e.which === 38] ||
-                                                                                            history_next() /se [e.preventDefault()] /when [e.which === 40] ||
-                                                                                            run_it()       /se [e.preventDefault()] /when [e.which === 13] || true] -given.e), 0)
-
-                                            -where [input                = jquery in input.input,
+                                            -where [install_keydown(it)  = it.find('.input').keydown(handle_keydown),
+                                                    handle_keydown(e)    = realign() -re [history_prev() /se [e.preventDefault()] /when [e.which === 38] ||
+                                                                                          history_next() /se [e.preventDefault()] /when [e.which === 40] ||
+                                                                                          run_it()       /se [e.preventDefault()] /when [e.which === 13] || true],
+                                                    input                = jquery in input.input,
                                                     prompt               = jquery in span.accent('&gt;'),
                                                     structure            = jquery in div.structure,
                                                     shadow               = jquery in div.shadow,
@@ -3340,8 +3268,8 @@ var shell = given.nothing in
 
                                                     history_add(s)       = history_n = h_index = context.history.push(s),
 
-                                                    scroll_to_end()      = setTimeout(shell.scrollTop(shell.children(':last') -re [shell.scrollTop() + it.position().top + it.height()])
-                                                                                      -given.nothing, 0),
+                                                    scroll_to_end()      = setTimeout("shell.scrollTop(shell.children(':last') -re [shell.scrollTop() + it.position().top + it.height()])".qf,
+                                                                                      0),
 
                                                     run_it()             = history_add(t) -re- run_command(t) -re- input.val('') -re- scroll_to_end() -when.t -where [t = input.val()]]];
 
@@ -3367,7 +3295,7 @@ This is just a matter of finding the right SDoc sources and tying them together.
                                                                               span.extension('.js')],
 
                                           section(x) = jquery [div.file(h1[title(x.attribute)], div.contents)]
-                                                       -se- setTimeout(given.nothing in it.find('h1').click(given.e in $(this).next('.contents').toggle()), 0)
+                                                       -se- setTimeout("it.find('h1').click(toggle_contents)".qf, 0) /where [toggle_contents() = $(this).next('.contents').toggle()]
                                                        -se- it.find('.contents').hide().append(sdoc_to_dom(x.value)),
 
                                           sections   = jquery [div *id('annotated') >= back_link >= core_sections >= extension_sections >= web_sections]
@@ -3385,14 +3313,13 @@ This is just a matter of finding the right SDoc sources and tying them together.
           show_annotated_source()  = moving = $('#sdoc-page').css({display: 'block', top: $(window).scrollTop(), left: $(window).width()}).
                                                           animate({left: 50}, 'slow')
 
-                                             -se- $('#tutorial-page').animate({left: '-=#{distance}'}, 'slow', given.nothing [viewing_annotated_source = true, moving = false])
+                                             -se- $('#tutorial-page').animate({left: '-=#{distance}'}, 'slow', "viewing_annotated_source = true, moving = false".qf)
                                              -se- $('.shell').animate({left: '-=#{distance}', right: '+=#{distance}', opacity: 0}, 'slow')
                                              -se- $('.header, .popdown').hide('slow')
 
                                              -where [distance = $(window).width()],
 
-          hide_annotated_source()  = moving = $('#sdoc-page').animate({left: $(window).width()}, 'slow',
-                                                                      given.nothing [viewing_annotated_source = moving = false, $(this).css({display: 'none'})])
+          hide_annotated_source()  = moving = $('#sdoc-page').animate({left: $(window).width()}, 'slow', "viewing_annotated_source = moving = false, $(this).css({display: 'none'})".qf)
 
                                              -se- $('.shell').animate({left: '+=#{distance}', right: '-=#{distance}', opacity: 1}, 'slow')
                                              -se- $('#tutorial-page').animate({left: '+=#{distance}'}, 'slow')
@@ -4415,9 +4342,7 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
   syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_]\+\s*\(=\([^=]\|$\)\@=\|(.*=\([^=]\|$\)\)\@=/ contained containedin=jsBindingGroup
 
 syn keyword   jsBindingMacro            where capture wcapture nextgroup=jsBindingGroup
-syn keyword   jsFunctionMacro           given bgiven           nextgroup=jsFunctionGroup
 syn keyword   jsQuotationMacro          qs qse                 nextgroup=jsQuotationGroup
-syn keyword   jsFunctionMacro           delay lazy
 syn keyword   jsOtherMacro              raise seq noexpand reexpand
 
 syn keyword   jsParameterizedMacro      se re and or when unless using rescue nextgroup=jsModifierSuffix
