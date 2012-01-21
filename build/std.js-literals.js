@@ -1,6 +1,6 @@
-caterwaul.module( 'std.js-literals' , (function(qs_f_F9gubBGF67i4tHzcFlHM8K,qs_g_F9gubBGF67i4tHzcFlHM8K) {var result_h_F9gubBGF67i4tHzcFlHM8K= (function($) {$.js_literals=function(caterwaul_function) {var function_template=qs_f_F9gubBGF67i4tHzcFlHM8K;
+caterwaul.module( 'std.js-literals' , (function(qs1,qs2) {var result= (function($) {$.js_literals=function(caterwaul_function) {var function_template=qs1;
  (function(r) {r.x=$.reexpander(function(node) {return node.with_data(node.data.replace( /\s+/g , '' ) ) } ) ;
-var call_exec_template=qs_g_F9gubBGF67i4tHzcFlHM8K;
+var call_exec_template=qs2;
 r.qf=function(node) {return function_template.replace( {_body:call_exec_template.replace( {_regexp:node} ) } ) } } ) (caterwaul_function.literal_modifiers.regexp) ;
  (function(s) {s.qw=$.reexpander(function(node) {for(var array_node=new $.syntax( '[' ) ,comma=new $.syntax( ',' ) ,delimiter=node.data.charAt(0) ,pieces=node.as_escaped_string() .split( /\s+/ ) ,i=0,l=pieces.length;
 i<l;
@@ -14,5 +14,5 @@ s.qr=$.reexpander(function(node) {return node.with_data( '/' +node.as_escaped_st
 s.qs=function(node) {return new $.expression_ref($.syntax_to_expression($.parse(node.as_unescaped_string() ) ) , 'qs' ) } ;
 s.qf=$.reexpander(function(node) {return function_template.replace( {_body:$.parse(node.as_unescaped_string() ) } ) } ) } ) (caterwaul_function.literal_modifiers.string) ;
 return caterwaul_function} } ) ;
-result_h_F9gubBGF67i4tHzcFlHM8K.caterwaul_expression_ref_table= { "qs_f_F9gubBGF67i4tHzcFlHM8K" : ( "new caterwaul.syntax( \"function\" ,new caterwaul.syntax( \"(\" ,new caterwaul.syntax( \"_\" ) ) ,new caterwaul.syntax( \"{\" ,new caterwaul.syntax( \"return\" ,new caterwaul.syntax( \"_body\" ) ) ) )" ) , "qs_g_F9gubBGF67i4tHzcFlHM8K" : ( "new caterwaul.syntax( \"()\" ,new caterwaul.syntax( \".\" ,new caterwaul.syntax( \"_regexp\" ) ,new caterwaul.syntax( \"exec\" ) ) ,new caterwaul.syntax( \"_\" ) )" ) } ;
-return(result_h_F9gubBGF67i4tHzcFlHM8K) } ) .call(this,new caterwaul.syntax( "function" ,new caterwaul.syntax( "(" ,new caterwaul.syntax( "_" ) ) ,new caterwaul.syntax( "{" ,new caterwaul.syntax( "return" ,new caterwaul.syntax( "_body" ) ) ) ) ,new caterwaul.syntax( "()" ,new caterwaul.syntax( "." ,new caterwaul.syntax( "_regexp" ) ,new caterwaul.syntax( "exec" ) ) ,new caterwaul.syntax( "_" ) ) ) ) ;
+result.caterwaul_expression_ref_table= {qs1: ( "new caterwaul.syntax( \"function\" ,new caterwaul.syntax( \"(\" ,new caterwaul.syntax( \"_\" ) ) ,new caterwaul.syntax( \"{\" ,new caterwaul.syntax( \"return\" ,new caterwaul.syntax( \"_body\" ) ) ) )" ) ,qs2: ( "new caterwaul.syntax( \"()\" ,new caterwaul.syntax( \".\" ,new caterwaul.syntax( \"_regexp\" ) ,new caterwaul.syntax( \"exec\" ) ) ,new caterwaul.syntax( \"_\" ) )" ) } ;
+return(result) } ) .call(this,new caterwaul.syntax( "function" ,new caterwaul.syntax( "(" ,new caterwaul.syntax( "_" ) ) ,new caterwaul.syntax( "{" ,new caterwaul.syntax( "return" ,new caterwaul.syntax( "_body" ) ) ) ) ,new caterwaul.syntax( "()" ,new caterwaul.syntax( "." ,new caterwaul.syntax( "_regexp" ) ,new caterwaul.syntax( "exec" ) ) ,new caterwaul.syntax( "_" ) ) ) ) ;
