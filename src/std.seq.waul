@@ -377,7 +377,7 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   scope      = anon('(function (o) {_body}).call(this, (S[_o]))'.qs),
   scoped(t)  = scope.replace({_body: t}),
 
-  form(p)    = tree.replace(match) -given.match -where [tree = scoped(anon(p))],
+  form(p)    = "tree.replace(_)".qf -where [tree = scoped(anon(p))],
   keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'.qs),
   values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'.qs),
   pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'.qs),
