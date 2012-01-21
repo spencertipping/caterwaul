@@ -424,7 +424,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 
       match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
                                            variables || (variables = {_: target});
-                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.data] = target, variables;
+                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.without_metadata()] = target, variables;
                                       else if (this.length === target.length && this.data === target.data)      {for (var i = 0, l = this.length; i < l; ++i)
                                                                                                                    if (! this[i].match(target[i], variables)) return null;
                                                                                                                  return variables}},
