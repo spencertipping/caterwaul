@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b11
+#!/usr/bin/env waul-1.2
 # access: Determine access times for different kinds of values.
 
 caterwaul('js_all')(function () {

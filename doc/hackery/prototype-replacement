@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b11
+#!/usr/bin/env waul-1.2
 # prototype-replacement: Measuring the impact of replacing a prototype method with a specialized one.
 
 caterwaul('js_all')(function () {

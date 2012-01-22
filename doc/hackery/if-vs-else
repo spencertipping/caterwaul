@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b11
+#!/usr/bin/env waul-1.2
 # if-vs-else: Does it matter whether we negate the condition or have an empty then block?
 
 caterwaul('js_all')(function () {

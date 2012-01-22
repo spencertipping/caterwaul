@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b11
+#!/usr/bin/env waul-1.2
 # gc-incremental-live-set-overhead: How linear is structure allocation in the live set created by the structure?
 
 caterwaul('js_all')(function () {

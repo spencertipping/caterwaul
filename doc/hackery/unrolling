@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2b11
+#!/usr/bin/env waul-1.2
 # unrolling: Determine the impact of loop unrolling on a trivial numerical loop.
 
 caterwaul('js_all')(function () {
