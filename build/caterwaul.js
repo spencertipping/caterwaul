@@ -436,10 +436,25 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //   Caterwaul 1.1.1 generalizes the variadic syntax node model to support arbitrary subclasses. This is useful when defining syntax trees for languages other than Javascript. As of Caterwaul
 //   1.1.2 this method is nondestructive with respect to the constructor and other arguments.
 
+  // Caterwaul 1.2 allows you to extend all syntax classes in existence at once by invoking syntax_extend on one or more prototype extension objects. For example, you can add a new foo method to
+//   all syntax trees like this:
+
+  // | caterwaul.syntax_extend({foo: function () {...}});
+
+  // This also defines the 'foo' method for all syntax classes that are created in the future. It does this by adding the method definitions to syntax_common, which is implicitly merged into the
+//   prototype of any syntax subclass. syntax_extend returns the global Caterwaul object.
+
+    caterwaul_global.syntax_subclasses = [];
     caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1), proxy = function () {return ctor.apply(this, arguments)};
                                                         caterwaul_global.merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
+                                                        caterwaul_global.syntax_subclasses.push(proxy);
                                                         proxy.prototype.constructor = proxy;
                                                         return proxy};
+
+    caterwaul_global.syntax_extend = function () {for (var i = 0, l = caterwaul_global.syntax_subclasses.length, es = Array.prototype.slice.call(arguments); i < l; ++i)
+                                                    caterwaul_global.merge.apply(this, [caterwaul_global.syntax_subclasses[i].prototype].concat(es));
+                                                  caterwaul_global.merge.apply(this, [syntax_common].concat(es));
+                                                  return caterwaul_global};
 
   // Type detection and retrieval.
 //   These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
