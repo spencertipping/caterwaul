@@ -2244,12 +2244,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
                                  function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"')};
                                               this.from_array  = function (xs) {for (var i = 0, c = new caterwaul_global.syntax(','), l = xs.length; i < l; ++i) c.push(xs[i]);
-                                                                                return new caterwaul_global.syntax('[', c.unflatten())};
+                                                                                return new caterwaul_global.syntax('[', c.length ? c.unflatten() : [])};
 
                                               this.from_object = function (o)  {var comma = new caterwaul_global.syntax(',');
                                                                                 for (var k in o) if (own.call(o, k)) comma.push(new caterwaul_global.syntax(
                                                                                   ':', /^[$_A-Za-z][A-Za-z0-9$_]*$/.test(k) ? k : caterwaul_global.syntax.from_string(k), o[k].as('(')));
-                                                                                return new caterwaul_global.syntax('{', comma.unflatten())}});
+                                                                                return new caterwaul_global.syntax('{', comma.length ? comma.unflatten() : [])}});
 
     var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
 
