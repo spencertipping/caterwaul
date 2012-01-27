@@ -696,7 +696,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                    caterwaul_global.javascript_tree_metadata_methods,
                                    caterwaul_global.javascript_tree_serialization_methods),
 
-                                 function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"')};
+                                 function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
+                                                                                                                                                  replace(/\n/g, '\\n') + '"')};
+
                                               this.from_array  = function (xs) {for (var i = 0, c = new caterwaul_global.syntax(','), l = xs.length; i < l; ++i) c.push(xs[i]);
                                                                                 return new caterwaul_global.syntax('[', c.length ? c.unflatten() : [])};
 
