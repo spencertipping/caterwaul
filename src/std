@@ -2520,8 +2520,11 @@ These act like binary operators in the sense that they have a left and a right-h
   | hash(k, v) = {} /se[it[k] = v];
     compose(f, g)(x) = g(x) -re- f(it);
 
-    se: $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),
-    re: $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'.qs),
+  Version 1.2 adds the word 'then', which is equivalent to 'se' but doesn't bind 'it'. This removes the overhead associated with creating a closure.
+
+    se:   $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),
+    re:   $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'.qs),
+    then: $.reexpander('((_expression), (_parameters))'.qs),
 
   Scoping.
   You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:
