@@ -23,7 +23,7 @@ caterwaul('js_all')(function () {
                                               for (var l = pattern.length, i = l - 1, p; i >= 0; --i) forwards[p] = l - i;
                                               for (var i = 0, l = s.length, pl = pattern.length, c; i < l;)
                                                 for (var j = pl - 1; j >= 0; --j) if ((c = s.charCodeAt(i + j)) === pattern.charCodeAt(j)) {if (!j) return i}
-                                                                                  else                                                      i += forwards[c]},
+                                                                                  else                                                     {i += forwards[c]; break}},
 
          easy_string = n[1000000] *['#'] -seq -re- '#{it.join("")}!!!!!!!!!!!!!!!!',
          hard_string = n[10000] *["\033[1;32m{average /!Math.round}ms avg, {max}ms max, {min}ms min, { /!Math.round}ms stddev[0;0m'/!console.log"] -seq
