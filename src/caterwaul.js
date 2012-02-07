@@ -511,6 +511,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
        is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
+              precedence: function () {return parse_inverse_order[this.data]},          is_right_associative: function () {return has(parse_associates_right, this.data)},
+
                  accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
 
   // Tree metadata.
@@ -557,6 +559,18 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
     // Update for caterwaul 1.0: The serialize() method is now aggressively optimized for common cases. It also uses a flattened array-based concatenation strategy rather than the deeply nested
 //     approach from before.
+
+    // Caterwaul 1.2.1 introduces syntax guarding, the introduction of parentheses where necessary to enforce precedence/associativity that is encoded in the tree but wouldn't be represented in
+//     serialization. For example, the tree (* (+ foo bar) bif) would be rendered as foo + bar * bif, resulting in Javascript reinterpreting the operator precedence. After guarding, it would be
+//     rendered as (foo + bar) * bif.
+
+    // Internally, guarding is done by providing subtrees with a threshold precedence; if a node has a higher precedence index than its parent, it is parenthesized. Associativity matters as well.
+//     For instance, the tree (+ foo (+ bar bif)) also requires grouping even though both operators are the same precedence, whereas (= foo (= bar bif)) does not. This is done by checking whether
+//     the child's index is positive; positive indices must be in a right-associative position, so they are handed a precedence index one smaller than the parent's actual precedence. (We
+//     basically want to push the child to parenthesize if it's the same precedence, since it's associating the wrong way.)
+
+      guarded: function (p) {var this_p = this.precedence(), right = this.is_right_associative(), result = this.map(function (x, i) {return x.guarded(this_p - (!right && !!i))});
+                             return this_p > p ? result.as('(') : result},
 
     // Optimized serialization cases.
 //     We can tell a lot about how to serialize a node based on just a few properties. For example, if the node has zero length then its serialization is simply its data. This is the leaf case,
