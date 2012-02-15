@@ -3081,7 +3081,11 @@ caterwaul('js_all')(function ($) {
                                       module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)  :
                                         raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]],
 
-         waul_repl()                = require('repl').start('waul> ', undefined, evaluator)
+         introduce()                = process.stderr.write('Waul precompiler (repl mode), copyright 2012 Spencer Tipping\n' +
+                                                           'Licensed under the terms of the MIT source code license\n' +
+                                                           'http://github.com/spencertipping/caterwaul\n'),
+
+         waul_repl()                = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
                               -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: caterwaul, caterwaul: caterwaul, require: require})) -rescue- cc(e, undefined),
                                       caterwaul                = build_caterwaul(),
                                       instance                 = caterwaul(options.configuration)],
@@ -3093,7 +3097,7 @@ caterwaul('js_all')(function ($) {
                                                         -re- it.replace(it /!caterwaul.gensym_rename_table)],
 
          waul_run(m)                = caterwaul(m._transform.as_escaped_string())(m._function) /-caterwaul.compile/ {require: require, caterwaul: caterwaul} -re- it()
-                              -where [caterwaul = build_caterwaul()]]}, {require: require})(caterwaul);
+                              -where [caterwaul = build_caterwaul()]]}, {require: require, process: process})(caterwaul);
 
 __
 meta::sdoc('js::web/code-snippets', <<'__');
