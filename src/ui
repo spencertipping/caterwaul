@@ -1663,6 +1663,7 @@ Most of the syntax is copied from the html[] macro in montenegro:
   element > child               ->  $('<element>').append(child /jquery)
   element >= child              ->  $('<element>').append(child)
   element1, element2            ->  (element1 /jquery).add((element2 /jquery))
+  element - stuff               ->  element /jquery - stuff                                             <- used to allow inline modifiers
 
 There's also some new syntax to make certain things easier. In particular, I didn't like the way nesting worked in previous versions, so this driver supports some new operators to make it more
 intuitive:
@@ -1740,6 +1741,8 @@ caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
 
                           rule('J[_element1, _element2]'.qs,     'J[_element1].add(J[_element2])'.qs),
                           rule('J[_element1 + _element2]'.qs,    'J[_element1].add(J[_element2])'.qs),
+
+                          rule('J[_element1 - _element2]'.qs,    'J[_element1] - _element2'.qs),
 
                           rule('J[_element >> _pattern]'.qs,     'J[_element].filter(PS[_pattern])'.qs),
                           rule('J[_element >>> _pattern]'.qs,    'J[_element].find(PS[_pattern])'.qs),
