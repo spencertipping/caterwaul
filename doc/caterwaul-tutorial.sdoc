@@ -758,6 +758,13 @@ In this example, <code>jquery</code> is a modifier that interprets its code as H
 
   jquery in button %says('click me')
 
+  Side-effecting.
+  Caterwaul 1.2.1r2 introduces the ability to use <code>-</code> as a modifier prefix inside a jQuery expression. For example:
+
+  jquery in button -se [it.text('hi')]
+
+  jquery in button[contents] -where [contents = 'woot']
+
 Experimental extensions.
 <span id='advanced'></span> These are things that I'm experimenting with before committing to the design. As such, they may change or be removed in the next few versions. (So use at your own
 peril, both due to volatility and because they might be useless.)
