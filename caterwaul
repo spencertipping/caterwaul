@@ -3072,7 +3072,7 @@ caterwaul('js_all')(function ($) {
          module_pattern_identity    = 'caterwaul.module(_name, function (_formal) {_body});'.qs,
          module_template            = 'caterwaul.module(_name, _compiled);'.qs,
 
-         offline_pattern            = 'caterwaul.offline(_transform, _function)();'.qs,
+         offline_pattern            = 'caterwaul.offline(_transform, _function);'.qs,
          offline_template           = '(_compiled)();'.qs,
 
          output_for(filename)       = filename.replace(/^((?:.*\/)?)((?:(?!\.waul(?:\.sdoc)?)[^\/])+)(\.waul(?:\.sdoc)?)?/, options.output_pattern),
