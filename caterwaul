@@ -3072,14 +3072,18 @@ caterwaul('js_all')(function ($) {
          module_pattern_identity    = 'caterwaul.module(_name, function (_formal) {_body});'.qs,
          module_template            = 'caterwaul.module(_name, _compiled);'.qs,
 
+         offline_pattern            = 'caterwaul.offline(_transform, _function)();'.qs,
+         offline_template           = '(_compiled)();'.qs,
+
          output_for(filename)       = filename.replace(/^((?:.*\/)?)((?:(?!\.waul(?:\.sdoc)?)[^\/])+)(\.waul(?:\.sdoc)?)?/, options.output_pattern),
          waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
 
          waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input),
-         waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)             :
-                                      module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it) :
-                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)  :
-                                        raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]],
+         waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)                               :
+                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)                    :
+                                      module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it, module_template)  :
+                                      offline_pattern         /~match/ tree                                            -re [it ? waul_transform(file, it, offline_template) :
+                                        raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]]],
 
          introduce()                = process.stderr.write('Waul precompiler (repl mode), copyright 2012 Spencer Tipping\n' +
                                                            'Licensed under the terms of the MIT source code license\n' +
@@ -3091,7 +3095,8 @@ caterwaul('js_all')(function ($) {
                                       instance                 = caterwaul(options.configuration)],
 
          waul_identity(file, m)     = file /-waul_output/ m._,
-         waul_transform(file, m)    = file /-waul_output/ module_template.replace({_name: m._name, _compiled: transformed_function})
+
+         waul_transform(file, m, t) = file /-waul_output/ t.replace({_name: m._name, _compiled: transformed_function})
                               -where [caterwaul            = build_caterwaul(),
                                       transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) / null /-caterwaul.late_bound_tree/ options
                                                         -re- it.replace(it /!caterwaul.gensym_rename_table)],
