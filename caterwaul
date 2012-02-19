@@ -3080,8 +3080,8 @@ caterwaul('js_all')(function ($) {
 
          waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input),
          waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)                               :
-                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)                    :
                                       module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it, module_template)  :
+                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)                    :
                                       offline_pattern         /~match/ tree                                            -re [it ? waul_transform(file, it, offline_template) :
                                         raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]]],
 
