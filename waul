@@ -268,7 +268,7 @@ caterwaul('js_all')(function ($) {
          extension_tree(filename)   = new $.opaque_tree(filename /!waul_input),
 
          build_caterwaul            = caterwaul_template.replace({_caterwaul_init: $ /~replicator/ {core_only: !options.use_std},
-                                                                  _extensions:     new $.syntax(';', options.extensions *extension_tree -seq)}) /!$.compile,
+                                                                  _extensions:     new $.syntax(';', options.extensions *extension_tree -seq)}) /-$.compile/ {require: require},
 
          immediate_pattern          = 'caterwaul(_transform)(_function)();'.qs,
 
