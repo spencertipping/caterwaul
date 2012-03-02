@@ -1,5 +1,3 @@
-#!/usr/bin/env waul-1.2
-
 # Sequence comprehensions | Spencer Tipping
 # Licensed under the terms of the MIT source code license
 
@@ -210,32 +208,27 @@
 # such (from a design perspective).
 
 caterwaul.module('std.seq', 'js js_literals words', function ($) {
-  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq(match) = seq_expand.call(seq_expand, anon_pattern.replace({_x: match._expression})) -re- this(it) /when.it]
-                                              -where [anon_pattern = anon('S[_x]'.qs),
-                                                      seq_expand   = $($.alternatives(operator_macros.concat(word_macros)))],
+  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', 'S[_x]'.qs, given [rule, anon] in operator_macros /~concat/ word_macros
 
-  where [anon            = $.anonymizer('S'),
-         rule(p, e)      = $.rereplacer(anon(p), e.constructor === $.syntax ? anon(e) : e),
+  -where [operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
 
-         operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
+                                                         // Distributive property
+                                                         rule('S[(_x)]'.qs, '(S[_x])'.qs),  rule('S[_x[_y]]'.qs, 'S[_x][_y]'.qs),     rule('S[_xs(_ys)]'.qs, 'S[_xs](_ys)'.qs),
+                                                         rule('S[[_x]]'.qs, '[_x]'.qs),     rule('S[_x, _y]'.qs, 'S[_x], S[_y]'.qs),  rule('S[_xs._p]'.qs,   'S[_xs]._p'.qs),
 
-                                                        // Distributive property
-                                                        rule('S[(_x)]'.qs, '(S[_x])'.qs),  rule('S[_x[_y]]'.qs, 'S[_x][_y]'.qs),     rule('S[_xs(_ys)]'.qs, 'S[_xs](_ys)'.qs),
-                                                        rule('S[[_x]]'.qs, '[_x]'.qs),     rule('S[_x, _y]'.qs, 'S[_x], S[_y]'.qs),  rule('S[_xs._p]'.qs,   'S[_xs]._p'.qs),
+                                                         rule('S[~[_x]]'.qs,     '[S[_x]]'.qs),                // ~ modifier on arrays
+                                                         rule('S[~_xs(_ys)]'.qs, 'S[_xs](S[_ys])'.qs),         // ~ modifier on function calls
 
-                                                        rule('S[~[_x]]'.qs,     '[S[_x]]'.qs),                // ~ modifier on arrays
-                                                        rule('S[~_xs(_ys)]'.qs, 'S[_xs](S[_ys])'.qs),         // ~ modifier on function calls
-
-                                                        rule('S[_x ? _y : _z]'.qs, '(S[_x]) ? (S[_y]) : (S[_z])'.qs),  rule('S[_x && _y]'.qs, '(S[_x]) && (S[_y])'.qs),
+                                                         rule('S[_x ? _y : _z]'.qs, '(S[_x]) ? (S[_y]) : (S[_z])'.qs),  rule('S[_x && _y]'.qs, '(S[_x]) && (S[_y])'.qs),
                                                                                                                        rule('S[_x || _y]'.qs, '(S[_x]) || (S[_y])'.qs),
-                                                        // Unary seq operators
-                                                        rule('S[+_xs]'.qs, 'Array.prototype.slice.call((_xs))'.qs),
+                                                         // Unary seq operators
+                                                         rule('S[+_xs]'.qs, 'Array.prototype.slice.call((_xs))'.qs),
 
-                                                        rule('S[_xs %_thing]'.qs,   handle_filter_forms),   rule('S[_xs *_thing]'.qs,   handle_map_forms),
-                                                        rule('S[_xs /_thing]'.qs,   handle_fold_forms),     rule('S[_xs |_thing]'.qs,   handle_exists_forms),
+                                                         rule('S[_xs %_thing]'.qs,   handle_filter_forms),   rule('S[_xs *_thing]'.qs,   handle_map_forms),
+                                                         rule('S[_xs /_thing]'.qs,   handle_fold_forms),     rule('S[_xs |_thing]'.qs,   handle_exists_forms),
 
-                                                        rule('S[_xs %k*_thing]'.qs, handle_kmap_forms),     rule('S[_xs %v*_thing]'.qs, handle_vmap_forms),
-                                                        rule('S[_xs %k%_thing]'.qs, handle_kfilter_forms),  rule('S[_xs %v%_thing]'.qs, handle_vfilter_forms)]
+                                                         rule('S[_xs %k*_thing]'.qs, handle_kmap_forms),     rule('S[_xs %v*_thing]'.qs, handle_vmap_forms),
+                                                         rule('S[_xs %k%_thing]'.qs, handle_kfilter_forms),  rule('S[_xs %v%_thing]'.qs, handle_vfilter_forms)]
 
                     -where [// High-level form specializations
                             unrecognized(reason)                   = raise [new Error(reason)],
@@ -355,13 +348,13 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   vfilter_not = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k],        (_f) || (_xr[k] = _x); return _xr'.qs),
   vmap_filter = form('var _xr = new _xs.constructor(), x; for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], x = (_f), x && (_xr[k] =  x); return _xr'.qs)],
 
-         word_macros     = [rule('S[n[_u]]'.qs,            n),  rule('S[ni[_u]]'.qs,            ni),
-                            rule('S[n[_l, _u]]'.qs,        n),  rule('S[ni[_l, _u]]'.qs,        ni),
-                            rule('S[n[_l, _u, _step]]'.qs, n),  rule('S[ni[_l, _u, _step]]'.qs, ni),
+          word_macros     = [rule('S[n[_u]]'.qs,            n),  rule('S[ni[_u]]'.qs,            ni),
+                             rule('S[n[_l, _u]]'.qs,        n),  rule('S[ni[_l, _u]]'.qs,        ni),
+                             rule('S[n[_l, _u, _step]]'.qs, n),  rule('S[ni[_l, _u, _step]]'.qs, ni),
 
-                            rule('S[_o /keys]'.qs,   keys),    rule('S[_o |object]'.qs, object),  rule('S[_o /mobject'.qs, mobject),
-                            rule('S[_o /values]'.qs, values),  rule('S[_o -object]'.qs, object),  rule('S[_o -mobject'.qs, mobject),
-                            rule('S[_o /pairs]'.qs,  pairs),   rule('S[_o /object]'.qs, object),  rule('S[_o |mobject'.qs, mobject)]
+                             rule('S[_o /keys]'.qs,   keys),    rule('S[_o |object]'.qs, object),  rule('S[_o /mobject]'.qs, mobject),
+                             rule('S[_o /values]'.qs, values),  rule('S[_o -object]'.qs, object),  rule('S[_o -mobject]'.qs, mobject),
+                             rule('S[_o /pairs]'.qs,  pairs),   rule('S[_o /object]'.qs, object),  rule('S[_o |mobject]'.qs, mobject)]
 
                     -where [n(match)   = n_pattern .replace($.merge({_l: '0', _step: '1'}, match)),
                             ni(match)  = ni_pattern.replace($.merge({_l: '0', _step: '1'}, match)),
@@ -378,6 +371,6 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
   pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'.qs),
 
   object     = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r'.qs),
-  mobject    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], (r[x[0]] || (r[x[0]] = [])).push(x[1]); return r'.qs)]]});
+  mobject    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], (r[x[0]] || (r[x[0]] = [])).push(x[1]); return r'.qs)]])]});
 
 # Generated by SDoc 
