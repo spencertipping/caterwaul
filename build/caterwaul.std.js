@@ -99,6 +99,7 @@ i+=2)comma.push(new $.syntax( ':' ,new $.syntax(delimiter+pieces[i] +delimiter) 
 return hash_node.push(comma.unflatten() ) } ) ;
 s.qr=$.reexpander(function(node) {return node.with_data( '/' +node.as_escaped_string() .replace( /\//g , '\\/' ) + '/' ) } ) ;
 s.qs=function(node) {return new $.expression_ref($.syntax_to_expression($.parse(node.as_unescaped_string() ) ) , 'qs' ) } ;
+s.qse=function(node) {return new $.expression_ref($.syntax_to_expression(this.call(this,$.parse(node.as_unescaped_string() ) ) ) , 'qse' ) } ;
 s.qf=$.reexpander(function(node) {return function_template.replace( {_body:$.parse(node.as_unescaped_string() ) } ) } ) } ) (caterwaul_function.literal_modifiers.string) ;
 return caterwaul_function} } ) ;
 result.caterwaul_expression_ref_table= {qs1: ( "new caterwaul.syntax( \"function\" ,new caterwaul.syntax( \"(\" ,new caterwaul.syntax( \"_\" ) ) ,new caterwaul.syntax( \"{\" ,new caterwaul.syntax( \"return\" ,new caterwaul.syntax( \"_body\" ) ) ) )" ) ,qs2: ( "new caterwaul.syntax( \"()\" ,new caterwaul.syntax( \".\" ,new caterwaul.syntax( \"_regexp\" ) ,new caterwaul.syntax( \"exec\" ) ) ,new caterwaul.syntax( \"_\" ) )" ) } ;

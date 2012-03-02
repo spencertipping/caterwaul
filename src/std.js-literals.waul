@@ -33,21 +33,22 @@ caterwaul.module('std.js-literals', 'js js_literals', function ($) {
 
   # Functions can be written concisely using qf. This causes the string to be interpreted as the body of a function whose sole argument is called _. This may change at some point in the future.
 
-    (function (s) {s.qw = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
-                                                                 pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
-                                                          comma.push(new $.syntax(delimiter + pieces[i] + delimiter));
-                                                        return array_node.push(comma.unflatten())});
+    (function (s) {s.qw  = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
+                                                                  pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
+                                                           comma.push(new $.syntax(delimiter + pieces[i] + delimiter));
+                                                         return array_node.push(comma.unflatten())});
 
-                   s.qh = $.reexpander(function (node) {for (var hash_node = new $.syntax('{'), comma = new $.syntax(','), delimiter = node.data.charAt(0),
-                                                                 pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; i += 2)
-                                                          comma.push(new $.syntax(':', new $.syntax(delimiter + pieces[i] + delimiter), new $.syntax(delimiter + pieces[i + 1] + delimiter)));
-                                                        return hash_node.push(comma.unflatten())});
+                   s.qh  = $.reexpander(function (node) {for (var hash_node = new $.syntax('{'), comma = new $.syntax(','), delimiter = node.data.charAt(0),
+                                                                  pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; i += 2)
+                                                           comma.push(new $.syntax(':', new $.syntax(delimiter + pieces[i] + delimiter), new $.syntax(delimiter + pieces[i + 1] + delimiter)));
+                                                         return hash_node.push(comma.unflatten())});
 
-                   s.qr = $.reexpander(function (node) {return node.with_data('/' + node.as_escaped_string().replace(/\//g, '\\/') + '/')});
+                   s.qr  = $.reexpander(function (node) {return node.with_data('/' + node.as_escaped_string().replace(/\//g, '\\/') + '/')});
 
-                   s.qs = function (node) {return new $.expression_ref($.syntax_to_expression($.parse(node.as_unescaped_string())), 'qs')};
+                   s.qs  = function (node) {return new $.expression_ref($.syntax_to_expression($.parse(node.as_unescaped_string())), 'qs')};
+                   s.qse = function (node) {return new $.expression_ref($.syntax_to_expression(this.call(this, $.parse(node.as_unescaped_string()))), 'qse')};
 
-                   s.qf = $.reexpander(function (node) {return function_template.replace({_body: $.parse(node.as_unescaped_string())})})})(caterwaul_function.literal_modifiers.string);
+                   s.qf  = $.reexpander(function (node) {return function_template.replace({_body: $.parse(node.as_unescaped_string())})})})(caterwaul_function.literal_modifiers.string);
 
     return caterwaul_function}});
 
