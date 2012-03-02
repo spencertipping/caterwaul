@@ -1797,7 +1797,7 @@ nodes. At the end of folding there is only one child per paren-group.
 
     These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
 
-      pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = x || empty, this},
+      pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = caterwaul_global.syntax.promote(x || empty), this},
 
     Identification.
     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
@@ -2256,7 +2256,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                     else {this.data = data && data.toString(); this.length = 0;
                                                       for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                         for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                          this._append((c = it.constructor) === String || c === Number || c === Boolean ? new this.constructor(it) : it)}},
+                                                          this._append(caterwaul_global.syntax.promote(it))}},
 
                                    caterwaul_global.javascript_tree_type_methods,
                                    caterwaul_global.javascript_tree_metadata_methods,
@@ -2272,6 +2272,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                                 for (var k in o) if (own.call(o, k)) comma.push(new caterwaul_global.syntax(
                                                                                   ':', /^[$_A-Za-z][A-Za-z0-9$_]*$/.test(k) ? k : caterwaul_global.syntax.from_string(k), o[k].as('(')));
                                                                                 return new caterwaul_global.syntax('{', comma.length ? comma.unflatten() : [])}});
+
+    caterwaul_global.syntax.promote = function (v) {var c = v.constructor; return c === String || c === Number || c === Boolean ? new caterwaul.syntax(v) : v};
 
     var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
 
