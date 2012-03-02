@@ -1827,7 +1827,7 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
     var infix_function = function (node) {var d = node.data, left, fn;
                                           if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0]))
-                                            return new $.syntax('()', fn, this(node[0][0]).flatten(d).push(this(node[1])).with_data(',').unflatten())};
+                                            return new $.syntax('()', fn, this(left[0]).flatten(d).push(this(node[1])).with_data(',').unflatten())};
 
   Infix method application.
   This is subtly different from infix function application in that a method is called. You might want this when dealing with lots of nested methods, which can otherwise become hard to manage.

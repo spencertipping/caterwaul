@@ -368,7 +368,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new ty
 //     when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
 //     in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
 
-      as: function (d) {return this.data === d ? this : new this.constructor(d).push(this)},
+      as: function (d) {return this.data === d ? this : new caterwaul_global.syntax(d).push(this)},
 
     // Value construction.
 //     Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
