@@ -2331,7 +2331,7 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                             form(p)    = "tree.replace(_)".qf -where [tree = scoped(anon(p))],
 
   n_pattern  = anon('(function (i, u, s) {if ((u - i) * s <= 0) return []; for (var r = [], d = u - i; d > 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
-  ni_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return []; for (var r = [], d = u - i; d > 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
+  ni_pattern = anon('(function (i, u, s) {if (u - i < 0 || s === 0) return []; for (var r = [], d = u - i; d > 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
 
   keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'.qs),
   values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'.qs),
