@@ -1663,7 +1663,7 @@ To anonymize a set of macros you first need to create an anonymizer. This is eas
 Each anonymizer uses a separate symbol table. This means that two anonymizers that match against 'A' (or any other macro pattern) will always map them to different gensyms.
 
 caterwaul.module('std.anon', 'js_all', function ($) {
-  $.anonymizer(xs = arguments) = "$ /~parse/ _ /~replace/ table".qf -where [table = xs *~![x.constructor === Array ? x : x.split(' ')] *[[x, $.gensym(x)]] /object -seq]});
+  $.anonymizer(xs = arguments) = "$ /~parse/ _ /~replace/ table".qf -where [table = +xs *~![x.constructor === Array ? x : x.split(' ')] *[[x, $.gensym(x)]] /object -seq]});
 
 __
 meta::sdoc('waul::std.grammar', <<'__');
@@ -2228,7 +2228,7 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                                                          rule('S[_x ? _y : _z]'.qs, '(S[_x]) ? (S[_y]) : (S[_z])'.qs),  rule('S[_x && _y]'.qs, '(S[_x]) && (S[_y])'.qs),
                                                                                                                         rule('S[_x || _y]'.qs, '(S[_x]) || (S[_y])'.qs),
                                                          // Unary seq operators
-                                                         rule('S[+_xs]'.qs, 'Array.prototype.slice.call((_xs))'.qs),
+                                                         rule('S[+_xs]'.qs, 'Array.prototype.slice.call((S[_xs]))'.qs),
 
                                                          rule('S[_xs %_thing]'.qs,   filter_forms),   rule('S[_xs *_thing]'.qs,   map_forms),
                                                          rule('S[_xs /_thing]'.qs,   fold_forms),     rule('S[_xs |_thing]'.qs,   exists_forms),
@@ -2237,8 +2237,6 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                                                          rule('S[_xs %k%_thing]'.qs, kfilter_forms),  rule('S[_xs %v%_thing]'.qs, vfilter_forms)]
 
                     -where [// High-level form specializations
-                            unrecognized(reason)               = raise [new Error(reason)],
-
                             operator_case(forms)(match)        = parse_modifiers(match._thing, use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
                                                                  -where [use(form, iform)(body) = render_form(match._xs, body, form, iform)],
 

@@ -250,23 +250,6 @@ The <code>structure</code> method gives you a string containing the syntax tree 
 
   given.x [x + 1]
 
-  Delayed evaluation.
-  Functional languages like Haskell provide lazy semantics in the language; these allow you to represent infinite data structures and other cool things. Javascript uses strict semantics by
-  default, but you can wrap something in a function to delay its evaluation. Caterwaul provides a couple of macros that are linguistically suggestive of true lazy evaluation:
-
-  x = 10
-
-  f = ++x -delay
-
-  f()
-
-  g = ++x -lazy
-
-  g()
-
-  The <code>delay</code> modifier just wraps an expression in a context-preserving nullary function (equivalent to <code>bgiven.nothing in _expression</code>), and the <code>lazy</code>
-  modifier does the same thing but invokes the function at most once. (Future invocations of the wrapper function return the cached return value.)
-
   Side-effecting modifiers.
   These make it easy to manipulate values and return things without using an explicit variable. We do this in English using pronouns, and Caterwaul binds the variable <code>it</code> to refer
   to "the thing that we're working with."
@@ -298,6 +281,9 @@ The <code>structure</code> method gives you a string containing the syntax tree 
   x_over_yp1(x, y) = y + 1 -re [it === 0 ? 0 : x / it]
 
   Side-effecting won't impact the evaluation order of your code. That is, <code>x -se- y</code> and <code>x -re- y</code> will always evaluate <code>x</code> before <code>y</code>.
+
+  Another modifier is <code>-then-</code>, which is synonymous to <code>-re-</code> but doesn't allocate a closure or bind the <code>it</code> variable. It is semantically equivalent to
+  Javascript's native comma operator, but can take on different precedence levels.
 
   Quotation.
   <span id='quotation'></span> Most people won't use this, but it's handy if you're doing heavy-duty syntax analysis or writing complex macros. The standard library includes an obscure
