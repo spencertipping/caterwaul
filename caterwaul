@@ -287,9 +287,11 @@ __
 meta::alias('cloc', 'loc js::core/caterwaul\\.');
 meta::alias('ec', 'edit sdoc::js::caterwaul');
 meta::alias('eh', 'edit data::bootstrap.html.sdoc');
+meta::alias('er', 'edit hook::after-render::base-files');
 meta::alias('es', 'edit sdoc::data::style.css');
 meta::alias('ev', 'edit vim_highlighter::caterwaul');
-meta::alias('ew', 'edit sdoc::js::waul');
+meta::alias('ew', 'edit sdoc::waul::waul');
+meta::alias('ewb', 'edit sdoc::js::waul-bootstrap');
 meta::alias('lsc', 'ls -a sdoc::js::core/');
 meta::alias('lse', 'ls -a sdoc::js::extensions/');
 meta::alias('lst', 'ls -a sdoc::js::.*test/.*');
@@ -1133,6 +1135,7 @@ object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
 todo 62bc8a83ef5d4941cd2c1cdfb57a0320
 vim-highlighters 902333a0bd6ed90ff919fe8477cb4e69
+waul-object 4e04fdb8e560f4dd2ca4880b91a8e2ea
 __
 meta::configuration('dependencies', <<'__');
 # Named dependencies:
@@ -1497,8 +1500,9 @@ meta::function('minify-yui', <<'__');
 my ($filename) = @_;
 my $minified = $filename;
 $minified =~ s/\.js$/.min.js/;
+
 terminal::info("minifying $filename");
-file::write($minified, qx(yuicompressor "$filename"));
+file::write($minified, join '', qx(yuicompressor --nomunge --line-break 160 "$filename"));
 
 __
 meta::function('mv', <<'__');
@@ -1968,21 +1972,23 @@ my @web = select_keys('--criteria' => "::web/(.*/)?$_[0]");
 edit($web[0]);
 __
 meta::function('waul', <<'__');
-# Runs one or more Waul attributes with the waulrun interpreter, which is
-# assumed to be on the $PATH somewhere.
-
 my ($name, %options) = @_;
 $name =~ s/^waul:://;
-my $output = $options{output} || "$name.js";
+my $output     = $options{output} || "$name.js";
+my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
+my $waul       = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+
+terminal::info("compiling waul::$name using $waul ($extensions)");
+
 with_exported("waul::$name", sub {
   my ($exported) = @_;
-  sh("waul --output '$output' $exported")});
+  sh("$waul --output '$output' $extensions $exported")});
 
 __
 meta::hook('after-render::base-files', <<'__');
-my %options = map {$_ => 1} @_;
+my ($options, @stuff) = separate_options(@_);
 
-unless ($options{-M}) {
+unless ($$options{-M}) {
   chdir 'src' or die 'no src/ directory exists; are you running this from the repository root?';
   terminal::info('rendering caterwaul core (use -M to skip core/module rendering)');
   sh('./caterwaul render');
@@ -2003,8 +2009,20 @@ file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'),     m
 
 file::write('doc/caterwaul-tutorial.sdoc', retrieve('sdoc::web/tutorial'), mkpath => 1);
 
-terminal::info('regenerating waul');
-file::write('waul', retrieve('pp::js::waul'));
+my $waul = $$options{'--waul'} || 'waul';
+terminal::info("regenerating waul-core using $waul as a bootstrap compiler");
+file::write('waul.waul', retrieve('waul::waul'));
+sh("$waul -e build/caterwaul.std.min.js waul.waul");
+
+file::write('waul-core', retrieve('pp::js::waul-bootstrap'));
+chmod 0755, 'waul-core';
+
+terminal::info('regenerating waul-core using its replicator (identity transform)');
+file::write('waul-core', join '', qx|./waul-core --replicate|);
+chmod 0755, 'waul-core';
+
+terminal::info('regenerating waul from waul-core');
+file::write('waul', join '', qx|./waul-core --replicate -e build/caterwaul.std.min.js -e build/caterwaul.ui.min.js|);
 chmod 0755, 'waul';
 
 save();
@@ -2571,14 +2589,21 @@ parent::/home/spencertipping/bin/configuration  ce454a04338857c21b8be19980cc4b58
 retriever::http                                 a23617a5787de41d1a89ad4496cacce3
 
 __
+meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
+meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
+parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
+
+__
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
-function::sdoc                           f3f3f3127961399a4c38152771c966ab
-function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
+function::sdoc                           f0cea831720d18449455a8ed79181727
+function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
+function::sdoc-markdown                  2f219c0399669b223a6d1bf1829218ff
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
+retriever::markdown-sdoc                 20651301fffb3c018da926ede531f84c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 
@@ -2711,7 +2736,7 @@ meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
 meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 4d71ae092e2baa681e627f8a8ba8399e
+parent::object                 1f1bf492b56b2f0196b2018b11b8c991
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
@@ -2734,6 +2759,15 @@ meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
 meta::type::vim_highlighter  27990fddb6d7bd383b55dbdfee0d148d
 parent::object               4d71ae092e2baa681e627f8a8ba8399e
+
+__
+meta::parent('waul-object', <<'__');
+function::minify-yui                                        dd0d6afd6be3108180637436f058a181
+function::waul                                              66b92f55d5db498934b487188a04b16d
+meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
+parent::/home/spencertipping/conjectures/perl-objects/js    08631314298573e77850afe27d7d3003
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  0cef7258a2449765557387e954ab76d0
+parent::preprocessor                                        4450ebbe2c9d3a70ada4050fcd567907
 
 __
 meta::retriever('crunch', <<'__');
@@ -2964,110 +2998,14 @@ Licensed under the terms of the MIT source code license
 exports.caterwaul = caterwaul;
 
 __
-meta::sdoc('js::waul', <<'__');
+meta::sdoc('js::waul-bootstrap', <<'__');
 #!/usr/bin/env node
 
 Waul: the offline precompiler for Caterwaul | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-Introduction.
-Caterwaul is useful as a library and an online compiler, but when performance is important you probably want to deliver precompiled code. Waul is a program that does exactly that. You write a
-regular file that invokes Caterwaul on a function, and Waul emits a Javascript file that contains the Caterwaul-compiled results. For example:
-
-| $ cat > test.waul <<EOF
-  caterwaul('js_all')(function ($) {
-    console.log('#{message} from caterwaul!')
-    -where [message = 'hello']})(caterwaul);
-  EOF
-  $ waul test.waul
-  $ node test.js
-  hello from caterwaul!
-  $
-
-Waul has some limitations:
-
-| 1. It cannot precompile any macros that generate refs (this includes the -eval- modifier, unfortunately, though as of 1.1.6 -using- works just fine).
-  2. You need to inform it about any Caterwaul extensions up-front (I'll explain how to do this).
-
-Extensions.
-Caterwaul can be extended with custom macros, and in order to precompile something that uses these extensions you'll have to inform Waul about them. You can do this with the --extension flag,
-like this:
-
-| $ waul --extension caterwaul.custom.js foo.waul
-
-This will result in Waul loading in the custom extensions before customizing the Caterwaul instance that is used inside foo.waul. Waul comes with the standard library built-in, but you can
-disable it:
-
-| $ waul --no-std foo.waul                              # just use Caterwaul core
-
-You can compile multiple files at once using multiple arguments. If you do this, each will be compiled to its own .js file.
-
-Dependencies.
-This program depends on Caterwaul, which is baked in minified here. It includes the 'ui' library even though Waul itself doesn't use it. The reason is that Waul scripts are allowed to, so Waul
-needs to be prepared to precompile things that depend on it.
-
 - include build/caterwaul.min.js
-- include build/caterwaul.std.min.js
-- include build/caterwaul.ui.min.js
-
-caterwaul('js_all')(function ($) {
-  options.input_files.length ? options.input_files *!waul -seq : waul_repl(),
-
-  where [fs                         = require('fs'),
-         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true}
-                                      -se [it.input_files = []]
-                                      -se- process.argv.slice(2) *![x === '--extension' || x === '-e' ? it.extensions /~push/ xs[++xi]  :
-                                                                    x === '--output'    || x === '-o' ? it.output_pattern = xs[++xi]    :
-                                                                    x === '--no-table'  || x === '-T' ? it.expression_ref_table = false :
-                                                                    x === '--configure' || x === '-c' ? it.configuration = xs[++xi]     :
-                                                                    x === '--no-std'    || x === '-n' ? it.use_std = false              : it.input_files /~push/ x] /seq,
-
-         caterwaul_template         = '(function () {_caterwaul_init; caterwaul._environment = {caterwaul: caterwaul}; _extensions; return caterwaul.deglobalize()})'.qs,
-
-         waul_input(filename)       = fs.readFileSync(filename, 'utf8') -re [/\.sdoc$/i.test(filename) ? it.split(/(?:\n\s*)+\n/) %![/^\s*[A-Z|]/.test(x)] -seq -re- it.join('\n') : it],
-         extension_tree(filename)   = new $.opaque_tree(filename /!waul_input),
-
-         build_caterwaul            = caterwaul_template.replace({_caterwaul_init: $ /~replicator/ {core_only: !options.use_std},
-                                                                  _extensions:     new $.syntax(';', options.extensions *extension_tree -seq)}) /-$.compile/ {require: require},
-
-         immediate_pattern          = 'caterwaul(_transform)(_function)();'.qs,
-
-         module_pattern             = 'caterwaul.module(_name, _transform, _function);'.qs,
-         module_pattern_explicit    = 'caterwaul.module(_name, caterwaul(_transform)(_function));'.qs,
-         module_pattern_identity    = 'caterwaul.module(_name, function (_formal) {_body});'.qs,
-         module_template            = 'caterwaul.module(_name, _compiled);'.qs,
-
-         offline_pattern            = 'caterwaul.offline(_transform, _function);'.qs,
-         offline_template           = '(_compiled)();'.qs,
-
-         output_for(filename)       = filename.replace(/^((?:.*\/)?)((?:(?!\.waul(?:\.sdoc)?)[^\/])+)(\.waul(?:\.sdoc)?)?/, options.output_pattern),
-         waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
-
-         waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input),
-         waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)                               :
-                                      module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it, module_template)  :
-                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)                    :
-                                      offline_pattern         /~match/ tree                                            -re [it ? waul_transform(file, it, offline_template) :
-                                        raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]]],
-
-         introduce()                = process.stderr.write('Waul precompiler (repl mode), copyright 2012 Spencer Tipping\n' +
-                                                           'Licensed under the terms of the MIT source code license\n' +
-                                                           'http://github.com/spencertipping/caterwaul\n'),
-
-         waul_repl()                = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
-                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: caterwaul, caterwaul: caterwaul, require: require})) -rescue- cc(e, undefined),
-                                      caterwaul                = build_caterwaul(),
-                                      instance                 = caterwaul(options.configuration)],
-
-         waul_identity(file, m)     = file /-waul_output/ m._,
-
-         waul_transform(file, m, t) = file /-waul_output/ t.replace({_name: m._name, _compiled: transformed_function})
-                              -where [caterwaul            = build_caterwaul(),
-                                      transformed_function = caterwaul(m._transform.as_escaped_string())(m._function) / null /-caterwaul.late_bound_tree/ options
-                                                        -re- it.replace(it /!caterwaul.gensym_rename_table)],
-
-         waul_run(m)                = caterwaul(m._transform.as_escaped_string())(m._function) /-caterwaul.compile/ {require: require, caterwaul: caterwaul} -re- it()
-                              -where [caterwaul = build_caterwaul()]]}, {require: require, process: process})(caterwaul);
+- include waul.js
 
 __
 meta::sdoc('js::web/code-snippets', <<'__');
@@ -3357,6 +3295,103 @@ form, written meta::\w+('stuff', <<'eof');\n...\neof\n. We just need to find all
 
                                               parse_long(match)  = long_form_parser.exec(match)  -re- {namespace: it[1], attribute: it[2], value: it[4]},
                                               parse_short(match) = short_form_parser.exec(match) -re- {namespace: it[1], attribute: it[2], value: it[3]}];
+
+__
+meta::sdoc('waul::waul', <<'__');
+Waul precompiler implementation | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Caterwaul is useful as a library and an online compiler, but when performance is important you probably want to deliver precompiled code. Waul is a program that does exactly that. You write a
+regular file that invokes Caterwaul on a function, and Waul emits a Javascript file that contains the Caterwaul-compiled results. For example:
+
+| $ cat > test.waul <<EOF
+  caterwaul('js_all')(function ($) {
+    console.log('#{message} from caterwaul!')
+    -where [message = 'hello']})(caterwaul);
+  EOF
+  $ waul test.waul
+  $ node test.js
+  hello from caterwaul!
+  $
+
+Waul has some limitations:
+
+| 1. It cannot precompile any macros that generate refs (this includes the -eval- modifier, unfortunately, though as of 1.1.6 -using- works just fine).
+  2. You need to inform it about any Caterwaul extensions up-front (I'll explain how to do this).
+
+Extensions.
+Caterwaul can be extended with custom macros, and in order to precompile something that uses these extensions you'll have to inform Waul about them. You can do this with the --extension flag,
+like this:
+
+| $ waul --extension caterwaul.custom.js foo.waul
+
+You can compile multiple files at once using multiple arguments. If you do this, each will be compiled to its own .js file.
+
+Self-replication.
+Waul can preload itself with Caterwaul extensions and emit a copy of itself on stdout. To do this, use the '-r' or '--replicate' options along with one or more extensions. These extensions
+will be implicitly enabled in the resulting waul script.
+
+caterwaul.module('waul', 'js_all', function ($) {
+  process /~nextTick/ main,
+
+  where [main()                     = options.extensions *extension_tree *!evaluate_extension /seq -then- main_action(),
+         main_action()              = options.replicate ? replicate() : options.input_files.length ? options.input_files *!waul -seq : waul_repl(),
+
+         fs                         = require('fs'),
+         options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true}
+                                      -se [it.input_files = []]
+                                      -se- process.argv.slice(2) *![x === '--extension' || x === '-e' ? it.extensions /~push/ xs[++xi]  :
+                                                                    x === '--output'    || x === '-o' ? it.output_pattern = xs[++xi]    :
+                                                                    x === '--no-table'  || x === '-T' ? it.expression_ref_table = false :
+                                                                    x === '--replicate' || x === '-r' ? it.replicate = true             :
+                                                                    x === '--configure' || x === '-c' ? it.configuration = xs[++xi]     : it.input_files /~push/ x] /seq,
+
+         waul_input(filename)       = fs.readFileSync(filename, 'utf8') -re [/\.sdoc$/i.test(filename) ? it.split(/(?:\n\s*)+\n/) %![/^\s*[A-Z|]/.test(x)] -seq -re- it.join('\n') : it],
+         extension_tree(filename)   = new $.opaque_tree(filename /!waul_input),
+         evaluate_extension(e)      = '(function(){_e})()'.qs /~replace/ {_e: e} /-$.compile/ {caterwaul: $, require: require},
+
+         replicate()                = process.stdout.write('#!/usr/bin/env node\n' +
+                                                           '// Waul precompiler (or derivative), copyright 2012 Spencer Tipping\n' +
+                                                           '// Licensed under the terms of the MIT source code license\n' +
+                                                           '// http://github.com/spencertipping/caterwaul\n\n' +
+                                                           $.replicator()),
+
+         immediate_pattern          = 'caterwaul(_transform)(_function)();'.qs,
+
+         module_pattern             = 'caterwaul.module(_name, _transform, _function);'.qs,
+         module_pattern_explicit    = 'caterwaul.module(_name, caterwaul(_transform)(_function));'.qs,
+         module_pattern_identity    = 'caterwaul.module(_name, function (_formal) {_body});'.qs,
+         module_template            = 'caterwaul.module(_name, _compiled);'.qs,
+
+         offline_pattern            = 'caterwaul.offline(_transform, _function);'.qs,
+         offline_template           = '(_compiled)();'.qs,
+
+         output_for(filename)       = filename.replace(/^((?:.*\/)?)((?:(?!\.waul(?:\.sdoc)?)[^\/])+)(\.waul(?:\.sdoc)?)?/, options.output_pattern),
+         waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
+
+         waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input),
+         waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)                               :
+                                      module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it, module_template)  :
+                                      module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)                    :
+                                      offline_pattern         /~match/ tree                                            -re [it ? waul_transform(file, it, offline_template) :
+                                        raise [new Error('waul: unrecognized toplevel construct in #{file}')]]]]],
+
+         introduce()                = process.stderr.write('Waul precompiler or derivative (repl mode), copyright 2012 Spencer Tipping\n' +
+                                                           'Licensed under the terms of the MIT source code license\n' +
+                                                           'http://github.com/spencertipping/caterwaul\n'),
+
+         waul_repl()                = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
+                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: $, caterwaul: $, require: require})) -rescue- cc(e, undefined),
+                                      instance                 = $(options.configuration)],
+
+         waul_identity(file, m)     = file /-waul_output/ m._,
+
+         waul_transform(file, m, t) = file /-waul_output/ t.replace({_name: m._name, _compiled: transformed_function})
+                              -where [transformed_function = $(m._transform.as_escaped_string())(m._function) / null /-$.late_bound_tree/ options
+                                                        -re- it.replace(it /!$.gensym_rename_table)],
+
+         waul_run(m)                = $(m._transform.as_escaped_string())(m._function) /-$.compile/ {require: require, caterwaul: $} -re- it()]});
 
 __
 meta::sdoc('web/tutorial', <<'__');
