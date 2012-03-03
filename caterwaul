@@ -509,12 +509,12 @@ caterwaul.module("std.grammar",function($){$.grammar=function(anonymous_symbols,
 },expand=$($.alternatives(rule_cc(rule,anon)));return(function(_){return(function(it){return(((it)&&(this(it))))}).call(this,(expand.call(expand,anon_pattern.replace({_x:_._expression}))))
 })}).call(this)}});caterwaul.module("std.seq",(function(qs,qs1,qs2,qs3,qs4,qs5,qs6,qs7,qs8,qs9,qsa,qsb,qsc,qsd,qse,qsf,qsg,qsh,qsi,qsj,qsk,qsl,qsm,qsn,qso,qsp,qsq,qsr,qss,qst,qsu,qsv,qsw,qsx,qsy,qsz,qs10,qs11,qs12,qs13,qs14,qs15,qs16,qs17,qs18,qs19,qs1a,qs1b,qs1c,qs1d,qs1e,qs1f,qs1g,qs1h,qs1i,qs1j,qs1k,qs1l,qs1m,qs1n,qs1o,qs1p,qs1q,qs1r,qs1s,qs1t,qs1u,qs1v,qs1w,qs1x,qs1y,qs1z,qs20,qs21,qs22,qs23,qs24,qs25,qs26,qs27,qs28,qs29,qs2a,qs2b,qs2c,qs2d,qs2e,qs2f,qs2g,qs2h,qs2i,qs2j,qs2k,qs2l,qs2m,qs2n,qs2o,qs2p,qs2q,qs2r,qs2s){var result=(function($){$.seq=function(caterwaul_function){return(function(it){return(it.modifiers.seq=$.grammar("S",qs,(function(rule,anon){return(function(){var operator_macros=(function(){var loop_anon=$.anonymizer("x","y","i","j","l","lj","r","o","k"),scope=anon(qs1),scoped=function(t){return(scope).replace({_body:t})
 },form=function(x){return(function(it){return(it.contains_x0=/x0/.test(x.toString())),it}).call(this,(loop_anon(scoped(anon(x)))))},map=form(qs2),each=form(qs3),flatmap=form(qs4),iterate=form(qs5),filter=form(qs6),filter_not=form(qs7),map_filter=form(qs8),imap_filter=form(qs9),foldl=form(qsa),foldr=form(qsb),unfold=form(qsc),ifoldl=form(qsd),ifoldr=form(qse),iunfold=form(qsf),exists=form(qsg),not_exists=form(qsh),r_exists=form(qsi),concat=anon(qsj),kmap=form(qsk),keach=form(qsl),kfilter=form(qsm),kfilter_not=form(qsn),kmap_filter=form(qso),vmap=form(qsp),veach=form(qsq),vfilter=form(qsr),vfilter_not=form(qss),vmap_filter=form(qst);
-return((function(){var unrecognized=function(reason){return(function(){throw new Error(reason)}).call(this)},operator_case=function(forms){return function(match){return(function(){var use=function(form,iform){return function(body){return render_form(match._xs,body,form,iform)
+return((function(){var unrecognized=function(reason){return(function(){throw new Error(reason)}).call(this)},operator_case=function(forms){return function(match){return(function(){var expander=this,use=function(form,iform){return function(body){return render_form.call(expander,match._xs,body,form,iform)
 }};return(parse_modifiers(match._thing,use(forms.normal,forms.inormal),use(forms.bang,forms.ibang),use(forms.tbang,forms.itbang)))}).call(this)}},handle_map_forms=operator_case({normal:map,bang:each,tbang:flatmap,itbang:iterate}),handle_filter_forms=operator_case({normal:filter,bang:filter_not,tbang:map_filter,itbang:imap_filter}),handle_fold_forms=operator_case({normal:foldl,bang:foldr,tbang:unfold,inormal:ifoldl,ibang:ifoldr,itbang:iunfold}),handle_kmap_forms=operator_case({normal:kmap,bang:keach}),handle_kfilter_forms=operator_case({normal:kfilter,bang:kfilter_not,tbang:kmap_filter}),handle_vmap_forms=operator_case({normal:vmap,bang:veach}),handle_vfilter_forms=operator_case({normal:vfilter,bang:vfilter_not,tbang:vmap_filter}),handle_exists_forms=operator_case({normal:exists,bang:not_exists,tbang:r_exists}),parse_modifiers=function(tree,n,b,tb){return(function(){var r=null;
 return(((r=qsu.match(tree))?tb(r._x):(r=qsv.match(tree))?b(r._x):n(tree)))}).call(this)},render_form=function(xs,body,form,iform){return(function(){var resulting=parse_prefix(body,form,iform);
-return(create_form(xs,resulting.body,resulting.form,resulting.iform))}).call(this)},parse_prefix=function(body,form,iform){return(function(){var r=null,transform=(r=qsw.match(body))?function(_){return promote_seq(close_body(_))
+return(create_form.call(this,xs,resulting.body,resulting.form,resulting.iform))}).call(this)},parse_prefix=function(body,form,iform){return(function(){var r=null,transform=(r=qsw.match(body))?function(_){return promote_seq(close_body(_))
 }:(r=qsx.match(body))?promote_seq:(r=qsy.match(body))?close_body:function(_){return _};return({form:transform(form),iform:transform(iform),body:r?r._x:body})}).call(this)
-},create_form=function(xs,body,form,iform){return(function(){var r=null,use=function(f,match){return f.replace($.merge({_f:match._x,_init:match._init,_s:xs},names_for(match._var)))
+},create_form=function(xs,body,form,iform){return(function(){var r=null,expander=this,use=function(f,match){return expander.call(expander,f.replace($.merge({_f:match._x,_init:match._init,_s:xs},names_for(match._var))))
 },promote=function(f,body){return((f).replace({_f:(f.uses_x0?qsz:qs10).replace($.merge({_f:body},gensym_names)),_s:xs})).replace(gensym_names)};return(((r=qs11.match(body)||qs12.match(body))?use(iform,r):(r=qs13.match(body)||qs14.match(body))?use(form,r):promote(form,body)))
 }).call(this)},names_for=function(p){return p?{_x:p,_x0:(""+(p)+"0"),_xi:(""+(p)+"i"),_xl:(""+(p)+"l"),_xs:(""+(p)+"s"),_xr:(""+(p)+"r")}:{_x:"x",_x0:"x0",_xi:"xi",_xl:"xl",_xs:"xs",_xr:"xr"}
 },gensym_names=(function(xs){var x,x0,xi,xl,xr;var xr=new xs.constructor();for(var k in xs){if(Object.prototype.hasOwnProperty.call(xs,k)){x=xs[k],xr[k]=(($.gensym).call({x0:x0,xi:xi,xl:xl,xs:xs,xr:xr},x))
@@ -848,38 +848,6 @@ var shell = given.nothing in
 
 
 
-// Sequence deciphering applet.
-// This uses regular expressions to parse a sequence operator. It then populates a table describing the operation and invocation context.
-
-$('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.result[row_for('Prefix'), row_for('Operator'), row_for('Block'), row_for('Variables')])
-
--where [row_for(name) = jquery [tr(td.name[name], td.fragment, td.desc)] -se- it.addClass(name.toLowerCase()),
-
- fills_result(e) = e -se- setTimeout(delay in e.keyup(change).change(change) -se- change.call(e[0]) -where [change(e) = fill_table_from(parse($(this).val()))], 10),
- fill_table_from(p) = $('#seq-decipher table.result') -se- it.find('td.fragment, td.desc').text('')
- -se- p /pairs *![it.find(x[0].replace(/^/, 'tr.').replace(/_/, ' td.')).text(x[1])] /seq,
-
- op_names = {'*': 'map', '*!': 'each', '*~!': 'flatmap', '%': 'filter', '%!': 'filter-not', '%~!': 'map/filter',
- '/': 'fold-left', '/!': 'fold-right', '/~!': 'unfold', '|': 'exists'},
-
- simple_op(op, desc) = {operator_fragment: op, operator_desc: desc},
- parse(op) = op === '/pairs' && simple_op(op, 'convert object to array of key/value pairs') ||
- op === '/keys' && simple_op(op, 'return array of keys from object') ||
- op === '/values' && simple_op(op, 'return array of values from object') ||
- /[-\/\|]object/.test(op) && simple_op(op, 'construct object from array of key/value pairs') ||
-
- op === '+' && simple_op(op, 'concatenate arrays') ||
- op === '-' && simple_op(op, 'cartesian product of arrays') ||
- op === '^' && simple_op(op, 'zip arrays') ||
-
- /^(%[kv])?([\*%\/\|](?:~!|!)?)([~\+]{0,2})(\w+)?/.exec(op.replace(/\s/g, '')) -re-
- {operator_fragment: it[2], operator_desc: op_names[it[2]],
- prefix_fragment: it[1], prefix_desc: it[1] === '%k' ? 'object keys' : it[1] === '%v' ? 'object values' : '',
- block_fragment: it[3], block_desc: [/~/.test(it[3]) ? 'sequence context' : '', /\+/.test(it[3]) ? 'closure wrapping' : ''] %[x] -seq
- -re- it.join(' and '),
- variables_fragment: it[4], variables_desc: it[4] ? '#{it[4]}, #{it[4]}0, #{it[4]}i, #{it[4]}l' : 'x, x0, xi, xl'} /when.it];
-
-// Generated by SDoc 
 
 
 
@@ -3222,39 +3190,6 @@ in the markup.
                                                                              paragraph = jquery in p[escape_html_in(parts[2])]]];
 
 __
-meta::sdoc('js::web/seq-decipher', <<'__');
-Sequence deciphering applet.
-This uses regular expressions to parse a sequence operator. It then populates a table describing the operation and invocation context.
-
-$('#seq-decipher').append(jquery in input /val('%k*~!+y') %fills_result + table.result[row_for('Prefix'), row_for('Operator'), row_for('Block'), row_for('Variables')])
-
--where [row_for(name)       = jquery [tr(td.name[name], td.fragment, td.desc)] -se- it.addClass(name.toLowerCase()),
-
-        fills_result(e)     = e -se- setTimeout(delay in e.keyup(change).change(change) -se- change.call(e[0]) -where [change(e) = fill_table_from(parse($(this).val()))], 10),
-        fill_table_from(p)  = $('#seq-decipher table.result') -se- it.find('td.fragment, td.desc').text('')
-                                                              -se- p /pairs *![it.find(x[0].replace(/^/, 'tr.').replace(/_/, ' td.')).text(x[1])] /seq,
-
-        op_names            = {'*': 'map',       '*!': 'each',       '*~!': 'flatmap',  '%': 'filter', '%!': 'filter-not', '%~!': 'map/filter',
-                               '/': 'fold-left', '/!': 'fold-right', '/~!': 'unfold',   '|': 'exists'},
-
-        simple_op(op, desc) = {operator_fragment: op, operator_desc: desc},
-        parse(op)           = op === '/pairs'  && simple_op(op, 'convert object to array of key/value pairs') ||
-                              op === '/keys'   && simple_op(op, 'return array of keys from object') ||
-                              op === '/values' && simple_op(op, 'return array of values from object') ||
-                              /[-\/\|]object/.test(op) && simple_op(op, 'construct object from array of key/value pairs') ||
-
-                              op === '+' && simple_op(op, 'concatenate arrays') ||
-                              op === '-' && simple_op(op, 'cartesian product of arrays') ||
-                              op === '^' && simple_op(op, 'zip arrays') ||
-
-                              /^(%[kv])?([\*%\/\|](?:~!|!)?)([~\+]{0,2})(\w+)?/.exec(op.replace(/\s/g, '')) -re-
-                              {operator_fragment: it[2],   operator_desc: op_names[it[2]],
-                                 prefix_fragment: it[1],     prefix_desc: it[1] === '%k' ? 'object keys' : it[1] === '%v' ? 'object values' : '',
-                                  block_fragment: it[3],      block_desc: [/~/.test(it[3]) ? 'sequence context' : '', /\+/.test(it[3]) ? 'closure wrapping' : ''] %[x] -seq
-                                                                          -re- it.join(' and '),
-                              variables_fragment: it[4],  variables_desc: it[4] ? '#{it[4]}, #{it[4]}0, #{it[4]}i, #{it[4]}l' : 'x, x0, xi, xl'} /when.it];
-
-__
 meta::sdoc('js::web/shell', <<'__');
 var shell = given.nothing in
             shell.append(history_container, shell_prompt)
@@ -3454,6 +3389,8 @@ interested in using Caterwaul for production projects.
     <span class='signature'>Softpedia</span></blockquote>
 
   Using Caterwaul.
+  I recommend that you don't use Caterwaul because it's a monstrosity. However, if you're adventurous and self-destructive, here's how to go about it.
+
   Caterwaul is pure Javascript, so you can integrate it into any web page without much effort. For example:
 
   | &lt;script src='http://caterwauljs.org/build/caterwaul.min.js'>&lt;/script>
@@ -3785,9 +3722,6 @@ For instance, suppose we want an array of the first 10 squares. Using the sequen
 
 ni[1, 10] *[x * x] /seq
 
-  Deciphering sequence code.
-  Enter a sequence operator here to see how it is decoded by the <code>seq</code> library (this will be more relevant when reading the sections below): <div id='seq-decipher'></div>
-
   Mapping and iterating.
   The <code>*</code> operator is responsible for mapping, iterating, and flat-mapping. It's fairly easy to use; you just "multiply" a sequence by a bracketed expression. <code>*</code> will
   create a variable called <code>x</code> and evaluate your expression for each element in the sequence. It then collects these results and returns a new array. For example:
@@ -3854,23 +3788,10 @@ ni[1, 10] *[x * x] /seq
   Despite the wide array of operators supported, there is a high degree of regularity among them. Each operator that takes a block (like <code>*</code> does) has several options that can be
   set to change the way it interprets the block.
 
-    Sequence interpretation.
-    Normally the expression inside <code>[]</code> is interpreted as a regular Javascript expression. But sometimes you want to remain in sequence context so that you don't have to explicitly
-    modify the expression. To do that, you prefix the <code>[]</code> with a <code>~</code>:
-
-    seq in [[1], [2], [3]] *~[x *[x + 1]]
-
     Variable renaming.
-    In the example above we lost access to the outer <code>x</code> due to shadowing. To avoid this problem, the sequence language lets you rename any variable by prefixing the <code>[]</code>
-    with a new variable name:
+    The sequence language lets you rename any variable by prefixing the <code>[]</code> with a new variable name:
 
     seq in [1, 2, 3] *y[y + 1]
-
-    You can use both of these options at the same time, yielding this:
-
-    seq in [[1], [2], [3]] *~y[y *[x + 1]]
-
-    Note that you can't say <code>*y~[...]</code>, as this is invalid Javascript syntax (<code>~</code> is always a unary operator).
 
     Function promotion.
     Caterwaul 1.1 adds the ability to implicitly promote functions by using them instead of a <code>[]</code> block. For example:
@@ -4297,7 +4218,8 @@ peril, both due to volatility and because they might be useless.)
 
     'x + 1'.qs
 
-    This creates a reference to the syntax tree generated by parsing <code>x + 1</code>. It's rare that you'd use this unless you're writing macros.
+    This creates a reference to the syntax tree generated by parsing <code>x + 1</code>. It's rare that you'd use this unless you're writing macros. You can also use <code>.qse</code> as of
+    Caterwaul 1.2.2.
 
     '_ + 1'.qf
 

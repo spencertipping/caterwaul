@@ -226,7 +226,8 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                             unrecognized(reason)               = raise [new Error(reason)],
 
                             operator_case(forms)(match)        = parse_modifiers(match._thing, use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
-                                                                 -where [use(form, iform)(body) = render_form(match._xs, body, form, iform)],
+                                                                 -where [expander               = this,
+                                                                         use(form, iform)(body) = render_form.call(expander, match._xs, body, form, iform)],
 
                             handle_map_forms                   = operator_case({normal: map,     bang: each,        tbang: flatmap,                                    itbang: iterate}),
                             handle_filter_forms                = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                 itbang: imap_filter}),
@@ -244,7 +245,8 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                                                                   (r =  '!_x'.qs.match(tree)) ?  b(r._x) : n(tree)) -where [r = null],
 
                             // Body parsing (entry point for operator_case)
-                            render_form(xs, body, form, iform) = create_form(xs, resulting.body, resulting.form, resulting.iform) -where [resulting = parse_prefix(body, form, iform)],
+                            render_form(xs, body, form, iform) = create_form.call(this, xs, resulting.body, resulting.form, resulting.iform)
+                                                                 -where [resulting = parse_prefix(body, form, iform)],
 
                             parse_prefix(body, form, iform)    = {form: transform(form), iform: transform(iform), body: r ? r._x : body}
                                                                  -where [r         = null,
@@ -255,12 +257,12 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                             create_form(xs, body, form, iform) = ((r = '_var@0[_init][_x]'.qs.match(body) || '[_init][_x]'.qs.match(body)) ? use(iform, r) :
                                                                   (r = '_var@0[_x]'       .qs.match(body) ||        '[_x]'.qs.match(body)) ? use(form,  r) : promote(form, body))
 
-                                                          -where [r                = null,
-                                                                  use(f, match)    = f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var)),
+                                            -where [r                = null,
+                                                    expander         = this,
+                                                    use(f, match)    = expander.call(expander, f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var))),
 
-                                                                  promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ gensym_names),
-                                                                                                   _s: xs}
-                                                                                       /~replace/ gensym_names],
+                                                    promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ gensym_names), _s: xs}
+                                                                         /~replace/ gensym_names],
 
                             names_for(p)                       = p ? {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l', _xs: '#{p}s', _xr: '#{p}r'}
                                                                    : {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs', _xr:    'xr'},
