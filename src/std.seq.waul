@@ -42,8 +42,7 @@
   # Modifiers.
 #   Modifiers are unary operators that come after the primary operator. These have the same (or similar) functionality as before:
 
-  # | ~ = interpret something in sequence context   e.g.  [[1], [2], [3]] *~[x *[x + 1]] |seq  ->  [[2], [3], [4]]
-#     x = rename the variable from 'x'              e.g.  [1, 2, 3] *y[y + 1] |seq             ->  [2, 3, 4]
+  # | x = rename the variable from 'x'              e.g.  [1, 2, 3] *y[y + 1] -seq             ->  [2, 3, 4]
 
   # Here, 'x' means any identifier. Caterwaul 1.0 introduces some new stuff. The map function now has a new variant, *~!. Filter also supports this variant. Like other operators, they support
 #   variable renaming and sequence context. You can do this by putting those modifiers after the *~!; for instance, xs *~!~[exp] interprets 'exp' in sequence context. Similarly, *~!y[exp] uses
@@ -56,8 +55,8 @@
 
   # Variables.
 #   All of the variables from before are still available and the naming is still mostly the same. Each block has access to 'x', which is the immediate element. 'xi' is the index, and 'x0' is the
-#   alternative element for folds. Because all sequences are finite, a new variable 'xl' is available -- this is the total number of elements in the source sequence. The sequence object is no
-#   longer accessible because there may not be a concrete sequence. (I'm leaving room for cross-operation optimizations in the future.) The renaming is done exactly as before:
+#   alternative element for folds. Because all sequences are finite, a new variable 'xl' is available -- this is the total number of elements in the source sequence. The renaming is done exactly
+#   as before:
 
   # | [1, 2, 3] *[x + 1] |seq             -> [2, 3, 4]
 #     [1, 2, 3] *y[y + 1] |seq            -> [2, 3, 4]
@@ -113,14 +112,14 @@
   # Folding prefixes.
 #   New in Caterwaul 1.1 is the ability to specify fold prefixes. This allows you to specify the initial element of a fold:
 
-  # | xs /[0][x0 + x*x] -seq              (sum the squares of each element)
-#     xs /~[[]][x0 + [x, x + 1]] -seq     (equivalent to  xs *~![[x, x + 1]] -seq)
+  # | xs /[0][x0 + x*x] -seq                      (sum the squares of each element)
+#     xs /[[]][x0 + [x, x + 1] -seq] -seq         (equivalent to xs *~![[x, x + 1]] -seq, but a lot less efficient)
 
   # From 1.1.5 onwards, these fold prefixes can be used with other operators as well. For example:
 
-  # | 1 /~![xi < 10][x + 1] -seq          (return the array [1, 2, ..., 9]: the first block conditionalizes the unfold)
-#     xs %~![x < 0][-x] -seq              (return an array of the negation of all negative elements in the first)
-#     xs *~![xi < 10][f(x)] -seq          (return the tenth composition of f over x)
+  # | 1 /~![xi < 10][x + 1] -seq                  (return the array [1, 2, ..., 9]: the first block conditionalizes the unfold)
+#     xs %~![x < 0][-x] -seq                      (return an array of the negation of all negative elements in the first)
+#     xs *~![xi < 10][f(x)] -seq                  (return the tenth composition of f over x)
 
   # Function promotion.
 #   Caterwaul 1.1 also adds support for implicit function promotion of sequence block expressions:
@@ -131,28 +130,10 @@
 
   # You can use this to make method calls, which will remain bound to the original object:
 
-  # | xs *foo.bar -seq            (equivalent to  xs *[foo.bar(x)] -seq)
-#     xs *(bar + bif).baz -seq    (equivalent to  xs *[(bar + bif).baz(x)] -seq)
+  # | xs *foo.bar -seq            (equivalent to xs *[foo.bar(x)] -seq)
+#     xs *(bar + bif).baz -seq    (equivalent to xs *[(bar + bif).baz(x)] -seq)
 
-  # The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't use other modifiers with a promoted
-#   function, since the meaning would be unclear.
-
-  # Scope wrapping.
-#   Normally sequences use thin compilation; that is, the body of each sequence element is inserted directly into a for-loop. This increases performance by eliminating a function call, but it
-#   has the usual caveats about variable sharing. For instance:
-
-  # | fs = [1, 2, 3] *[delay in x] -seq
-#     fs[0]()                     -> 3  (counterintuitive)
-#     fs[1]()                     -> 3  (counterintuitive)
-#     fs[2]()                     -> 3  (expected)
-
-  # The problem is that all three closures get the same value of 'x', which is a single lexically-scoped variable. To fix this, caterwaul 1.1 introduces the unary + modifier on blocks. This
-#   wraps them in a closure to give each iteration its own lexical scope:
-
-  # | fs = [1, 2, 3] *+[delay in x] -seq
-#     fs[0]()                     -> 1
-#     fs[1]()                     -> 2
-#     fs[2]()                     -> 3
+  # The only restriction is that you can't use a bracketed expression as the last operator; otherwise it will be interpreted as a block. You also can't rename variables with function promotion.
 
   # Numbers.
 #   Caterwaul 1.0 removes support for the infinite stream of naturals (fun though it was), since all sequences are now assumed to be finite and are strictly evaluated. So the only macros
@@ -195,6 +176,14 @@
   # Note that this is a breaking change! The fix is to prepend sequence variables with '+' (see 'Slicing' above). This breaks any code that relies on the seq library taking care of Arguments
 #   objects by promoting them into arrays.
 
+# Breaking changes in Caterwaul 1.2.3.
+# I discovered that Caterwaul <= 1.2.2 had scope leakage; in particular, any occurrences of variables like _x in the sequence body would be rewritten into seq variables such as 'x', 'x0', etc.
+# This arose because of replacement ordering; the body was substituted first and the variable substitution happened later. I refactored the seq library internals significantly for Caterwaul
+# 1.2.3, in the process removing two previously-supported constructs:
+
+# | xs *~[n[x]] -seq              <- no longer valid; the ~ prefix modifier is not supported
+#   xs *+["x".qf] -seq            <- also not valid; the + prefix modifier is not supported
+
 # Portability.
 # The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
 # such (from a design perspective).
@@ -216,51 +205,36 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                                                          // Unary seq operators
                                                          rule('S[+_xs]'.qs, 'Array.prototype.slice.call((_xs))'.qs),
 
-                                                         rule('S[_xs %_thing]'.qs,   handle_filter_forms),   rule('S[_xs *_thing]'.qs,   handle_map_forms),
-                                                         rule('S[_xs /_thing]'.qs,   handle_fold_forms),     rule('S[_xs |_thing]'.qs,   handle_exists_forms),
+                                                         rule('S[_xs %_thing]'.qs,   filter_forms),   rule('S[_xs *_thing]'.qs,   map_forms),
+                                                         rule('S[_xs /_thing]'.qs,   fold_forms),     rule('S[_xs |_thing]'.qs,   exists_forms),
 
-                                                         rule('S[_xs %k*_thing]'.qs, handle_kmap_forms),     rule('S[_xs %v*_thing]'.qs, handle_vmap_forms),
-                                                         rule('S[_xs %k%_thing]'.qs, handle_kfilter_forms),  rule('S[_xs %v%_thing]'.qs, handle_vfilter_forms)]
+                                                         rule('S[_xs %k*_thing]'.qs, kmap_forms),     rule('S[_xs %v*_thing]'.qs, vmap_forms),
+                                                         rule('S[_xs %k%_thing]'.qs, kfilter_forms),  rule('S[_xs %v%_thing]'.qs, vfilter_forms)]
 
                     -where [// High-level form specializations
                             unrecognized(reason)               = raise [new Error(reason)],
 
                             operator_case(forms)(match)        = parse_modifiers(match._thing, use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
-                                                                 -where [expander               = this,
-                                                                         use(form, iform)(body) = render_form.call(expander, match._xs, body, form, iform)],
+                                                                 -where [use(form, iform)(body) = render_form(match._xs, body, form, iform)],
 
-                            handle_map_forms                   = operator_case({normal: map,     bang: each,        tbang: flatmap,                                    itbang: iterate}),
-                            handle_filter_forms                = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                 itbang: imap_filter}),
-                            handle_fold_forms                  = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl, ibang: ifoldr, itbang: iunfold}),
+                            map_forms                          = operator_case({normal: map,     bang: each,        tbang: flatmap,                                    itbang: iterate}),
+                            filter_forms                       = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                 itbang: imap_filter}),
+                            fold_forms                         = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl, ibang: ifoldr, itbang: iunfold}),
 
-                            handle_kmap_forms                  = operator_case({normal: kmap,    bang: keach}),
-                            handle_kfilter_forms               = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
-                            handle_vmap_forms                  = operator_case({normal: vmap,    bang: veach}),
-                            handle_vfilter_forms               = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
+                            kmap_forms                         = operator_case({normal: kmap,    bang: keach}),
+                            kfilter_forms                      = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
+                            vmap_forms                         = operator_case({normal: vmap,    bang: veach}),
+                            vfilter_forms                      = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
 
-                            handle_exists_forms                = operator_case({normal: exists,  bang: not_exists,  tbang: r_exists}),
+                            exists_forms                       = operator_case({normal: exists,  bang: not_exists,  tbang: r_exists}),
 
-                            // Modifier parsing
-                            parse_modifiers(tree, n, b, tb)    = ((r = '~!_x'.qs.match(tree)) ? tb(r._x) :
-                                                                  (r =  '!_x'.qs.match(tree)) ?  b(r._x) : n(tree)) -where [r = null],
+                            parse_modifiers(tree, n, b, tb)    = ((r = '~!_x'.qs.match(tree)) ? tb(r._x) : (r = '!_x'.qs.match(tree)) ? b(r._x) : n(tree)) -where [r = null],
 
-                            // Body parsing (entry point for operator_case)
-                            render_form(xs, body, form, iform) = create_form.call(this, xs, resulting.body, resulting.form, resulting.iform)
-                                                                 -where [resulting = parse_prefix(body, form, iform)],
-
-                            parse_prefix(body, form, iform)    = {form: transform(form), iform: transform(iform), body: r ? r._x : body}
-                                                                 -where [r         = null,
-                                                                         transform = (r = '+~_x'.qs.match(body)) ? "promote_seq(close_body(_))".qf :
-                                                                                     (r =  '~_x'.qs.match(body)) ? promote_seq                     :
-                                                                                     (r =  '+_x'.qs.match(body)) ? close_body                      : "_".qf],
-
-                            create_form(xs, body, form, iform) = ((r = '_var@0[_init][_x]'.qs.match(body) || '[_init][_x]'.qs.match(body)) ? use(iform, r) :
+                            render_form(xs, body, form, iform) = ((r = '_var@0[_init][_x]'.qs.match(body) || '[_init][_x]'.qs.match(body)) ? use(iform, r) :
                                                                   (r = '_var@0[_x]'       .qs.match(body) ||        '[_x]'.qs.match(body)) ? use(form,  r) : promote(form, body))
 
                                             -where [r                = null,
-                                                    expander         = this,
-                                                    use(f, match)    = expander.call(expander, f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var))),
-
+                                                    use(f, match)    = f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var)),
                                                     promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ gensym_names), _s: xs}
                                                                          /~replace/ gensym_names],
 
@@ -268,12 +242,7 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                                                                    : {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs', _xr:    'xr'},
 
                             // It's ok to use -seq inside the seq library due to waul precompilation
-                            gensym_names                       = names_for(null) %v*$.gensym -seq,
-
-                            close_body(f)                      = '(function (_x,_x0,_xi,_xl,_xs,_xr) {return _f}).call(this,_x,_x0,_xi,_xl,_xs,_xr)'.qs /~replace/ {_f: f},
-
-                            promote_seq_template               = 'S[_x]'.qs /!anon,
-                            promote_seq(f)                     = promote_seq_template /~replace/ {_x: f}]
+                            gensym_names                       = names_for(null) %v*$.gensym -seq]
 
                     -where [// Setup for form definitions (see below)
                             loop_anon   = $.anonymizer('x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
@@ -334,13 +303,13 @@ caterwaul.module('std.seq', 'js_all', function ($) {
                     -where [n(match)   = n_pattern .replace($.merge({_l: '0', _step: '1'}, match)),
                             ni(match)  = ni_pattern.replace($.merge({_l: '0', _step: '1'}, match)),
 
+                            scope      = anon('(function (o) {_body}).call(this, (S[_o]))'.qs),
+                            scoped(t)  = scope.replace({_body: t}),
+                            form(p)    = "tree.replace(_)".qf -where [tree = scoped(anon(p))],
+
   n_pattern  = anon('(function (i, u, s) {if ((u - i) * s <= 0) return []; for (var r = [], d = u - i; d > 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
   ni_pattern = anon('(function (i, u, s) {if ((u - i) * s <= 0) return []; for (var r = [], d = u - i; d > 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
 
-  scope      = anon('(function (o) {_body}).call(this, (S[_o]))'.qs),
-  scoped(t)  = scope.replace({_body: t}),
-
-  form(p)    = "tree.replace(_)".qf -where [tree = scoped(anon(p))],
   keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'.qs),
   values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'.qs),
   pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'.qs),
