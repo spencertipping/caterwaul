@@ -68,7 +68,7 @@
   caterwaul_global.modules = [];
   caterwaul_global.module = function (name, transform, f) {
     if (arguments.length === 1) return caterwaul_global[name + '_initializer'];
-    if (!(name + '_initializer' in caterwaul_global)) caterwaul_global.modules.push(name);
+    name + '_initializer' in caterwaul_global || caterwaul_global.modules.push(name);
     f || (f = transform, transform = null);
     (caterwaul_global[name + '_initializer'] = transform ? caterwaul_global(transform)(f) : f)(caterwaul_global);
     return caterwaul_global};
@@ -1215,8 +1215,16 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
   // All Caterwaul standard libraries are written such that they can be used this way.
 
+  // Caterwaul 1.2.4 introduces bundles, which are just array properties stored on the caterwaul global. This is useful when you have a series of libraries that don't necessarily know about each
+//   other. For example, here's how you might create the 'all' bundle:
+
+  // | caterwaul.all = ['js_all', 'jquery', ...];
+//     var all_compiler = caterwaul(':all');               <- equivalent to caterwaul('js_all jquery ...');
+
   var invoke_caterwaul_methods = function (methods) {
-    for (var ms = methods.split(/\s+/), i = 1, l = ms.length, r = caterwaul_global[ms[0]](); i < l; ++i) r = caterwaul_global[ms[i]](r);
+    /^:/.test(methods) && (methods = caterwaul_global[methods.substr(1)]);
+    methods.constructor === String && (methods = methods.split(/\s+/));
+    for (var i = 1, l = methods.length, r = caterwaul_global[methods[0]](); i < l; ++i) r = caterwaul_global[methods[i]](r);
     return r};
 
   caterwaul_global.init = function (macroexpander) {

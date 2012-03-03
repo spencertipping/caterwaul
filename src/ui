@@ -1624,6 +1624,8 @@ Right now I've only got a set of combinators for jQuery.
 
 - include build/ui.jquery.js
 
+  caterwaul.module('ui', function ($) {$.all.push('jquery')});
+
 __
 meta::sdoc('waul::ui.jquery', <<'__');
 JQuery DOM combinators | Spencer Tipping

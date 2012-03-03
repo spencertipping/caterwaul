@@ -1618,6 +1618,8 @@ meta::sdoc('caterwaul.std.js', <<'__');
 Caterwaul standard library | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+  caterwaul.module('std.all-bundle', function ($) {$.all = []});
+
 Internal libraries.
 These operate on caterwaul in some way, but don't necessarily have an effect on generated code.
 
@@ -1641,7 +1643,8 @@ These apply more advanced syntactic transforms to the code and can depend on eve
 - include build/std.grammar.js
 - include build/std.seq.js
 
-  caterwaul.module('std', function ($) {$.js_all = function () {return this('js js_literals words seq')}});
+  caterwaul.module('std', function ($) {$.js_all = function () {return this('js js_literals words seq')};
+                                        $.all.push('js_all')});
 
 __
 meta::sdoc('waul::std.anonymize', <<'__');
