@@ -2242,7 +2242,7 @@ Portability.
 The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
 such (from a design perspective).
 
-caterwaul.module('std.seq', 'js js_literals words', function ($) {
+caterwaul.module('std.seq', 'js_all', function ($) {
   $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', 'S[_x]'.qs, given [rule, anon] in operator_macros /~concat/ word_macros
 
   -where [operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
@@ -2301,12 +2301,15 @@ caterwaul.module('std.seq', 'js js_literals words', function ($) {
                                                           -where [r                = null,
                                                                   use(f, match)    = f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var)),
 
-                                                                  promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ vars), _s: xs}
-                                                                                       /~replace/ vars
-                                                                             -where [vars = names_for($.gensym())]],
+                                                                  promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ gensym_names),
+                                                                                                   _s: xs}
+                                                                                       /~replace/ gensym_names],
 
                             names_for(p)                       = p ? {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l', _xs: '#{p}s', _xr: '#{p}r'}
                                                                    : {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs', _xr:    'xr'},
+
+                            // It's ok to use -seq inside the seq library due to waul precompilation
+                            gensym_names                       = names_for(null) %v*$.gensym -seq,
 
                             close_body(f)                      = '(function (_x,_x0,_xi,_xl,_xs,_xr) {return _f}).call(this,_x,_x0,_xi,_xl,_xs,_xr)'.qs /~replace/ {_f: f},
 

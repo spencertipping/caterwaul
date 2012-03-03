@@ -17,9 +17,12 @@ return(function( ) {var r=null,transform= (r=qsw.match(body) ) ?function(_) {ret
 return( {form:transform(form) ,iform:transform(iform) ,body:r?r._x:body} ) } ) .call(this) } ,create_form=function(xs,body,form,iform) {;
 return(function( ) {var r=null,use=function(f,match) {;
 return f.replace($.merge( {_f:match._x,_init:match._init,_s:xs} ,names_for(match._var) ) ) } ,promote=function(f,body) {;
-return(f) .replace( {_f:f.uses_x0? (qsz) .replace( {_f:body} ) : (qs10) .replace( {_f:body} ) ,_s:xs} ) } ;
+return( (f) .replace( {_f: (f.uses_x0?qsz:qs10) .replace($.merge( {_f:body} ,gensym_names) ) ,_s:xs} ) ) .replace(gensym_names) } ;
 return( ( (r=qs11.match(body) ||qs12.match(body) ) ?use(iform,r) : (r=qs13.match(body) ||qs14.match(body) ) ?use(form,r) :promote(form,body) ) ) } ) .call(this) } ,names_for=function(p) {;
-return p? {_x:p,_x0: ( '' + (p) + '0' ) ,_xi: ( '' + (p) + 'i' ) ,_xl: ( '' + (p) + 'l' ) ,_xs: ( '' + (p) + 's' ) ,_xr: ( '' + (p) + 'r' ) } : {_x: 'x' ,_x0: 'x0' ,_xi: 'xi' ,_xl: 'xl' ,_xs: 'xs' ,_xr: 'xr' } } ,close_body=function(f) {;
+return p? {_x:p,_x0: ( '' + (p) + '0' ) ,_xi: ( '' + (p) + 'i' ) ,_xl: ( '' + (p) + 'l' ) ,_xs: ( '' + (p) + 's' ) ,_xr: ( '' + (p) + 'r' ) } : {_x: 'x' ,_x0: 'x0' ,_xi: 'xi' ,_xl: 'xl' ,_xs: 'xs' ,_xr: 'xr' } } ,gensym_names= (function(xs) {var x,x0,xi,xl,xr;
+var xr=new xs.constructor() ;
+for(var k in xs)if(Object.prototype.hasOwnProperty.call(xs,k) )x=xs[k] ,xr[k] = ( ($.gensym) .call( {x0:x0,xi:xi,xl:xl,xs:xs,xr:xr} ,x) ) ;
+return xr} ) .call(this,names_for(null) ) ,close_body=function(f) {;
 return(qs15) .replace( {_f:f} ) } ,promote_seq_template=anon(qs16) ,promote_seq=function(f) {;
 return(promote_seq_template) .replace( {_x:f} ) } ;
 return( [rule(qs17,qs18) ,rule(qs19,concat) ,rule(qs1a,qs1b) ,rule(qs1c,qs1d) ,rule(qs1e,qs1f) ,rule(qs1g,qs1h) ,rule(qs1i,qs1j) ,rule(qs1k,qs1l) ,rule(qs1m,qs1n) ,rule(qs1o,qs1p) ,rule(qs1q,qs1r) ,rule(qs1s,qs1t) ,rule(qs1u,qs1v) ,rule(qs1w,qs1x) ,rule(qs1y,handle_filter_forms) ,rule(qs1z,handle_map_forms) ,rule(qs20,handle_fold_forms) ,rule(qs21,handle_exists_forms) ,rule(qs22,handle_kmap_forms) ,rule(qs23,handle_vmap_forms) ,rule(qs24,handle_kfilter_forms) ,rule(qs25,handle_vfilter_forms) ] ) } ) .call(this) ) } ) .call(this) ,word_macros= (function( ) {var n=function(match) {;
