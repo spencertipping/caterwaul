@@ -285,9 +285,10 @@ meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => '
 
 __
 meta::alias('cloc', 'loc js::core/caterwaul\\.');
+meta::alias('eR', 'edit sdoc::readme');
 meta::alias('ec', 'edit sdoc::js::caterwaul');
 meta::alias('eh', 'edit data::bootstrap.html.sdoc');
-meta::alias('er', 'edit hook::after-render::base-files');
+meta::alias('er', 'edit function::render');
 meta::alias('es', 'edit sdoc::data::style.css');
 meta::alias('ev', 'edit vim_highlighter::caterwaul');
 meta::alias('ew', 'edit sdoc::waul::waul');
