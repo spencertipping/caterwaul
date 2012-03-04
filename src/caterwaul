@@ -21,6 +21,8 @@ my %datatypes;
 
 my %locations;          # Maps eval-numbers to attribute names
 
+my $global_data = join '', <DATA>;
+
 sub meta::define_form {
   my ($namespace, $delegate) = @_;
   $datatypes{$namespace} = $delegate;
@@ -291,6 +293,8 @@ my %datatypes;
 
 my %locations;          # Maps eval-numbers to attribute names
 
+my $global_data = join '', <DATA>;
+
 sub meta::define_form {
   my ($namespace, $delegate) = @_;
   $datatypes{$namespace} = $delegate;
@@ -430,8 +434,15 @@ die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-
 
 around_hook('edit', @_, sub {
   associate($name, invoke_editor_on($data{$name} // '', %options, attribute => $name, extension => $extension), execute => 1)});
+
 save() unless $data{'data::edit::no-save'};
 '';
+
+__
+meta::function('edit-self', <<'__');
+$global_data = invoke_editor_on($global_data);
+save();
+
 __
 meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
 meta::function('export', <<'__');
@@ -617,8 +628,9 @@ while ($old_string ne $string and $expansions++ < $limit) {
 $string;
 __
 meta::function('rd', <<'__');
-my $pattern = join '|', @_;
-@{$transient{path}} = grep $_ !~ /^$pattern$/, @{$transient{path}};
+if (@_) {my $pattern = join '|', @_;
+         @{$transient{path}} = grep $_ !~ /^$pattern$/, @{$transient{path}}}
+else    {pop @{$transient{path}}}
 
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
@@ -679,7 +691,7 @@ meta::function('sdoc', <<'__');
 
 my %comments_for_extension = 
   qw|c     /*,*/  cpp   //    cc   //    h    //    java //  py  #    rb   #    pl  #   pm   #         ml   (*,*)  js  //
-     hs    --     sh    #     lisp ;;;   lsp  ;;;   s    ;   scm ;;;  sc   ;;;  as  //  html <!--,-->  mli  (*,*)  cs  //
+     hs    --     sh    #     lisp ;;;   lsp  ;;;   s    #   scm ;;;  sc   ;;;  as  //  html <!--,-->  mli  (*,*)  cs  //
      vim   "      elisp ;     bas  '     ada  --    asm  ;   awk #    bc   #    boo #   tex  %         fss  (*,*)  erl %
      scala //     hx    //    io   //    j    NB.   lua  --  n   //   m    %    php //  sql  --        pov  //     pro %
      r     #      self  ","   tcl  #     texi @c    tk   #   csh #    vala //   vbs '   v    /*,*/     vhdl --     ss  ;;;
@@ -738,7 +750,7 @@ my ($attribute)   = @_;
 my @paragraphs    = split /\n(?:\s*\n)+/, retrieve($attribute);
 
 my $known_tags    = join '|', qw[html head body meta script style link title div a span input button textarea option select form label iframe blockquote code caption
-                                 table tbody tr td th thead tfoot img h1 h2 h3 h4 h5 h6 li ol ul noscript p pre samp sub sup var canvas audio video];
+                                 table tbody tr td th thead tfoot img h1 h2 h3 h4 h5 h6 li ol ul noscript p pre samp sub sup var canvas audio video strong em];
 my $section_level = 0;
 my @markup;
 
@@ -767,13 +779,50 @@ for (@paragraphs) {
   &$code(),   next unless /^\h*[A-Z|]/;
   &$quoted(), next if     /^\h*\|/;
 
-  &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") - 10 < length($3);
+  &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") < 60 and length("$1$2") - 10 < length($3);
   &$paragraph();
 }
 
 &$close_section($section_level) while $section_level--;
 
 join "\n", @markup;
+
+__
+meta::function('sdoc-markdown', <<'__');
+# Renders a chunk of SDoc as Markdown. This involves converting quoted and
+# unquoted code and section headings, but not numbered lists.
+
+my ($attribute)   = @_;
+my @paragraphs    = split /\n(?:\s*\n)+/, retrieve($attribute);
+
+my $section_level = 0;
+my @markup;
+
+my $indent        = sub {'  ' x ($_[0] || $section_level)};
+my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//gm; $_};
+
+my $code          = sub {&$unindent(); s/^c\n//;                   push @markup, join("\n", map &$indent(2) . $_, split /\n/)};
+my $quoted        = sub {&$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, join("\n", map &$indent(2) . $_, split /\n/)};
+
+my $heading       = sub {'#' x $_[0]};
+my $section       = sub {&$unindent(); push @markup, &$heading($_[0]) . ' ' . $2};
+
+my $title = sub {
+  my $indentation = (length($1) >> 1) + 1;
+  &$section($indentation);
+  $section_level = $indentation;
+};
+
+for (@paragraphs) {
+  &$code(),   next unless /^\h*[A-Z|]/;
+  &$quoted(), next if     /^\h*\|/;
+
+  &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") < 60 and length("$1$2") - 10 < length($3);
+  push @markup, join "\n", map &$unindent(), split /\n/;
+}
+
+join "\n\n", @markup;
+
 __
 meta::function('sdocp', <<'__');
 # Renders an attribute as SDocP. This logic was taken directly from the sdoc script.
@@ -786,8 +835,9 @@ my ($options, @criteria) = separate_options(@_);
 my $partial     = $$options{'-p'};
 my $criteria    = join '|', @criteria;
 my @attributes  = map serialize_single($_), select_keys(%$options, '-m' => 1, '--criteria' => $criteria), select_keys(%$options, '-M' => 1, '--criteria' => $criteria);
-my @final_array = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__END__']};
+my @final_array = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__DATA__', $global_data]};
 join "\n", @final_array;
+
 __
 meta::function('serialize-single', <<'__');
 # Serializes a single attribute and optimizes for content.
@@ -827,7 +877,7 @@ __
 meta::function('size', <<'__');
 my $size = 0;
 $size += length $data{$_} for keys %data;
-sprintf "% 7d % 7d % 7d", length(serialize()), $size, length(serialize('-up'));
+sprintf "   full logical  unique    self\n% 7d % 7d % 7d % 7d", length(serialize()), $size, length(serialize('-up')), length $global_data;
 
 __
 meta::function('snapshot', <<'__');
@@ -925,19 +975,17 @@ hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __
 meta::function('waul', <<'__');
-# Runs one or more Waul attributes with the waulrun interpreter, which is
-# assumed to be on the $PATH somewhere.
-
 my ($name, %options) = @_;
 $name =~ s/^waul:://;
-my $output = $options{output} || "$name.js";
-my $waul   = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+my $output     = $options{output} || "$name.js";
+my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
+my $waul       = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
 
-terminal::info("compiling waul::$name using $waul");
+terminal::info("compiling waul::$name using $waul ($extensions)");
 
 with_exported("waul::$name", sub {
   my ($exported) = @_;
-  sh("$waul --output '$output' $exported")});
+  sh("$waul --output '$output' $extensions $exported")});
 
 __
 meta::hook('before-shell::ad', <<'__');
@@ -947,7 +995,7 @@ __
 meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
 meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
 meta::indicator('path', <<'__');
-join "\033[1;30m|\033[0;0m", @{$transient{path}};
+join "\033[1;30m/\033[0;0m", @{$transient{path}};
 
 __
 meta::internal_function('around_hook', <<'__');
@@ -972,8 +1020,9 @@ meta::internal_function('associate', <<'__');
 my ($name, $value, %options) = @_;
 die "Namespace does not exist" unless exists $datatypes{namespace($name)};
 $data{$name} = $value;
-execute($name) if $options{'execute'};
+execute($name) if $options{execute};
 $value;
+
 __
 meta::internal_function('attribute', <<'__');
 my ($name) = @_;
@@ -984,7 +1033,6 @@ meta::internal_function('attribute_is', <<'__');
 my ($a, %options) = @_;
 my %inherited     = parent_attributes(grep /^parent::/o, sort keys %data) if grep exists $options{$_}, qw/-u -U -d -D/;
 my $criteria      = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
-my $path          = $options{'--path'} ? join('|', @{$options{'--path'}}) : '.';
 
 my %tests = ('-u' => sub {! $inherited{$a}},
              '-d' => sub {$inherited{$a} && fast_hash(retrieve($a)) ne $inherited{$a}},
@@ -994,7 +1042,9 @@ my %tests = ('-u' => sub {! $inherited{$a}},
 
 return 0 unless scalar keys %tests == scalar grep ! exists $options{$_}    ||   &{$tests{$_}}(), keys %tests;
 return 0 unless scalar keys %tests == scalar grep ! exists $options{uc $_} || ! &{$tests{$_}}(), keys %tests;
-$a =~ /$criteria/ and $a =~ /$path/;
+
+$a =~ /$_/ || return 0 for @{$options{'--path'}};
+$a =~ /$criteria/;
 
 __
 meta::internal_function('cache', <<'__');
@@ -1032,6 +1082,7 @@ meta::internal_function('exported', <<'__');
 my $filename = temporary_name();
 file::write($filename, cat(@_));
 $filename;
+
 __
 meta::internal_function('extension_for', <<'__');
 my $extension = $transient{extension}{namespace($_[0])};
@@ -1172,6 +1223,7 @@ __
 meta::internal_function('retrieve', <<'__');
 my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
 wantarray ? @results : $results[0];
+
 __
 meta::internal_function('retrieve_with_hooks', <<'__');
 # Uses the hooks defined in $transient{retrievers}, and returns undef if none work.
@@ -1312,16 +1364,16 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::parent('../waul-object', <<'__');
 function::minify-yui                                        dd0d6afd6be3108180637436f058a181
-function::waul                                              4a5277531984cdc643ba1f505acaf34f
+function::waul                                              66b92f55d5db498934b487188a04b16d
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
-parent::/home/spencertipping/conjectures/perl-objects/js    bc7a27dec21a2794a034ca292453d45f
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  c328e1359e74d8eb1b3520c9d3888b90
-parent::preprocessor                                        ce0627808a7fa6f2692af7437f98a731
+parent::/home/spencertipping/conjectures/perl-objects/js    08631314298573e77850afe27d7d3003
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  0cef7258a2449765557387e954ab76d0
+parent::preprocessor                                        4450ebbe2c9d3a70ada4050fcd567907
 
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
 bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
-bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
+bootstrap::initialization               d22fafa2938ecb0d4728e2958b54ed3d
 bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
 function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
 function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
@@ -1334,7 +1386,8 @@ function::cp                            3fe69d1b58d90045ad520048977538c4
 function::create                        3010d55f4dfa59a998742e07823ed54d
 function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
 function::disable                       53b449708cc2ffdefa352e53bb7d847d
-function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::edit                          beae8b1d7292e2ce2913199ff32f2501
+function::edit-self                     71790df00f941ed9b56e17f789b93871
 function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
 function::export                        2374cd1dbf7616cb38cafba4e171075d
 function::extern                        1290a5223e2824763eecfb3a54961eff
@@ -1353,18 +1406,18 @@ function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
 function::name                          955ba2d1fe1d67cd78651a4042283b00
 function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
 function::perl                          a0f341ea54391b63b6195e7992b6a686
-function::rd                            eea4e1cdd9133abb985205ae5daf5f15
+function::rd                            2adb16d7e819d2e87a27201744a581e7
 function::reload                        1589f4cf8374e0011991cb8907afca3e
 function::rm                            6f6fd7a6c25558eb469d78ea888f8551
 function::rmparent                      fc2884910a6939a47898a778f277332c
 function::save                          778c0e1043b9c6c96fb8f266f8061624
 function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
-function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
+function::serialize                     a97c7391c635a93b0a710d10eb8cb3cd
 function::serialize-single              aa77af032272f5a2664e21713739a223
 function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
 function::shb                           7b2685a4041c25bc495816e472bdace5
 function::shell                         a87f389b94713e5855e62241d649d01d
-function::size                          8d4bd7a84ece556717f8ba3bf258d33c
+function::size                          69f6ab4a100c6ef05d4d41510004d645
 function::snapshot                      56939a47f2758421669641e15ebd66eb
 function::state                         8c68044dccae28f33244d0c7e9e9acfb
 function::touch                         3991b1b7c7187566f50e5e58ce01fa06
@@ -1375,17 +1428,17 @@ function::usage                         5bdd370f5a56cfbf199e08d398091444
 function::verify                        0c0cc1dfeab7d705919df122f7850a4f
 indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
 indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
-indicator::path                         8a9685787cda6af8f63594f6dcde7582
+indicator::path                         9ec891df17cd45895f03a6124f9d065f
 internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
-internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::associate            55f202ffdbc6b9005e53d3e82f5f9bfe
 internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
-internal_function::attribute_is         a145549f6ce44abbcf66308b426d30ec
+internal_function::attribute_is         40bda8226322505e323ea6d405388f08
 internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
 internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
 internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
 internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
 internal_function::execute              f0924e087d978ff2ab1e117124db3042
-internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::exported             ae35afef7d4762f2818aee5872c75be0
 internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
 internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
 internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
@@ -1398,7 +1451,7 @@ internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
 internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
 internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
 internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
-internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve             721a6800f328da05047fd7392758f55d
 internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
 internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
 internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
@@ -1431,6 +1484,7 @@ meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
 meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
 meta::type::state                       84da7d5220471307f1f990c5057d3319
 retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::global                       4fe8df0cca548075169968772843a156
 retriever::id                           4da6080168d32445150cc4200af7af6e
 retriever::object                       c7633990b4e01bdc783da7e545799f4f
 retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
@@ -1438,17 +1492,19 @@ retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
 meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
-parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
-function::sdoc                           f3f3f3127961399a4c38152771c966ab
-function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
+function::sdoc                           f0cea831720d18449455a8ed79181727
+function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
+function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
+retriever::markdown-sdoc                 20651301fffb3c018da926ede531f84c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 
@@ -1574,7 +1630,7 @@ meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
 meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 4d71ae092e2baa681e627f8a8ba8399e
+parent::object                 1f1bf492b56b2f0196b2018b11b8c991
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
@@ -1586,6 +1642,11 @@ template::style-include        8e5a06b70e1b00379765f319bf6c8066
 
 __
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
+meta::retriever('global', <<'__');
+# Returns the global data stashed at the end of this perl object
+$_[0] eq 'self' ? $global_data : undef;
+
+__
 meta::retriever('html-sdoc', <<'__');
 my ($attribute) = @_;
 return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute};
@@ -1593,6 +1654,12 @@ sdoc_html($attribute);
 
 __
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
+meta::retriever('markdown-sdoc', <<'__');
+my ($attribute) = @_;
+return undef unless $attribute =~ s/^markdown::/sdoc::/ and exists $data{$attribute};
+sdoc_markdown($attribute);
+
+__
 meta::retriever('object', <<'__');
 # Fetch a property from another Perl object. This uses the 'cat' function.
 return undef unless $_[0] =~ /^object::(.*?)::(.*)$/ && -x $1 && qx|$1 is '$2'|;
@@ -2911,4 +2978,4 @@ my $style  = retrieve($name);
 __
 internal::main();
 
-__END__
+__DATA__
