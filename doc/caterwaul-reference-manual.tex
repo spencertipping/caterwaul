@@ -97,7 +97,7 @@ ReferenceError: x is not defined
 \end{enumerate}
 
   Aside from a few utility methods like {\tt merge()}, those methods are all that you're likely to care about on the Caterwaul global. In addition to those methods, Caterwaul also gives you
-  access to three kinds of syntax trees:
+  access to four kinds of syntax trees:
 
 \begin{enumerate}
 \item[{\tt caterwaul.syntax}]
@@ -138,6 +138,13 @@ true
 6
 >
 \end{verbatim}
+
+\item[{\tt caterwaul.opaque\_tree}]
+  A literal chunk of code that is initially unparsed. This lets you work with code in a structured way but without introducing parsing overhead; it's used internally by things like the
+  replication function. Generally you won't instantiate these directly.
+
+  If you have an opaque tree and want to see its internal structure, you can get a parsed tree by calling {\tt .parse()}. Unlike the caterwaul global {\tt parse} function, this one is
+  nullary and just parses the receiver, nondestructively returning a new tree with no opaque subtrees.
 \end{enumerate}
 
 \chapter{Syntax trees}
