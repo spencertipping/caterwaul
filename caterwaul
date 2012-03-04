@@ -2009,21 +2009,25 @@ file::write('build/caterwaul.node.js', retrieve('pp::js::caterwaul.node'),     m
 
 file::write('doc/caterwaul-tutorial.sdoc', retrieve('sdoc::web/tutorial'), mkpath => 1);
 
-my $waul = $$options{'--waul'} || 'waul';
-terminal::info("regenerating waul-core using $waul as a bootstrap compiler");
-file::write('waul.waul', retrieve('waul::waul'));
-sh("$waul -e build/caterwaul.std.min.js waul.waul");
+unless ($$options{-W}) {
+  my $waul = $$options{'--waul'} || 'waul';
+  terminal::info("regenerating waul-core using $waul as a bootstrap compiler");
+  file::write('src/waul/waul.waul', retrieve('waul::waul'));
+  sh("$waul -e build/caterwaul.std.min.js src/waul/waul.waul");
 
-file::write('waul-core', retrieve('pp::js::waul-bootstrap'));
-chmod 0755, 'waul-core';
+  file::write('waul-core', retrieve('pp::js::waul-bootstrap'));
+  chmod 0755, 'waul-core';
 
-terminal::info('regenerating waul-core using its replicator (identity transform)');
-file::write('waul-core', join '', qx|./waul-core --replicate|);
-chmod 0755, 'waul-core';
+  terminal::info('regenerating waul-core using its replicator (identity transform)');
+  file::write('waul-core', join '', qx|./waul-core --replicate|);
+  chmod 0755, 'waul-core';
 
-terminal::info('regenerating waul from waul-core');
-file::write('waul', join '', qx|./waul-core --replicate -e build/caterwaul.std.min.js -e build/caterwaul.ui.min.js|);
-chmod 0755, 'waul';
+  terminal::info('regenerating waul from waul-core');
+  file::write('waul', join '', qx|./waul-core --replicate -e build/caterwaul.std.min.js -e build/caterwaul.ui.min.js|);
+  chmod 0755, 'waul';
+} else {
+  terminal::info('skipping waul render because -W was specified');
+}
 
 save();
 
@@ -3005,7 +3009,7 @@ Waul: the offline precompiler for Caterwaul | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 - include build/caterwaul.min.js
-- include waul.js
+- include src/waul/waul.js
 
 __
 meta::sdoc('js::web/code-snippets', <<'__');
