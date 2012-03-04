@@ -476,7 +476,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __
 meta::data('output-dir', '/tmp');
-meta::data('pdf-output-file', '/tmp/caterwaul-by-example.djHm/document.pdf');
+meta::data('pdf-output-file', '/tmp/caterwaul-by-example.Nxdz/document.pdf');
 meta::data('pdf-reader', '/usr/bin/evince');
 meta::data('pdftex-command', 'pdflatex -output-directory=__TEMPORARY_DIRECTORY__ __INPUT_FILE__');
 meta::data('source-directory', '.');
@@ -1098,6 +1098,10 @@ __
 meta::function('vim', <<'__');
 # Installs VIM highlighters.
 file::write("$ENV{'HOME'}/.vim/syntax/$_.vim", retrieve("vim_highlighter::$_")) for grep s/^vim_highlighter:://o, keys %data;
+__
+meta::hook('before-shell::ad', <<'__');
+ad('section::');
+
 __
 meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
 meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
@@ -1926,7 +1930,7 @@ meta::section('game-of-life', <<'__');
 
   - s1 UI structure
     One of the tricky things about the game of life is linking the cells together. This is especially true when, as is the case here, we use the DOM as a data model (thus removing the usual
-    layer of indirection that causes all sorts of synchronization bugs).
+    layer of indirection that causes all sorts of synchronization bugs, and introducing pathologically awful performance).
 
     The key in this case is to build up arrays of elements first, establishing their visual position as a separate step. This avoids tricky reliance on DOM-level navigation and sibling
     checking. There are a couple of ways to represent the elements. One is to use a single long array and use modular access, but I'm going to use multiple nested arrays to illustrate some
@@ -1957,7 +1961,7 @@ meta::section('game-of-life', <<'__');
                                  step:  step_function(cells)}
                                 -where [cells = cells_for(x, y)],
 
-          cells_for(x, y)     = n[x] *~[n[y] *y[cell_for(x, y)]] -seq,
+          cells_for(x, y)     = n[x] *[n[y] *y[cell_for(x, y)] -seq] -seq,
           cell_for(x, y)      = jquery in div.cell *!x(x) *!y(y) %position(x, y)
                                                                  %invert_on_click,
           position(x, y)(e)   = e.css({position: 'absolute',
@@ -1966,21 +1970,21 @@ meta::section('game-of-life', <<'__');
 
           invert_on_click(e)  = e.mousedown("$(this).toggleClass('on')".qf),
           div_for(cs)         = jquery [div.board]
-                                -se- cs *!~[x *![it.append(x)]] /seq,
+                                -se- cs *![x *![it.append(x)] -seq] /seq,
           step_function(cs)() =
-            cs *!~[x *!update] -seq
+            cs *![x *!update -seq] -seq
             -where [
               new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
                                            count(x, y) === 3,
               count(x, y)     = adjacent(x, y) /[x + x0] -seq,
-              adjacent(x, y)  = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
-                                  %p[p[0] !== x || p[1] !== y]
-                                  *[+on(x[0], x[1])] -seq,
+              product(xs, ys) = xs *~![ys *y[[x, y]] -seq] -seq,
+              offsets         = ~product(ni[-1, 1], ni[-1, 1]) %[x[0] || x[1]] -seq,
+              adjacent(x, y)  = offsets *o[+on(x + o[0], y + o[1])] -seq,
               cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
               wrap(x, xs)     = (x + xs.length) % xs.length,
               on(x, y)        = cell(x, y).hasClass('on'),
 
-              new_states      = cs *~[x *y[new_state(xi, yi)]] -seq,
+              new_states      = cs *[x *y[new_state(xi, yi)] -seq] -seq,
               update(cell)    = cell.toggleClass('on',
                                   new_states[cell.data('x')][cell.data('y')])]]}));
     - end
@@ -2066,7 +2070,7 @@ meta::section('game-of-life', <<'__');
                                step:  step_function(cells)}
                               -where [cells = cells_for(x, y)],
 
-        cells_for(x, y)     = n[x] *~[n[y] *y[cell_for(x, y)]] -seq,
+        cells_for(x, y)     = n[x] *[n[y] *y[cell_for(x, y)] -seq] -seq,
         cell_for(x, y)      = jquery in div.cell *!x(x) *!y(y) %position(x, y)
                                                                %invert_on_click,
         position(x, y)(e)   = e.css({position: 'absolute',
@@ -2075,7 +2079,7 @@ meta::section('game-of-life', <<'__');
 
         invert_on_click(e)  = e.mousedown($(this).toggleClass('on') -given.e),
         div_for(cs)         = jquery [div.board]
-                              -se- cs *!~[x *![it.append(x)]] /seq
+                              -se- cs *![x *![it.append(x)] -seq] /seq
       - end
 
       Here's what each variable/function does:
@@ -2095,7 +2099,7 @@ meta::section('game-of-life', <<'__');
           presentation.)
 
           - verbatim << end
-            n[x] *~[n[y] *y[cell_for(x, y)]] -seq
+            n[x] *[n[y] *y[cell_for(x, y)] -seq] -seq
           - end
 
           The sequence comprehension is a bit gnarly, but here's what each piece of it means:
@@ -2104,12 +2108,9 @@ meta::section('game-of-life', <<'__');
             - item[] {\tt n[x]}
               Construct an array of numbers {\tt [0, 1, 2, ..., x - 1]}.
 
-            - item[] {\tt *\textasciitilde[...]}
-              Map over a block, and interpret the contents of the block in sequence context (that is, as if the {\tt -seq} modifier had been applied to the body of the block). The {\tt *}
-              operator signifies mapping, and the {\tt \textasciitilde} indicates sequence context.
-
-              Because no variable was named, the block will receive {\tt x}, {\tt xi}, and {\tt xl} as lexically-scoped variables. This inner {\tt x} shadows the {\tt x} passed into
-              \verb|cells_for()| within the context of the block.
+            - item[] {\tt *[...]}
+              Map over a block. Because no variable was named, the block will receive {\tt x}, {\tt xi}, and {\tt xl} as lexically-scoped variables. This inner {\tt x} shadows the {\tt x}
+              passed into \verb|cells_for()| within the context of the block.
 
               The result of this inner block, which is an array of cells, will become a single entry in the final array returned by \verb|cells_for()|. This outer map operation constructs the
               array of all columns (each column is constructed by the logic below).
@@ -2122,6 +2123,9 @@ meta::section('game-of-life', <<'__');
               {\tt yi}, and {\tt yl} instead of the default {\tt x}, {\tt xi}, and {\tt xl}. The inner {\tt y} created for this block will shadow the one passed into \verb|cells_for()|.
 
               This map operation constructs a column of cells.
+
+            - item[] {\tt -seq}
+              Interpret the outer map block in sequence context.
 
             - item[] {\tt cell\_for(x, y)}
               Construct a single cell at the coordinates $(x, y)$. Because this is the result of mapping, the cell will be added to the column array.
@@ -2196,19 +2200,19 @@ meta::section('game-of-life', <<'__');
 
       - verbatim << end
         step_function(cs)() =
-          cs *!~[x *!update] -seq
+          cs *![x *!update -seq] -seq
           -where [
             new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
                                          count(x, y) === 3,
             count(x, y)     = adjacent(x, y) /[x + x0] -seq,
-            adjacent(x, y)  = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
-                                %p[p[0] !== x || p[1] !== y]
-                                *[+on(x[0], x[1])] -seq,
+            product(xs, ys) = xs *~![ys *y[[x, y]] -seq] -seq,
+            offsets         = ~product(ni[-1, 1], ni[-1, 1]) %[x[0] || x[1]] -seq,
+            adjacent(x, y)  = offsets *o[+on(x + o[0], y + o[1])] -seq,
             cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
             wrap(x, xs)     = (x + xs.length) % xs.length,
             on(x, y)        = cell(x, y).hasClass('on'),
 
-            new_states      = cs *~[x *y[new_state(xi, yi)]] -seq,
+            new_states      = cs *[x *y[new_state(xi, yi)] -seq] -seq,
             update(cell)    = cell.toggleClass('on',
                                 new_states[cell.data('x')][cell.data('y')])]
       - end
@@ -2224,21 +2228,24 @@ meta::section('game-of-life', <<'__');
       Like other functions, this one is front-loaded; here's a breakdown of what's happening.
 
       - enumerate << end
-        - item[] {\tt cs *!\textasciitilde[x *!update] -seq}
+        - item[] {\tt cs *![x *!update -seq] -seq}
           This just runs through the two-dimensional array, calling {\tt update()} on each cell \verb|<div>|. Cells know their own coordinates, so we don't need to pass the array indexes into
           the {\tt update()} function; it will obtain the coordinates directly from the cell object's {\tt data} properties.
 
           The sequence comprehension here consists of:
 
           - enumerate << end
-            - item[] {\tt cs *!\textasciitilde[...]}
-              A foreach operation on {\tt cs}. This invokes the block, in sequence context due to the tilde, on each element of {\tt cs}. Each element of {\tt cs} is itself an array. The
-              block's result isn't stored because it is used in a foreach rather than a map operation. (For this reason, foreach has less overhead than map.)
+            - item[] {\tt cs *!}
+              A foreach operation on {\tt cs}. This invokes the block on each element of {\tt cs}. Each element of {\tt cs} is itself an array. The block's result isn't stored because it is
+              used in a foreach rather than a map operation. (For this reason, foreach has less overhead than map.)
 
             - item[] {\tt x *!update}
               This block takes {\tt x}, which is one of the arrays in {\tt cs}, and invokes {\tt update} on each element. In this case, {\tt update} appears where a block would normally go.
               {\tt seq} handles this by turning it into this block: {\tt [update(x, x0, xi, xl)]}. It's safe to use {\tt update()} this way because it uses only its first parameter. It isn't
               safe to use a function such as {\tt Array.prototype.push} in this context, however, as it will push each item you pass it (which probably isn't what you would want to do).
+
+            - item[] {\tt -seq}
+              Modifies the contents of the block to be in sequence context.
 
             - item[] {\tt -seq}
               Modifies the preceding expression by interpreting it in sequence context. It's ok to use {\tt -} here because of left-associativity.
@@ -2268,34 +2275,31 @@ meta::section('game-of-life', <<'__');
           over addition. A less efficient but equivalent way to do it would be to use filtering: \verb|adjacent(x, y) %[x] -seq -re- it.length|. Conceptually, I think folding communicates the
           intention more clearly.
 
+        - item[] {\tt product(xs, ys)}
+          - verbatim << end
+            = xs *~![ys *y[[x, y]] -seq] -seq
+          - end
+
+          Returns the Cartesian product of {\tt xs} and {\tt ys}, each of which is an array. This used to be built into Caterwaul's {\tt seq} library, but I removed it because it's easy enough
+          to write separately. This function works by first flat-mapping across {\tt xs}; for each {\tt x}, we then map over {\tt ys} to pair each {\tt x} with each {\tt y}.
+
+        - item[] {\tt offsets}
+          - verbatim << end
+            = ~product(ni[-1, 1], ni[-1, 1]) %[x[0] || x[1]] -seq
+          - end
+
+          Builds an array of offset coordinates; the result will be {\tt [[-1, -1], [-1, 0], [-1, 1], \dots, [1, 1]]} but will exclude {\tt [0, 0]}. This exclusion is done using {\tt \%[x[0]
+          \char `\| \char `\| x[1]}, which fails only for {\tt x[0] = 0} and {\tt x[1] = 0}.
+
+          Notice the {\tt \textasciitilde} before {\tt product}. This is a {\tt seq} library shorthand that causes each argument to {\tt product} to be interpreted in sequence context. Without
+          it, we would need to write this: {\tt product(ni[-1, 1] -seq, ni[-1, 1] -seq)}.
+
         - item[] {\tt adjacent(x, y)}
           - verbatim << end
-            = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
-                %p[p[0] !== x || p[1] !== y]
-                *[+on(x[0], x[1])] -seq
+            = offsets *o[+on(x + o[0], y + o[1])] -seq
           - end
 
-          This is a fun one, and it's where most of the heavy lifting happens. The idea is to come up with an array of numerical active-statuses, each one either a 1 (active) or a 0
-          (inactive). The {\tt count()} function can then sum that array with minimal effort.
-
-          - enumerate << end
-            - item[] {\tt (ni[...]~- ni[...])}
-              This constructs a single array of {\tt [x, y]} pairings within the $3\times 3$ rectangle around $(x, y)$. If {\tt x} is 4 and {\tt y} is 10, for example, then this expression
-              returns {\tt [[3, 9], [3, 10], [3, 11], [4, 9], [4, 10], [4, 11], [5, 9], [5, 10], [5, 11]]}. This behavior is primarily governed by {\tt -}, which in sequence context computes
-              the cartesian product of its operands. (Because {\tt -} has lower precedence than most sequence operators, it must be parenthesized as shown here.)
-
-            - item[] {\tt \%p[p[0] !== x \char `\| \char `\|~p[1] !== y]}
-              Here we're removing the {\tt [x, y]} pair representing the original cell. Each pair is called {\tt p} to avoid shadowing {\tt x} or {\tt y} (both of which are required inside the
-              block). The resulting array contains eight pairs, each one of which represents a cell that's adjacent but not the original.
-
-            - item[] {\tt *[+on(x[0], x[1])]}
-              Now we transform coordinate pairs into numbers. The map, hopefully, is not mysterious at all by now; but the block is a bit unusual. {\tt on()} returns a boolean, which I'm
-              coercing into a number using Javascript's unary {\tt +} operator. The block is being interpreted in regular context, so this isn't transformed by {\tt seq} in any way.
-
-            - item[] {\tt -seq}
-              Wrapping up the sequence comprehension by transforming everything back to {\tt =}. The return value of this sequence comprehension is an array of eight numbers, each a 1 or a 0,
-              describing the activation states of the cells surrounding $(x, y)$.
-          - end
+          Here we build an array of values, each of which is either {\tt 0} or {\tt 1}. {\tt on()} returns a boolean, so we coerce it to a number using the unary prefix {\tt +}.
 
         - item[] {\tt cell(x, y)}
           - verbatim << end
@@ -2324,7 +2328,7 @@ meta::section('game-of-life', <<'__');
 
         - item[] {\tt new\_states}
           - verbatim << end
-            = cs *~[x *y[new_state(xi, yi)]] -seq
+            = cs *[x *y[new_state(xi, yi)] -seq] -seq
           - end
 
           This is an array like {\tt cs} that contains the new state of each cell. We have to store these before updating the individual cell elements because otherwise we would lose
@@ -2662,7 +2666,7 @@ __
 meta::section('this-is-hideous', <<'__');
 - sc This is Hideous! | sec:this-is-hideous
   - quote << end
-    \verb|o %k%~!f %v*!~[x /!g] -seq|
+    \verb|o %k%~!f %v*![x /!g, seq] -seq|
     \hfill \textit{-- valid Caterwaul code}
   - end
 

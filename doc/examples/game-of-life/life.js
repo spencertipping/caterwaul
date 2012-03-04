@@ -16,7 +16,7 @@ $(caterwaul('js_all jquery')(function () {
                            step:  step_function(cells)}
                           -where [cells = cells_for(x, y)],
 
-    cells_for(x, y)     = n[x] *~[n[y] *y[cell_for(x, y)]] -seq,
+    cells_for(x, y)     = n[x] *[n[y] *y[cell_for(x, y)] -seq] -seq,
     cell_for(x, y)      = jquery in div.cell *!x(x) *!y(y) %position(x, y)
                                                            %invert_on_click,
     position(x, y)(e)   = e.css({position: 'absolute',
@@ -25,20 +25,20 @@ $(caterwaul('js_all jquery')(function () {
 
     invert_on_click(e)  = e.mousedown("$(this).toggleClass('on')".qf),
     div_for(cs)         = jquery [div.board]
-                          -se- cs *!~[x *![it.append(x)]] /seq,
+                          -se- cs *![x *![it.append(x)] -seq] /seq,
     step_function(cs)() =
-      cs *!~[x *!update] -seq
+      cs *![x *!update -seq] -seq
       -where [
         new_state(x, y) = on(x, y) ? count(x, y) -re [it >= 2 && it <= 3] :
                                      count(x, y) === 3,
         count(x, y)     = adjacent(x, y) /[x + x0] -seq,
-        adjacent(x, y)  = (ni[x - 1, x + 1] - ni[y - 1, y + 1])
-                            %p[p[0] !== x || p[1] !== y]
-                            *[+on(x[0], x[1])] -seq,
+        product(xs, ys) = xs *~![ys *y[[x, y]] -seq] -seq,
+        offsets         = ~product(ni[-1, 1], ni[-1, 1]) %[x[0] || x[1]] -seq,
+        adjacent(x, y)  = offsets *o[+on(x + o[0], y + o[1])] -seq,
         cell(x, y)      = cs[wrap(x, cs)] -re- it[wrap(y, it)],
         wrap(x, xs)     = (x + xs.length) % xs.length,
         on(x, y)        = cell(x, y).hasClass('on'),
 
-        new_states      = cs *~[x *y[new_state(xi, yi)]] -seq,
+        new_states      = cs *[x *y[new_state(xi, yi)] -seq] -seq,
         update(cell)    = cell.toggleClass('on',
                             new_states[cell.data('x')][cell.data('y')])]]}));
