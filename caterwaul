@@ -1129,6 +1129,7 @@ meta::cache('parent-identification', <<'__');
 /home/spencertipping/bin/node-base da62d84a9e81832f089520c172982c1a
 /home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 /home/spencertipping/bin/repository 05bc3036c343fdb8aec5b0be12a9b19e
+/home/spencertipping/conjectures/perl-objects/js 246bc56c88e8e8daae3737dbb16a2a2c
 /home/spencertipping/conjectures/perl-objects/preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
 /home/spencertipping/conjectures/perl-objects/sdoc a1e8480e579614c01dabeecf0f963bcc
 git-integration 9fabb9b6f2f374c35ddcc26549ac2b65
@@ -1299,6 +1300,11 @@ around_hook('edit', @_, sub {
   associate($name, invoke_editor_on($data{$name} // '', %options, attribute => $name, extension => $extension), execute => 1)});
 save() unless $data{'data::edit::no-save'};
 '';
+__
+meta::function('edit-self', <<'__');
+$global_data = invoke_editor_on($global_data);
+save();
+
 __
 meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
 meta::function('export', <<'__');
@@ -1791,10 +1797,10 @@ my $section_level = 0;
 my @markup;
 
 my $indent        = sub {'  ' x ($_[0] || $section_level)};
-my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//gm};
+my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//gm; $_};
 
-my $code          = sub {&$unindent(); s/^c\n//;                   push @markup, join("\n", map &$indent(2) . $_, split /\n/, $_)};
-my $quoted        = sub {&$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, join("\n", map &$indent(2) . $_, split /\n/, $_)};
+my $code          = sub {&$unindent(); s/^c\n//;                   push @markup, join("\n", map &$indent(2) . $_, split /\n/)};
+my $quoted        = sub {&$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, join("\n", map &$indent(2) . $_, split /\n/)};
 
 my $heading       = sub {'#' x $_[0]};
 my $section       = sub {&$unindent(); push @markup, &$heading($_[0]) . ' ' . $2};
@@ -1810,7 +1816,7 @@ for (@paragraphs) {
   &$quoted(), next if     /^\h*\|/;
 
   &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") < 60 and length("$1$2") - 10 < length($3);
-  push @markup, join "\n", map {&$unindent() and $_} split /\n/, $_;
+  push @markup, join "\n", map &$unindent(), split /\n/;
 }
 
 join "\n\n", @markup;
@@ -2407,20 +2413,22 @@ parent::preprocessor                                        7172206e753310217b5f
 
 __
 meta::parent('./sdoc', <<'__');
-function::sdoc                           f3f3f3127961399a4c38152771c966ab
-function::sdoc-html                      7e7de47fe059a336309a4a0c06856401
+function::sdoc                           f0cea831720d18449455a8ed79181727
+function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
+function::sdoc-markdown                  2f219c0399669b223a6d1bf1829218ff
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
 retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
+retriever::markdown-sdoc                 20651301fffb3c018da926ede531f84c
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 
 __
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                7f5ba514d47ac29a3c226d0e331d9da4
-parent::/home/spencertipping/bin/object  4d71ae092e2baa681e627f8a8ba8399e
+parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
 
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
@@ -2565,7 +2573,7 @@ __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
 function::sdoc                           f0cea831720d18449455a8ed79181727
 function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
-function::sdoc-markdown                  2f219c0399669b223a6d1bf1829218ff
+function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
@@ -2699,14 +2707,14 @@ meta::parent('todo', <<'__');
 function::parse-todo      c8247ece4f8ea189cd6523b0f94c7247
 function::todo-summary    1c986ec8c6efd4dfae2d3ba5e7ca64f2
 meta::type::todo          143fa39e155c81f4186aa53a947296ec
-parent::./sdoc            c328e1359e74d8eb1b3520c9d3888b90
-parent::vim-highlighters  7dc7d4670b6ba6e7aa6ed741690fecc4
+parent::./sdoc            0cef7258a2449765557387e954ab76d0
+parent::vim-highlighters  9f43562336f10d621ddefd326a989b1d
 
 __
 meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
 meta::type::vim_highlighter  27990fddb6d7bd383b55dbdfee0d148d
-parent::object               4d71ae092e2baa681e627f8a8ba8399e
+parent::object               1f1bf492b56b2f0196b2018b11b8c991
 
 __
 meta::parent('waul-object', <<'__');
@@ -2725,6 +2733,11 @@ my $attr = retrieve(attribute($_[0]));
 defined $attr ? &{'crunch-whitespace'}($attr) : undef;
 __
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
+meta::retriever('global', <<'__');
+# Returns the global data stashed at the end of this perl object
+$_[0] eq 'self' ? $global_data : undef;
+
+__
 meta::retriever('html-sdoc', <<'__');
 my ($attribute) = @_;
 return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute};

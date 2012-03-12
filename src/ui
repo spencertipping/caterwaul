@@ -636,13 +636,15 @@ else    {pop @{$transient{path}}}
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__');
+my ($options, @stuff) = separate_options(@_);
 my @pieces = qw/jquery/;
 
-file::write("ui.$_.waul", retrieve("waul::ui.$_")) for @pieces;
-waul("ui.$_", output => "build/ui.$_.js") for @pieces;
+file::write("ui.$_.waul", retrieve("waul::ui.$_"))                 for @pieces;
+file::write("ui.$_.md",   retrieve("markdown::sdoc::waul::ui.$_")) for @pieces;
+waul("ui.$_", output => "build/ui.$_.js")                          for @pieces;
 
 file::write('build/caterwaul.ui.js', cat('pp::caterwaul.ui.js'));
-minify_yui('build/caterwaul.ui.js');
+minify_yui('build/caterwaul.ui.js') unless $$options{-M};
 
 __
 meta::function('rm', <<'__');
@@ -708,12 +710,12 @@ sub comment    {my ($text, $s, $e) = @_; join "\n", map("$s $_$e", split /\n/, $
 
 sub paragraphs {map split(/((?:\n\h*){2,})/, $_), @_}
 
-my ($filename) = @_;
+my ($filename, $specified_extension) = @_;
 
 # Two possibilities here. One is that the filename is an attribute, in which case
 # we want to look up the extension in the transients table. The other is that
 # it's a real filename.
-my ($extension)       = $filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo;
+my ($extension)       = $specified_extension || ($filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo);
 my ($other_extension) = extension_for($filename);
 $other_extension =~ s/\.sdoc$//io;
 $other_extension =~ s/^\.//o;
@@ -1367,7 +1369,7 @@ function::minify-yui                                        dd0d6afd6be310818063
 function::waul                                              66b92f55d5db498934b487188a04b16d
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
 parent::/home/spencertipping/conjectures/perl-objects/js    08631314298573e77850afe27d7d3003
-parent::/home/spencertipping/conjectures/perl-objects/sdoc  0cef7258a2449765557387e954ab76d0
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  5ead79278263770b4bd3f4928f4b28aa
 parent::preprocessor                                        4450ebbe2c9d3a70ada4050fcd567907
 
 __
@@ -1496,15 +1498,16 @@ parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
-function::sdoc                           f0cea831720d18449455a8ed79181727
+function::sdoc                           b2f9066417ce3368f093796e1180e9b2
 function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
 function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
 parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
-retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
-retriever::markdown-sdoc                 20651301fffb3c018da926ede531f84c
+retriever::code-sdoc                     03b87ff8d1ecf7594db9ca0669fc69a1
+retriever::html-sdoc                     8ab7705d03276945b23a71677153233c
+retriever::markdown-sdoc                 67c34ba8223ec36a3ae018e411354db2
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 
@@ -1641,6 +1644,14 @@ template::script-include       76be051ad116449ddebd10e7c3729afd
 template::style-include        8e5a06b70e1b00379765f319bf6c8066
 
 __
+meta::retriever('code-sdoc', <<'__');
+# Lets you specify the SDoc extension manually. For instance:
+# code.js::sdoc::foo causes sdoc::foo to be SDoc-rendered using Javascript comments.
+my ($name) = @_;
+return undef unless $name =~ s/^code\.(\w+)::// and defined retrieve($name);
+sdoc($name, $1);
+
+__
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('global', <<'__');
 # Returns the global data stashed at the end of this perl object
@@ -1649,14 +1660,14 @@ $_[0] eq 'self' ? $global_data : undef;
 __
 meta::retriever('html-sdoc', <<'__');
 my ($attribute) = @_;
-return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute};
+return undef unless $attribute =~ s/^html::/sdoc::/ and defined retrieve($attribute) || $attribute =~ s/^sdoc::// && defined retrieve($attribute);
 sdoc_html($attribute);
 
 __
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('markdown-sdoc', <<'__');
 my ($attribute) = @_;
-return undef unless $attribute =~ s/^markdown::/sdoc::/ and exists $data{$attribute};
+return undef unless $attribute =~ s/^markdown::/sdoc::/ and defined retrieve($attribute) || $attribute =~ s/^sdoc::// && defined retrieve($attribute);
 sdoc_markdown($attribute);
 
 __
