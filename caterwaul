@@ -1610,6 +1610,7 @@ unless ($$options{-W}) {
   my $waul = $$options{'--waul'} || 'waul';
   terminal::info("regenerating waul-core using $waul as a bootstrap compiler");
   file::write('src/waul/waul.waul', retrieve('waul::waul'));
+  file::write('src/waul/waul.md',   retrieve('markdown::waul::waul'));
   sh("$waul -e build/caterwaul.std.min.js src/waul/waul.waul");
 
   file::write('waul-core', retrieve('pp::js::waul-bootstrap'));

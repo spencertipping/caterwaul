@@ -20,7 +20,7 @@ its core API in significantly more detail than this readme. You can also read th
 
 ### Parsing things
 
-
+  Caterwaul's Javascript parser takes anything with a valid `toString()` method as input, including Javascript functions.
 
     var tree = caterwaul.parse('3 + 4');
     tree.toString()           // '3 + 4'
@@ -31,8 +31,8 @@ its core API in significantly more detail than this readme. You can also read th
 
 ### Detecting patterns
 
-
-
+If you're serious about this stuff, I recommend writing this code in the caterwaul programming language. It supports a lot of advanced features that make syntax trees much easier to work
+with; in particular, preparsed quoted constructs (similar to the ' operator in Lisp). These will give you a significant performance advantage and better notation.
 
     var pattern = caterwaul.parse('_x + _y');
     var match   = pattern.match(tree);
@@ -44,7 +44,7 @@ its core API in significantly more detail than this readme. You can also read th
 
 ### Compiling things
 
-
+Caterwaul's compiler does a lot, but the basic case works like `eval`:
 
     var f = function (x, y) {return x * y};
     caterwaul.compile(new_tree)       // 12
@@ -69,8 +69,8 @@ learn this language on the caterwaul website, which goes through it by example a
 
 ### Using caterwaul this way
 
-
-
+  There are two ways to use caterwaul as a programming language. You can compile code from inside another Javascript process, which works because all caterwaul code is syntactically valid
+  Javascript code as well (note that the following example will work only if you've loaded `caterwaul.std.js` from the `build/` directory):
 
     var compiler = caterwaul(':all');         // :all means 'every macro you know about'
     var compiled = compiler(function () {
@@ -113,7 +113,7 @@ equivalents; in other words, the body of each function has already been compiled
 
 ### Waul replication
 
-
+  Suppose you write a custom caterwaul module and want a new version of `waul` that contains it. You can ask `waul` to replicate itself with an extension like this:
 
     $ ./waul -r -e extension.waul > new-waul
     $ chmod u+x new-waul
