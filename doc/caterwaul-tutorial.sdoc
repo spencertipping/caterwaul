@@ -4,15 +4,15 @@ code in a first-class way. It also comes with several macro (Lisp-style, not C-s
 
 If you see merit in the linguistic features of Haskell, APL, Lisp, and Perl, then you will probably also see merit in the things that Caterwaul tries to achieve and you might even like it. If
 you're a normal person who wants to use modern tools to write normal, maintainable apps, and you're not a programming language enthusiast who seeks out the pathological and the bizarre, then I
-recommend using <a href='http://coffeescript.com' target='_blank'>CoffeeScript</a> instead.
+recommend using <a href='http://coffeescript.org' target='_blank'>CoffeeScript</a> instead.
 
-This page is written in Caterwaul using the libraries covered below. If you're feeling adventurous, you might be interested to see the <a href='#annotated'>annotated source</a> (the code that
-drives this page is in the <code>web/</code> section near the bottom).
+This page is written in Caterwaul using the libraries covered below. If you're feeling adventurous, you might be interested to see the <a
+href='https://github.com/spencertipping/caterwaul/blob/1.2/src/caterwaul.md' target='_blank'>annotated source</a> (the standard library has similar documentation and is in the same directory).
 
 A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.
 
 I've also started writing documentation in a more traditional form, available from <a href='doc/' target='_blank'>the documentation directory</a>. This is a great place to start if you're
-interested in using Caterwaul for production projects.
+interested in using Caterwaul for production projects (which you shouldn't be).
 
   Praise for Caterwaul.
   Lots of people have looked at Caterwaul and great things to say about it. Here are some of them:
@@ -75,7 +75,7 @@ interested in using Caterwaul for production projects.
   <li><a href='http://github.com/spencertipping/caterwaul-invariant' target='_blank'>State transition/invariant library</a></li>
   </ul>
 
-  I should mention that they're in various states of disrepair and sometimes break. However, if you'd like to use one in production, feel free to <a
+  I should mention that they're in various states of disrepair and sometimes break. However, if you'd like to use one in production (which you shouldn't), feel free to <a
   href='mailto:spencer@spencertipping.com'>e-mail me</a> and I'll set up a stable versioning scheme for it. They're all MIT-licensed, as is Caterwaul.
 
   Downloading Caterwaul.

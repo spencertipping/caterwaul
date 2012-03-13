@@ -1820,16 +1820,16 @@ nodes. At the end of folding there is only one child per paren-group.
   Doubly-linked paren-group lists.
   When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
 
-  |                       +--------+
-                 +------  |  node  |  ------+
-                 |   +->  |        |  <--+  |
-          first  |   |    +--------+     |  |  last
-                 |   | parent     parent |  |
-                 V   |                   |  V
-              +--------+               +--------+
-              |  node  |   --- r -->   |  node  |  --- r ---/
-   /--- l --- |        |   <-- l ---   |        |
-              +--------+               +--------+
+  |                         +--------+
+                   +------  |  node  |  ------+
+                   |   +->  |        |  <--+  |
+            first  |   |    +--------+     |  |  last
+                   |   | parent     parent |  |
+                   V   |                   |  V
+                +--------+               +--------+
+                |  node  |   --- r -->   |  node  |  --- r ---/
+     /--- l --- |        |   <-- l ---   |        |
+                +--------+               +--------+
 
   The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by one certain nodes fold their siblings underneath them,
   breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:

@@ -44,24 +44,6 @@ caterwaul.module('std.words', 'js js_literals words', function ($) {
 
     eval(match) = new $.ref($.compile(this(match._expression)), 'eval'),
 
-  # Nullary function words.
-#   These are used to provide quick function wrappers for values. There are actually a couple of possibilities here. One is to wrap a value in a nullary function that recomputes its expression
-#   each time, and another is to compute the value lazily and return the cached value for each future invocation. The modifiers are called 'delay' and 'lazy', and they always bind to the
-#   surrounding context (analogous to bgiven).
-
-  # Here are their operational semantics by example:
-
-  # | var x = 10;
-#     var f = ++x -delay;
-#     f()         -> 11
-#     f()         -> 12
-#     var g = ++x -lazy;
-#     g()         -> 13
-#     g()         -> 13
-
-    delay = $.reexpander('(function (t, f) {return (function () {return f.call(t)})})(this, (function () {return _expression}))'.qs),
-    lazy  = $.reexpander('(function (t, f, v, vc) {return (function () {return vc ? v : (vc = true, v = f.call(t))})})(this, (function () {return _expression}))'.qs),
-
   # Object construction.
 #   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You
 #   can also use regular assignments, each of which will be converted into a key/value pair:
@@ -104,13 +86,37 @@ caterwaul.module('std.words', 'js js_literals words', function ($) {
 #   bound the variable as _; version 1.0 changes this convention to bind the variable to 'it'. For example:
 
   # | hash(k, v) = {} /se[it[k] = v];
-#     compose(f, g)(x) = g(x) -re- f(it);
+#     compose(f, g)(x) = g(x) -re- f(it);                 // <- you shouldn't ever write it this way, at least not until V8 is better at inlining fictitious closures.
 
   # Version 1.2 adds the word 'then', which is equivalent to 'se' but doesn't bind 'it'. This removes the overhead associated with creating a closure.
 
     se:   $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),
     re:   $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'.qs),
     then: $.reexpander('((_expression), (_parameters))'.qs),
+
+  # Assignment.
+#   These provide higher-level assignment patterns and allow you to change the precedence of assignment operations. For example, it's common to write something like (x || (x = y)) because
+#   Javascript has no ||= operator. Caterwaul provides several modifiers for this:
+
+  # | x -oeq- y           -> (!!x || (x = y))                     // assign if falsy
+#     x -aeq- y           -> (!x || (x = y))                      // assign if truthy
+#     x -deq- y           -> (x !== void 0 || (x = y))            // assign if undefined
+#     x -neq- y           -> (x !=  void 0 || (x = y))            // assign if null or undefined
+#     x -eq- y            -> x = y                                // assign unconditionally
+
+  # Related are cache behaviors:
+
+  # | x -ocq- y           -> x ? x : x = y                        // cache assign if falsy
+#     x -acq- y           -> !x ? x : x = y                       // cache assign if truthy
+#     x -dcq- y           -> x !== void 0 ? x : x = y             // cache assign if undefined
+#     x -ncq- y           -> x !=  void 0 ? x : x = y             // cache assign if null or undefined
+
+    eq:  $.reexpander('_expression = _parameters'.qs),
+    aeq: $.reexpander('!_expression  || (_expression = _parameters)'.qs),  deq: $.reexpander('_expression !== void 0 || (_expression = _parameters)'.qs),
+    oeq: $.reexpander('!!_expression || (_expression = _parameters)'.qs),  neq: $.reexpander('_expression !=  void 0 || (_expression = _parameters)'.qs),
+
+    ocq: $.reexpander(' _expression ? _expression : _expression = _parameters'.qs),  dcq: $.reexpander('_expression !== void 0 ? _expression : _expression = _parameters'.qs),
+    acq: $.reexpander('!_expression ? _expression : _expression = _parameters'.qs),  ncq: $.reexpander('_expression !=  void 0 ? _expression : _expression = _parameters'.qs),
 
   # Scoping.
 #   You can create local variables by using the where[] modifier. If you do this, the locals can all see each other since they're placed into a 'var' statement. For example:

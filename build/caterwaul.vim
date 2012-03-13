@@ -71,12 +71,12 @@ syn keyword   jsFunctionMacro           given bgiven           nextgroup=jsFunct
 syn keyword   jsQuotationMacro          qs qse                 nextgroup=jsQuotationGroup
 syn keyword   jsOtherMacro              raise seq noexpand reexpand
 
-syn keyword   jsParameterizedMacro      se re then and or when unless using rescue nextgroup=jsModifierSuffix
+syn keyword   jsParameterizedMacro      se re then and or when unless using rescue eq aeq oeq deq neq acq ocq dcq ncq nextgroup=jsModifierSuffix
 syn match     jsModifierSuffix          /[->]/ contained
 
 syn cluster   jsMacro                   add=jsBindingMacro,jsFunctionMacro,jsQuotationMacro,jsOtherMacro
 
-syn match     jsLiteralModifier         /\.\(q[swh]\|x\)\>/
+syn match     jsLiteralModifier         /\.\(q[frwh]\|qse\|x\)\>/
 
 syn match     jsSeqFilter               /\/\(pairs\|keys\|values\)\>/
 syn match     jsSeqFilter               /%[kv][\*%\/~!]/
