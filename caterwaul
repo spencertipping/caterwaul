@@ -3466,7 +3466,7 @@ caterwaul.module('waul', 'js_all', function ($) {
          output_for(filename)       = filename.replace(/^((?:.*\/)?)((?:(?!\.waul(?:\.sdoc)?)[^\/])+)(\.waul(?:\.sdoc)?)?/, options.output_pattern),
          waul_output(input_file, t) = fs.writeFileSync(input_file /!output_for, t.toString(), 'utf8'),
 
-         waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input),
+         waul(input_file)           = input_file /-waul_process/ $.parse(input_file /!waul_input).as(';'),
          waul_process(file, tree)   = immediate_pattern       /~match/ tree                                            -re [it ? waul_run(it)                               :
                                       module_pattern          /~match/ tree -or- module_pattern_explicit /~match/ tree -re [it ? waul_transform(file, it, module_template)  :
                                       module_pattern_identity /~match/ tree                                            -re [it ? waul_identity(file, it)                    :
