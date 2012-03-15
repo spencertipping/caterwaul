@@ -20,7 +20,7 @@ The seq[] modifier distributes across several operators. They are:
     3. Parentheses
 
 It won't cross a square-bracket or invocation boundary, however. This includes distributing over array elements and [] dereferencing. You can cause it to cross an array boundary by prefixing
-the array with ~ (which should be familiar, as it is the same syntax that's used to cause function bodies to be interpreted in sequence context). For instance:
+the array with ~. For instance:
 
     [1, 2, 3, X] -seq             // <- X is interpreted in regular Javascript context
     ~[1, 2, 3, X] -seq            // <- X is interpreted in sequence context
@@ -49,8 +49,7 @@ Modifiers are unary operators that come after the primary operator. These have t
     x = rename the variable from 'x'              e.g.  [1, 2, 3] *y[y + 1] -seq             ->  [2, 3, 4]
 
 Here, 'x' means any identifier. Caterwaul 1.0 introduces some new stuff. The map function now has a new variant, *~!. Filter also supports this variant. Like other operators, they support
-variable renaming and sequence context. You can do this by putting those modifiers after the *~!; for instance, xs *~!~[exp] interprets 'exp' in sequence context. Similarly, *~!y[exp] uses
-'y' rather than 'x'.
+variable renaming. You can do this by putting those modifiers after the *~!. For instance, *~!y[exp] uses 'y' rather than 'x'.
 
     *~! = flatmap         e.g. [1, 2, 3] *~![[x, x + 1]] |seq      ->  [1, 2, 2, 3, 3, 4]
     %~! = map/filter      e.g. [1, 2, 3] %~![x & 1 && x + 1] |seq  ->  [2, 4]
@@ -271,9 +270,9 @@ such (from a design perspective).
 
       iterate     = form('for (var _x = _xs, _xi = 0, _x0, _xl; _x0 = (_init); ++_xi) _x = (_f); return _x'.qs),
 
-      filter      = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;     _xi < _xl; ++_xi) _x = _xs[_xi], (_f) && _xr.push(_x);        return _xr'.qs),
-      filter_not  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;     _xi < _xl; ++_xi) _x = _xs[_xi], (_f) || _xr.push(_x);        return _xr'.qs),
-      map_filter  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, _y; _xi < _xl; ++_xi) _x = _xs[_xi], (_y = (_f)) && _xr.push(_y); return _xr'.qs),
+      filter      = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;      _xi < _xl; ++_xi) _x = _xs[_xi], (_f) && _xr.push(_x);          return _xr'.qs),
+      filter_not  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;      _xi < _xl; ++_xi) _x = _xs[_xi], (_f) || _xr.push(_x);          return _xr'.qs),
+      map_filter  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0; _xi < _xl; ++_xi) _x = _xs[_xi], (_x0 = (_f)) && _xr.push(_x0); return _xr'.qs),
 
       imap_filter = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0; _xi < _xl; ++_xi) _x = _xs[_xi], (_x0 = (_init)) && _xr.push(_f); return _xr'.qs),
 
