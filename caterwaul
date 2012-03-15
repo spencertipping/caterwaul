@@ -1708,12 +1708,12 @@ sub comment    {my ($text, $s, $e) = @_; join "\n", map("$s $_$e", split /\n/, $
 
 sub paragraphs {map split(/((?:\n\h*){2,})/, $_), @_}
 
-my ($filename) = @_;
+my ($filename, $specified_extension) = @_;
 
 # Two possibilities here. One is that the filename is an attribute, in which case
 # we want to look up the extension in the transients table. The other is that
 # it's a real filename.
-my ($extension)       = $filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo;
+my ($extension)       = $specified_extension || ($filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo);
 my ($other_extension) = extension_for($filename);
 $other_extension =~ s/\.sdoc$//io;
 $other_extension =~ s/^\.//o;
@@ -2415,22 +2415,23 @@ parent::preprocessor                                        7172206e753310217b5f
 
 __
 meta::parent('./sdoc', <<'__');
-function::sdoc                           f0cea831720d18449455a8ed79181727
+function::sdoc                           b2f9066417ce3368f093796e1180e9b2
 function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
-function::sdoc-markdown                  2f219c0399669b223a6d1bf1829218ff
+function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
-retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
-retriever::markdown-sdoc                 20651301fffb3c018da926ede531f84c
+parent::/home/spencertipping/bin/object  c086f2bf8be5433a968323892538feb6
+retriever::code-sdoc                     03b87ff8d1ecf7594db9ca0669fc69a1
+retriever::html-sdoc                     8ab7705d03276945b23a71677153233c
+retriever::markdown-sdoc                 67c34ba8223ec36a3ae018e411354db2
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 
 __
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                7f5ba514d47ac29a3c226d0e331d9da4
-parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
+parent::/home/spencertipping/bin/object  c086f2bf8be5433a968323892538feb6
 
 __
 meta::parent('/home/spencertipping/bin/object', <<'__');
@@ -2490,7 +2491,7 @@ function::usage                         5bdd370f5a56cfbf199e08d398091444
 function::verify                        0c0cc1dfeab7d705919df122f7850a4f
 indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
 indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
-indicator::path                         9ec891df17cd45895f03a6124f9d065f
+indicator::path                         b5e2cb524caa0283f713a0ddf9f4c162
 internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
 internal_function::associate            55f202ffdbc6b9005e53d3e82f5f9bfe
 internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
@@ -2554,14 +2555,14 @@ retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
 meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
-parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
+parent::/home/spencertipping/bin/object  c086f2bf8be5433a968323892538feb6
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
 meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 1f1bf492b56b2f0196b2018b11b8c991
+parent::object                 c086f2bf8be5433a968323892538feb6
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
@@ -2573,15 +2574,16 @@ template::style-include        8e5a06b70e1b00379765f319bf6c8066
 
 __
 meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
-function::sdoc                           f0cea831720d18449455a8ed79181727
+function::sdoc                           b2f9066417ce3368f093796e1180e9b2
 function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
 function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  1f1bf492b56b2f0196b2018b11b8c991
-retriever::html-sdoc                     2a5d5aa45e2d7576f79e045177d8705c
-retriever::markdown-sdoc                 20651301fffb3c018da926ede531f84c
+parent::/home/spencertipping/bin/object  c086f2bf8be5433a968323892538feb6
+retriever::code-sdoc                     03b87ff8d1ecf7594db9ca0669fc69a1
+retriever::html-sdoc                     8ab7705d03276945b23a71677153233c
+retriever::markdown-sdoc                 67c34ba8223ec36a3ae018e411354db2
 retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
 retriever::sdocp                         330694ea14a23bb04b65c761075cd946
 
@@ -2643,7 +2645,7 @@ function::usage                         5bdd370f5a56cfbf199e08d398091444
 function::verify                        0c0cc1dfeab7d705919df122f7850a4f
 indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
 indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
-indicator::path                         9ec891df17cd45895f03a6124f9d065f
+indicator::path                         b5e2cb524caa0283f713a0ddf9f4c162
 internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
 internal_function::associate            55f202ffdbc6b9005e53d3e82f5f9bfe
 internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
@@ -2709,14 +2711,14 @@ meta::parent('todo', <<'__');
 function::parse-todo      c8247ece4f8ea189cd6523b0f94c7247
 function::todo-summary    1c986ec8c6efd4dfae2d3ba5e7ca64f2
 meta::type::todo          143fa39e155c81f4186aa53a947296ec
-parent::./sdoc            0cef7258a2449765557387e954ab76d0
+parent::./sdoc            8137eebc7495850c86d8471b9c55b13e
 parent::vim-highlighters  9f43562336f10d621ddefd326a989b1d
 
 __
 meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
 meta::type::vim_highlighter  27990fddb6d7bd383b55dbdfee0d148d
-parent::object               1f1bf492b56b2f0196b2018b11b8c991
+parent::object               c086f2bf8be5433a968323892538feb6
 
 __
 meta::parent('waul-object', <<'__');
@@ -2726,6 +2728,14 @@ meta::type::waul                                            869b5820cd79178b94c3
 parent::/home/spencertipping/conjectures/perl-objects/js    08631314298573e77850afe27d7d3003
 parent::/home/spencertipping/conjectures/perl-objects/sdoc  0cef7258a2449765557387e954ab76d0
 parent::preprocessor                                        4450ebbe2c9d3a70ada4050fcd567907
+
+__
+meta::retriever('code-sdoc', <<'__');
+# Lets you specify the SDoc extension manually. For instance:
+# code.js::sdoc::foo causes sdoc::foo to be SDoc-rendered using Javascript comments.
+my ($name) = @_;
+return undef unless $name =~ s/^code\.(\w+)::// and defined retrieve($name);
+sdoc($name, $1);
 
 __
 meta::retriever('crunch', <<'__');
@@ -2742,7 +2752,7 @@ $_[0] eq 'self' ? $global_data : undef;
 __
 meta::retriever('html-sdoc', <<'__');
 my ($attribute) = @_;
-return undef unless $attribute =~ s/^html::/sdoc::/ and exists $data{$attribute};
+return undef unless $attribute =~ s/^html::/sdoc::/ and defined retrieve($attribute) || $attribute =~ s/^sdoc::// && defined retrieve($attribute);
 sdoc_html($attribute);
 
 __
@@ -2750,7 +2760,7 @@ meta::retriever('http', '# This function has been removed to eliminate dependenc
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('markdown-sdoc', <<'__');
 my ($attribute) = @_;
-return undef unless $attribute =~ s/^markdown::/sdoc::/ and exists $data{$attribute};
+return undef unless $attribute =~ s/^markdown::/sdoc::/ and defined retrieve($attribute) || $attribute =~ s/^sdoc::// && defined retrieve($attribute);
 sdoc_markdown($attribute);
 
 __

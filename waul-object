@@ -542,12 +542,17 @@ join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @e
 __
 meta::function('minify-yui', <<'__');
 # Minify using YUI compressor
-my ($filename) = @_;
-my $minified = $filename;
-$minified =~ s/\.js$/.min.js/;
+my ($options, @filenames) = separate_options(@_);
+my $nomunge   = $$options{-m} ? '' : '--nomunge';
+my $linebreak = $$options{-B} ? '' : '--line-break 160';
 
-terminal::info("minifying $filename");
-file::write($minified, join '', qx(yuicompressor --nomunge --line-break 160 "$filename"));
+for my $filename (@filenames) {
+  my $minified = $filename;
+  $minified =~ s/\.js$/.min.js/;
+
+  terminal::info("minifying $filename");
+  file::write($minified, join '', qx(yuicompressor $nomunge $linebreak "$filename"));
+}
 
 __
 meta::function('mv', <<'__');
