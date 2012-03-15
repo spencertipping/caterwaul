@@ -5,7 +5,7 @@
 // Right now I've only got a set of combinators for jQuery.
 
 caterwaul.module( 'ui.jquery' , (function(qs,qs1,qs2,qs3,qs4,qs5,qs6,qs7,qs8,qs9,qsa,qsb,qsc,qsd,qse,qsf,qsg,qsh,qsi,qsj,qsk,qsl,qsm,qsn,qso,qsp,qsq,qsr,qss,qst,qsu,qsv,qsw,qsx,qsy,qsz,qs10,qs11,qs12,qs13,qs14,qs15,qs16,qs17,qs18,qs19,qs1a,qs1b,qs1c,qs1d,qs1e,qs1f,qs1g,qs1h,qs1i,qs1j,qs1k,qs1l,qs1m,qs1n) {var result= (function($) {$.jquery=function(caterwaul_function) {;
-return(function(it) {return(it.modifiers.jquery=$.grammar( 'J' ,qs, (function(rule,anon) {return(function( ) {var jq=qs1,hyphenate=function(s) {;
+return(function(it) {return(it.modifiers.jquery=$.grammar( 'J' , {initial:qs} , (function(rule,anon) {return(function( ) {var jq=qs1,hyphenate=function(s) {;
 return s.replace( /_/g , '-' ) } ,p= (function( ) {var p_pattern=anon(qs2) ;
 return( (function(node) {return p_pattern.replace( {_thing:node} ) } ) ) } ) .call(this) ,jquery_macros= (function( ) {var dom_node_template=anon( ( '' + (jq) + '(TS[_element])' ) ) ,jquery_template=anon( ( '' + (jq) + '("<span>" + (_element) + "</span>")' ) ) ,become_dom_node=function(match) {;
 return dom_node_template.replace(match) } ,wrap_in_jquery=function(match) {;

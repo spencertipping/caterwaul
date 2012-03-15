@@ -1,0 +1,6 @@
+#!/bin/bash
+# Replaces ./waul and ./waul-core with a previous version; this helps when
+# recovering from a broken compiler build.
+
+cp bin/waul-$1      ./waul &&
+cp bin/waul-core-$1 ./waul-core

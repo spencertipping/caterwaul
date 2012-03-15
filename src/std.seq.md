@@ -203,7 +203,7 @@ The seq library is theoretically portable to syntaxes besides JS, but you'll pro
 such (from a design perspective).
 
     caterwaul.module('std.seq', 'js_all', function ($) {
-      $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', 'S[_x]'.qs, given [rule, anon] in operator_macros /~concat/ word_macros
+      $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', {initial: 'S[_x]'.qs}, given [rule, anon] in operator_macros /~concat/ word_macros
 
       -where [operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
 

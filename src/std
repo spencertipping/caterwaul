@@ -1763,18 +1763,21 @@ structure. It's pretty easy to use: you just specify what your anonymous markers
 pattern/replacement pairs, where the replacement can be either a syntax tree or a function. For example:
 
 | var compiler = $('js_all');
-  compiler.modifiers.foo = $.grammar('F', 'F[_x]'.qs, given.rule in ['F[_x + _y]'.qs /-rule/ '_x * _y'.qs]);
+  compiler.modifiers.foo = $.grammar('F', {initial: 'F[_x]'.qs}, given.rule in ['F[_x + _y]'.qs /-rule/ '_x * _y'.qs]);
   compiler('3 + 4 -foo'.qs).structure()    -> '(* (3) (4))'
 
-Rules are matched from last to first as usual.
+Rules are matched from last to first as usual. The list of anonymization symbols can be specified as a space-delimited string or an array.
 
 caterwaul.module('std.grammar', 'js js_literals words', function ($) {
-  $.grammar(anonymous_symbols, initial_form, rule_cc) = "expand.call(expand, anon_pattern.replace({_x: _._expression})) -re- this(it) /when.it".qf
+  $.grammar(anonymous_symbols, options, rule_cc) = "expand.call(expand, anon_pattern.replace({_x: _._expression})) -re- this(it) /when.it".qf
 
-  -where [anon         = $.anonymizer(anonymous_symbols),
-          anon_pattern = anon(initial_form),
-          rule(p, e)   = $.rereplacer(anon(p), e.constructor === $.syntax ? anon(e) : e),
-          expand       = $(rule_cc(rule, anon) /!$.alternatives)]});
+  -where [default_options = {fix: true, descend: true},
+          settings        = {} / default_options /-$.merge/ options,
+
+          anon            = $.anonymizer(anonymous_symbols),
+          anon_pattern    = anon(options.initial),
+          rule(p, e)      = $[settings.fix ? 'rereplacer' : 'replacer'](anon(p), e.constructor === $.syntax ? anon(e) : e),
+          expand          = rule_cc(rule, anon) /!$.alternatives -re [settings.descend ? $(it) : it]]});
 
 __
 meta::sdoc('waul::std.js', <<'__');
@@ -2303,7 +2306,7 @@ The seq library is theoretically portable to syntaxes besides JS, but you'll pro
 such (from a design perspective).
 
 caterwaul.module('std.seq', 'js_all', function ($) {
-  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', 'S[_x]'.qs, given [rule, anon] in operator_macros /~concat/ word_macros
+  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', {initial: 'S[_x]'.qs}, given [rule, anon] in operator_macros /~concat/ word_macros
 
   -where [operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
 

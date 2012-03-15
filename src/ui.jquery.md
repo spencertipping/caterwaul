@@ -75,7 +75,7 @@ Unlike the montenegro html[] macro, this one doesn't do any autodetection. The g
     my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
 
     caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
-      $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery = $.grammar('J', 'J[_x]'.qs, given [rule, anon] in jquery_macros /~concat/ string_macros
+      $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery = $.grammar('J', {initial: 'J[_x]'.qs}, given [rule, anon] in jquery_macros /~concat/ string_macros
 
 ## Transforms
 
