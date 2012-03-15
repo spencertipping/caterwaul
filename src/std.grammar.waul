@@ -6,8 +6,11 @@
 # structure. It's pretty easy to use: you just specify what your anonymous markers are and then give it a bunch of rules. It provides a function that automatically constructs rules from
 # pattern/replacement pairs, where the replacement can be either a syntax tree or a function. For example:
 
-# | $.modifiers.foo = $.grammar('F', 'F[_x]'.qs, given.rule in ['F[_x + _y]'.qs /-rule/ '_x * _y'.qs]);
-#   $('foo')('3 + 4 -foo').structure()    -> '(* (3) (4))'
+# | var compiler = $('js_all');
+#   compiler.modifiers.foo = $.grammar('F', 'F[_x]'.qs, given.rule in ['F[_x + _y]'.qs /-rule/ '_x * _y'.qs]);
+#   compiler('3 + 4 -foo'.qs).structure()    -> '(* (3) (4))'
+
+# Rules are matched from last to first as usual.
 
 caterwaul.module('std.grammar', 'js js_literals words', function ($) {
   $.grammar(anonymous_symbols, initial_form, rule_cc) = "expand.call(expand, anon_pattern.replace({_x: _._expression})) -re- this(it) /when.it".qf
