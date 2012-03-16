@@ -48,7 +48,10 @@ Javascript in particular has clunky error handling constructs. These words provi
 Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
 and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
 
-      eval(match) = new $.ref($.compile(this(match._expression)), 'eval'),
+Caterwaul 1.2.8 introduces a related modifier, 'ahead', which produces an expression ref. The advantage of this approach is that you can precompile code that uses ahead.
+
+      eval(match)  = new $.ref($.compile(this(match._expression)), 'eval'),
+      ahead(match) = new $.expression_ref(this(match._expression), 'ahead'),
 
 ## Object construction
 

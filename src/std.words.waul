@@ -42,7 +42,10 @@ caterwaul.module('std.words', 'js js_literals words', function ($) {
 #   Caterwaul 1.1.2 introduces the 'eval' modifier, which lets you force certain expressions to be evaluated at compile-time. A reference containing the resulting value is dropped into the code,
 #   and any errors are reported as compile-time errors. The expression being evaluated is macroexpanded under the compiling caterwaul function.
 
-    eval(match) = new $.ref($.compile(this(match._expression)), 'eval'),
+  # Caterwaul 1.2.8 introduces a related modifier, 'ahead', which produces an expression ref. The advantage of this approach is that you can precompile code that uses ahead.
+
+    eval(match)  = new $.ref($.compile(this(match._expression)), 'eval'),
+    ahead(match) = new $.expression_ref(this(match._expression), 'ahead'),
 
   # Object construction.
 #   This is similar to where[], but constructs a hash object instead of binding local variables. The idea is to be able to use the f(x) = x + 1 function notation but end up with an object. You

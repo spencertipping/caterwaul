@@ -124,7 +124,8 @@ return new $.expression_ref($.syntax_to_expression(match._expression) , 'qs' ) }
 return new $.expression_ref($.syntax_to_expression(this(match._expression) ) , 'qse' ) } ,reexpand:function(match) {;
 return this(this(match._expression) ) } ,noexpand:function(match) {;
 return match._expression} ,raise:$.reexpander(qs2) ,eval:function(match) {;
-return new $.ref($.compile(this(match._expression) ) , 'eval' ) } ,capture:function(match) {for(var comma=new $.syntax( ',' ) ,bindings=match._expression.flatten( ',' ) ,i=0,l=bindings.length;
+return new $.ref($.compile(this(match._expression) ) , 'eval' ) } ,ahead:function(match) {;
+return new $.expression_ref(this(match._expression) , 'ahead' ) } ,capture:function(match) {for(var comma=new $.syntax( ',' ) ,bindings=match._expression.flatten( ',' ) ,i=0,l=bindings.length;
 i<l;
  ++i)comma.push(this(bindings[i] ) .with_data( ':' ) ) ;
 return new $.syntax( '{' ,comma.unflatten() ) } ,wcapture:function(match) {for(var e=this(match._expression) ,comma=new $.syntax( ',' ) ,bindings=e.flatten( ',' ) ,node,i=0,l=bindings.length;
