@@ -141,10 +141,12 @@ return(result) } ) .call(this,new caterwaul.syntax( "()" ,new caterwaul.syntax( 
 // Libraries.
 // These apply more advanced syntactic transforms to the code and can depend on everything above.
 
-caterwaul.module( 'std.grammar' ,function($) {$.grammar=function(anonymous_symbols,options,rule_cc) {;
-return(function( ) {var default_options= {fix:true,descend:true} ,settings=$.merge( { } ,default_options,options) ,anon=$.anonymizer(anonymous_symbols) ,anon_pattern=anon(options.initial) ,rule=function(p,e) {;
+caterwaul.module( 'std.grammar' , (function(qs) {var result= (function($) {$.grammar=function(anonymous_symbols,options,rule_cc) {;
+return(function( ) {var default_options= {fix:true,descend:true,initial:qs} ,settings=$.merge( { } ,default_options,options) ,anon=$.anonymizer(anonymous_symbols) ,anon_pattern=anon(settings.initial) ,rule=function(p,e) {;
 return $[settings.fix? 'rereplacer' : 'replacer' ] (anon(p) ,e.constructor===$.syntax?anon(e) :e) } ,expand= (function(it) {return(settings.descend?$(it) :it) } ) .call(this, ($.alternatives(rule_cc(rule,anon) ) ) ) ;
-return(function(_) {return(function(it) {return( ( (it) && (this(it) ) ) ) } ) .call(this, (expand.call(expand,anon_pattern.replace( {_x:_._expression} ) ) ) ) } ) } ) .call(this) } } ) ;
+return(function(_) {return(function(it) {return( ( (it&&this.constructor===Function) && (this(it) ) ) ) } ) .call(this, (expand.call(expand,anon_pattern.replace( {_x:_._expression} ) ) ) ) } ) } ) .call(this) } } ) ;
+result.caterwaul_expression_ref_table= {qs: ( "new caterwaul.syntax( \"[]\" ,new caterwaul.syntax( \"S\" ) ,new caterwaul.syntax( \"_x\" ) )" ) } ;
+return(result) } ) .call(this,new caterwaul.syntax( "[]" ,new caterwaul.syntax( "S" ) ,new caterwaul.syntax( "_x" ) ) ) ) ;
 
 caterwaul.module( 'std.seq' , (function(qs,qs1,qs2,qs3,qs4,qs5,qs6,qs7,qs8,qs9,qsa,qsb,qsc,qsd,qse,qsf,qsg,qsh,qsi,qsj,qsk,qsl,qsm,qsn,qso,qsp,qsq,qsr,qss,qst,qsu,qsv,qsw,qsx,qsy,qsz,qs10,qs11,qs12,qs13,qs14,qs15,qs16,qs17,qs18,qs19,qs1a,qs1b,qs1c,qs1d,qs1e,qs1f,qs1g,qs1h,qs1i,qs1j,qs1k,qs1l,qs1m,qs1n,qs1o,qs1p,qs1q,qs1r,qs1s,qs1t,qs1u,qs1v,qs1w,qs1x,qs1y,qs1z,qs20,qs21,qs22,qs23,qs24,qs25,qs26,qs27,qs28,qs29,qs2a,qs2b,qs2c,qs2d,qs2e,qs2f,qs2g,qs2h,qs2i,qs2j,qs2k,qs2l,qs2m,qs2n,qs2o,qs2p) {var result= (function($) {$.seq=function(caterwaul_function) {;
 return(function(it) {return(it.modifiers.seq=$.grammar( 'S' , {initial:qs} , (function(rule,anon) {return(function( ) {var operator_macros= (function( ) {var loop_anon=$.anonymizer( 'x' , 'y' , 'i' , 'j' , 'l' , 'lj' , 'r' , 'o' , 'k' ) ,scope=anon(qs1) ,scoped=function(t) {;
