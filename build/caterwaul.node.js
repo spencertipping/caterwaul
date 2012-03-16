@@ -959,7 +959,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
 //       Operators in this class are considered to be 'fold_lr'; that is, they fold first their left sibling, then their right.
 
-            if (has(parse_lr, data = (node = _[j]).data))  node._fold_lr();
+      // There is a special case here. If the right-hand side is a prefix unary operator of low precedence (e.g. for or if), then convert the colon to a unary operator. Semantically, this means
+//       that the colon has been used to denote a label. This won't universally hold true; in particular, it won't work if an expression is on the right instead of a statement. But it fixes all
+//       cases that would produce invalid syntax trees.
+
+            if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) node._fold_l();
+                                                           else                                                      node._fold_lr();
 
       // Ambiguous parse groups.
 //       As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that
