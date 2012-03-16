@@ -1,0 +1,3008 @@
+#!/usr/bin/perl
+# 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
+
+# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
+# really gnarly). If you're curious what it's made of, I recommend reading
+# http://github.com/spencertipping/writing-self-modifying-perl.
+#
+# If you got one of these from someone and don't know what to do with it, send
+# it to spencer@spencertipping.com and I'll see if I can figure out what it
+# does.
+
+# For the benefit of HTML viewers (this is hack):
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+my $global_data = join '', <DATA>;
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value, %options) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value unless $options{no_binding};
+    &$delegate($name, $value) unless $options{no_delegate}}}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name")};
+
+meta::meta('configure', <<'__');
+# A function to configure transients. Transients can be used to store any number of
+# different things, but one of the more common usages is type descriptors.
+
+sub meta::configure {
+  my ($datatype, %options) = @_;
+  $transient{$_}{$datatype} = $options{$_} for keys %options;
+}
+__
+meta::meta('externalize', <<'__');
+# Function externalization. Data types should call this method when defining a function
+# that has an external interface.
+
+sub meta::externalize {
+  my ($name, $attribute, $implementation) = @_;
+  my $escaped = $name;
+  $escaped =~ s/[^A-Za-z0-9:]/_/go;
+  $externalized_functions{$name} = $externalized_functions{$escaped} = $attribute;
+  *{"::$name"} = *{"::$escaped"} = $implementation || $attribute;
+}
+
+__
+meta::meta('functor::editable', <<'__');
+# An editable type. This creates a type whose default action is to open an editor
+# on whichever value is mentioned. This can be changed using different flags.
+
+sub meta::functor::editable {
+  my ($typename, %options) = @_;
+
+  meta::configure $typename, %options;
+  meta::define_form $typename, sub {
+    my ($name, $value) = @_;
+
+    $options{on_bind} && &{$options{on_bind}}($name, $value);
+
+    meta::externalize $options{prefix} . $name, "${typename}::$name", sub {
+      my $attribute             = "${typename}::$name";
+      my ($command, @new_value) = @_;
+
+      return &{$options{default}}(retrieve($attribute)) if ref $options{default} eq 'CODE' and not defined $command;
+      return edit($attribute) if $command eq 'edit' or $options{default} eq 'edit' and not defined $command;
+      return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
+      return retrieve($attribute)}}}
+__
+meta::meta('functor::html-templates', <<'__');
+my @html_elements = qw/html head title meta script style link body div/;    # Very incomplete list
+
+for my $e (@html_elements) {
+  meta::externalize "template::$e", "template::$e", sub {
+    my ($line, $block) = @_;
+    "<$e $line>\n$block\n</$e>";
+  };
+}
+
+__
+meta::meta('type::alias', <<'__');
+meta::configure 'alias', inherit => 0;
+meta::define_form 'alias', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "alias::$name", sub {
+    # Can't pre-tokenize because shell::tokenize doesn't exist until the library::
+    # namespace has been evaluated (which will be after alias::).
+    shell::run(shell::tokenize($value), shell::tokenize(@_));
+  };
+};
+__
+meta::meta('type::bootstrap', <<'__');
+# Bootstrap attributes don't get executed. The reason for this is that because
+# they are serialized directly into the header of the file (and later duplicated
+# as regular data attributes), they will have already been executed when the
+# file is loaded.
+
+meta::configure 'bootstrap', extension => '.pl', inherit => 1;
+meta::define_form 'bootstrap', sub {};
+__
+meta::meta('type::cache', <<'__');
+meta::configure 'cache', inherit => 0;
+meta::define_form 'cache', \&meta::bootstrap::implementation;
+__
+meta::meta('type::data', 'meta::functor::editable \'data\', extension => \'\', inherit => 0, default => \'cat\';');
+meta::meta('type::function', <<'__');
+meta::configure 'function', extension => '.pl', inherit => 1;
+meta::define_form 'function', sub {
+  my ($name, $value) = @_;
+  meta::externalize $name, "function::$name", meta::eval_in("sub {\n$value\n}", "function::$name");
+};
+__
+meta::meta('type::hook', <<'__');
+meta::configure 'hook', extension => '.pl', inherit => 0;
+meta::define_form 'hook', sub {
+  my ($name, $value) = @_;
+  *{"hook::$name"} = meta::eval_in("sub {\n$value\n}", "hook::$name");
+};
+__
+meta::meta('type::inc', <<'__');
+meta::configure 'inc', inherit => 1, extension => '.pl';
+meta::define_form 'inc', sub {
+  use File::Path 'mkpath';
+  use File::Basename qw/basename dirname/;
+
+  my ($name, $value) = @_;
+  my $tmpdir   = basename($0) . '-' . $$;
+  my $filename = "/tmp/$tmpdir/$name";
+
+  push @INC, "/tmp/$tmpdir" unless grep /^\/tmp\/$tmpdir$/, @INC;
+
+  mkpath(dirname($filename));
+  unless (-e $filename) {
+    open my $fh, '>', $filename;
+    print $fh $value;
+    close $fh;
+  }
+};
+__
+meta::meta('type::indicator', <<'__');
+# Shell indicator function. The output of each of these is automatically
+# appended to the shell prompt.
+
+meta::configure 'indicator', inherit => 1, extension => '.pl';
+meta::define_form 'indicator', sub {
+  my ($name, $value) = @_;
+  *{"indicator::$name"} = meta::eval_in("sub {\n$value\n}", "indicator::$name");
+};
+__
+meta::meta('type::internal_function', <<'__');
+meta::configure 'internal_function', extension => '.pl', inherit => 1;
+meta::define_form 'internal_function', sub {
+  my ($name, $value) = @_;
+  *{$name} = meta::eval_in("sub {\n$value\n}", "internal_function::$name");
+};
+__
+meta::meta('type::js', <<'__');
+meta::functor::editable 'js', extension => '.js', inherit => 1;
+
+__
+meta::meta('type::library', <<'__');
+meta::configure 'library', extension => '.pl', inherit => 1;
+meta::define_form 'library', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "library::$name");
+};
+__
+meta::meta('type::message_color', <<'__');
+meta::configure 'message_color', extension => '', inherit => 1;
+meta::define_form 'message_color', sub {
+  my ($name, $value) = @_;
+  terminal::color($name, $value);
+};
+__
+meta::meta('type::meta', <<'__');
+# This doesn't define a new type. It customizes the existing 'meta' type
+# defined in bootstrap::initialization. Note that horrible things will
+# happen if you redefine it using the editable functor.
+
+meta::configure 'meta', extension => '.pl', inherit => 1;
+__
+meta::meta('type::parent', <<'__');
+meta::define_form 'parent', \&meta::bootstrap::implementation;
+meta::configure 'parent', extension => '', inherit => 1;
+__
+meta::meta('type::retriever', <<'__');
+meta::configure 'retriever', extension => '.pl', inherit => 1;
+meta::define_form 'retriever', sub {
+  my ($name, $value) = @_;
+  $transient{retrievers}{$name} = meta::eval_in("sub {\n$value\n}", "retriever::$name");
+};
+__
+meta::meta('type::sdoc', <<'__');
+# A meta-type for other types. So retrieve('js::main') will work if you have
+# the attribute 'sdoc::js::main'. The filename will be main.js.sdoc.
+
+meta::functor::editable 'sdoc', inherit => 1, extension => sub {
+  extension_for(attribute($_[0])) . '.sdoc';
+};
+__
+meta::meta('type::slibrary', <<'__');
+meta::configure 'slibrary', extension => '.pl.sdoc', inherit => 1;
+meta::define_form 'slibrary', sub {
+  my ($name, $value) = @_;
+  meta::eval_in(sdoc("slibrary::$name"), "slibrary::$name");
+};
+
+__
+meta::meta('type::state', <<'__');
+# Allows temporary or long-term storage of states. Nothing particularly insightful
+# is done about compression, so storing alternative states will cause a large
+# increase in size. Also, states don't contain other states -- otherwise the size
+# increase would be exponential.
+
+# States are created with the save-state function.
+
+meta::configure 'state', inherit => 0, extension => '.pl';
+meta::define_form 'state', \&meta::bootstrap::implementation;
+__
+meta::meta('type::template', <<'__');
+meta::configure 'template', extension => '.pl', inherit => 1;
+meta::define_form 'template', sub {
+  my ($name, $value) = @_;
+  meta::externalize "template::$name", "template::$name", meta::eval_in("sub {\n$value\n}", "template::$name");
+};
+__
+meta::meta('type::waul', <<'__');
+meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => 'edit';
+
+__
+meta::bootstrap('html', <<'__');
+<html>
+  <head>
+  <meta http-equiv='content-type' content='text/html; charset=UTF-8' />
+  <link rel='stylesheet' href='http://spencertipping.com/perl-objects/web/style.css'/>
+
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js'></script>
+  <script src='http://spencertipping.com/caterwaul/caterwaul.all.min.js'></script>
+  <script src='http://spencertipping.com/montenegro/montenegro.client.js'></script>
+  <script src='http://spencertipping.com/perl-objects/web/attribute-parser.js'></script>
+  <script src='http://spencertipping.com/perl-objects/web/interface.js'></script>
+  </head>
+  <body></body>
+</html>
+
+__
+meta::bootstrap('initialization', <<'__');
+#!/usr/bin/perl
+# 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
+
+# This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
+# really gnarly). If you're curious what it's made of, I recommend reading
+# http://github.com/spencertipping/writing-self-modifying-perl.
+#
+# If you got one of these from someone and don't know what to do with it, send
+# it to spencer@spencertipping.com and I'll see if I can figure out what it
+# does.
+
+# For the benefit of HTML viewers (this is hack):
+# <div id='cover' style='position: absolute; left: 0; top: 0; width: 10000px; height: 10000px; background: white'></div>
+
+$|++;
+
+my %data;
+my %transient;
+my %externalized_functions;
+my %datatypes;
+
+my %locations;          # Maps eval-numbers to attribute names
+
+my $global_data = join '', <DATA>;
+
+sub meta::define_form {
+  my ($namespace, $delegate) = @_;
+  $datatypes{$namespace} = $delegate;
+  *{"meta::${namespace}::implementation"} = $delegate;
+  *{"meta::$namespace"} = sub {
+    my ($name, $value, %options) = @_;
+    chomp $value;
+    $data{"${namespace}::$name"} = $value unless $options{no_binding};
+    &$delegate($name, $value) unless $options{no_delegate}}}
+
+sub meta::eval_in {
+  my ($what, $where) = @_;
+
+  # Obtain next eval-number and alias it to the designated location
+  @locations{eval('__FILE__') =~ /\(eval (\d+)\)/} = ($where);
+
+  my $result = eval $what;
+  $@ =~ s/\(eval \d+\)/$where/ if $@;
+  warn $@ if $@;
+  $result}
+
+meta::define_form 'meta', sub {
+  my ($name, $value) = @_;
+  meta::eval_in($value, "meta::$name")};
+
+__
+meta::bootstrap('perldoc', <<'__');
+=head1 Self-modifying Perl script
+
+=head2 Original implementation by Spencer Tipping L<http://spencertipping.com>
+
+The prototype for this script is licensed under the terms of the MIT source code license.
+However, this script in particular may be under different licensing terms. To find out how
+this script is licensed, please contact whoever sent it to you. Alternatively, you may
+run it with the 'license' argument if they have specified a license that way.
+
+You should not edit this file directly. For information about how it was constructed, go
+to L<http://spencertipping.com/writing-self-modifying-perl>. For quick usage guidelines,
+run this script with the 'usage' argument.
+
+=cut
+
+__
+meta::cache('parent-identification', <<'__');
+../waul-object 4e04fdb8e560f4dd2ca4880b91a8e2ea
+/home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
+/home/spencertipping/conjectures/perl-objects/js 246bc56c88e8e8daae3737dbb16a2a2c
+/home/spencertipping/conjectures/perl-objects/sdoc a1e8480e579614c01dabeecf0f963bcc
+object 99aeabc9ec7fe80b1b39f5e53dc7e49e
+preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
+sdoc 
+vim-highlighters 902333a0bd6ed90ff919fe8477cb4e69
+__
+meta::data('author', 'Spencer Tipping');
+meta::data('default-action', 'shell');
+meta::data('license', <<'__');
+MIT License
+Copyright (c) 2010 Spencer Tipping
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+__
+meta::function('ad', <<'__');
+return @{$transient{path}} = () unless @_;
+push @{$transient{path}}, @_;
+
+__
+meta::function('alias', <<'__');
+my ($name, @stuff) = @_;
+@_ ? @stuff ? around_hook('alias', @_, sub {associate("alias::$name", join(' ', @stuff), execute => 1)})
+            : retrieve("alias::$name") // "Undefined alias $name"
+   : table_display([select_keys('--namespace' => 'alias')], [map retrieve($_), select_keys('--namespace' => 'alias')]);
+
+__
+meta::function('cat', 'join "\\n", retrieve(@_);');
+meta::function('cc', <<'__');
+# Stashes a quick one-line continuation. (Used to remind me what I was doing.)
+@_ ? associate('data::current-continuation', hook('set-cc', join(' ', @_))) : retrieve('data::current-continuation');
+__
+meta::function('ccc', 'rm(\'data::current-continuation\');');
+meta::function('child', <<'__');
+around_hook('child', @_, sub {
+  my ($child_name) = @_;
+  clone($child_name);
+  enable();
+  qx($child_name update-from $0 -n);
+  disable()});
+__
+meta::function('clone', <<'__');
+for (grep length, @_) {
+  around_hook('clone', $_, sub {
+    hypothetically(sub {
+      rm('data::permanent-identity');
+      file::write($_, serialize(), noclobber => 1);
+      chmod(0700, $_)})})}
+__
+meta::function('cp', <<'__');
+my $from = shift @_;
+my $value = retrieve($from);
+associate($_, $value) for @_;
+__
+meta::function('create', <<'__');
+my ($name, $value) = @_;
+around_hook('create', $name, $value, sub {
+  return edit($name) if exists $data{$name};
+  associate($name, defined $value ? $value : '');
+  edit($name) unless defined $value});
+__
+meta::function('current-state', 'serialize(\'-pS\');');
+meta::function('disable', 'hook(\'disable\', chmod_self(sub {$_[0] & 0666}));');
+meta::function('e', <<'__');
+my @attributes = select_keys('--criteria' => "sdoc::.*$_[0]");
+edit($attributes[0]);
+
+__
+meta::function('edit', <<'__');
+my ($name, %options) = @_;
+my $extension = extension_for($name);
+
+die "$name is virtual or does not exist" unless exists $data{$name};
+die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || is($name, '-d') || exists $options{'-f'};
+
+around_hook('edit', @_, sub {
+  associate($name, invoke_editor_on($data{$name} // '', %options, attribute => $name, extension => $extension), execute => 1)});
+
+save() unless $data{'data::edit::no-save'};
+'';
+
+__
+meta::function('edit-self', <<'__');
+$global_data = invoke_editor_on($global_data);
+save();
+
+__
+meta::function('enable', 'hook(\'enable\', chmod_self(sub {$_[0] | $_[0] >> 2}));');
+meta::function('export', <<'__');
+# Exports data into a text file.
+#   export attr1 attr2 attr3 ... file.txt
+my $name = pop @_;
+@_ or die 'Expected filename';
+file::write($name, join "\n", retrieve(@_));
+__
+meta::function('extern', '&{$_[0]}(retrieve(@_[1 .. $#_]));');
+meta::function('grep', <<'__');
+# Looks through attributes for a pattern. Usage is grep pattern [options], where
+# [options] is the format as provided to select_keys.
+
+my ($pattern, @args)     = @_;
+my ($options, @criteria) = separate_options(@args);
+my @attributes           = select_keys(%$options, '--criteria' => join('|', @criteria));
+
+$pattern = qr/$pattern/;
+
+my @m_attributes;
+my @m_line_numbers;
+my @m_lines;
+
+for my $k (@attributes) {
+  next unless length $k;
+  my @lines = split /\n/, retrieve($k);
+  for (0 .. $#lines) {
+    next unless $lines[$_] =~ $pattern;
+    push @m_attributes,   $k;
+    push @m_line_numbers, $_ + 1;
+    push @m_lines,        '' . ($lines[$_] // '')}}
+
+unless ($$options{'-C'}) {
+  s/($pattern)/\033[1;31m\1\033[0;0m/g for @m_lines;
+  s/^/\033[1;34m/o for @m_attributes;
+  s/^/\033[1;32m/o && s/$/\033[0;0m/o for @m_line_numbers}
+
+table_display([@m_attributes], [@m_line_numbers], [@m_lines]);
+__
+meta::function('hash', 'fast_hash(@_);');
+meta::function('hook', <<'__');
+my ($hook, @args) = @_;
+$transient{active_hooks}{$hook} = 1;
+dangerous('', sub {&$_(@args)}) for grep /^hook::${hook}::/, sort keys %data;
+@args;
+__
+meta::function('hooks', 'join "\\n", sort keys %{$transient{active_hooks}};');
+meta::function('identity', 'retrieve(\'data::permanent-identity\') || associate(\'data::permanent-identity\', fast_hash(rand() . name() . serialize()));');
+meta::function('import', <<'__');
+my $name = pop @_;
+associate($name, @_ ? join('', map(file::read($_), @_)) : join('', <STDIN>)); 
+__
+meta::function('initial-state', '$transient{initial};');
+meta::function('is', <<'__');
+my ($attribute, @criteria) = @_;
+my ($options, @stuff) = separate_options(@criteria);
+exists $data{$attribute} and attribute_is($attribute, %$options);
+
+__
+meta::function('load-state', <<'__');
+around_hook('load-state', @_, sub {
+  my ($state_name) = @_;
+  my $state = retrieve("state::$state_name");
+
+  terminal::state('saving current state into _...');
+  save_state('_');
+
+  delete $data{$_} for grep ! /^state::/, keys %data;
+  %externalized_functions = ();
+
+  terminal::state("restoring state $state_name...");
+  meta::eval_in($state, "state::$state_name");
+  terminal::error(hook('load-state-failed', $@)) if $@;
+  reload();
+  verify()});
+
+__
+meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
+meta::function('ls', <<'__');
+my ($options, @criteria) = separate_options(@_);
+my ($external, $shadows, $sizes, $flags, $long, $hashes, $parent_hashes) = @$options{qw(-e -s -z -f -l -h -p)};
+$sizes = $flags = $hashes = $parent_hashes = 1 if $long;
+
+return table_display([grep ! exists $data{$externalized_functions{$_}}, sort keys %externalized_functions]) if $shadows;
+
+my $criteria    = join('|', @criteria);
+my @definitions = select_keys('--criteria' => $criteria, '--path' => $transient{path}, %$options);
+
+my %inverses  = map {$externalized_functions{$_} => $_} keys %externalized_functions;
+my @externals = map $inverses{$_}, grep length, @definitions;
+my @internals = grep length $inverses{$_}, @definitions;
+my @sizes     = map sprintf('%6d %6d', length(serialize_single($_)), length(retrieve($_))), @{$external ? \@internals : \@definitions} if $sizes;
+
+my @flags     = map {my $k = $_; join '', map(is($k, "-$_") ? $_ : '-', qw(d i m u))} @definitions if $flags;
+my @hashes    = map fast_hash(retrieve($_)), @definitions if $hashes;
+
+my %inherited     = parent_attributes(grep /^parent::/o, keys %data) if $parent_hashes;
+my @parent_hashes = map $inherited{$_} || '-', @definitions if $parent_hashes;
+
+join "\n", map strip($_), split /\n/, table_display($external ? [grep length, @externals] : [@definitions],
+                                                    $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : (), $hashes ? ([@hashes]) : (), $parent_hashes ? ([@parent_hashes]) : ());
+
+__
+meta::function('minify-yui', <<'__');
+# Minify using YUI compressor
+my ($options, @filenames) = separate_options(@_);
+my $nomunge   = $$options{-m} ? '' : '--nomunge';
+my $linebreak = $$options{-B} ? '' : '--line-break 160';
+
+for my $filename (@filenames) {
+  my $minified = $filename;
+  $minified =~ s/\.js$/.min.js/;
+
+  terminal::info("minifying $filename");
+  file::write($minified, join '', qx(yuicompressor $nomunge $linebreak "$filename"));
+}
+
+__
+meta::function('mv', <<'__');
+my ($from, $to) = @_;
+die "'$from' does not exist" unless exists $data{$from};
+associate($to, retrieve($from));
+rm($from);
+__
+meta::function('name', <<'__');
+my $name = $0;
+$name =~ s/^.*\///;
+$name;
+__
+meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
+meta::function('perl', <<'__');
+my $result = eval(join ' ', @_);
+$@ ? terminal::error($@) : $result;
+__
+meta::function('preprocess', <<'__');
+# Implements a simple preprocessing language.
+# Syntax follows two forms. One is the 'line form', which gives you a way to specify arguments inline
+# but not spanning multiple lines. The other is 'block form', which gives you access to both one-line
+# arguments and a block of lines. The line parameters are passed in verbatim, and the block is
+# indentation-adjusted and then passed in as a second parameter. (Indentation is adjusted to align
+# with the name of the command.)
+#
+# Here are the forms:
+#
+# - line arguments to function
+#
+# - block line arguments << eof
+#   block contents
+#   block contents
+#   ...
+# - eof
+
+my ($string, %options) = @_;
+my $expansions         = 0;
+my $old_string         = '';
+my $limit              = $options{expansion_limit} || 100;
+my @pieces             = ();
+
+sub adjust_spaces {
+  my ($spaces, $string) = @_;
+  $string =~ s/^$spaces  //mg;
+  chomp $string;
+  $string;
+}
+
+while ($old_string ne $string and $expansions++ < $limit) {
+  $old_string = $string;
+
+  while ((my @pieces = split  /(^(\h*)-\h \S+ \h* \V* <<\h*(\w+)$ \n .*?  ^\2-\h\3$)/xms, $string) > 1 and $expansions++ < $limit) {
+    $pieces[1 + ($_ << 2)] =~ /^ (\h*)-\h(\S+)\h*(\V*)<<\h*(\w+)$ \n(.*?) ^\1-\h\4 $/xms && $externalized_functions{"template::$2"} and
+      $pieces[1 + ($_ << 2)] = &{"template::$2"}($3, adjust_spaces($1, $5))
+      for 0 .. $#pieces / 4;
+
+    @pieces[2 + ($_ << 2), 3 + ($_ << 2)] = '' for 0 .. $#pieces / 4;
+    $string = join '', @pieces;
+  }
+
+  if ((my @pieces = split     /^(\h*-\h \S+ \h* .*)$/xom, $string) > 1) {
+    $pieces[1 + ($_ << 1)] =~ /^ \h*-\h(\S+)\h*(.*)$/xom && $externalized_functions{"template::$1"} and
+      $pieces[1 + ($_ << 1)] = &{"template::$1"}($2)
+      for 0 .. $#pieces >> 1;
+
+    $string = join '', @pieces;
+  }
+}
+
+$string;
+__
+meta::function('rd', <<'__');
+if (@_) {my $pattern = join '|', @_;
+         @{$transient{path}} = grep $_ !~ /^$pattern$/, @{$transient{path}}}
+else    {pop @{$transient{path}}}
+
+__
+meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
+meta::function('render', <<'__');
+my ($options, @stuff) = separate_options(@_);
+
+file::write('caterwaul.js',      retrieve('code.js::pp::sdoc::js::caterwaul'));
+file::write('caterwaul.core.js', retrieve('code.js::pp::sdoc::js::caterwaul.core'));
+
+file::write('build/caterwaul.js',      retrieve('caterwaul.js'));
+file::write('build/caterwaul.core.js', retrieve('caterwaul.core.js'));
+
+file::write('caterwaul.md',      retrieve('markdown::pp::sdoc::js::caterwaul'));
+file::write('caterwaul.core.md', retrieve('markdown::pp::sdoc::js::caterwaul.core'));
+
+unless ($$options{-M}) {
+  minify_yui('build/caterwaul.js');
+  minify_yui('build/caterwaul.core.js');
+}
+
+__
+meta::function('rm', <<'__');
+around_hook('rm', @_, sub {
+  exists $data{$_} or terminal::warning("$_ does not exist") for @_;
+  delete @data{@_}});
+__
+meta::function('rmparent', <<'__');
+# Removes one or more parents.
+my ($options, @parents) = separate_options(@_);
+my $clobber_divergent = $$options{'-D'} || $$options{'--clobber-divergent'};
+
+my %parents = map {$_ => 1} @parents;
+my @other_parents = grep !$parents{$_}, grep s/^parent:://, select_keys('--namespace' => 'parent');
+my %kept_by_another_parent;
+
+$kept_by_another_parent{$_} = 1 for grep s/^(\S+)\s.*$/\1/, split /\n/o, cat(@other_parents);
+
+for my $parent (@parents) {
+  my $keep_parent_around = 0;
+
+  for my $line (split /\n/, retrieve("parent::$parent")) {
+    my ($name, $hash) = split /\s+/, $line;
+    next unless exists $data{$name};
+
+    my $local_hash = fast_hash(retrieve($name));
+    if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name) unless $kept_by_another_parent{$name}}
+    else {terminal::info("local attribute $name exists and is divergent; use rmparent -D $parent to delete it");
+          $keep_parent_around = 1}}
+
+  $keep_parent_around ? terminal::info("not deleting parent::$parent so that you can run", "rmparent -D $parent if you want to nuke divergent attributes too")
+                      : rm("parent::$parent")}
+
+__
+meta::function('save', 'around_hook(\'save\', sub {dangerous(\'\', sub {file::write($0, serialize()); $transient{initial} = state()}) if verify()});');
+meta::function('save-state', <<'__');
+# Creates a named copy of the current state and stores it.
+my ($state_name) = @_;
+around_hook('save-state', $state_name, sub {
+  associate("state::$state_name", current_state(), execute => 1)});
+
+__
+meta::function('sdoc', <<'__');
+# Applies SDoc processing to a file or attribute. Takes the file or attribute
+# name as the first argument and returns the processed text.
+
+my %comments_for_extension = 
+  qw|c     /*,*/  cpp   //    cc   //    h    //    java //  py  #    rb   #    pl  #   pm   #         ml   (*,*)  js  //
+     hs    --     sh    #     lisp ;;;   lsp  ;;;   s    #   scm ;;;  sc   ;;;  as  //  html <!--,-->  mli  (*,*)  cs  //
+     vim   "      elisp ;     bas  '     ada  --    asm  ;   awk #    bc   #    boo #   tex  %         fss  (*,*)  erl %
+     scala //     hx    //    io   //    j    NB.   lua  --  n   //   m    %    php //  sql  --        pov  //     pro %
+     r     #      self  ","   tcl  #     texi @c    tk   #   csh #    vala //   vbs '   v    /*,*/     vhdl --     ss  ;;;
+     haml  -#     sass  /*,*/ scss /*,*/ css  /*,*/ fig  /   waul #|;
+
+# No extension suggests a shebang line, which generally requires # to denote a comment.
+$comments_for_extension{''} = '#';
+
+my $generated_string = 'Generated by SDoc';
+
+sub is_code    {map /^\s*[^A-Z\|\s]/o, @_}
+sub is_blank   {map /^\n/o, @_}
+sub comment    {my ($text, $s, $e) = @_; join "\n", map("$s $_$e", split /\n/, $text)}
+
+sub paragraphs {map split(/((?:\n\h*){2,})/, $_), @_}
+
+my ($filename, $specified_extension) = @_;
+
+# Two possibilities here. One is that the filename is an attribute, in which case
+# we want to look up the extension in the transients table. The other is that
+# it's a real filename.
+my ($extension)       = $specified_extension || ($filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo);
+my ($other_extension) = extension_for($filename);
+$other_extension =~ s/\.sdoc$//io;
+$other_extension =~ s/^\.//o;
+
+my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $extension)} // $comments_for_extension{''} // '#';
+
+join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
+         "\n$start $generated_string $end\n";
+
+__
+meta::function('sdoc-html', <<'__');
+# Converts SDoc to logically-structured HTML. Sections end up being nested,
+# and code sections and examples are marked as such. For instance, here is some
+# sample output:
+
+# <div class='section level1'>
+#   <h1 class='title'>Foo</h1>
+#   <p>This is a paragraph...</p>
+#   <p>This is another paragraph...</p>
+#   <pre class='code'>int main () {return 0;}</pre>
+#   <pre class='quoted'>int main () {return 0} // Won't compile</pre>
+#   <div class='section level2'>
+#     <h2 class='title'>Bar</h2>
+#     ...
+#   </div>
+# </div>
+
+# It is generally good about escaping things that would interfere with HTML,
+# but within text paragraphs it lets you write literal HTML. The heuristic is
+# that known tags that are reasonably well-formed are allowed, but unknown ones
+# are escaped.
+
+my ($attribute)   = @_;
+my @paragraphs    = split /\n(?:\s*\n)+/, retrieve($attribute);
+
+my $known_tags    = join '|', qw[html head body meta script style link title div a span input button textarea option select form label iframe blockquote code caption
+                                 table tbody tr td th thead tfoot img h1 h2 h3 h4 h5 h6 li ol ul noscript p pre samp sub sup var canvas audio video strong em];
+my $section_level = 0;
+my @markup;
+
+my $indent        = sub {'  ' x ($_[0] || $section_level)};
+my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//gm};
+
+my $escape_all    = sub {s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g};
+my $escape_some   = sub {s/&/&amp;/g; s/<(?!\/|($known_tags)[^>]*>.*<\/\1>)/&lt;/gs};
+
+my $code          = sub {&$escape_all(); &$unindent(); s/^c\n//;                   push @markup, &$indent() . "<pre class='code'>$_</pre>"};
+my $quoted        = sub {&$escape_all(); &$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, &$indent() . "<pre class='quoted'>$_</pre>"};
+
+my $paragraph     = sub {&$escape_some(); push @markup, &$indent() . "<p>$_</p>"};
+
+my $section       = sub {my $h = $_[0] > 6 ? 6 : $_[0]; push @markup, &$indent($_[0] - 1) . "<div class='section level$_[0]'>", &$indent($_[0]) . "<h$h>$2</h$h>"};
+my $close_section = sub {push @markup, &$indent($_[0]) . "</div>"};
+
+my $title = sub {
+  my $indentation = (length($1) >> 1) + 1;
+  &$close_section($section_level) while $section_level-- >= $indentation;
+  &$section($indentation);
+  $section_level = $indentation;
+};
+
+for (@paragraphs) {
+  &$code(),   next unless /^\h*[A-Z|]/;
+  &$quoted(), next if     /^\h*\|/;
+
+  &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") < 60 and length("$1$2") - 10 < length($3);
+  &$paragraph();
+}
+
+&$close_section($section_level) while $section_level--;
+
+join "\n", @markup;
+
+__
+meta::function('sdoc-markdown', <<'__');
+# Renders a chunk of SDoc as Markdown. This involves converting quoted and
+# unquoted code and section headings, but not numbered lists.
+
+my ($attribute)   = @_;
+my @paragraphs    = split /\n(?:\s*\n)+/, retrieve($attribute);
+
+my $section_level = 0;
+my @markup;
+
+my $indent        = sub {'  ' x ($_[0] || $section_level)};
+my $unindent      = sub {my $spaces = '  ' x ($section_level - 1); s/^$spaces//gm; $_};
+
+my $code          = sub {&$unindent(); s/^c\n//;                   push @markup, join("\n", map &$indent(2) . $_, split /\n/)};
+my $quoted        = sub {&$unindent(); s/^\|(\s?)/ \1/; s/^  //mg; push @markup, join("\n", map &$indent(2) . $_, split /\n/)};
+
+my $heading       = sub {'#' x $_[0]};
+my $section       = sub {&$unindent(); push @markup, &$heading($_[0]) . ' ' . $2};
+
+my $title = sub {
+  my $indentation = (length($1) >> 1) + 1;
+  &$section($indentation);
+  $section_level = $indentation;
+};
+
+for (@paragraphs) {
+  &$code(),   next unless /^\h*[A-Z|]/;
+  &$quoted(), next if     /^\h*\|/;
+
+  &$title(), s/^.*\n// if /^(\s*)(\S.*)\.\n([^\n]+)/ and length("$1$2") < 60 and length("$1$2") - 10 < length($3);
+  push @markup, join "\n", map &$unindent(), split /\n/;
+}
+
+join "\n\n", @markup;
+
+__
+meta::function('sdocp', <<'__');
+# Renders an attribute as SDocP. This logic was taken directly from the sdoc script.
+my $attribute = retrieve($_[0]);
+sub escape {my @results = map {s/\\/\\\\/go; s/\n/\\n/go; s/'/\\'/go; $_} @_; wantarray ? @results : $results[0]}
+"sdocp('" . escape($_[0]) . "', '" . escape($attribute) . "');";
+__
+meta::function('serialize', <<'__');
+my ($options, @criteria) = separate_options(@_);
+my $partial     = $$options{'-p'};
+my $criteria    = join '|', @criteria;
+my @attributes  = map serialize_single($_), select_keys(%$options, '-m' => 1, '--criteria' => $criteria), select_keys(%$options, '-M' => 1, '--criteria' => $criteria);
+my @final_array = @{$partial ? \@attributes : [retrieve('bootstrap::initialization'), @attributes, 'internal::main();', '', '__DATA__', $global_data]};
+join "\n", @final_array;
+
+__
+meta::function('serialize-single', <<'__');
+# Serializes a single attribute and optimizes for content.
+
+my $name          = $_[0] || $_;
+my $contents      = $data{$name};
+my $meta_function = 'meta::' . namespace($name);
+my $invocation    = attribute($name);
+my $escaped       = $contents;
+$escaped =~ s/\\/\\\\/go;
+$escaped =~ s/'/\\'/go;
+
+return "$meta_function('$invocation', '$escaped');" unless $escaped =~ /\v/;
+
+my $delimiter = '__' . fast_hash($contents);
+my $chars     = 2;
+
+++$chars until $chars >= length($delimiter) || index("\n$contents", "\n" . substr($delimiter, 0, $chars)) == -1;
+$delimiter = substr($delimiter, 0, $chars);
+
+"$meta_function('$invocation', <<'$delimiter');\n$contents\n$delimiter";
+__
+meta::function('sh', 'system(@_);');
+meta::function('shb', <<'__');
+# Backgrounded shell job.
+exec(@_) unless fork;
+
+__
+meta::function('shell', <<'__');
+my ($options, @arguments) = separate_options(@_);
+$transient{repl_prefix} = $$options{'--repl-prefix'};
+
+terminal::cc(retrieve('data::current-continuation')) if length $data{'data::current-continuation'};
+around_hook('shell', sub {shell::repl(%$options)});
+
+__
+meta::function('size', <<'__');
+my $size = 0;
+$size += length $data{$_} for keys %data;
+sprintf "   full logical  unique    self\n% 7d % 7d % 7d % 7d", length(serialize()), $size, length(serialize('-up')), length $global_data;
+
+__
+meta::function('snapshot', <<'__');
+my ($name) = @_;
+file::write(my $finalname = temporary_name($name), serialize(), noclobber => 1);
+chmod 0700, $finalname;
+hook('snapshot', $finalname);
+__
+meta::function('state', <<'__');
+my @keys = sort keys %data;
+my $hash = fast_hash(fast_hash(scalar @keys) . join '|', @keys);
+$hash = fast_hash("$data{$_}|$hash") for @keys;
+$hash;
+__
+meta::function('touch', 'associate($_, \'\') for @_;');
+meta::function('unlock', 'hook(\'unlock\', chmod_self(sub {$_[0] | 0200}));');
+meta::function('update', <<'__');
+update_from(@_, grep s/^parent:://o, sort keys %data);
+
+__
+meta::function('update-from', <<'__');
+# Upgrade all attributes that aren't customized. Customization is defined when the data type is created,
+# and we determine it here by checking for $transient{inherit}{$type}.
+
+# Note that this assumes you trust the remote script. If you don't, then you shouldn't update from it.
+
+around_hook('update-from-invocation', separate_options(@_), sub {
+  my ($options, @targets) = @_;
+  my %parent_id_cache = cache('parent-identification');
+  my %already_seen;
+
+  @targets or return;
+
+  my @known_targets     = grep s/^parent:://, parent_ordering(map "parent::$_", grep exists $data{"parent::$_"}, @targets);
+  my @unknown_targets   = grep ! exists $data{"parent::$_"}, @targets;
+  @targets = (@known_targets, @unknown_targets);
+
+  my $save_state        = ! ($$options{'-n'} || $$options{'--no-save'});
+  my $no_parents        =    $$options{'-P'} || $$options{'--no-parent'} || $$options{'--no-parents'};
+  my $force             =    $$options{'-f'} || $$options{'--force'};
+  my $clobber_divergent =    $$options{'-D'} || $$options{'--clobber-divergent'};
+
+  save_state('before-update') if $save_state;
+
+  for my $target (@targets) {
+    dangerous("updating from $target", sub {
+    around_hook('update-from', $target, sub {
+      my $identity = $parent_id_cache{$target} ||= join '', qx($target identity);
+      next if $already_seen{$identity};
+      $already_seen{$identity} = 1;
+
+      my $attributes = join '', qx($target ls -ahiu);
+      my %divergent;
+      die "skipping unreachable $target" unless $attributes;
+
+      for my $to_rm (split /\n/, retrieve("parent::$target")) {
+        my ($name, $hash) = split(/\s+/, $to_rm);
+        next unless exists $data{$name};
+
+        my $local_hash = fast_hash(retrieve($name));
+        if ($clobber_divergent or $hash eq $local_hash or ! defined $hash) {rm($name)}
+        else {terminal::info("preserving local version of divergent attribute $name (use update -D to clobber it)");
+              $divergent{$name} = retrieve($name)}}
+
+      associate("parent::$target", $attributes) unless $no_parents;
+
+      dangerous('', sub {eval qx($target serialize -ipmu)});
+      dangerous('', sub {eval qx($target serialize -ipMu)});
+
+      map associate($_, $divergent{$_}), keys %divergent unless $clobber_divergent;
+
+      reload()})})}
+
+  cache('parent-identification', %parent_id_cache);
+
+  if (verify()) {hook('update-from-succeeded', $options, @targets);
+                 terminal::info("Successfully updated. Run 'load-state before-update' to undo this change.") if $save_state}
+  elsif ($force) {hook('update-from-failed', $options, @targets);
+                  terminal::warning('Failed to verify: at this point your object will not save properly, though backup copies will be created.',
+                                    'Run "load-state before-update" to undo the update and return to a working state.') if $save_state}
+  else {hook('update-from-failed', $options, @targets);
+        terminal::error('Verification failed after the upgrade was complete.');
+        terminal::info("$0 has been reverted to its pre-upgrade state.", "If you want to upgrade and keep the failure state, then run 'update-from $target --force'.") if $save_state;
+        return load_state('before-update') if $save_state}});
+
+__
+meta::function('usage', '"Usage: $0 action [arguments]\\nUnique actions (run \'$0 ls\' to see all actions):" . ls(\'-u\');');
+meta::function('verify', <<'__');
+file::write(my $other = $transient{temporary_filename} = temporary_name(), my $serialized_data = serialize());
+chomp(my $observed = join '', qx|perl '$other' state|);
+
+unlink $other if my $result = $observed eq (my $state = state());
+terminal::error("Verification failed; expected $state but got $observed from $other") unless $result;
+hook('after-verify', $result, observed => $observed, expected => $state);
+$result;
+__
+meta::function('waul', <<'__');
+my ($name, %options) = @_;
+$name =~ s/^waul:://;
+my $output     = $options{output} || "$name.js";
+my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
+my $waul       = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+
+terminal::info("compiling waul::$name using $waul ($extensions)");
+
+with_exported("waul::$name", sub {
+  my ($exported) = @_;
+  sh("$waul --output '$output' $extensions $exported")});
+
+__
+meta::hook('before-shell::ad', <<'__');
+ad('js::');
+
+__
+meta::indicator('cc', 'length ::retrieve(\'data::current-continuation\') ? "\\033[1;36mcc\\033[0;0m" : \'\';');
+meta::indicator('locked', 'is_locked() ? "\\033[1;31mlocked\\033[0;0m" : \'\';');
+meta::indicator('path', <<'__');
+my @highlighted = map join("\033[1;30m|\033[0;0m", split /\|/, $_), @{$transient{path}};
+join "\033[1;30m/\033[0;0m", @highlighted;
+
+__
+meta::internal_function('around_hook', <<'__');
+# around_hook('hookname', @args, sub {
+#   stuff;
+# });
+
+# Invokes 'before-hookname' on @args before the sub runs, invokes the
+# sub on @args, then invokes 'after-hookname' on @args afterwards.
+# The after-hook is not invoked if the sub calls 'die' or otherwise
+# unwinds the stack.
+
+my $hook = shift @_;
+my $f    = pop @_;
+
+hook("before-$hook", @_);
+my $result = &$f(@_);
+hook("after-$hook", @_);
+$result;
+__
+meta::internal_function('associate', <<'__');
+my ($name, $value, %options) = @_;
+die "Namespace does not exist" unless exists $datatypes{namespace($name)};
+$data{$name} = $value;
+execute($name) if $options{execute};
+$value;
+
+__
+meta::internal_function('attribute', <<'__');
+my ($name) = @_;
+$name =~ s/^[^:]*:://;
+$name;
+__
+meta::internal_function('attribute_is', <<'__');
+my ($a, %options) = @_;
+my %inherited     = parent_attributes(grep /^parent::/o, sort keys %data) if grep exists $options{$_}, qw/-u -U -d -D/;
+my $criteria      = $options{'--criteria'} || $options{'--namespace'} && "^$options{'--namespace'}::" || '.';
+
+my %tests = ('-u' => sub {! $inherited{$a}},
+             '-d' => sub {$inherited{$a} && fast_hash(retrieve($a)) ne $inherited{$a}},
+             '-i' => sub {$transient{inherit}{namespace($a)}},
+             '-s' => sub {$a =~ /^state::/o},
+             '-m' => sub {$a =~ /^meta::/o});
+
+return 0 unless scalar keys %tests == scalar grep ! exists $options{$_}    ||   &{$tests{$_}}(), keys %tests;
+return 0 unless scalar keys %tests == scalar grep ! exists $options{uc $_} || ! &{$tests{$_}}(), keys %tests;
+
+$a =~ /$_/ || return 0 for @{$options{'--path'}};
+$a =~ /$criteria/;
+
+__
+meta::internal_function('cache', <<'__');
+my ($name, %pairs) = @_;
+if (%pairs) {associate("cache::$name", join "\n", map {$pairs{$_} =~ s/\n//g; "$_ $pairs{$_}"} sort keys %pairs)}
+else        {map split(/\s/, $_, 2), split /\n/, retrieve("cache::$name")}
+__
+meta::internal_function('chmod_self', <<'__');
+my ($mode_function)      = @_;
+my (undef, undef, $mode) = stat $0;
+chmod &$mode_function($mode), $0;
+__
+meta::internal_function('dangerous', <<'__');
+# Wraps a computation that may produce an error.
+my ($message, $computation) = @_;
+terminal::info($message) if $message;
+my @result = eval {&$computation()};
+terminal::warning(translate_backtrace($@)), return undef if $@;
+wantarray ? @result : $result[0];
+__
+meta::internal_function('debug_trace', <<'__');
+terminal::debug(join ', ', @_);
+wantarray ? @_ : $_[0];
+__
+meta::internal_function('execute', <<'__');
+my ($name, %options) = @_;
+my $namespace = namespace($name);
+eval {&{$datatypes{$namespace}}(attribute($name), retrieve($name))};
+warn $@ if $@ && $options{'carp'};
+
+__
+meta::internal_function('exported', <<'__');
+# Allocates a temporary file containing the concatenation of attributes you specify,
+# and returns the filename. The filename will be safe for deletion anytime.
+my $filename = temporary_name();
+file::write($filename, cat(@_));
+$filename;
+
+__
+meta::internal_function('extension_for', <<'__');
+my $extension = $transient{extension}{namespace($_[0])};
+$extension = &$extension($_[0]) if ref $extension eq 'CODE';
+$extension || '';
+__
+meta::internal_function('fast_hash', <<'__');
+my ($data)     = @_;
+my $piece_size = length($data) >> 3;
+
+my @pieces     = (substr($data, $piece_size * 8) . length($data), map(substr($data, $piece_size * $_, $piece_size), 0 .. 7));
+my @hashes     = (fnv_hash($pieces[0]));
+
+push @hashes, fnv_hash($pieces[$_ + 1] . $hashes[$_]) for 0 .. 7;
+
+$hashes[$_] ^= $hashes[$_ + 4] >> 16 | ($hashes[$_ + 4] & 0xffff) << 16 for 0 .. 3;
+$hashes[0]  ^= $hashes[8];
+
+sprintf '%08x' x 4, @hashes[0 .. 3];
+__
+meta::internal_function('file::read', <<'__');
+my $name = shift;
+open my($handle), "<", $name;
+my $result = join "", <$handle>;
+close $handle;
+$result;
+__
+meta::internal_function('file::write', <<'__');
+use File::Path     'mkpath';
+use File::Basename 'dirname';
+
+my ($name, $contents, %options) = @_;
+die "Choosing not to overwrite file $name" if $options{noclobber} and -f $name;
+mkpath(dirname($name)) if $options{mkpath};
+
+open my($handle), $options{append} ? '>>' : '>', $name or die "Can't open $name for writing";
+print $handle $contents;
+close $handle;
+__
+meta::internal_function('fnv_hash', <<'__');
+# A rough approximation to the Fowler-No Voll hash. It's been 32-bit vectorized
+# for efficiency, which may compromise its effectiveness for short strings.
+
+my ($data) = @_;
+
+my ($fnv_prime, $fnv_offset) = (16777619, 2166136261);
+my $hash                     = $fnv_offset;
+my $modulus                  = 2 ** 32;
+
+$hash = ($hash ^ ($_ & 0xffff) ^ ($_ >> 16)) * $fnv_prime % $modulus for unpack 'L*', $data . substr($data, -4) x 8;
+$hash;
+__
+meta::internal_function('hypothetically', <<'__');
+# Applies a temporary state and returns a serialized representation.
+# The original state is restored after this, regardless of whether the
+# temporary state was successful.
+
+my %data_backup   = %data;
+my ($side_effect) = @_;
+my $return_value  = eval {&$side_effect()};
+%data = %data_backup;
+
+die $@ if $@;
+$return_value;
+__
+meta::internal_function('internal::main', <<'__');
+disable();
+
+$SIG{'INT'} = sub {snapshot(); exit 1};
+
+$transient{initial}      = state();
+chomp(my $default_action = retrieve('data::default-action'));
+
+my $function_name = shift(@ARGV) || $default_action || 'usage';
+terminal::warning("unknown action: '$function_name'") and $function_name = 'usage' unless $externalized_functions{$function_name};
+
+around_hook('main-function', $function_name, @ARGV, sub {
+  dangerous('', sub {
+    chomp(my $result = &$function_name(@ARGV));
+    print "$result\n" if $result})});
+
+save() unless state() eq $transient{initial};
+
+END {
+  enable();
+}
+__
+meta::internal_function('invoke_editor_on', <<'__');
+my ($data, %options) = @_;
+my $editor    = $options{editor} || $ENV{VISUAL} || $ENV{EDITOR} || die 'Either the $VISUAL or $EDITOR environment variable should be set to a valid editor';
+my $options   = $options{options} || $ENV{VISUAL_OPTS} || $ENV{EDITOR_OPTS} || '';
+my $attribute = $options{attribute};
+$attribute =~ s/\//-/g;
+my $filename  = temporary_name() . "-$attribute$options{extension}";
+
+file::write($filename, $data);
+system("$editor $options '$filename'");
+
+my $result = file::read($filename);
+unlink $filename;
+$result;
+__
+meta::internal_function('is_locked', '!((stat($0))[2] & 0222);');
+meta::internal_function('namespace', <<'__');
+my ($name) = @_;
+$name =~ s/::.*$//;
+$name;
+__
+meta::internal_function('parent_attributes', <<'__');
+my $attributes = sub {my ($name, $value) = split /\s+/o, $_; $name => ($value || 1)};
+map &$attributes(), split /\n/o, join("\n", retrieve(@_));
+__
+meta::internal_function('parent_ordering', <<'__');
+# Topsorts the parents by dependency chain. The simplest way to do this is to
+# transitively compute the number of parents referred to by each parent.
+
+my @parents = @_;
+my %all_parents = map {$_ => 1} @parents;
+
+my %parents_of = map {
+  my $t = $_;
+  my %attributes = parent_attributes($_);
+  $t => [grep /^parent::/, keys %attributes]} @parents;
+
+my %parent_count;
+my $parent_count;
+$parent_count = sub {
+  my ($key) = @_;
+  return $parent_count{$key} if exists $parent_count{$key};
+  my $count = 0;
+  $count += $parent_count->($_) + exists $data{$_} for @{$parents_of{$key}};
+  $parent_count{$key} = $count};
+
+my %inverses;
+push @{$inverses{$parent_count->($_)} ||= []}, $_ for @parents;
+grep exists $all_parents{$_}, map @{$inverses{$_}}, sort keys %inverses;
+__
+meta::internal_function('retrieve', <<'__');
+my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
+wantarray ? @results : $results[0];
+
+__
+meta::internal_function('retrieve_with_hooks', <<'__');
+# Uses the hooks defined in $transient{retrievers}, and returns undef if none work.
+my ($attribute) = @_;
+my $result      = undef;
+
+defined($result = &$_($attribute)) and return $result for map $transient{retrievers}{$_}, sort keys %{$transient{retrievers}};
+return undef;
+__
+meta::internal_function('select_keys', <<'__');
+my %options = @_;
+grep attribute_is($_, %options), sort keys %data;
+__
+meta::internal_function('separate_options', <<'__');
+# Things with one dash are short-form options, two dashes are long-form.
+# Characters after short-form are combined; so -auv4 becomes -a -u -v -4.
+# Also finds equivalences; so --foo=bar separates into $$options{'--foo'} eq 'bar'.
+# Stops processing at the -- option, and removes it. Everything after that
+# is considered to be an 'other' argument.
+
+# The only form not supported by this function is the short-form with argument.
+# To pass keyed arguments, you need to use long-form options.
+
+my @parseable;
+push @parseable, shift @_ until ! @_ or $_[0] eq '--';
+
+my @singles = grep /^-[^-]/, @parseable;
+my @longs   = grep /^--/,    @parseable;
+my @others  = grep ! /^-/,   @parseable;
+
+my @singles = map /-(.{2,})/ ? map("-$_", split(//, $1)) : $_, @singles;
+
+my %options;
+/^([^=]+)=(.*)$/ and $options{$1} = $2 for @longs;
+++$options{$_} for grep ! /=/, @singles, @longs;
+
+({%options}, @others, @_);
+
+__
+meta::internal_function('strip', 'wantarray ? map {s/^\\s*|\\s*$//g; $_} @_ : $_[0] =~ /^\\s*(.*?)\\s*$/ && $1;');
+meta::internal_function('table_display', <<'__');
+# Displays an array of arrays as a table; that is, with alignment. Arrays are
+# expected to be in column-major order.
+
+sub maximum_length_in {
+  my $maximum = 0;
+  length > $maximum and $maximum = length for @_;
+  $maximum;
+}
+
+my @arrays    = @_;
+my @lengths   = map maximum_length_in(@$_), @arrays;
+my @row_major = map {my $i = $_; [map $$_[$i], @arrays]} 0 .. $#{$arrays[0]};
+my $format    = join '  ', map "%-${_}s", @lengths;
+
+join "\n", map strip(sprintf($format, @$_)), @row_major;
+__
+meta::internal_function('temporary_name', <<'__');
+use File::Temp 'tempfile';
+my (undef, $temporary_filename) = tempfile("$0." . 'X' x 4, OPEN => 0);
+$temporary_filename;
+__
+meta::internal_function('translate_backtrace', <<'__');
+my ($trace) = @_;
+$trace =~ s/\(eval (\d+)\)/$locations{$1 - 1}/g;
+$trace;
+__
+meta::internal_function('with_exported', <<'__');
+# Like exported(), but removes the file after running some function.
+# Usage is with_exported(@files, sub {...});
+my $f      = pop @_;
+my $name   = exported(@_);
+my $result = eval {&$f($name)};
+terminal::warning("$@ when running with_exported()") if $@;
+unlink $name;
+$result;
+__
+meta::library('shell', <<'__');
+# Functions for shell parsing and execution.
+package shell;
+use Term::ReadLine;
+
+sub tokenize {grep length, split /\s+|("[^"\\]*(?:\\.)?")/o, join ' ', @_};
+
+sub parse {
+  my ($fn, @args) = @_;
+  s/^"(.*)"$/\1/o, s/\\\\"/"/go for @args;
+  {function => $fn, args => [@args]}}
+
+sub execute {
+  my %command = %{$_[0]};
+  die "undefined command: $command{function}" unless exists $externalized_functions{$command{function}};
+  &{"::$command{function}"}(@{$command{args}})}
+
+sub run {execute(parse(tokenize(@_)))}
+
+sub prompt {
+  my %options = @_;
+  my $name    = $options{name} // ::name();
+
+  my $indicators = join '', map &{"::$_"}(), ::select_keys('--namespace' => 'indicator');
+  my $prefix     = $transient{repl_prefix} // '';
+
+  "$prefix\033[1;32m$name\033[0;0m$indicators "}
+
+sub repl {
+  my %options = @_;
+
+  my $term = new Term::ReadLine "$0 shell";
+  $term->ornaments(0);
+  my $attribs = $term->Attribs;
+  $attribs->{completion_entry_function} = $attribs->{list_completion_function};
+
+  my $autocomplete = $options{autocomplete} || sub {[sort(keys %data), grep !/-/, sort keys %externalized_functions]};
+  my $prompt       = $options{prompt}       || \&prompt;
+  my $parse        = $options{parse}        || sub {parse(tokenize(@_))};
+  my $command      = $options{command}      || sub {my ($command) = @_; ::around_hook('shell-command', $command, sub {print ::dangerous('', sub {execute($command)}), "\n"})};
+
+  length $_ && &$command(&$parse($_)) while ($attribs->{completion_word} = &$autocomplete(), defined($_ = $term->readline(&$prompt())))}
+
+__
+meta::library('terminal', <<'__');
+# Functions for nice-looking terminal output.
+package terminal;
+
+my $process = ::name();
+
+sub message {print STDERR "[$_[0]] $_[1]\n"}
+sub color {
+  my ($name, $color) = @_;
+  *{"terminal::$name"} = sub {chomp($_), print STDERR "\033[1;30m$process(\033[1;${color}m$name\033[1;30m)\033[0;0m $_\n" for map join('', $_), @_}}
+
+my %preloaded = (info => 32, progress => 32, state => 34, debug => 34, warning => 33, error => 31);
+color $_, $preloaded{$_} for keys %preloaded;
+__
+meta::message_color('cc', '36');
+meta::message_color('state', 'purple');
+meta::message_color('states', 'yellow');
+meta::parent('../waul-object', <<'__');
+function::minify-yui                                        6374d98eda8642e5cdebe4fb34f5419b
+function::waul                                              66b92f55d5db498934b487188a04b16d
+meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
+parent::/home/spencertipping/conjectures/perl-objects/js    08631314298573e77850afe27d7d3003
+parent::/home/spencertipping/conjectures/perl-objects/sdoc  5ead79278263770b4bd3f4928f4b28aa
+parent::preprocessor                                        4450ebbe2c9d3a70ada4050fcd567907
+
+__
+meta::parent('/home/spencertipping/bin/object', <<'__');
+bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
+bootstrap::initialization               d22fafa2938ecb0d4728e2958b54ed3d
+bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
+function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
+function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
+function::cat                           f684de6c8776617a437b76009114f52e
+function::cc                            12ea9176e388400704d823433c209b7a
+function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
+function::child                         f5764adf0b4e892f147a9b6b68d4816f
+function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
+function::cp                            3fe69d1b58d90045ad520048977538c4
+function::create                        3010d55f4dfa59a998742e07823ed54d
+function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::disable                       53b449708cc2ffdefa352e53bb7d847d
+function::edit                          beae8b1d7292e2ce2913199ff32f2501
+function::edit-self                     71790df00f941ed9b56e17f789b93871
+function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
+function::export                        2374cd1dbf7616cb38cafba4e171075d
+function::extern                        1290a5223e2824763eecfb3a54961eff
+function::grep                          55c3cea8ff4ec2403be2a9d948e59f14
+function::hash                          6ee131d093e95b80039b4df9c7c84a02
+function::hook                          675cdb98b5dd8567bdd5a02ead6184b5
+function::hooks                         3d989899c616f7440429a2d9bf1cc44b
+function::identity                      6523885762fcc2f354fc25cf6ed126ce
+function::import                        5d0f0634cbd01274f2237717507198a2
+function::initial-state                 03d8ed608855a723124e79ca184d8e73
+function::is                            41564c8f21b12ab80824ac825266d805
+function::load-state                    b6cf278a1f351f316fa6e070359b6081
+function::lock                          5d8db258704e6a8623fac796f62fac02
+function::ls                            01a23d51d5b529e03943bd57e33f92df
+function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::name                          955ba2d1fe1d67cd78651a4042283b00
+function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
+function::perl                          a0f341ea54391b63b6195e7992b6a686
+function::rd                            2adb16d7e819d2e87a27201744a581e7
+function::reload                        1589f4cf8374e0011991cb8907afca3e
+function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::rmparent                      fc2884910a6939a47898a778f277332c
+function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
+function::serialize                     a97c7391c635a93b0a710d10eb8cb3cd
+function::serialize-single              aa77af032272f5a2664e21713739a223
+function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
+function::shb                           7b2685a4041c25bc495816e472bdace5
+function::shell                         a87f389b94713e5855e62241d649d01d
+function::size                          69f6ab4a100c6ef05d4d41510004d645
+function::snapshot                      56939a47f2758421669641e15ebd66eb
+function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::touch                         3991b1b7c7187566f50e5e58ce01fa06
+function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
+function::update                        ac391dc90e507e7586c81850e7c2ecdd
+function::update-from                   631721c4dc30e11b2023a6703cbcef52
+function::usage                         5bdd370f5a56cfbf199e08d398091444
+function::verify                        0c0cc1dfeab7d705919df122f7850a4f
+indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
+indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
+indicator::path                         b5e2cb524caa0283f713a0ddf9f4c162
+internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
+internal_function::associate            55f202ffdbc6b9005e53d3e82f5f9bfe
+internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
+internal_function::attribute_is         40bda8226322505e323ea6d405388f08
+internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
+internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
+internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
+internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
+internal_function::execute              f0924e087d978ff2ab1e117124db3042
+internal_function::exported             ae35afef7d4762f2818aee5872c75be0
+internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
+internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
+internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
+internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
+internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
+internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
+internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
+internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
+internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
+internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
+internal_function::retrieve             721a6800f328da05047fd7392758f55d
+internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
+internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
+internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
+internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
+internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
+internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
+internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
+library::shell                          6b9f3befb61a01e9132a440601f8ea0a
+library::terminal                       7e2d045782405934a9614fe04bcfe559
+message_color::cc                       2218ef0f7425de5c717762ffb100eb43
+message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
+message_color::states                   ac66eeeff487b5f43f88a78ea18b3d56
+meta::configure                         69c2e727c124521d074fde21f8bbc4db
+meta::externalize                       aa44e27e0bbee6f0ca4de25d603a1fc7
+meta::functor::editable                 48246c608f363de66511400e00b26164
+meta::type::alias                       889d26d2df385e9ff8e2da7de4e48374
+meta::type::bootstrap                   51108ab2ddb8d966e927c8f62d9ef3e5
+meta::type::cache                       9267171f2eace476f64a1a670eaaf2c7
+meta::type::data                        120e1649a468d3b3fd3fb783b4168499
+meta::type::function                    8ea626198861dc59dd7f303eecb5ff88
+meta::type::hook                        ff92aef328b6bdc6f87ddd0821f3e42f
+meta::type::inc                         78e0375b6725487cb1f0deca41e96bbe
+meta::type::indicator                   feb54a2624e6983617685047c717427f
+meta::type::internal_function           eff3cf31e2635f51c83836f116c99d2f
+meta::type::library                     7622e8d65e03066668bade74715d65ad
+meta::type::message_color               557a1b44979cbf77a7251fbdc4c5b82c
+meta::type::meta                        c6250056816b58a9608dd1b2614246f8
+meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
+meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
+meta::type::state                       84da7d5220471307f1f990c5057d3319
+retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::global                       4fe8df0cca548075169968772843a156
+retriever::id                           4da6080168d32445150cc4200af7af6e
+retriever::object                       c7633990b4e01bdc783da7e545799f4f
+retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
+
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/js', <<'__');
+meta::type::js                           0377fcc438f3af85ec87d4770b8cd307
+parent::/home/spencertipping/bin/object  c086f2bf8be5433a968323892538feb6
+
+__
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__');
+function::sdoc                           b2f9066417ce3368f093796e1180e9b2
+function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
+function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
+function::sdocp                          c3d738d982ba87418a298ff58478a85b
+meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
+meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
+parent::/home/spencertipping/bin/object  c086f2bf8be5433a968323892538feb6
+retriever::code-sdoc                     03b87ff8d1ecf7594db9ca0669fc69a1
+retriever::html-sdoc                     8ab7705d03276945b23a71677153233c
+retriever::markdown-sdoc                 67c34ba8223ec36a3ae018e411354db2
+retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
+retriever::sdocp                         330694ea14a23bb04b65c761075cd946
+
+__
+meta::parent('object', <<'__');
+bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
+bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
+bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
+function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
+function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
+function::cat                           f684de6c8776617a437b76009114f52e
+function::cc                            12ea9176e388400704d823433c209b7a
+function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
+function::child                         f5764adf0b4e892f147a9b6b68d4816f
+function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
+function::cp                            3fe69d1b58d90045ad520048977538c4
+function::create                        3010d55f4dfa59a998742e07823ed54d
+function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::disable                       53b449708cc2ffdefa352e53bb7d847d
+function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
+function::export                        2374cd1dbf7616cb38cafba4e171075d
+function::extern                        1290a5223e2824763eecfb3a54961eff
+function::grep                          55c3cea8ff4ec2403be2a9d948e59f14
+function::hash                          6ee131d093e95b80039b4df9c7c84a02
+function::hook                          675cdb98b5dd8567bdd5a02ead6184b5
+function::hooks                         3d989899c616f7440429a2d9bf1cc44b
+function::identity                      6523885762fcc2f354fc25cf6ed126ce
+function::import                        5d0f0634cbd01274f2237717507198a2
+function::initial-state                 03d8ed608855a723124e79ca184d8e73
+function::is                            41564c8f21b12ab80824ac825266d805
+function::load-state                    b6cf278a1f351f316fa6e070359b6081
+function::lock                          5d8db258704e6a8623fac796f62fac02
+function::ls                            01a23d51d5b529e03943bd57e33f92df
+function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::name                          955ba2d1fe1d67cd78651a4042283b00
+function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
+function::perl                          a0f341ea54391b63b6195e7992b6a686
+function::rd                            eea4e1cdd9133abb985205ae5daf5f15
+function::reload                        1589f4cf8374e0011991cb8907afca3e
+function::rm                            6f6fd7a6c25558eb469d78ea888f8551
+function::rmparent                      49051d669554867f87c08656380a8aba
+function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
+function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
+function::serialize-single              aa77af032272f5a2664e21713739a223
+function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
+function::shb                           7b2685a4041c25bc495816e472bdace5
+function::shell                         a87f389b94713e5855e62241d649d01d
+function::size                          8d4bd7a84ece556717f8ba3bf258d33c
+function::snapshot                      56939a47f2758421669641e15ebd66eb
+function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::touch                         3991b1b7c7187566f50e5e58ce01fa06
+function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
+function::update                        ac391dc90e507e7586c81850e7c2ecdd
+function::update-from                   631721c4dc30e11b2023a6703cbcef52
+function::usage                         5bdd370f5a56cfbf199e08d398091444
+function::verify                        0c0cc1dfeab7d705919df122f7850a4f
+indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
+indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
+indicator::path                         8a9685787cda6af8f63594f6dcde7582
+internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
+internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
+internal_function::attribute_is         a145549f6ce44abbcf66308b426d30ec
+internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
+internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
+internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
+internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
+internal_function::execute              f0924e087d978ff2ab1e117124db3042
+internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
+internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
+internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
+internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
+internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
+internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
+internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
+internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
+internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
+internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
+internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
+internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
+internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
+internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
+internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
+internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
+internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
+library::shell                          6b9f3befb61a01e9132a440601f8ea0a
+library::terminal                       7e2d045782405934a9614fe04bcfe559
+message_color::cc                       2218ef0f7425de5c717762ffb100eb43
+message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
+message_color::states                   ac66eeeff487b5f43f88a78ea18b3d56
+meta::configure                         69c2e727c124521d074fde21f8bbc4db
+meta::externalize                       aa44e27e0bbee6f0ca4de25d603a1fc7
+meta::functor::editable                 48246c608f363de66511400e00b26164
+meta::type::alias                       889d26d2df385e9ff8e2da7de4e48374
+meta::type::bootstrap                   51108ab2ddb8d966e927c8f62d9ef3e5
+meta::type::cache                       9267171f2eace476f64a1a670eaaf2c7
+meta::type::data                        120e1649a468d3b3fd3fb783b4168499
+meta::type::function                    8ea626198861dc59dd7f303eecb5ff88
+meta::type::hook                        ff92aef328b6bdc6f87ddd0821f3e42f
+meta::type::inc                         78e0375b6725487cb1f0deca41e96bbe
+meta::type::indicator                   feb54a2624e6983617685047c717427f
+meta::type::internal_function           eff3cf31e2635f51c83836f116c99d2f
+meta::type::library                     7622e8d65e03066668bade74715d65ad
+meta::type::message_color               557a1b44979cbf77a7251fbdc4c5b82c
+meta::type::meta                        c6250056816b58a9608dd1b2614246f8
+meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
+meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
+meta::type::state                       84da7d5220471307f1f990c5057d3319
+retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::id                           4da6080168d32445150cc4200af7af6e
+retriever::object                       c7633990b4e01bdc783da7e545799f4f
+retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
+
+__
+meta::parent('preprocessor', <<'__');
+function::preprocess           ab5526a02ff417d4c162357dc327e7c4
+meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
+meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
+parent::object                 c086f2bf8be5433a968323892538feb6
+retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
+template::comment              dfe273d2dad3d8159b847545e4e5c309
+template::eval                 1a0e2124a05056be4abc11803883c294
+template::failing_conditional  e3a4523110dd859e828f342185de7c62
+template::include              47b5552d609d97fe7f2522d5c1027014
+template::pinclude             c07ff79bf8d642cceaa9ef844bfcb189
+template::script-include       76be051ad116449ddebd10e7c3729afd
+template::style-include        8e5a06b70e1b00379765f319bf6c8066
+
+__
+meta::retriever('code-sdoc', <<'__');
+# Lets you specify the SDoc extension manually. For instance:
+# code.js::sdoc::foo causes sdoc::foo to be SDoc-rendered using Javascript comments.
+my ($name) = @_;
+return undef unless $name =~ s/^code\.(\w+)::// and defined retrieve($name);
+sdoc($name, $1);
+
+__
+meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
+meta::retriever('global', <<'__');
+# Returns the global data stashed at the end of this perl object
+$_[0] eq 'self' ? $global_data : undef;
+
+__
+meta::retriever('html-sdoc', <<'__');
+my ($attribute) = @_;
+return undef unless $attribute =~ s/^html::/sdoc::/ and defined retrieve($attribute) || $attribute =~ s/^sdoc::// && defined retrieve($attribute);
+sdoc_html($attribute);
+
+__
+meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
+meta::retriever('markdown-sdoc', <<'__');
+my ($attribute) = @_;
+return undef unless $attribute =~ s/^markdown::/sdoc::/ and defined retrieve($attribute) || $attribute =~ s/^sdoc::// && defined retrieve($attribute);
+sdoc_markdown($attribute);
+
+__
+meta::retriever('object', <<'__');
+# Fetch a property from another Perl object. This uses the 'cat' function.
+return undef unless $_[0] =~ /^object::(.*?)::(.*)$/ && -x $1 && qx|$1 is '$2'|;
+join '', qx|$1 cat '$2'|;
+
+__
+meta::retriever('perl', <<'__');
+# Lets you use the result of evaluating some Perl expression
+return undef unless $_[0] =~ /^perl::(.*)$/;
+eval $1;
+
+__
+meta::retriever('pp', <<'__');
+return undef unless namespace($_[0]) eq 'pp';
+my $attr = retrieve(attribute($_[0]));
+defined $attr ? preprocess($attr) : undef;
+__
+meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
+meta::retriever('sdocp', <<'__');
+my $attribute = attribute($_[0]);
+exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
+__
+meta::sdoc('js::caterwaul', <<'__');
+Caterwaul JS | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
+
+(function (f) {return f(f)})(function (initializer, key, undefined) {
+
+- pinclude pp::sdoc::js::caterwaul.core
+
+Utility methods.
+Utility functions here are:
+
+| 1. qw      Splits a string into space-separated words and returns an array of the results. This is a Perl idiom that's really useful when writing lists of things.
+  2. se      Side-effects on a value and returns the value.
+  3. fail    Throws an error. This isn't particularly special except for the fact that the keyword 'throw' can't be used in expression context.
+  4. gensym  Generates a string that will never have been seen before.
+  5. bind    Fixes 'this' inside the function being bound. This is a common Javascript idiom, but is reimplemented here because we don't know which other libraries are available.
+  6. map     Maps a function over an array-like object and returns an array of the results.
+  7. rmap    Recursively maps a function over arrays.
+  8. hash    Takes a string, splits it into words, and returns a hash mapping each of those words to true. This is used to construct sets.
+
+Side-effecting is used to initialize things statefully; for example:
+
+| return se(function () {return 5}, function (f) {
+    f.sourceCode = 'return 5';
+  });
+
+Gensyms are unique identifiers that end with high-entropy noise that won't appear in the source being compiled. The general format of a gensym is name_count_suffix, where 'name' is provided by
+whoever requested the gensym (this allows gensyms to be more readable), 'count' is a base-36 number that is incremented with each gensym, and 'suffix' is a constant base-64 string containing
+128 bits of entropy. (Since 64 possibilities is 6 bits, this means that we have 22 characters.)
+
+    var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
+
+    unique = key || (function () {for (var xs = [], d = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_', i = 21, n; i >= 0; --i) xs.push(d.charAt(Math.random() * 64 >>> 0));
+                                  return xs.join('')})(),
+
+    gensym = (function (c) {return function (name) {return [name || '', (++c).toString(36), unique].join('_')}})(0),  is_gensym = function (s) {return s.substr(s.length - 22) === unique},
+
+      bind = function (f, t) {return function () {return f.apply(t, arguments)}},
+       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
+      rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
+      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
+
+  Optimizations.
+  The parser and lexer each assume valid input and do no validation. This is possible because any function passed in to caterwaul will already have been parsed by the Javascript interpreter;
+  syntax errors would have caused an error there. This enables a bunch of optimization opportunities in the parser, ultimately making it not in any way recursive and requiring only three
+  linear-time passes over the token stream. (An approximate figure; it actually does about 19 fractional passes, but not all nodes are reached.)
+
+  Also, I'm not confident that all Javascript interpreters are smart about hash indexing. Particularly, suppose a hashtable has 10 entries, the longest of whose keys is 5 characters. If we
+  throw a 2K string at it, it might very well hash that whole thing just to find that, surprise, the entry doesn't exist. That's a big performance hit if it happens very often. To prevent this
+  kind of thing, I'm keeping track of the longest string in the hashtable by using the 'annotate_keys' function. 'has()' knows how to look up the maximum length of a hashtable to verify that
+  the candidate is in it, resulting in the key lookup being only O(n) in the longest key (generally this ends up being nearly O(1), since I don't like to type long keys), and average-case O(1)
+  regardless of the length of the candidate.
+
+  As of Caterwaul 0.7.0 the _max_length property has been replaced by a gensym. This basically guarantees uniqueness, so the various hacks associated with working around the existence of the
+  special _max_length key are no longer necessary.
+
+     max_length_key = gensym('hash'),
+      annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
+                has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
+
+   caterwaul_global = caterwaul.merge(caterwaul, {map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym}),
+
+Shared parser data.
+This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
+
+  Precomputed table values.
+  The lexer uses several character lookups, which I've optimized by using integer->boolean arrays. The idea is that instead of using string membership checking or a hash lookup, we use the
+  character codes and index into a numerical array. This is guaranteed to be O(1) for any sensible implementation, and is probably the fastest JS way we can do this. For space efficiency,
+  only the low 256 characters are indexed. High characters will trigger sparse arrays, which may degrade performance. Also, this parser doesn't handle Unicode characters properly; it assumes
+  lower ASCII only.
+
+  The lex_op table indicates which elements trigger regular expression mode. Elements that trigger this mode cause a following / to delimit a regular expression, whereas other elements would
+  cause a following / to indicate division. By the way, the operator ! must be in the table even though it is never used. The reason is that it is a substring of !==; without it, !== would
+  fail to parse.
+
+  Caterwaul 1.1.3 adds support for Unicode characters, even though they're technically not allowed as identifiers in Javascript. All Unicode characters are treated as identifiers since
+  Javascript assigns no semantics to them.
+
+  Caterwaul 1.2 adds @ as an identifier character. This is a hack for me to encode metadata on symbols without having to build subtrees, and it is transparent to Javascript->Javascript
+  compilation since @ is not a valid character in Javascript.
+
+       lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
+                     'return throw case var const break continue else u; ;'),
+
+    lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
+    lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
+    lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}?:'),     lex_opener = lex_table('([{?:'),                  lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
+      lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
+     lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('@$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
+     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),  lex_dot = '.'.charCodeAt(0),  lex_hash = '#'.charCodeAt(0),
+
+  Parse data.
+  The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
+  as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
+
+    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==',
+                                    '&', '^', '|', '&&', '||', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue', 'var const',
+                                    'if else try catch finally for switch with while do', ';']),
+
+parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
+   parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)})(parse_reduce_order),
+   parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
+                                           for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs})(parse_reduce_order),
+
+              parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || = += -= *= /= %= &= |= ^= <<= >>= >>>= , : ;'),
+   parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
+         parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
+      parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
+           parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch void delete new typeof in instanceof'),
+ parse_also_expression = hash('function'),
+
+Syntax data structures.
+There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
+nodes. At the end of folding there is only one child per paren-group.
+
+  Doubly-linked paren-group lists.
+  When the token stream is grouped into paren groups it has a hierarchical linked structure that conceptually has these pointers:
+
+  |                         +--------+
+                   +------  |  node  |  ------+
+                   |   +->  |        |  <--+  |
+            first  |   |    +--------+     |  |  last
+                   |   | parent     parent |  |
+                   V   |                   |  V
+                +--------+               +--------+
+                |  node  |   --- r -->   |  node  |  --- r ---/
+     /--- l --- |        |   <-- l ---   |        |
+                +--------+               +--------+
+
+  The primary operation performed on this tree, at least initially, is repeated folding. So we have a chain of linear nodes, and one by one certain nodes fold their siblings underneath them,
+  breaking the children's links and linking instead to the siblings' neighbors. For example, if we fold node (3) as a binary operator:
+
+  |     (1) <-> (2) <-> (3) <-> (4) <-> (5)             (1) <--> (3) <--> (5)
+        / \     / \     / \     / \     / \     -->     / \     /   \     / \
+                                                               /     \
+                                                             (2)     (4)        <- No link between children
+                                                             / \     / \           (see 'Fold nodes', below)
+
+  Fold nodes.
+  Once a node has been folded (e.g. (3) in the diagram above), none of its children will change and it will gain no more children. The fact that none of its children will change can be shown
+  inductively: suppose you've decided to fold the '+' in 'x + y' (here x and y are arbitrary expressions). This means that x and y are comprised of higher-precedence operators. Since there is
+  no second pass back to high-precedence operators, x and y will not change nor will they interact with one another. The fact that a folded node never gains more children arrives from the fact
+  that it is folded only once; this is by virtue of folding by index instead of by tree structure. (Though a good tree traversal algorithm also wouldn't hit the same node twice -- it's just
+  less obvious when the tree is changing.)
+
+  Anyway, the important thing about fold nodes is that their children don't change. This means that an array is a completely reasonable data structure to use for the children; it certainly
+  makes the structure simpler. It also means that the only new links that must be added to nodes as they are folded are links to new children (via the array), and links to the new siblings.
+  Once we have the array-form of fold nodes, we can build a query interface similar to jQuery, but designed for syntactic traversal. This will make routine operations such as macro
+  transformation and quasiquoting far simpler later on.
+
+  Both grouping and fold nodes are represented by the same data structure. In the case of grouping, the 'first' pointer is encoded as [0] -- that is, the first array element. It doesn't
+  contain pointers to siblings of [0]; these are still accessed by their 'l' and 'r' pointers. As the structure is folded, the number of children of each paren group should be reduced to just
+  one. At this point the remaining element's 'l' and 'r' pointers will both be null, which means that it is in hierarchical form instead of linked form.
+
+  After the tree has been fully generated and we have the root node, we have no further use for the parent pointers. This means that we can use subtree sharing to save memory. Once we're past
+  the fold stage, push() should be used instead of append(). append() works in a bidirectionally-linked tree context (much like the HTML DOM), whereas push() works like it does for arrays
+  (i.e. no parent pointer).
+
+  Syntax node functions.
+  These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
+  turns out to be an issue.
+
+    syntax_common = caterwaul_global.syntax_common = {
+
+    Mutability.
+    These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
+
+      _replace:  function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
+      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this) || empty)},
+      _append:   function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this) || empty)},
+      _sibling:  function (n) {return n.p = this.p, (this.r = n).l = this},                    _fold_lr: function () {return this._fold_l()._fold_r()},
+                                                                                               _fold_rr: function () {return this._fold_r()._fold_r()},
+
+      _wrap:     function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},
+      _unlink:   function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
+
+    These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
+
+      pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = caterwaul_global.syntax.promote(x || empty), this},
+
+    Identification.
+    You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
+    and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
+    first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
+
+                       id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
+      is_caterwaul_syntax: true,
+
+    Traversal functions.
+    each() is the usual side-effecting shallow traversal that returns 'this'. map() distributes a function over a node's children and returns the array of results, also as usual. Two variants,
+    reach and rmap, perform the process recursively. reach is non-consing; it returns the original as a reference. rmap, on the other hand, follows some rules to cons a new tree. If the
+    function passed to rmap() returns the node verbatim then its children are traversed. If it returns a distinct node, however, then traversal doesn't descend into the children of the newly
+    returned tree but rather continues as if the original node had been a leaf. For example:
+
+    |           parent          Let's suppose that a function f() has these mappings:
+               /      \
+           node1      node2       f(parent) = parent   f(node1) = q
+           /   \        |                              f(node2) = node2
+         c1     c2      c3
+
+    In this example, f() would be called on parent, node1, node2, and c3 in that order. c1 and c2 are omitted because node1 was replaced by q -- and there is hardly any point in going through
+    the replaced node's previous children. (Nor is there much point in forcibly iterating over the new node's children, since presumably they are already processed.) If a mapping function
+    returns something falsy, it will have exactly the same effect as returning the node without modification.
+
+    Recursive map() and each() variants have another form starting with Caterwaul 1.1.3. These are pmap() and peach(), which recursively traverse the tree in post-order. That is, the node
+    itself is visited after its children are.
+
+    Using the old s() to do gensym-safe replacement requires that you invoke it only once, and this means that for complex macroexpansion you'll have a long array of values. This isn't ideal,
+    so syntax trees provide a replace() function that handles replacement more gracefully:
+
+    | qs[(foo(_foo), _before_bar + bar(_bar))].replace({_foo: qs[x], _before_bar: qs[3 + 5], _bar: qs[foo.bar]})
+
+    Controlling rmap() traversal.
+    rmap() provides a fairly rich interface to allow you to inform Caterwaul about what to do with each subtree. For each visited node, you can do three things:
+
+    | 1. Replace the node with another value. The value you return should be either a string (in which case it will be promoted into a node), or a syntax node. Traversal stops here.
+      2. Preserve the original value, but descend into children. In this case you should return either the original tree or false.
+      3. Preserve the original value, but don't descend into children. In this case you should return true. This has the advantage that it avoids allocating copies of trees that you don't
+         intend to modify. You can also use this to escape from an rmap() operation by continuing to return true.
+
+      each:  function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
+      map:   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+
+      reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
+      rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r === true ? this : r.rmap === undefined ? new this.constructor(r) : r},
+
+      peach: function (f) {this.each(function (n) {n.peach(f)}); f(this); return this},
+      pmap:  function (f) {var t = this.map(function (n) {return n.pmap(f)}); return f(t)},
+
+      clone: function () {return this.rmap(function () {return false})},
+
+      collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
+      replace: function (rs) {var r; return own.call(rs, this.data) && (r = rs[this.data]) ?
+                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : r :
+                                              this.map(function (n) {return n.replace(rs)})},
+
+    Alteration.
+    These functions let you make "changes" to a node by returning a modified copy.
+
+      repopulated_with: function (xs)     {return new this.constructor(this.data, xs)},
+      with_data:        function (d)      {return new this.constructor(d, Array.prototype.slice.call(this))},
+      change:           function (i, x)   {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
+      compose_single:   function (i, f)   {return this.change(i, f(this[i]))},
+      slice:            function (x1, x2) {return new this.constructor(this.data, Array.prototype.slice.call(this, x1, x2))},
+
+    General-purpose traversal.
+    This is a SAX-style traversal model, useful for analytical or scope-oriented tree traversal. You specify a callback function that is invoked in pre-post-order on the tree (you get events
+    for entering and exiting each node, including leaves). Each time a node is entered, the callback is invoked with an object of the form {entering: node}, where 'node' is the syntax node
+    being entered. Each time a node is left, the callback is invoked with an object of the form {exiting: node}. The return value of the function is not used. Any null nodes are not traversed,
+    since they would fail any standard truthiness tests for 'entering' or 'exiting'.
+
+    I used to have a method to perform scope-annotated traversal, but I removed it for two reasons. First, I had no use for it (and no tests, so I had no reason to believe that it worked).
+    Second, Caterwaul is too low-level to need such a method. That would be more appropriate for an analysis extension.
+
+      traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n.traverse(f)})}); return this},
+
+    Structural transformation.
+    Having nested syntax trees can be troublesome. For example, suppose you're writing a macro that needs a comma-separated list of terms. It's a lot of work to dig through the comma nodes,
+    each of which is binary. Javascript is better suited to using a single comma node with an arbitrary number of children. (This also helps with the syntax tree API -- we can use .map() and
+    .each() much more effectively.) Any binary operator can be transformed this way, and that is exactly what the flatten() method does. (flatten() returns a new tree; it doesn't modify the
+    original.)
+
+    The tree flattening operation looks like this for a left-associative binary operator:
+
+    |        (+)
+            /   \              (+)
+         (+)     z     ->     / | \
+        /   \                x  y  z
+       x     y
+
+    This flatten() method returns the nodes along the chain of associativity, always from left to right. It is shallow, since generally you only need a localized flat tree. That is, it doesn't
+    descend into the nodes beyond the one specified by the flatten() call. It takes an optional parameter indicating the operator to flatten over; if the operator in the tree differs, then the
+    original node is wrapped in a unary node of the specified operator. The transformation looks like this:
+
+    |                                  (,)
+           (+)                          |
+          /   \   .flatten(',')  ->    (+)
+         x     y                      /   \
+                                     x     y
+
+    Because ',' is a binary operator, a ',' tree with just one operand will be serialized exactly as its lone operand would be. This means that plurality over a binary operator such as comma
+    or semicolon degrades gracefully for the unary case (this sentence makes more sense in the context of macro definitions; see in particular 'let' and 'where' in std.bind).
+
+    The unflatten() method performs the inverse transformation. It doesn't delete a converted unary operator in the tree case, but if called on a node with more than two children it will nest
+    according to associativity.
+
+      flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                     se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                     se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                    for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+
+      unflatten: function  () {var t = this, right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), function (n) {
+                                 if (right) for (var i = 0, l = t.length - 1; i  < l; ++i) n = n.push(t[i]).push(i < l - 2 ? t.data : t[i])[1];
+                                 else       for (var i = t.length - 1;        i >= 1; --i) n = n.push(i > 1 ? t.data : t[0]).push(t[i])[0]})},
+
+    Wrapping.
+    Sometimes you want your syntax tree to have a particular operator, and if it doesn't have that operator you want to wrap it in a node that does. Perhaps the most common case of this is
+    when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
+    in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
+
+      as: function (d) {return this.data === d ? this : new caterwaul_global.syntax(d).push(this)},
+
+    Value construction.
+    Syntax nodes sometimes represent hard references to values instead of just syntax. (See 'References' for more information.) In order to compile a syntax tree in the right environment you
+    need a mapping of symbols to these references, which is what the bindings() method returns. (It also collects references for all descendant nodes.) It takes an optional argument to
+    populate, in case you already had a hash set aside for bindings -- though it always returns the hash.
+
+    A bug in Caterwaul 0.5 and earlier failed to bind falsy values. This is no longer the case; nodes which bind values should indicate that they do so by setting a binds_a_value attribute
+    (ref nodes do this on the prototype), indicating that their value should be read from the 'value' property. (This allows other uses of a 'value' property while making it unambiguous
+    whether a particular node intends to bind something.)
+
+    Caterwaul 1.1.6 adds the ability to bind values generated by expressions which are evaluated later. This is necessary for precompilation to work for things like the standard library
+    'using' modifier.
+
+      bindings:    function (hash) {var result = hash || {}; this.reach(function (n) {n.add_bindings_to(result)});    return result},
+      expressions: function (hash) {var result = hash || {}; this.reach(function (n) {n.add_expressions_to(result)}); return result},
+
+      add_bindings_to:    function (hash) {},           // No-ops for most syntax nodes, but see caterwaul_global.ref and caterwaul_global.expression_ref below.
+      add_expressions_to: function (hash) {},
+
+      resolve: function () {return this},               // Identity for most nodes. This is necessary to allow opaque refs to construct expression closures.
+
+    Containment.
+    You can ask a tree whether it contains any nodes that satisfy a given predicate. This is done using the .contains() method and is significantly more efficient than using .collect() if your
+    tree does in fact contain a matching node.
+
+      contains: function (f) {var result = f(this);
+                              if (result) return result;
+                              for (var i = 0, l = this.length; i < l; ++i) if (result = this[i].contains(f)) return result},
+
+    Matching.
+    Any syntax tree can act as a matching pattern to destructure another one. It's often much more fun to do things this way than it is to try to pick it apart by hand. For example, suppose
+    you wanted to determine whether a node represents a function that immediately returns, and to know what it returns. The simplest way to do it is like this:
+
+    | var tree = ...
+      var match = caterwaul.parse('function (_) {return _value}').match(tree);
+      if (match) {
+        var value = match._value;
+        ...
+      }
+
+    The second parameter 'variables' stores a running total of match data. You don't provide this; match() creates it for you on the toplevel invocation. The entire original tree is available
+    as a match variable called '_'; for example: t.match(u)._ === u if u matches t.
+
+    Caterwaul 1.2 introduces syntax node metadata using @. This is not returned in the match result; for instance:
+
+    | var pattern = caterwaul.parse('_x@0 + foo');
+      pattern.match('bar + foo')        -> {_x: {'bar'}, _: {'bar + foo'}}
+
+      match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
+                                           variables || (variables = {_: target});
+                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.without_metadata()] = target, variables;
+                                      else if (this.length === target.length && this.data === target.data)      {for (var i = 0, l = this.length; i < l; ++i)
+                                                                                                                   if (! this[i].match(target[i], variables)) return null;
+                                                                                                                 return variables}},
+
+    Inspection and syntactic serialization.
+    Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). In the past, stray 'r' links were serialized as block
+    comments. Now they are folded into implied semicolons by the parser, so they should never appear by the time serialization happens.
+
+      toString:  function () {var xs = ['']; this.serialize(xs); return xs.join('')},
+      structure: function () {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
+                              else             return this.data}};
+
+  Syntax node subclassing.
+  Caterwaul 1.1.1 generalizes the variadic syntax node model to support arbitrary subclasses. This is useful when defining syntax trees for languages other than Javascript. As of Caterwaul
+  1.1.2 this method is nondestructive with respect to the constructor and other arguments.
+
+  Caterwaul 1.2 allows you to extend all syntax classes in existence at once by invoking syntax_extend on one or more prototype extension objects. For example, you can add a new foo method to
+  all syntax trees like this:
+
+  | caterwaul.syntax_extend({foo: function () {...}});
+
+  This also defines the 'foo' method for all syntax classes that are created in the future. It does this by adding the method definitions to syntax_common, which is implicitly merged into the
+  prototype of any syntax subclass. syntax_extend returns the global Caterwaul object.
+
+    caterwaul_global.syntax_subclasses = [];
+    caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1), proxy = function () {return ctor.apply(this, arguments)};
+                                                        caterwaul_global.merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
+                                                        caterwaul_global.syntax_subclasses.push(proxy);
+                                                        proxy.prototype.constructor = proxy;
+                                                        return proxy};
+
+    caterwaul_global.syntax_extend = function () {for (var i = 0, l = caterwaul_global.syntax_subclasses.length, es = Array.prototype.slice.call(arguments); i < l; ++i)
+                                                    caterwaul_global.merge.apply(this, [caterwaul_global.syntax_subclasses[i].prototype].concat(es));
+                                                  caterwaul_global.merge.apply(this, [syntax_common].concat(es));
+                                                  return caterwaul_global};
+
+  Type detection and retrieval.
+  These methods are used to detect the literal type of a node and to extract that value if it exists. You should use the as_x methods only once you know that the node does represent an x;
+  otherwise you will get misleading results. (For example, calling as_boolean on a non-boolean will always return false.)
+
+  Other methods are provided to tell you higher-level things about what this node does. For example, is_contextualized_invocation() tells you whether the node represents a call that can't be
+  eta-reduced (if it were, then the 'this' binding would be lost).
+
+  Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
+  than a string comparison. The ASCII value for underscore is 95.
+
+    var parse_hex = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i)
+                                                                            result *= 16, result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
+                                                                          return result},
+
+      parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i) result *= 8, result += digits.charCodeAt(i) - 48;
+                                                                          return result},
+
+  unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
+                                                                       if (is_escaped) is_escaped = false,
+                                                                                       result.push((c = s.charAt(i)) === '\\' ? '\\' :
+                                                                                                   c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
+                                                                                                   c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
+                                                                                                   c === '"' || c === '\'' ? c :
+                                                                                                   c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
+                                                                                                   c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
+                                                                                                               String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
+                                                                  else if ((c = s.charAt(i)) === '\\') is_escaped = true;
+                                                                  else result.push(c);
+
+                                                                     return result.join('')};
+
+    caterwaul_global.javascript_tree_type_methods = {
+               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+               is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
+              is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
+               is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+                is_array: function () {return this.data === '['},                        as_unescaped_string: function () {return unescape_string(this.as_escaped_string())},
+
+     could_be_identifier: function () {return /^[A-Za-z_$@][A-Za-z0-9$_@]*$/.test(this.data)},
+           is_identifier: function () {return this.length === 0 && this.could_be_identifier() && ! this.is_boolean() && ! this.is_null_or_undefined() && ! has(lex_op, this.data)},
+
+       has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
+    is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
+
+             is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
+          left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
+
+                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
+         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
+           is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
+
+            is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
+       is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
+
+              precedence: function () {return parse_inverse_order[this.data]},          is_right_associative: function () {return has(parse_associates_right, this.data)},
+          is_associative: function () {return /^[;,]$/.test(this.data)},                            is_group: function () {return /^[(\[{][)\]]?$/.test(this.data)},
+
+                 accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
+
+  Tree metadata.
+  When you're writing macros, you often want a concise way to indicate the role of a given tree node. Caterwaul's lexer parses a large superset of Javascript proper, which gives you room to
+  indicate things like this by inserting special characters into identifiers. The rules are:
+
+  | 1. Nodes beginning with an underscore are wildcards.
+    2. Nodes beginning with @ are gensym-erased; they are guaranteed to match no other symbol. (This is also true of the character @ alone, used as an identifier.)
+    3. Nodes can use @ later on to indicate the presence of match constraints. For example, you can indicate that a wildcard matches only leaf nodes by adding @0 to the end.
+
+    caterwaul_global.javascript_tree_metadata_methods = {
+      could_have_metadata: function () {return this.could_be_identifier()},     without_metadata: function () {return this.data.replace(/@.*$/g, '')},
+
+              is_wildcard: function () {return this.data.charCodeAt(0) === 95},  leaf_nodes_only: function () {return /@0/.test(this.data)},
+                is_opaque: function () {return this.data.charCodeAt(0) === 64}};
+
+  Javascript-specific serialization.
+  These methods are specific to the Javascript language. Other languages will have different serialization logic.
+
+    caterwaul_global.javascript_tree_serialization_methods = {
+
+    Block detection.
+    Block detection is required for multi-level if/else statements. Consider this code:
+
+    | if (foo) for (...) {}
+      else bif;
+
+    A naive approach (the one I was using before version 0.6) would miss the fact that the 'for' was trailed by a block, and insert a spurious semicolon, which would break compilation:
+
+    | if (foo) for (...) {};    // <- note!
+      else bif;
+
+    What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
+    algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
+
+      ends_with_block: function () {var block = this[parse_r_until_block[this.data]];
+                                    return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+
+    There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
+    semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
+
+    Update for Caterwaul 0.6.6: I had removed mandatory spacing for unary prefix operators, but now it's back. The reason is to help out the host Javascript lexer, which can misinterpret
+    postfix increment/decrement: x + +y will be serialized as x++y, which is invalid Javascript. The fix is to introduce a space in front of the second plus: x+ +y, which is unambiguous.
+
+    Update for caterwaul 1.0: The serialize() method is now aggressively optimized for common cases. It also uses a flattened array-based concatenation strategy rather than the deeply nested
+    approach from before.
+
+    Caterwaul 1.2.1 introduces syntax guarding, the introduction of parentheses where necessary to enforce precedence/associativity that is encoded in the tree but wouldn't be represented in
+    serialization. For example, the tree (* (+ foo bar) bif) would be rendered as foo + bar * bif, resulting in Javascript reinterpreting the operator precedence. After guarding, it would be
+    rendered as (foo + bar) * bif.
+
+    Internally, guarding is done by providing subtrees with a threshold precedence; if a node has a higher precedence index than its parent, it is parenthesized. Associativity matters as well.
+    For instance, the tree (+ foo (+ bar bif)) also requires grouping even though both operators are the same precedence, whereas (= foo (= bar bif)) does not. This is done by checking whether
+    the child's index is positive; positive indices must be in a right-associative position, so they are handed a precedence index one smaller than the parent's actual precedence. (We
+    basically want to push the child to parenthesize if it's the same precedence, since it's associating the wrong way.)
+
+    Groups are unambiguous despite having high precedence. To prevent double-grouping in cases like this, a precedence of 'undefined' is passed into children of groups or invocations. This
+    simulates a toplevel invocation, which is implicitly unparenthesized.
+
+      guarded: function (p) {var this_p = this.is_group() || this.is_associative() ? undefined : this.precedence(), right = this.is_right_associative(),
+                                 result = this.map(function (x, i) {return x.guarded(this_p - (!right && !!i))});
+
+                             return this_p > p ? result.as('(') : result},
+
+    Optimized serialization cases.
+    We can tell a lot about how to serialize a node based on just a few properties. For example, if the node has zero length then its serialization is simply its data. This is the leaf case,
+    which is likely to be half of the total number of nodes in the whole syntax tree. If a node has length 1, then we assume a prefix operator unless we identify it as postfix. Otherwise we
+    break it down by the kind of operator that it is.
+
+    Nodes might be flattened, so we can't assume any upper bound on the arity regardless of what kind of operator it is. Realistically you shouldn't hand flattened nodes over to the compile()
+    function, but it isn't the end of the world if you do.
+
+      serialize: function (xs) {var l = this.length, d = this.data, semi = ';\n',
+                                 push = function (x) {if (lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)]) xs.push(' ', x);
+                                                      else                                                                           xs.push(x)};
+
+                                switch (l) {case 0: if (has(parse_r_optional, d)) return push(d.replace(/^u/, ''));
+                                               else if (has(parse_group, d))      return push(d), push(parse_group[d]);
+                                               else                               return push(d);
+
+                                            case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return push(d.replace(/^u/, '')), this[0].serialize(xs);
+                                               else if (has(parse_group, d))                         return push(d), this[0].serialize(xs), push(parse_group[d]);
+                                               else if (has(parse_lr, d))                            return this[0].serialize(xs);
+                                               else                                                  return this[0].serialize(xs), push(d);
+
+                                            case 2: if (has(parse_invocation, d))    return this[0].serialize(xs), push(d.charAt(0)), this[1].serialize(xs), push(d.charAt(1));
+                                               else if (has(parse_r_until_block, d)) return push(d), this[0].serialize(xs), this[1].serialize(xs);
+                                               else if (has(parse_invisible, d))     return this[0].serialize(xs), this[1].serialize(xs);
+                                               else if (d === ';')                   return this[0].serialize(xs), push(semi), this[1].serialize(xs);
+                                               else                                  return this[0].serialize(xs), push(d), this[1].serialize(xs);
+
+                                           default: if (has(parse_ternary, d))       return this[0].serialize(xs), push(d), this[1].serialize(xs), push(':'), this[2].serialize(xs);
+                                               else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
+                                                                                       (push(d), this[0].serialize(xs), this[1].serialize(xs), push(semi), this[2].serialize(xs)) :
+                                                                                       (push(d), this[0].serialize(xs), this[1].serialize(xs), this[2].serialize(xs));
+                                               else                                  return this.unflatten().serialize(xs)}}};
+
+  References.
+  You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
+
+  | caterwaul.compile(qs[function () {return _ + 1}].replace({_: new caterwaul.ref(3)}))()      // -> 4
+
+  What actually happens is that caterwaul.compile runs through the code replacing refs with gensyms, and the function is evaluated in a scope where those gensyms are bound to the values they
+  represent. This gives you the ability to use a ref even as an lvalue, since it's really just a variable. References are always leaves on the syntax tree, so the prototype has a length of 0.
+
+  Caterwaul 1.0 adds named gensyms, and one of the things you can do is name your refs accordingly. If you don't name one it will just be called 'ref', but you can make it more descriptive by
+  passing in a second constructor argument. This name will automatically be wrapped in a gensym, but that gensym will be removed at compile-time unless you specify not to rename gensyms.
+
+    caterwaul_global.ref_common = caterwaul_global.merge({}, caterwaul_global.javascript_tree_type_methods,
+                                                             caterwaul_global.javascript_tree_metadata_methods,
+                                                             caterwaul_global.javascript_tree_serialization_methods,
+
+  Reference replace() support.
+  Refs aren't normal nodes; in particular, invoking the constructor as we do in replace() will lose the ref's value and cause all kinds of problems. In order to avoid this we override the
+  replace() method for syntax refs to behave more sensibly. Note that you can't replace a ref with a syntax 
+
+                                                             {replace: function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
+                                                                         r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) :
+                                                                         r : this},
+                                                               length: 0});
+
+    caterwaul_global.ref = caterwaul_global.syntax_subclass(
+                             function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
+                                                     else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')},
+
+                             caterwaul_global.ref_common, {add_bindings_to: function (hash) {hash[this.data] = this.value}});
+
+  Expression references.
+  These are a step in between references and regular syntax nodes. The idea is that you want to bind a value, but you have an expression that can be executed later to generate it. This gives
+  Caterwaul more options than it would have if you used a regular reference node. In particular, it enables Caterwaul to precompile the source containing the expression ref, since the
+  expression can be evaluated later. For example:
+
+  | caterwaul.compile(qs[x + 1].replace({x: new caterwaul.expression_ref('50 * 2')}))           // -> 101
+
+  This ends up evaluating code that looks like this:
+
+  | (function (ref_gensym) {
+      return ref_gensym + 1;
+    }).call(this, 50 * 2)
+
+    caterwaul_global.expression_ref = caterwaul_global.syntax_subclass(
+                                        function (e, name) {if (e instanceof this.constructor) this.e = e.e, this.data = e.data;
+                                                            else                               this.e = e,   this.data = gensym(name && name.constructor === String ? name : 'e')},
+
+                                        caterwaul_global.ref_common, {add_expressions_to: function (hash) {hash[this.data] = this.e}});
+
+  Opaque (unparsed) code references.
+  This gives Caterwaul a way to assemble code in a more performant manner. In particular, it lets Caterwaul omit the expensive (and unnecessary) parse() operation during a replicator() call.
+  The idea here is that this node contains subtrees, but they are unparsed; as such, it appears to have no children and simply returns the code as a string as its data. You can call the node's
+  parse() method to return a parsed tree of its contents.
+
+  Caterwaul 1.2b7 adds the ability to preserve expression refs bound in an opaque object. This is a necessary step to solve the precompiled module problem described in 'Expression refs,
+  modules, and precompilation' below.
+
+  If you create an opaque tree without specifying a table of expression refs, Caterwaul checks the object you're passing in for a table under the attribute 'caterwaul_expression_ref_table'.
+  This is Caterwaul's standard way of encoding reconstructible expression references. It should be a table of this form:
+
+  | {ref_name_1: string, ref_name_2: string, ...}
+
+  Each string represents the expression that is used to construct the expression that ends up being bound. So, for example:
+
+  | > f = caterwaul.compile(caterwaul.parse('function () {return _foo}').replace({_foo: new caterwaul.expression_ref(caterwaul.parse('3 + 4'))}))
+    > f.caterwaul_expression_ref_table
+    { e_a_gensym: '3+4' }
+
+  If you ask an opaque node for its expression bindings, it will return more opaque nodes of those strings. This way you can reuse the bindings from the compile() function, but it won't incur
+  any parsing overhead.
+
+    caterwaul_global.opaque_tree = caterwaul_global.syntax_subclass(
+                                     function (code, expression_refs) {if (code instanceof this.constructor) this.data = code.data, this.expression_refs = code.expression_refs;
+                                                                       else                                  this.data            = code.toString(),
+                                                                                                             this.expression_refs = expression_refs || code.caterwaul_expression_ref_table;
+                                                                       var rs = this.expression_refs;
+                                                                       for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
+
+                                     {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(new this.constructor(this.data), this.expression_refs) : this},
+                                    serialize: function (xs) {return xs.push(this.data), xs},
+                                        parse: function ()   {return caterwaul_global.parse(this.data)}});
+
+  Syntax node constructor.
+  Here's where we combine all of the pieces above into a single function with a large prototype. Note that the 'data' property is converted from a variety of types; so far we support strings,
+  numbers, and booleans. Any of these can be added as children. Also, I'm using an instanceof check rather than (.constructor ===) to allow array subclasses such as Caterwaul finite sequences
+  to be used.
+
+  Caterwaul 1.2 adds the static caterwaul.syntax.from_string() constructor to simplify string-based syntax node construction.
+
+    caterwaul_global.syntax = se(caterwaul_global.syntax_subclass(
+                                   function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                                    else {this.data = data && data.toString(); this.length = 0;
+                                                      for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                        for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                          this._append(caterwaul_global.syntax.promote(it))}},
+
+                                   caterwaul_global.javascript_tree_type_methods,
+                                   caterwaul_global.javascript_tree_metadata_methods,
+                                   caterwaul_global.javascript_tree_serialization_methods),
+
+                                 function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
+                                                                                                                                                  replace(/\n/g, '\\n') + '"')};
+
+                                              this.from_array  = function (xs) {for (var i = 0, c = new caterwaul_global.syntax(','), l = xs.length; i < l; ++i) c.push(xs[i]);
+                                                                                return new caterwaul_global.syntax('[', c.length ? c.unflatten() : [])};
+
+                                              this.from_object = function (o)  {var comma = new caterwaul_global.syntax(',');
+                                                                                for (var k in o) if (own.call(o, k)) comma.push(new caterwaul_global.syntax(
+                                                                                  ':', /^[$_A-Za-z][A-Za-z0-9$_]*$/.test(k) ? k : caterwaul_global.syntax.from_string(k), o[k].as('(')));
+                                                                                return new caterwaul_global.syntax('{', comma.length ? comma.unflatten() : [])}});
+
+    caterwaul_global.syntax.promote = function (v) {var c = v.constructor; return c === String || c === Number || c === Boolean ? new caterwaul.syntax(v) : v};
+
+    var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
+
+Parsing.
+There are two distinct parts to parsing Javascript. One is parsing the irregular statement-mode expressions such as 'if (condition) {...}' and 'function f(x) {...}'; the other is parsing
+expression-mode stuff like arithmetic operators. In Rebase I tried to model everything as an expression, but that failed sometimes because it required that each operator have fixed arity. In
+particular this was infeasible for keywords such as 'break', 'continue', 'return', and some others (any of these can be nullary or unary). It also involved creating a bizarre hack for 'case
+x:' inside a switch block. This hack made the expression passed in to 'case' unavailable, as it would be buried in a ':' node.
+
+Caterwaul fixes these problems by using a proper context-free grammar. However, it's much looser than most grammars because it doesn't need to validate anything. Correspondingly, it can be
+much faster as well. Instead of guessing and backtracking as a recursive-descent parser would, it classifies many different branches into the same basic structure and fills in the blanks. One
+example of this is the () {} pair, which occurs in a bunch of different constructs, including function () {}, if () {}, for () {}, etc. In fact, any time a () group is followed by a {} group
+we can grab the token that precedes () (along with perhaps one more in the case of function f () {}), and group that under whichever keyword is responsible.
+
+  Syntax folding.
+  The first thing to happen is that parenthetical, square bracket, and braced groups are folded up. This happens in a single pass that is linear in the number of tokens, and other foldable
+  tokens (including unary and binary operators) are indexed by associativity. The following pass runs through these indexes from high to low precedence and folds tokens into trees. By this
+  point all of the parentheticals have been replaced by proper nodes (here I include ?: groups in parentheticals, since they behave the same way). Finally, high-level rules are applied to the
+  remaining keywords, which are bound last. This forms a complete parse tree.
+
+  Doing all of this efficiently requires a linked list rather than an array. This gets built during the initial paren grouping stage. Arrays are used for the indexes, which are left-to-right
+  and are later processed in the order indicated by the operator associativity. That is, left-associative operators are processed 0 .. n and right associative are processed n .. 0. Keywords
+  are categorized by behavior and folded after all of the other operators. Semicolons are folded last, from left to right.
+
+  There are some corner cases due to Javascript's questionable heritage from C-style syntax. For example, most constructs take either syntax blocks or semicolon-delimited statements. Ideally,
+  else, while, and catch are associated with their containing if, do, and try blocks, respectively. This can be done easily, as the syntax is folded right-to-left. Another corner case would
+  come up if there were any binary operators with equal precedence and different associativity. Javascript doesn't have them however, and it wouldn't make much sense to; it would render
+  expressions such as 'a op1 b op2 c' ambiguous if op1 and op2 shared precedence but each wanted to bind first. (I mention this because at first I was worried about it, but now I realize it
+  isn't an issue.)
+
+  Notationally (for easier processing later on), a distinction is made between invocation and grouping, and between dereferencing and array literals. Dereferencing and function invocation are
+  placed into their own operators, where the left-hand side is the thing being invoked or dereferenced and the right-hand side is the paren-group or bracket-group that is responsible for the
+  operation. Also, commas inside these groups are flattened into a single variadic (possibly nullary) comma node so that you don't have to worry about the tree structure. This is the case for
+  all left-associative operators; right-associative operators preserve their hierarchical folding.
+
+  Parse/lex shared logic.
+  Lexing Javascript is not entirely straightforward, primarily because of regular expression literals. The first implementation of the lexer got things right 99% of the time by inferring the
+  role of a / by its preceding token. The problem comes in when you have a case like this:
+
+  | if (condition) /foo/.test(x)
+
+  In this case, (condition) will be incorrectly inferred to be a regular expression (since the close-paren terminates an expression, usually), and /foo/ will be interpreted as division by foo. 
+
+  We mark the position before a token and then just increment the position. The token, then, can be retrieved by taking a substring from the mark to the position. This eliminates the need for
+  intermediate concatenations. In a couple of cases I've gone ahead and done them anyway -- these are for operators, where we grab the longest contiguous substring that is defined. I'm not too
+  worried about the O(n^2) complexity due to concatenation; they're bounded by four characters.
+
+  OK, so why use charAt() instead of regular expressions? It's a matter of asymptotic performance. V8 implements great regular expressions (O(1) in the match length for the (.*)$ pattern), but
+  the substring() method is O(n) in the number of characters returned. Firefox implements O(1) substring() but O(n) regular expression matching. Since there are O(n) tokens per document of n
+  characters, any O(n) step makes lexing quadratic. So I have to use the only reliably constant-time method provided by strings, charAt() (or in this case, charCodeAt()).
+
+  Of course, building strings via concatenation is also O(n^2), so I also avoid that for any strings that could be long. This is achieved by using a mark to indicate where the substring
+  begins, and advancing i independently. The span between mark and i is the substring that will be selected, and since each substring both requires O(n) time and consumes n characters, the
+  lexer as a whole is O(n). (Though perhaps with a large constant.)
+
+  Parse function.
+  As mentioned earlier, the parser and lexer aren't distinct. The lexer does most of the heavy lifting; it matches parens and brackets, arranges tokens into a hierarchical linked list, and
+  provides an index of those tokens by their fold order. It does all of this by streaming tokens into a micro-parser whose language is grouping and that knows about the oddities required to
+  handle regular expression cases. In the same function, though as a distinct case, the operators are folded and the syntax is compiled into a coherent tree form.
+
+  The input to the parse function can be anything whose toString() produces valid Javascript code.
+
+    caterwaul_global.parse = function (input) {
+
+      // Caterwaul 1.1 revision: Allow the parse() function to be used as a 'make sure this thing is a syntax node' function.
+      if (input.constructor === caterwaul_global.syntax) return input;
+
+    Lex variables.
+    s, obviously, is the string being lexed. mark indicates the position of the stream, while i is used for lookahead. The difference is later read into a token and pushed onto the result. c
+    is a temporary value used to store the current character code. re is true iff a slash would begin a regular expression. esc is a flag indicating whether the next character in a string or
+    regular expression literal is escaped. exp indicates whether we've seen the exponent marker in a number. close is used for parsing single and double quoted strings; it contains the
+    character code of the closing quotation mark. t is the token to be processed.
+
+    Parse variables.
+    grouping_stack and gs_top are used for paren/brace/etc. matching. head and parent mark two locations in the linked syntax tree; when a new group is created, parent points to the opener
+    (i.e. (, [, ?, or {), while head points to the most recently added child. (Hence the somewhat complex logic in push().) indexes[] determines reduction order, and contains references to the
+    nodes in the order in which they should be folded. invocation_nodes is an index of the nodes that will later need to be flattened.
+
+    The push() function manages the mechanics of adding a node to the initial linked structure. There are a few cases here; one is when we've just created a paren group and have no 'head'
+    node; in this case we append the node as 'head'. Another case is when 'head' exists; in that case we update head to be the new node, which gets added as a sibling of the old head.
+
+        var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
+            grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [empty],
+            new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)},
+            syntax_node = this.syntax, ternaries = [];
+
+    Trivial case.
+    The empty string will break the lexer because we won't generate a token (since we're already at the end). To prevent this we return an empty syntax node immediately, since this is an
+    accurate representation of no input.
+
+        if (l === 0) return empty;
+
+    Main lex loop.
+    This loop takes care of reading all of the tokens in the input stream. At the end, we'll have a linked node structure with paren groups. At the beginning, we set the mark to the current
+    position (we'll be incrementing i as we read characters), munch whitespace, and reset flags.
+
+        while ((mark = i) < l) {
+          while (lex_space[c = cs(i)] && i < l) mark = ++i;
+          esc = exp = dot = t = false;
+
+      Miscellaneous lexing.
+      This includes bracket resetting (the top case, where an open-bracket of any sort triggers regexp mode) and comment removal. Both line and block comments are removed by comparing against
+      lex_slash, which represents /, and lex_star, which represents *.
+
+      Caterwaul 1.1.6 adds recognition of # comments, which are treated just like other line comments. This is relevant in practice because node.js supports shebang-line invocation of
+      Javascript files.
+
+            if                                        (lex_bracket[c])                                                                    {t = !! ++i; re = lex_opener[c]}
+       else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) {while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);  t = !  ++i}
+       else if            (c === lex_slash && cs(i + 1) === lex_slash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
+       else if                                        (c === lex_hash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
+
+      Regexp and string literal lexing.
+      These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
+      illegal for a string to occur anywhere that a slash would indicate division (and it is also illegal to follow a string literal with extra characters), so reusing the regular expression
+      logic for strings is not a problem. (This follows because we know ahead of time that the Javascript is valid.)
+
+       else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs(i)) !== close || esc)  esc = ! esc && c === lex_back;
+                                                                                    while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = true}
+
+      Numeric literal lexing.
+      This is far more complex than the above cases. Numbers have several different formats, each of which requires some custom logic. The reason we need to parse numbers so exactly is that it
+      influences how the rest of the stream is lexed. One example is '0.5.toString()', which is perfectly valid Javascript. What must be output here, though, is '0.5', '.', 'toString', '(',
+      ')'; so we have to keep track of the fact that we've seen one dot and stop lexing the number on the second.
+
+      Another case is exponent-notation: 3.0e10. The hard part here is that it's legal to put a + or - on the exponent, which normally terminates a number. Luckily we can safely skip over any
+      character that comes directly after an E or e (so long as we're really in exponent mode, which I'll get to momentarily), since there must be at least one digit after an exponent.
+
+      The final case, which restricts the logic somewhat, is hexadecimal numbers. These also contain the characters 'e' and 'E', but we cannot safely skip over the following character, and any
+      decimal point terminates the number (since '0x5.toString()' is also valid Javascript). The same follows for octal numbers; the leading zero indicates that there will be no decimal point,
+      which changes the lex mode (for example, '0644.toString()' is valid).
+
+      So, all this said, there are different logic branches here. One handles guaranteed integer cases such as hex/octal, and the other handles regular numbers. The first branch is triggered
+      whenever a number starts with zero and is followed by 'x' or a digit (for conciseness I call 'x' a digit), and the second case is triggered when '.' is followed by a digit, or when a
+      digit starts.
+
+      A trivial change, using regular expressions, would reduce this logic significantly. I chose to write it out longhand because (1) it's more fun that way, and (2) the regular expression
+      approach has theoretically quadratic time in the length of the numbers, whereas this approach keeps things linear. Whether or not that actually makes a difference I have no idea.
+
+      Finally, in response to a recently discovered failure case, a period must be followed by a digit if it starts a number. The failure is the string '.end', which will be lexed as '.en',
+      'd' if it is assumed to be a floating-point number. (In fact, any method or property beginning with 'e' will cause this problem.)
+
+       else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = true)}
+       else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
+                                                                            while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = true)}
+
+      Operator lexing.
+      The 're' flag is reused here. Some operators have both unary and binary modes, and as a heuristic (which happens to be accurate) we can assume that anytime we expect a regular
+      expression, a unary operator is intended. The only exception are ++ and --, which are always unary but sometimes are prefix and other times are postfix. If re is true, then the prefix
+      form is intended; otherwise, it is postfix. For this reason I've listed both '++' and 'u++' (same for --) in the operator tables; the lexer is actually doing more than its job here by
+      identifying the variants of these operators.
+
+      The only exception to the regular logic happens if the operator is postfix-unary. (e.g. ++, --.) If so, then the re flag must remain false, since expressions like 'x++ / 4' can be valid.
+
+       else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+
+      Identifier lexing.
+      If nothing else matches, then the token is lexed as a regular identifier or Javascript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is
+      that you could write 'x / 5', and it is obvious that the / means division. But if you wrote 'return / 5', the / would be a regexp delimiter because return is an operator, not a value. So
+      at the very end, in addition to assigning t, we also set the re flag if the word turns out to be an operator.
+
+      Extended ASCII and above are considered identifiers. This allows Caterwaul to parse Unicode source, even though it will fail to distinguish between Unicode operator symbols and Unicode
+      letters.
+
+       else {while (++i < l && (lex_ident[c = cs(i)] || c > 0x7f)); re = has(lex_op, t = s.substring(mark, i))}
+
+      Token unification.
+      t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
+      avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
+
+        if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 40) + '" with leading context "' + s.substr(mark - 40, 40) + '" (probably a Caterwaul bug)');
+        if (t === false) continue;
+        t = t === true ? s.substring(mark, i) : t === 'u;' ? ';' : t;
+
+      Grouping and operator indexing.
+      Now that we have a token, we need to see whether it affects grouping status. There are a couple of possibilities. If it's an opener, then we create a new group; if it's a matching closer
+      then we close the current group and pop out one layer. (We don't check for matching here. Any code provided to Caterwaul will already have been parsed by the host Javascript interpreter,
+      so we know that it is valid.)
+
+      All operator indexing is done uniformly, left-to-right. Note that the indexing isn't strictly by operator. It's by reduction order, which is arguably more important. That's what the
+      parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 2.)
+
+        t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], head = head ? head.p : parent, parent = null) :
+                       (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(new_node(new syntax_node(t))), head = null) : push(new_node(new syntax_node(t))),
+                        has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
+
+      Regexp flag special cases.
+      Normally a () group wraps an expression, so a following / would indicate division. The only exception to this is when we have a block construct; in this case, the next token appears in
+      statement-mode, which means that it begins, not modifies, a value. We'll know that we have such a case if (1) the immediately-preceding token is a close-paren, and (2) a block-accepting
+      syntactic form occurs to its left.
+
+      With all this trouble over regular expressions, I had to wonder whether it was possible to do it more cleanly. I don't think it is, unfortunately. Even lexing the stream backwards fails
+      to resolve the ambiguity:
+
+      | for (var k in foo) /foo/g.test(k) && bar();
+
+      In this case we won't know it's a regexp until we hit the 'for' keyword (or perhaps 'var', if we're being clever -- but a 'with' or 'if' would require complete lookahead). A perfectly
+      valid alternative parse, minus the 'for' and 'var', is this:
+
+      | ((k in foo) / (foo) / (g.test(k))) && bar();
+
+      The only case where reverse-lexing is useful is when the regexp has no modifiers.
+
+        re |= t === ')' && head.l && has(parse_r_until_block, head.l.data)}
+
+    Operator fold loop.
+    This is the second major part of the parser. Now that we've completed the lex process, we can fold operators and syntax, and take care of some exception cases.
+
+    First step: functions, calls, dots, and dereferences.
+    I'm treating this differently from the generalized operator folding because of the syntactic inference required for call and dereference detection. Nothing has been folded at this point
+    (with the exception of paren groups, which is appropriate), so if the node to the left of any ( or [ group is an operator, then the ( or [ is really a paren group or array literal. If, on
+    the other hand, it is another value, then the group is a function call or a dereference. This folding goes left-to-right. The reason we also process dot operators is that they share the same
+    precedence as calls and dereferences. Here's what a () or [] transform looks like:
+
+    |   quux <--> foo <--> ( <--> bar                              quux <--> () <--> bar
+                            \                                               /  \                  <-- This can be done by saying _.l.wrap(new node('()')).p.fold_r().
+                             bif <--> , <--> baz       -->               foo    (                     _.l.wrap() returns l again, .p gets the wrapping node, and fold_r adds a child to it.
+                                                                                 \
+                                                                                  bif <--> , <--> baz
+
+    This is actually merged into the for loop below, even though it happens before other steps do (see 'Ambiguous parse groups').
+
+    Second step: fold operators.
+    Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
+    array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
+
+        for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)
+          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data, ll; forward ? j < lj : j >= 0; j += inc)
+
+      Binary node behavior.
+      The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
+      Operators in this class are considered to be 'fold_lr'; that is, they fold first their left sibling, then their right.
+
+      There is a special case here. If the right-hand side is a prefix unary operator of low precedence (e.g. for or if), then convert the colon to a unary operator. Semantically, this means
+      that the colon has been used to denote a label. This won't universally hold true; in particular, it won't work if an expression is on the right instead of a statement. But it fixes all
+      cases that would produce invalid syntax trees.
+
+            if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) node._fold_l();
+                                                           else                                                      node._fold_lr();
+
+      Ambiguous parse groups.
+      As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that
+      way it reflects the precedence of dereferencing and invocation). The only change we need to make is to discard the explicit parenthetical or square-bracket grouping for invocations or
+      dereferences, respectively. It doesn't make much sense to have a doubly-nested structure, where we have a node for invocation and another for the group on the right-hand side of that
+      invocation. Better is to modify the group in-place to represent an invocation.
+
+      We can't solve this problem here, but we can solve it after the parse has finished. I'm pushing these invocation nodes onto an index for the end.
+
+      Sometimes we have a paren group that doesn't represent a value. This is the case for most control flow constructs:
+
+      | for (var k in o) (...)
+
+      We need to detect this and not fold the (var k in o)(...) as an invocation, since doing so would seriously break the resulting syntax.
+
+      There is an even more pathological case to consider. Firefox and other SpiderMonkey-based runtimes rewrite anonymous functions without parentheses, so you end up with stuff like this:
+
+      | function () {} ()
+
+      In this case we need to encode an invocation. Fortunately by this point the function node is already folded.
+
+       else if (has(parse_ambiguous_group, data) && node.l && ! ((ll = node.l.l) && has(parse_r_until_block, ll.data)) &&
+               (node.l.data === '.' || (node.l.data === 'function' && node.l.length === 2) ||
+                                       ! (has(lex_op, node.l.data) ||
+                                          has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l._wrap(new_node(new syntax_node(data + parse_group[data]))).p._fold_r());
+
+      Unary left and right-fold behavior.
+      Unary nodes have different fold directions. In this case, it just determines which side we grab the node from. I'm glad that Javascript doesn't allow stuff like '++x++', which would make
+      the logic here actually matter. Because there isn't that pathological case, exact rigidity isn't required.
+
+       else if (has(parse_l, data))  node._fold_l();
+       else if (has(parse_r, data))  node._fold_r();
+
+      Ternary operator behavior.
+      This is kind of interesting. If we have a ternary operator, then it will be treated first as a group; just like parentheses, for example. This is the case because the ternary syntax is
+      unambiguous for things in the middle. So, for example, '3 ? 4 : 5' initially parses out as a '?' node whose child is '4'. Its siblings are '3' and '5', so folding left and right is an
+      obvious requirement. The only problem is that the children will be in the wrong order. Instead of (3) (4) (5), we'll have (4) (3) (5). So after folding everything, we do a quick swap of
+      the first two to set the ordering straight.
+
+      There's a subtle catch here. Depending on the Javascript parser, low-precedence operators may be allowed in the middle of a ?:. For example, x ? y = z : z is legal in all runtimes that
+      I'm aware of, and x ? y, z : z is illegal only in SpiderMonkey. This becomes a problem because folding the node won't do the right thing if a low-precedence operator isn't already
+      folded.
+
+      The fix for this is to push the ternary onto a separate list. After all operators have been folded, we can resolve the ternary by assigning the children to the correct places.
+
+       else if (has(parse_ternary, data))  node._fold_lr(), ternaries.push(node);
+
+      Grab-until-block behavior.
+      Not quite as simple as it sounds. This is used for constructs such as 'if', 'function', etc. Each of these constructs takes the form '<construct> [identifier] () {}', but they can also
+      have variants that include '<construct> () {}', '<construct> () statement;', and most problematically '<construct> () ;'. Some of these constructs also have optional child components; for
+      example, 'if () {} else {}' should be represented by an 'if' whose children are '()', '{}', and 'else' (whose child is '{}'). The tricky part is that 'if' doesn't accept another 'if' as a
+      child (e.g. 'if () {} if () {}'), nor does it accept 'for' or any number of other things. This discrimination is encoded in the parse_accepts table.
+
+      There are some weird edge cases, as always. The most notable is what happens when we have nesting without blocks:
+
+      | if (foo) bar; else bif;
+
+      In this case we want to preserve the semicolon on the 'then' block -- that is, 'bar;' should be its child; so the semicolon is required. But the 'bif' in the 'else' case shouldn't have a
+      semicolon, since that separates top-level statements. Because desperate situations call for desperate measures, there's a hack specifically for this in the syntax tree serialization.
+
+      One more thing. Firefox rewrites syntax trees, and one of the optimizations it performs on object literals is removing quotation marks from regular words. This means that it will take the
+      object {'if': 4, 'for': 1, etc.} and render it as {if: 4, for: 1, etc.}. As you can imagine, this becomes a big problem as soon as the word 'function' is present in an object literal. To
+      prevent this from causing problems, I only collapse a node if it is not followed by a colon. (And the only case where any of these would legally be followed by a colon is as an object
+      key.)
+
+       else if (has(parse_r_until_block, data) && node.r && node.r.data !== ':')
+                                                 {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node._fold_r();
+                                                  node.r && (node.r.data === ';' ? node.push(empty) : node._fold_r());
+                                                  if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node._fold_r().pop()._fold_r();
+                                             else if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.data))               node._fold_r()}
+
+      Optional right-fold behavior.
+      The return, throw, break, and continue keywords can each optionally take an expression. If the token to the right is an expression, then we take it, but if the token to the right is a
+      semicolon then the keyword should be nullary.
+
+       else if (has(parse_r_optional, data))  node.r && node.r.data !== ';' && node._fold_r();
+
+    Third step.
+    Find all elements with right-pointers and wrap them with semicolon nodes. This is necessary because of certain constructs at the statement-level don't use semicolons; they use brace syntax
+    instead. (e.g. 'if (foo) {bar} baz()' is valid, even though no semicolon precedes 'baz()'.) By this point everything else will already be folded. Note that this does some weird things to
+    associativity; in general, you can't make assumptions about the exact layout of semicolon nodes. Fortunately semicolon is associative, so it doesn't matter in practice. And just in case,
+    these nodes are 'i;' rather than ';', meaning 'inferred semicolon' -- that way it's clear that they aren't original. (They also won't appear when you call toString() on the syntax tree.)
+
+        for (var i = all_nodes.length - 1, _; i >= 0; --i)  (_ = all_nodes[i]).r && _._wrap(new_node(new syntax_node('i;'))).p._fold_r();
+
+    Fourth step.
+    Flatten out all of the invocation nodes. As explained earlier, they are nested such that the useful data on the right is two levels down. We need to grab the grouping construct on the
+    right-hand side and remove it so that only the invocation or dereference node exists. During the parse phase we built an index of all of these invocation nodes, so we can iterate through
+    just those now. I'm preserving the 'p' pointers, though they're probably not useful beyond here.
+
+        for (var i = 0, l = invocation_nodes.length, _, child; i < l; ++i)  (child = (_ = invocation_nodes[i])[1] = _[1][0] || empty) && (child.p = _);
+
+    Another piece of this is fixing up all ternary nodes. Some ternaries have commas or assignments in the middle, which will be folded after the ternary as a whole is folded. This means two
+    things. First, we couldn't have processed the ternary operator in a single step; and second, the children are in the wrong places as mentioned above. In particular, the ternary will have
+    one child at [0], one at [length - 2], and the other at [length - 1]. The conditional is [length - 2], so we put this one first.
+
+        for (var i = 0, l = ternaries.length, _, n, temp; i < l; ++i)  n = (_ = ternaries[i]).length, temp = _[0], _[0] = _[n - 2], _[1] = temp, _[2] = _[n - 1], _.length = 3;
+
+        while (head.p) head = head.p;
+
+    Fifth step.
+    Prevent a space leak by clearing out all of the 'p', 'l', and 'r' pointers.
+
+        for (var i = all_nodes.length - 1, _; i >= 0; --i)  delete (_ = all_nodes[i]).p, delete _.l, delete _.r;
+        return head};
+
+Environment-dependent compilation.
+It's possible to bind variables from 'here' (i.e. this runtime environment) inside a compiled function. The way we do it is to create a closure using a gensym. (Another reason that gensyms
+must really be unique.) Here's the idea. We use the Function constructor to create an outer function, bind a bunch of variables directly within that scope, and return the function we're
+compiling. The variables correspond to gensyms placed in the code, so the code will have closure over those variables.
+
+An optional second parameter 'environment' can contain a hash of variable->value bindings. These will be defined as locals within the compiled function.
+
+New in caterwaul 0.6.5 is the ability to specify a 'this' binding to set the context of the expression being evaluated.
+
+Caterwaul 1.0 and later automatically bind a variable called 'undefined' that is set to Javascript's 'undefined' value. This is done to defend against pathological cases of 'undefined' being
+set to something else. If you really want some other value of undefined, you can always bind it as an environment variable.
+
+  Expression refs, modules, and offline compilation.
+  Caterwaul 1.2 introduces (in the beta versions) and then fixes a really interesting problem. First, it introduces the Waul precompiler; this takes a Caterwaul file in one of a few standard
+  forms and emits a precompiled version of that file. Second, it preserves both modules and expression refs (added in 1.1.7 and 1.1.6, respectively); I had actually added expression refs to
+  better support modules under offline precompilation.
+
+  However, a really interesting pathological problem comes up when you combine these features. The first time a module is precompiled, it gets converted from a Caterwaul function to a regular
+  Javascript function that contains closure references to its expression refs:
+
+  | caterwaul('js_all')(function () {return 'foo + bar'.qs})    ->    (function (qs_a_gensym) {return function () {return qs_a_gensym}}).call(this,
+                                                                        new caterwaul.syntax('+', new caterwaul.syntax('foo'), new caterwaul.syntax('bar')))
+
+  So far so good; this will compile just fine. However, Caterwaul provides the 'replicator' function, which returns a function that restores the value of the Caterwaul global as it presently
+  is; that is, with all of the modules you've enabled so far. Because Caterwaul can't inspect the closure state of a Javascript function, any precompiled modules (which will end up looking
+  like the code above) will appear to have references to nonexistent global variables and will then fail the next time they are loaded. As of 1.2b6, Caterwaul does not have enough information
+  to reconstruct the expression refs.
+
+  Version 1.2b7 introduces a fix for this problem. Expression refs will be bound twice. For the first binding, the expression ref's literal expression value is used as shown above. This allows
+  the compiled function to access its references without any overhead. For the second binding, the expression is serialized and bound as a string. This allows Caterwaul to reconstruct the
+  expression ref when the function is serialized into an opaque ref. This process is handled automatically by the opaque ref constructor if you're using the Caterwaul format for storing
+  closure state.
+
+    var bound_expression_template     = caterwaul_global.parse('var _bindings; return(_expression)'),
+        binding_template              = caterwaul_global.parse('_variable = _base._variable'),
+        undefined_binding             = caterwaul_global.parse('undefined = void(0)'),
+        late_bound_template           = caterwaul_global.parse('(function (_bindings) {var _result=(_body);_result_init;return(_result)}).call(this, _expressions)'),
+        late_bound_ref_table_template = caterwaul_global.parse('_result.caterwaul_expression_ref_table = _expression_ref_table');
+
+  Compilation options.
+  Gensym renaming will break some things that expect the compiled code to be source-identical to the original tree. As a result, I'm introducing an options hash that lets you tell the compiler
+  things like "don't rename the gensyms this time around". Right now gensym_renaming is the only option, and it defaults to true. (Also see the option table for late_bound_tree; the options
+  passed to compile() are passed into compile's invocation of late_bound_tree as well.)
+
+    caterwaul_global.compile = function (tree, environment, options) {
+      options = caterwaul_global.merge({gensym_renaming: true}, options);
+      tree    = caterwaul_global.late_bound_tree(tree, null, options);
+
+      var bindings = caterwaul_global.merge({}, this._environment, environment, tree.bindings()), variables = [undefined_binding], s = gensym('base');
+      for (var k in bindings) if (own.call(bindings, k) && k !== 'this') variables.push(binding_template.replace({_variable: k, _base: s}));
+
+      var variable_definitions = new this.syntax(',', variables).unflatten(),
+          function_body        = bound_expression_template.replace({_bindings: variable_definitions, _expression: tree});
+
+      if (options.gensym_renaming) {var renaming_table = this.gensym_rename_table(function_body);
+                                    for (var k in bindings) own.call(bindings, k) && (bindings[renaming_table[k] || k] = bindings[k]);
+                                    function_body = function_body.replace(renaming_table);
+                                    s             = renaming_table[s]}
+
+      var code = function_body.toString();
+      try       {return (new Function(s, code)).call(bindings['this'], bindings)}
+      catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}};
+
+  Caterwaul 1.1.6 adds support for expression bindings. To make this easier to work with, the Caterwaul global includes a way to wrap your code with the necessary closure to bind
+  expression-bound node values. For example, for the code 'console.log(<expression>)', suppose you drop in qs[3 + 4] as the expression. caterwaul.late_bound_tree will take your code and return
+  a new syntax tree containing this:
+
+  | (function (expression_gensym) {
+      return console.log(expression_gensym);
+    }).call(this, 3 + 4);
+
+  You can also pass in your own environment expressions to supplement the ones in the syntax tree.
+
+  Caterwaul 1.2b7 adds option support. Right now the only option is expression_ref_table, which defaults to true. If you set this to false, Caterwaul will not store a table of expression
+  references. The consequence of this is that you won't be able to reconstruct a value that comes out of this function after precompilation. Generally you'll want to leave it set to true.
+
+    var trivial_node_template    = caterwaul_global.parse('new caterwaul.syntax(_data)'),
+        nontrivial_node_template = caterwaul_global.parse('new caterwaul.syntax(_data, _xs)');
+
+    caterwaul_global.syntax_to_expression = function (tree) {
+      if (tree.length) {for (var comma = new caterwaul_global.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push(caterwaul_global.syntax_to_expression(tree[i]));
+                        return nontrivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data), _xs: comma.unflatten()})}
+                  else return trivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data)})};
+
+    caterwaul_global.late_bound_tree = function (tree, environment, options) {
+      options = caterwaul_global.merge({expression_ref_table: true}, options);
+      tree    = tree.rmap(function (node) {return node.resolve()});
+
+      var bindings = caterwaul_global.merge({}, environment, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(','), table = {};
+      for (var k in bindings) if (own.call(bindings, k)) variables.push(new caterwaul_global.syntax(k)), expressions.push(bindings[k]),
+                                                         table[k] = caterwaul_global.syntax.from_string(bindings[k].toString());
+
+      var result_gensym      = caterwaul_global.gensym('result'),
+          result_initializer = options.expression_ref_table ? late_bound_ref_table_template.replace({_result: result_gensym, _expression_ref_table: caterwaul_global.syntax.from_object(table)})
+                                                            : caterwaul.empty;
+
+      return variables.length ? late_bound_template.replace({_bindings: variables.unflatten(), _expressions: expressions.unflatten(), _result: result_gensym,
+                                                          _result_init: result_initializer, _body: tree}) : tree};
+
+  Gensym erasure.
+  Gensyms are horrible. They look like foo_1_j15190ba29n1_$1AC151953, which both takes up a lot of space and is hard to read. Fortunately, we can convert them at compile-time. This is possible
+  because Javascript (mostly) supports alpha-conversion for functions.
+
+  I said "mostly" because some symbols are converted into runtime strings; these are property keys. In the unlikely event that you've got a gensym being used to dereference something, e.g.
+  foo.gensym, then renaming is no longer safe. This, as far as I know, is the only situation where renaming won't work as intended. Because I can't imagine a situation where this would
+  actually arise, I'm not handling this case yet. (Though let me know if I need to fix this.)
+
+  New gensym names are chosen by choosing the smallest nonnegative integer N such that the gensym's prefix plus N.toString(36) doesn't occur as an identifier anywhere in the code. (The most
+  elegant option is to use scope analysis to keep N low, but I'm too lazy to implement it.)
+
+    caterwaul_global.gensym_rename_table = function (tree) {
+      var names = {}, gensyms = [];
+      tree.reach(function (node) {var d = node.data; if (is_gensym(d)) names[d] || gensyms.push(d); names[d] = d.replace(/^(.*)_[a-z0-9]+_.{22}$/, '$1') || 'anon'});
+
+      var unseen_count = {}, next_unseen = function (name) {if (! (name in names)) return name;
+                                                            var n = unseen_count[name] || 0; while (names[name + (++n).toString(36)]); return name + (unseen_count[name] = n).toString(36)};
+
+      for (var renamed = {}, i = 0, l = gensyms.length, g; i < l; ++i) renamed[g = gensyms[i]] || (names[renamed[g] = next_unseen(names[g])] = true);
+      return renamed};
+
+Initialization method.
+Caterwaul 1.1 is a huge deviation from before. Now you don't use the global caterwaul as a compiler, because it isn't one. Rather, it's a compiler-generator. You pass in arguments to construct
+the new function. So, for example:
+
+| var compiler = caterwaul(my_macroexpander);
+  compiler(function () {return 5})()            // -> 5, unless your macroexpander does something really bizarre
+
+The function returned here will have a permanent link to the global caterwaul that generated it, so deglobalizing is a safe thing to do. These generated functions can be composed by doing the
+parse step ahead of time:
+
+| var my_caterwaul       = caterwaul(my_macroexpander);
+  var my_other_caterwaul = caterwaul(my_other_macroexpander);
+  var compiler           = function (tree) {
+    return caterwaul.compile(my_other_caterwaul(my_caterwaul(caterwaul.parse(tree))));
+  };
+
+This informs my_caterwaul and my_other_caterwaul that your intent is just to macroexpand trees to trees, not transform functions into other functions.
+
+  Composition syntax.
+  Caterwaul 1.1.6 introduces a string-based syntax for initialization. So instead of things like caterwaul.jquery(caterwaul.js_all())(...), you can write caterwaul('js_all jquery')(...). The
+  rule in this case is that each word is transformed into a method invocation. The first one is invoked with no parameters, and subsequent ones are invoked on the return value of the previous
+  method. Methods are called from left to right, so the string order is opposite from function composition order. For example:
+
+  | caterwaul('m1 m2 m3')       ->      caterwaul.m3(caterwaul.m2(caterwaul.m1()))
+
+  All Caterwaul standard libraries are written such that they can be used this way.
+
+  Caterwaul 1.2.4 introduces bundles, which are just array properties stored on the caterwaul global. This is useful when you have a series of libraries that don't necessarily know about each
+  other. For example, here's how you might create the 'all' bundle:
+
+  | caterwaul.all = ['js_all', 'jquery', ...];
+    var all_compiler = caterwaul(':all');               <- equivalent to caterwaul('js_all jquery ...');
+
+  var invoke_caterwaul_methods = function (methods) {
+    /^:/.test(methods) && (methods = caterwaul_global[methods.substr(1)]);
+    methods.constructor === String && (methods = methods.split(/\s+/));
+    for (var i = 1, l = methods.length, r = caterwaul_global[methods[0]](); i < l; ++i) r = caterwaul_global[methods[i]](r);
+    return r};
+
+  caterwaul_global.init = function (macroexpander) {
+    macroexpander || (macroexpander = function (x) {return true});
+    return macroexpander.constructor === Function
+      ? se((function () {var result = function (f, environment, options) {
+                           return typeof f === 'function' || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
+                                                                                        f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
+                         return result})(),
+          function () {this.global = caterwaul_global, this.macroexpander = macroexpander})
+      : invoke_caterwaul_methods(macroexpander)};
+
+  caterwaul_global.initializer = initializer;
+  caterwaul_global.clone       = function () {return se(initializer(initializer, unique).deglobalize(),
+                                                        function () {for (var k in caterwaul_global) this[k] || (this[k] = caterwaul_global[k])})};
+
+Replication.
+A Caterwaul function can replicate itself by returning a syntax tree that, when evaluated, returns an equivalent Caterwaul global (and in this case, installs it accordingly). This is not
+particularly computationally expensive most of the time, as opaque trees are returned.
+
+  var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
+      module_template = caterwaul_global.parse('module(_name, _f)');
+
+  caterwaul_global.replicator = function (options) {
+    if (options && options.minimal_core_only) return w_template.replace({_x: new this.opaque_tree(this.core_initializer)});
+    if (options && options.core_only)         return w_template.replace({_x: new this.opaque_tree(this.initializer)});
+    for (var i = 0, ms = options && options.modules || this.modules, c = [], l = ms.length; i < l; ++i)
+      c.push(module_template.replace({_name: this.syntax.from_string(ms[i]), _f: new this.opaque_tree(this.module(ms[i]))}));
+    for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
+    return this.late_bound_tree(result.unflatten())};
+
+  return caterwaul = caterwaul_global});
+
+__
+meta::sdoc('js::caterwaul.core', <<'__');
+Global caterwaul variable.
+Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism to get the original one back if you don't want to replace it. You can call caterwaul.deglobalize() to return
+caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
+available only on the global caterwaul() function.
+
+(function (f) {return f(f)})(function (initializer) {
+  var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
+      original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+      caterwaul_global = calls_init();
+
+  caterwaul_global.deglobalize      = function () {caterwaul = original_global; return caterwaul_global};
+  caterwaul_global.core_initializer = initializer;
+
+The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
+hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
+
+| for (var k in {toString: 5}) alert(k);        // no alert on IE
+  ({toString: 5}).hasOwnProperty('toString')    // false on IE
+
+To compensate, merge() manually copies toString if it is present on the extension object.
+
+  caterwaul_global.merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
+    // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (has(_, k)) o[k] = _[k]; return o} :
+
+    // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
+                    if (_ = arguments[i]) {for (var k in _) if (has(_, k)) o[k] = _[k];
+                                           if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
+
+Modules.
+Caterwaul 1.1.7 adds support for a structured form for defining modules. This isn't particularly interesting or revolutionary by itself; it's just a slightly more structured way to do what
+most Caterwaul extensions have been doing with toplevel functions. For example, a typical extension looks something like this:
+
+| caterwaul('js_all')(function ($) {
+    $.something(...) = ...,
+    where [...]})(caterwaul);
+
+Here's what the equivalent module syntax looks like:
+
+| caterwaul.module('foo', 'js_all', function ($) {      // equivalent to caterwaul.module('foo', caterwaul('js_all')(function ($) {...}))
+    $.something(...) = ...,
+    where [...]});
+
+Note that the module name has absolutely nothing to do with what the module does. I'm adding modules for a different reason entirely. When you bind a module like this, Caterwaul stores the
+initialization function onto the global object. So, for example, when you run caterwaul.module('foo', f), you have the property that caterwaul.foo_initializer === f. This is significant
+because you can later reuse this function on a different Caterwaul object. In particular, you can do things like sending modules from the server to the client, since the Caterwaul global is
+supplied as a parameter rather than being closed over.
+
+You can invoke module() with just a name to get the initializer function for that module. This ultimately means that, given only a runtime instance of a Caterwaul function configured with one
+or modules, you can construct a string of Javascript code sufficient to recreate an equivalent Caterwaul function elsewhere. (The replicator() method does this by returning a syntax tree.)
+
+  caterwaul_global.modules = [];
+  caterwaul_global.module = function (name, transform, f) {
+    if (arguments.length === 1) return caterwaul_global[name + '_initializer'];
+    name + '_initializer' in caterwaul_global || caterwaul_global.modules.push(name);
+    f || (f = transform, transform = null);
+    (caterwaul_global[name + '_initializer'] = transform ? caterwaul_global(transform)(f) : f)(caterwaul_global);
+    return caterwaul_global};
+
+  return caterwaul = caterwaul_global});
+
+__
+meta::template('comment', '\'\';     # A mechanism for line or block comments.');
+meta::template('eval', <<'__');
+my $result = eval $_[0];
+terminal::warning("Error during template evaluation: $@") if $@;
+$result;
+__
+meta::template('failing_conditional', <<'__');
+my ($commands)    = @_;
+my $should_return = $commands =~ / if (.*)$/ && ! eval $1;
+terminal::warning("eval of template condition failed: $@") if $@;
+$should_return;
+__
+meta::template('include', <<'__');
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+join "\n", map retrieve($_), split /\s+/, $commands;
+__
+meta::template('pinclude', <<'__');
+# Just like the regular include, but makes sure to insert paragraph boundaries
+# (this is required for SDoc to function properly).
+
+my ($commands) = @_;
+return '' if template::failing_conditional($commands);
+my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
+"\n\n$text\n\n";
+__
+meta::template('script-include', <<'__');
+my ($name) = @_;
+my $s      = 'script';
+my $script = retrieve($name);
+"<$s>\n$script\n</$s>";
+
+__
+meta::template('style-include', <<'__');
+my ($name) = @_;
+my $s      = 'style';
+my $style  = retrieve($name);
+"<$s>\n$style\n</$s>";
+
+__
+internal::main();
+
+__DATA__
