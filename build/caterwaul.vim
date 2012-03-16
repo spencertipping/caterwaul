@@ -76,7 +76,7 @@ syn match     jsModifierSuffix          /[->]/ contained
 
 syn cluster   jsMacro                   add=jsBindingMacro,jsFunctionMacro,jsQuotationMacro,jsOtherMacro
 
-syn match     jsLiteralModifier         /\.\(q[frwh]\|qse\|x\)\>/
+syn match     jsLiteralModifier         /\.\(q[frwhs]\|qse\|x\)\>/
 
 syn match     jsSeqFilter               /\/\(pairs\|keys\|values\)\>/
 syn match     jsSeqFilter               /%[kv][\*%\/~!]/
