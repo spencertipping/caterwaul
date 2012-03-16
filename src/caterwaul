@@ -1802,12 +1802,9 @@ This data is used both for parsing and for serialization, so it's made available
   The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
   as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
 
-  See 'Operator fold loop' for details about why the fictional operator 'd:' is in the list. The short story is that the colon serves two different purposes and 'd:' is a proxy for handling
-  the ones that exist in statement-mode (i.e. as label or case statement markers).
-
     parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==',
                                     '&', '^', '|', '&&', '||', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>=', ':', ',', 'return throw break continue', 'var const',
-                                    'if else try catch finally for switch with while do', 'd:', ';']),
+                                    'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with while do'),
    parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)})(parse_reduce_order),
@@ -2426,8 +2423,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
   provides an index of those tokens by their fold order. It does all of this by streaming tokens into a micro-parser whose language is grouping and that knows about the oddities required to
   handle regular expression cases. In the same function, though as a distinct case, the operators are folded and the syntax is compiled into a coherent tree form.
 
-  The input to the parse function can be anything whose toString() produces valid Javascript code. Because parse() handles a superset of Javascript, you can also give it invalid Javascript
-  code and get meaningful parse trees most of the time -- though I'm not making any guarantees about its output for invalid inputs.
+  The input to the parse function can be anything whose toString() produces valid Javascript code.
 
     caterwaul_global.parse = function (input) {
 
@@ -2451,7 +2447,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
         var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
             grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [empty],
             new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)},
-            syntax_node = this.syntax, ternaries = [], deferred_colons = [];
+            syntax_node = this.syntax, ternaries = [];
 
     Trivial case.
     The empty string will break the lexer because we won't generate a token (since we're already at the end). To prevent this we return an empty syntax node immediately, since this is an
@@ -2600,11 +2596,11 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
       Operators in this class are considered to be 'fold_lr'; that is, they fold first their left sibling, then their right.
 
-      There is a special case here. If the right-hand side is a prefix operator of low precedence (e.g. for or if), then defer the folding until after the right-hand side has been folded.
-      Semantically, this means that the colon has been used to denote a label. This won't universally hold true; in particular, it won't work if an expression is on the right instead of a
-      statement. But it fixes all cases that would produce invalid syntax trees. The deferred-colon case is picked up before semicolons are folded.
+      There is a special case here. If the right-hand side is a prefix unary operator of low precedence (e.g. for or if), then convert the colon to a unary operator. Semantically, this means
+      that the colon has been used to denote a label. This won't universally hold true; in particular, it won't work if an expression is on the right instead of a statement. But it fixes all
+      cases that would produce invalid syntax trees.
 
-            if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) deferred_colons.push(node);
+            if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) node._fold_l();
                                                            else                                                      node._fold_lr();
 
       Ambiguous parse groups.
