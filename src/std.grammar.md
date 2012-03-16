@@ -14,9 +14,9 @@ pattern/replacement pairs, where the replacement can be either a syntax tree or 
 Rules are matched from last to first as usual. The list of anonymization symbols can be specified as a space-delimited string or an array.
 
     caterwaul.module('std.grammar', 'js js_literals words', function ($) {
-      $.grammar(anonymous_symbols, options, rule_cc) = "expand.call(expand, anon_pattern.replace({_x: _._expression})) -re [this.constructor === Function ? this(it) /when.it : it]".qf
+      $.grammar(anonymous_symbols, options, rule_cc) = "expand.call(expand, anon_pattern /~replace/ _) -re [this.constructor === Function ? this(it) /when.it : it]".qf
 
-      -where [default_options = {fix: true, descend: true, initial: 'S[_x]'.qs},
+      -where [default_options = {fix: true, descend: true, initial: 'S[_expression]'.qs},
               settings        = {} / default_options /-$.merge/ options,
 
               anon            = $.anonymizer(anonymous_symbols),
