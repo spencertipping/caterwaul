@@ -25,6 +25,7 @@
 
   caterwaul_global.deglobalize      = function () {caterwaul = original_global; return caterwaul_global};
   caterwaul_global.core_initializer = initializer;
+  caterwaul_global.context          = this;
 
 // The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
 // hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
