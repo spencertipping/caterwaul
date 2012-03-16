@@ -764,7 +764,7 @@ Caterwaul 1.2 adds the static caterwaul.syntax.from_string() constructor to simp
                                                                                     ':', /^[$_A-Za-z][A-Za-z0-9$_]*$/.test(k) ? k : caterwaul_global.syntax.from_string(k), o[k].as('(')));
                                                                                   return new caterwaul_global.syntax('{', comma.length ? comma.unflatten() : [])}});
 
-      caterwaul_global.syntax.promote = function (v) {var c = v.constructor; return c === String || c === Number || c === Boolean ? new caterwaul.syntax(v) : v};
+      caterwaul_global.syntax.promote = function (v) {var c = v.constructor; return c === String || c === Number || c === Boolean ? new caterwaul_global.syntax(v) : v};
 
       var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
 
@@ -1240,7 +1240,7 @@ references. The consequence of this is that you won't be able to reconstruct a v
 
         var result_gensym      = caterwaul_global.gensym('result'),
             result_initializer = options.expression_ref_table ? late_bound_ref_table_template.replace({_result: result_gensym, _expression_ref_table: caterwaul_global.syntax.from_object(table)})
-                                                              : caterwaul.empty;
+                                                              : caterwaul_global.empty;
 
         return variables.length ? late_bound_template.replace({_bindings: variables.unflatten(), _expressions: expressions.unflatten(), _result: result_gensym,
                                                             _result_init: result_initializer, _body: tree}) : tree};
@@ -1338,4 +1338,4 @@ particularly computationally expensive most of the time, as opaque trees are ret
         for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
         return this.late_bound_tree(result.unflatten())};
 
-      return caterwaul = caterwaul_global});
+      return caterwaul});
