@@ -188,7 +188,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ->
          parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
       parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
            parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
- parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch void delete new typeof in instanceof'),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while with catch void delete new typeof in instanceof'),
  parse_also_expression = hash('function'),                     parse_misleading_postfix = hash(':'),
 
 // Syntax data structures.
