@@ -702,6 +702,17 @@ This ends up evaluating code that looks like this:
 
                                           caterwaul_global.ref_common, {add_expressions_to: function (hash) {hash[this.data] = this.e}});
 
+## Metadata
+
+Caterwaul 1.3 allows you to add metadata to the syntax tree. The assumption is that it will be removed before you compile the tree; as such, it is represented as an identifier beginning with
+an @ sign; this will trigger a compilation error if you leave it there. The purpose of metadata is to hold extra information that you don't want to attach to a specific node.
+
+      caterwaul_global.metadata_node = caterwaul_global.syntax_subclass(
+                                         function (d, name) {if (d instanceof this.constructor) this.metadata = d.metadata, this.data = d.data;
+                                                             else                               this.metadata = d,          this.data = '@' + (name || '')},
+
+                                         caterwaul_global.ref_common);
+
 ## Opaque (unparsed) code references
 
 This gives Caterwaul a way to assemble code in a more performant manner. In particular, it lets Caterwaul omit the expensive (and unnecessary) parse() operation during a replicator() call.
