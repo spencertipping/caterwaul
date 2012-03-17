@@ -314,10 +314,10 @@ rmap() provides a fairly rich interface to allow you to inform Caterwaul about w
       each:  function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
       map:   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
 
-      reach: function (f) {f(this); this.each(function (n) {n.reach(f)}); return this},
+      reach: function (f) {f(this); for (var i = 0, l = this.length; i < l; ++i) this[i].reach(f); return this},
       rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r === true ? this : r.rmap === undefined ? new this.constructor(r) : r},
 
-      peach: function (f) {this.each(function (n) {n.peach(f)}); f(this); return this},
+      peach: function (f) {for (var i = 0, l = this.length; i < l; ++i) this[i].peach(f); f(this); return this},
       pmap:  function (f) {var t = this.map(function (n) {return n.pmap(f)}); return f(t)},
 
       clone: function () {return this.rmap(function () {return false})},
