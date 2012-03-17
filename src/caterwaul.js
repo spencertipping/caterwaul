@@ -1125,15 +1125,18 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //   Gensym renaming will break some things that expect the compiled code to be source-identical to the original tree. As a result, I'm introducing an options hash that lets you tell the compiler
 //   things like "don't rename the gensyms this time around". Options handled by compile() are:
 
-  // | gensym_renaming: defaults to true. If false, gensyms are preserved in their hideous glory.
-//     transparent_errors: defaults to false. If true, compile-time errors are passed through unmodified.
+  // | gensym_renaming     defaults to true. If false, gensyms are preserved in their hideous glory.
+//     transparent_errors  defaults to false. If true, compile-time errors are passed through unmodified.
+//     unbound_closure     defaults to false. If true, compile() returns a binder closure instead of binding it eagerly to the environment. You can then call this closure on an object containing
+//                         bindings.
 
   // Also see the option table for late_bound_tree; the options passed to compile() are passed into compile's invocation of late_bound_tree as well.
 
     caterwaul_global.compile = function (tree, environment, options) {
-      options = caterwaul_global.merge({gensym_renaming: true, transparent_errors: false}, options);
+      options = caterwaul_global.merge({gensym_renaming: true, transparent_errors: false, unbound_closure: false}, options);
       tree    = caterwaul_global.late_bound_tree(tree, null, options);
 
+      // Compute the bindings even when the closure is returned unbound. We need to do this to build up the list of local variables inside the closure.
       var bindings = caterwaul_global.merge({}, this._environment, environment, tree.bindings()), variables = [undefined_binding], s = gensym('base');
       for (var k in bindings) if (own.call(bindings, k) && k !== 'this') variables.push(binding_template.replace({_variable: k, _base: s}));
 
@@ -1145,10 +1148,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                     function_body = function_body.replace(renaming_table);
                                     s             = renaming_table[s]}
 
-      var code = function_body.toString();
-      if (options.transparent_errors) return (new Function(s, code)).call(bindings['this'], bindings);
-                                 else try       {return (new Function(s, code)).call(bindings['this'], bindings)}
-                                      catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}};
+      var code    = function_body.toString(),
+          closure = (function () {if (options.transparent_errors) return new Function(s, code);
+                             else                                 try       {return new Function(s, code)}
+                                                                  catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}})();
+
+      return options.unbound_closure ? closure : closure.call(bindings['this'], bindings)};
 
   // Caterwaul 1.1.6 adds support for expression bindings. To make this easier to work with, the Caterwaul global includes a way to wrap your code with the necessary closure to bind
 //   expression-bound node values. For example, for the code 'console.log(<expression>)', suppose you drop in qs[3 + 4] as the expression. caterwaul.late_bound_tree will take your code and return
