@@ -586,7 +586,7 @@ What we do instead is dig through the tree and find out whether the last thing i
 algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
 
       ends_with_block: function () {var block = this[this.length - 1];
-                                    if (block.data === parse_accepts[this.data]) block = block[0];
+                                    if (block && block.data === parse_accepts[this.data]) block = block[0];
                                     return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
 
 There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
