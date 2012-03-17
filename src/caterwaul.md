@@ -192,7 +192,7 @@ them in the first place.
         parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
              parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
      parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while catch void delete new typeof in instanceof'),
-     parse_also_expression = hash('function'),
+     parse_also_expression = hash('function'),                     parse_misleading_postfix = hash(':'),
 
 # Syntax data structures
 
@@ -633,6 +633,7 @@ function, but it isn't the end of the world if you do.
                                                else                               return push(d);
 
                                             case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return push(d.replace(/^u/, '')), this[0].serialize(xs);
+                                               else if (has(parse_misleading_postfix, d))            return this[0].serialize(xs), push(d);
                                                else if (has(parse_group, d))                         return push(d), this[0].serialize(xs), push(parse_group[d]);
                                                else if (has(parse_lr, d))                            return this[0].serialize(xs);
                                                else                                                  return this[0].serialize(xs), push(d);
@@ -853,10 +854,10 @@ nodes in the order in which they should be folded. invocation_nodes is an index 
 The push() function manages the mechanics of adding a node to the initial linked structure. There are a few cases here; one is when we've just created a paren group and have no 'head'
 node; in this case we append the node as 'head'. Another case is when 'head' exists; in that case we update head to be the new node, which gets added as a sibling of the old head.
 
-        var s = input.toString(), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length, cs = function (i) {return s.charCodeAt(i)},
-            grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order), invocation_nodes = [], all_nodes = [empty],
-            new_node = function (n) {return all_nodes.push(n), n}, push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)},
-            syntax_node = this.syntax, ternaries = [];
+        var s = input.toString().replace(/^\s*|\s*$/g, ''), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length,
+            cs = function (i) {return s.charCodeAt(i)}, grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order),
+            invocation_nodes = [], all_nodes = [empty], new_node = function (n) {return all_nodes.push(n), n},
+            push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)}, syntax_node = this.syntax, ternaries = [];
 
 ### Trivial case
 
