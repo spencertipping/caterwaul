@@ -406,6 +406,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ->
       add_expressions_to: function (hash) {},
 
       resolve: function () {return this},               // Identity for most nodes. This is necessary to allow opaque refs to construct expression closures.
+      reduce:  function () {return this},               // Ditto here; this is necessary to allow opaque refs to parse themselves but preserve expression ref bindings.
 
     // Containment.
 //     You can ask a tree whether it contains any nodes that satisfy a given predicate. This is done using the .contains() method and is significantly more efficient than using .collect() if your
@@ -719,6 +720,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                        for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
 
                                      {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(new this.constructor(this.data), this.expression_refs) : this},
+                                       reduce: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(this.parse(), this.expression_refs) : this.parse()},
                                     serialize: function (xs) {return xs.push(this.data), xs},
                                         parse: function ()   {return caterwaul_global.parse(this.data)}});
 
