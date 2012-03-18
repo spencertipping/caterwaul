@@ -122,11 +122,14 @@
   // As of Caterwaul 0.7.0 the _max_length property has been replaced by a gensym. This basically guarantees uniqueness, so the various hacks associated with working around the existence of the
 //   special _max_length key are no longer necessary.
 
+  // Caterwaul 1.3 introduces the gensym_entropy() method, which allows you to grab the 128 bits of pseudorandom data that are used to mark gensyms. Be careful with this. If you introduce this
+//   data into your code, you compromise the uniqueness of past and future gensyms because you know enough to reproduce them and predict their future values.
+
      max_length_key = gensym('hash'),
       annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
                 has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
 
-   caterwaul_global = caterwaul.merge(caterwaul, {map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym}),
+   caterwaul_global = caterwaul.merge(caterwaul, {map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym, gensym_entropy: function () {return unique}}),
 
 // Shared parser data.
 // This data is used both for parsing and for serialization, so it's made available to all pieces of caterwaul.
