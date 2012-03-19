@@ -632,7 +632,7 @@ function, but it isn't the end of the world if you do.
                                         push = function (x) {if (lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)]) xs.push(' ', x);
                                                              else                                                                           xs.push(x)};
 
-                                       if (depth === 0) return push('...');
+                                       if (l && depth === 0) return push('...');
 
                            switch (l) {case 0: if (has(parse_r_optional, d)) return push(d.replace(/^u/, ''));
                                           else if (has(parse_group, d))      return push(d), push(parse_group[d]);

@@ -396,7 +396,7 @@ return caterwaul_global};var parse_hex=caterwaul_global.parse_hex=function(digit
 if(block&&block.data===parse_accepts[this.data]){block=block[0]}return this.data==="{"||has(parse_r_until_block,this.data)&&(this.data!=="function"||this.length===3)&&block&&block.ends_with_block()
 },guarded:function(p){var this_p=this.is_group()||this.is_associative()?undefined:this.precedence(),right=this.is_right_associative(),result=this.map(function(x,i){return x.guarded(this_p-(!right&&!!i))
 });return this_p>p?result.as("("):result},serialize:function(xs,depth){var l=this.length,d=this.data,semi=";\n",d1=depth-1,push=function(x){if(lex_ident[xs[xs.length-1].charCodeAt(0)]===lex_ident[x.charCodeAt(0)]){xs.push(" ",x)
-}else{xs.push(x)}};if(depth===0){return push("...")}switch(l){case 0:if(has(parse_r_optional,d)){return push(d.replace(/^u/,""))}else{if(has(parse_group,d)){return push(d),push(parse_group[d])
+}else{xs.push(x)}};if(l&&depth===0){return push("...")}switch(l){case 0:if(has(parse_r_optional,d)){return push(d.replace(/^u/,""))}else{if(has(parse_group,d)){return push(d),push(parse_group[d])
 }else{return push(d)}}case 1:if(has(parse_r,d)||has(parse_r_optional,d)){return push(d.replace(/^u/,"")),this[0].serialize(xs,d1)}else{if(has(parse_misleading_postfix,d)){return this[0].serialize(xs,d1),push(d)
 }else{if(has(parse_group,d)){return push(d),this[0].serialize(xs,d1),push(parse_group[d])}else{if(has(parse_lr,d)){return this[0].serialize(xs,d1)}else{return this[0].serialize(xs,d1),push(d)
 }}}}case 2:if(has(parse_invocation,d)){return this[0].serialize(xs,d1),push(d.charAt(0)),this[1].serialize(xs,d1),push(d.charAt(1))}else{if(has(parse_r_until_block,d)){return push(d),this[0].serialize(xs,d1),this[1].serialize(xs,d1)
