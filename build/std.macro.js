@@ -1,4 +1,4 @@
-caterwaul.module( 'std.macro' ,function($) {var syntax_manipulator=function(base_case) {var result=function(x) {if(x.constructor===Array) {for(var i=0,l=x.length,ys= [ ] ;
+caterwaul.module( 'std.macro' ,function($) {var syntax_manipulator=function(base_case) {var result=function(x) {if(x.constructor===Array) {for(var i=0,l=x.length,ys= [] ;
 i<l;
  ++i)ys.push(result(x[i] ) ) ;
 return function(tree) {for(var i=ys.length-1,r;
