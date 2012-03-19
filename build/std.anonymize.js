@@ -1,5 +1,5 @@
 caterwaul.module( 'std.anon' ,function($) {$.anonymizer=function() {var xs=arguments;
-return(function( ) {var table= (function(o) {for(var r= { } ,i=0,l=o.length,x;
+return(function() {var table= (function(o) {for(var r= {} ,i=0,l=o.length,x;
 i<l;
  ++i)x=o[i] ,r[x[0] ] =x[1] ;
 return r} ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
