@@ -851,6 +851,9 @@ The input to the parse function can be anything whose toString() produces valid 
 
       caterwaul_global.parse = function (input) {
 
+        // Caterwaul 1.3 revision: parse() is closed under null-ness.
+        if (input == null) return input;
+
         // Caterwaul 1.1 revision: Allow the parse() function to be used as a 'make sure this thing is a syntax node' function.
         if (input.constructor === caterwaul_global.syntax) return input;
 
@@ -873,7 +876,7 @@ node; in this case we append the node as 'head'. Another case is when 'head' exi
         var s = input.toString().replace(/^\s*|\s*$/g, ''), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length,
             cs = function (i) {return s.charCodeAt(i)}, grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order),
             invocation_nodes = [], all_nodes = [empty], new_node = function (n) {return all_nodes.push(n), n},
-            push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)}, syntax_node = this.syntax, ternaries = [];
+            push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)}, syntax_node = this.syntax, groups = [], ternaries = [];
 
 ### Trivial case
 
@@ -980,8 +983,12 @@ so we know that it is valid.)
 All operator indexing is done uniformly, left-to-right. Note that the indexing isn't strictly by operator. It's by reduction order, which is arguably more important. That's what the
 parse_inverse_order table does: it maps operator names to parse_reduce_order subscripts. (e.g. 'new' -> 2.)
 
+Caterwaul 1.3 inserts empty sentinels into all brackets with no contents. So, for example, the empty array [] would contain a single child, caterwaul.empty. This makes it much easier to
+write destructuring binds against syntax trees.
+
       t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], head = head ? head.p : parent, parent = null) :
-                     (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(new_node(new syntax_node(t))), head = null) : push(new_node(new syntax_node(t))),
+                     (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(new_node(new syntax_node(t))), groups.push(parent), head = null)
+                                          : push(new_node(new syntax_node(t))),
                       has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
 
 #### Regexp flag special cases
@@ -1139,7 +1146,11 @@ Flatten out all of the invocation nodes. As explained earlier, they are nested s
 right-hand side and remove it so that only the invocation or dereference node exists. During the parse phase we built an index of all of these invocation nodes, so we can iterate through
 just those now. I'm preserving the 'p' pointers, though they're probably not useful beyond here.
 
+At the same time, go through all bracket groups and insert empty nodes into the ones that are actually empty. This uniformity means that you can bind a match variable to the contents of an
+empty bracket group and sort out the difference later. Because we're not reparenting anything there is no need to set the 'p' pointer on the empty child.
+
         for (var i = 0, l = invocation_nodes.length, _, child; i < l; ++i)  (child = (_ = invocation_nodes[i])[1] = _[1][0] || empty) && (child.p = _);
+        for (var i = 0, l = groups.length, _;                  i < l; ++i)  (_ = groups[i]).length || _.push(empty);
 
 Another piece of this is fixing up all ternary nodes. Some ternaries have commas or assignments in the middle, which will be folded after the ternary as a whole is folded. This means two
 things. First, we couldn't have processed the ternary operator in a single step; and second, the children are in the wrong places as mentioned above. In particular, the ternary will have
