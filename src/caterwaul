@@ -1805,23 +1805,25 @@ This data is used both for parsing and for serialization, so it's made available
   The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
   as 'if', 'for', 'while', and 'with'. The parser then folds operators and ends by folding these block-level constructs.
 
-  Caterwaul 1.2.7 introduces a few fictional operators into the list. These operators are written such that they could never appear in valid Javascript, but are available to non-Javascript
-  compilers like waul. So far these operators are:
+  Caterwaul 1.2.7 and 1.3 introduce a few fictional operators into the list. These operators are written such that they could never appear in valid Javascript, but are available to
+  non-Javascript compilers like waul. So far these operators are:
 
   | ->  right-associative; folds just before = and ?
     =>  right-associative; same precedence as ->
     &&= right-associative; same precedence as =, +=, etc
     ||= right-associative; same precedence as =, +=, etc
+    ::  right-associative; folds just after == and ===
+    ::: right-associative; folds just after ::
 
   These operators matter only if you're writing waul-facing code. If you're writing Javascript-to-Javascript mappings you can ignore their existence, since no valid Javascript will contain
   them in the first place.
 
     parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==',
-                                    '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',', 'return throw break continue', 'var const',
-                                    'if else try catch finally for switch with while do', ';']),
+                                    '::', ':::', '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',', 'return throw break continue',
+                                    'var const', 'if else try catch finally for switch with while do', ';']),
 
-parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= -> => ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case with ' +
-                              'while do'),
+parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= :: ::: -> => ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case ' +
+                              'with while do'),
 
    parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)})(parse_reduce_order),
    parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
