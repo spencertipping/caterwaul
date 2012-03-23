@@ -551,7 +551,7 @@ than a string comparison. The ASCII value for underscore is 95.
          is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
 
                 precedence: function () {return parse_inverse_order[this.data]},          is_right_associative: function () {return has(parse_associates_right, this.data)},
-            is_associative: function () {return /^[;,]$/.test(this.data)},                            is_group: function () {return /^[(\[{][)\]]?$/.test(this.data)},
+            is_associative: function () {return this.data === ';'},                                   is_group: function () {return /^[(\[{][)\]]?$/.test(this.data)},
 
                    accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
 
