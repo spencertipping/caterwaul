@@ -728,6 +728,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
                                      {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(new this.constructor(this.data), this.expression_refs) : this},
                                        reduce: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(this.parse(), this.expression_refs) : this.parse()},
+                                      guarded: function ()   {return this},
                                     serialize: function (xs) {return xs.push(this.data), xs},
                                         parse: function ()   {return caterwaul_global.parse(this.data)}});
 
@@ -1164,12 +1165,15 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     transparent_errors  defaults to false. If true, compile-time errors are passed through unmodified.
 //     unbound_closure     defaults to false. If true, compile() returns a binder closure instead of binding it eagerly to the environment. You can then call this closure on an object containing
 //                         bindings.
+//     guard               defaults to true. If true, compile() uses the guarded() method to make sure that tree structure is reflected in the serialized output.
 
   // Also see the option table for late_bound_tree; the options passed to compile() are passed into compile's invocation of late_bound_tree as well.
 
     caterwaul_global.compile = function (tree, environment, options) {
-      options = caterwaul_global.merge({gensym_renaming: true, transparent_errors: false, unbound_closure: false}, options);
+      options = caterwaul_global.merge({gensym_renaming: true, transparent_errors: false, unbound_closure: false, guard: true}, options);
       tree    = caterwaul_global.late_bound_tree(tree, null, options);
+
+      if (options.guard) tree = tree.guarded();
 
       // Compute the bindings even when the closure is returned unbound. We need to do this to build up the list of local variables inside the closure.
       var bindings = caterwaul_global.merge({}, this._environment, environment, tree.bindings()), variables = [undefined_binding], s = gensym('base');
