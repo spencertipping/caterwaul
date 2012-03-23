@@ -95,7 +95,7 @@ caterwaul.module('std.words', 'js js_literals words', function ($) {
 
     se:   $.reexpander('(function (it) {return _parameters, it}).call(this, (_expression))'.qs),
     re:   $.reexpander('(function (it) {return _parameters}).call(this, (_expression))'.qs),
-    then: $.reexpander('_expression, _parameters'.qs),
+    then: $.reexpander('(_expression, _parameters)'.qs),
 
   # Assignment.
 #   These provide higher-level assignment patterns and allow you to change the precedence of assignment operations. For example, it's common to write something like (x || (x = y)) because

@@ -106,7 +106,7 @@ Version 1.2 adds the word 'then', which is equivalent to 'se' but doesn't bind '
 
       se:   $.reexpander('(function (it) {return _parameters, it}).call(this, (_expression))'.qs),
       re:   $.reexpander('(function (it) {return _parameters}).call(this, (_expression))'.qs),
-      then: $.reexpander('_expression, _parameters'.qs),
+      then: $.reexpander('(_expression, _parameters)'.qs),
 
 ## Assignment
 

@@ -1,5 +1,5 @@
 caterwaul.module( 'waul' , (function(qs,qs1,qs2,qs3,qs4,qs5,qs6,qs7) {var result= (function($) { (function() {var main=function() {;
-return(function(xs1) {var x1,x01,xi1,xl1,xr1;
+return( (function(xs1) {var x1,x01,xi1,xl1,xr1;
 for(var xi1=0,xl1=xs1.length;
 xi1<xl1;
  ++xi1)x1=xs1[xi1] , (evaluate_extension(x1) ) ;
@@ -7,7 +7,7 @@ return xs1} ) .call(this, (function(xs1) {var x1,x01,xi1,xl1,xr1;
 for(var xr1=new xs1.constructor() ,xi1=0,xl1=xs1.length;
 xi1<xl1;
  ++xi1)x1=xs1[xi1] ,xr1.push( (extension_tree(x1) ) ) ;
-return xr1} ) .call(this,options.extensions) ) ,main_action() } ,main_action=function() {;
+return xr1} ) .call(this,options.extensions) ) ,main_action() ) } ,main_action=function() {;
 return options.replicate?replicate() :options.input_files.length? (function(xs1) {var x1,x01,xi1,xl1,xr1;
 for(var xi1=0,xl1=xs1.length;
 xi1<xl1;
@@ -32,7 +32,7 @@ return(function(it) {return it?waul_run(it) : (function(it) {return it?waul_tran
 return process.stderr.write( 'Waul precompiler or derivative (repl mode), copyright 2012 Spencer Tipping\n' + 'Licensed under the terms of the MIT source code license\n' + 'http://github.com/spencertipping/caterwaul\n' ) } ,waul_repl=function() {;
 return(function() {var evaluator=function(s,_1,_2,cc) {;
 return(function() {try{return cc(null,instance(s, {$:$,caterwaul:$,require:require} ) ) }catch(e) {return cc(e,undefined) } } ) .call(this) } ,instance=$(options.configuration) ;
-return introduce() ,require( 'repl' ) .start( 'waul> ' ,undefined,evaluator) } ) .call(this) } ,waul_identity=function(file,m) {;
+return(introduce() ,require( 'repl' ) .start( 'waul> ' ,undefined,evaluator) ) } ) .call(this) } ,waul_identity=function(file,m) {;
 return waul_output(file,m._) } ,waul_transform=function(file,m,t) {;
 return(function() {var transformed_function= (function(it) {return it.replace($.gensym_rename_table(it) ) } ) .call(this, ($.late_bound_tree($(m._transform.as_escaped_string() ) (m._function) ,null,options) ) ) ;
 return waul_output(file,t.replace( {_name:m._name,_compiled:transformed_function} ) ) } ) .call(this) } ,waul_run=function(m) {;
