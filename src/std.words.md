@@ -92,7 +92,7 @@ For example:
 
 Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
 
-      rescue: $.reexpander('(function () {try {return (_expression)} catch (e) {return (_parameters)}}).call(this)'.qs),
+      rescue: $.reexpander('(function () {try {return _expression} catch (e) {return _parameters}}).call(this)'.qs),
 
 ## Side-effecting
 
@@ -104,9 +104,9 @@ bound the variable as _; version 1.0 changes this convention to bind the variabl
 
 Version 1.2 adds the word 'then', which is equivalent to 'se' but doesn't bind 'it'. This removes the overhead associated with creating a closure.
 
-      se:   $.reexpander('(function (it) {return (_parameters), it}).call(this, (_expression))'.qs),
-      re:   $.reexpander('(function (it) {return (_parameters)}).call(this, (_expression))'.qs),
-      then: $.reexpander('((_expression), (_parameters))'.qs),
+      se:   $.reexpander('(function (it) {return _parameters, it}).call(this, (_expression))'.qs),
+      re:   $.reexpander('(function (it) {return _parameters}).call(this, (_expression))'.qs),
+      then: $.reexpander('_expression, _parameters'.qs),
 
 ## Assignment
 
@@ -140,7 +140,7 @@ You can create local variables by using the where[] modifier. If you do this, th
     where[x = 10][alert(x)]
     alert(x), where[x = 10]
 
-      where: $.reexpander('(function () {var _parameters; return (_expression)}).call(this)'.qs),
+      where: $.reexpander('(function () {var _parameters; return _expression}).call(this)'.qs),
 
 ## Importation
 
@@ -162,7 +162,7 @@ However, the calling context is incomplete, as shown above. In particular, metho
 These impact whether an expression gets evaluated. x /when.y evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
 truthy. 'and' and 'or' are provided so that you can change the syntax of short-circuit && and ||.
 
-      when:   $.reexpander('((_parameters) && (_expression))'.qs),    and: $.reexpander('((_expression) && (_parameters))'.qs),
-      unless: $.reexpander('(! (_parameters) && (_expression))'.qs),  or:  $.reexpander('((_expression) || (_parameters))'.qs)},
+      when:   $.reexpander('_parameters && _expression'.qs),    and: $.reexpander('_expression && _parameters'.qs),
+      unless: $.reexpander('! _parameters && _expression'.qs),  or:  $.reexpander('_expression || _parameters'.qs)},
 
-    where [scope_template = '(function () {var _variables; return (_expression)}).call(this)'.qs]});
+    where [scope_template = '(function () {var _variables; return _expression}).call(this)'.qs]});
