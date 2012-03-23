@@ -630,6 +630,9 @@ break it down by the kind of operator that it is.
 Nodes might be flattened, so we can't assume any upper bound on the arity regardless of what kind of operator it is. Realistically you shouldn't hand flattened nodes over to the compile()
 function, but it isn't the end of the world if you do.
 
+Caterwaul 1.3 automatically parenthesizes low-precedence operators in the middle of a ternary node. This prevents the syntax errors that pop up if you say things like 'foo ? bar, bif :
+baz'. Even though this construct is unambiguous, most Javascript runtimes fail to accept it.
+
       serialize: function (xs, depth) {var l = this.length, d = this.data, semi = ';\n', d1 = depth - 1,
                                         push = function (x) {if (lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)]) xs.push(' ', x);
                                                              else                                                                           xs.push(x)};
@@ -652,10 +655,12 @@ function, but it isn't the end of the world if you do.
                                           else if (d === ';')                   return this[0].serialize(xs, d1), push(semi), this[1].serialize(xs, d1);
                                           else                                  return this[0].serialize(xs, d1), push(d), this[1].serialize(xs, d1);
 
-                                      default: if (has(parse_ternary, d))       return this[0].serialize(xs, d1), push(d), this[1].serialize(xs, d1), push(':'), this[2].serialize(xs, d1);
-                                          else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block() ?
-                                                                                  (push(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), push(semi), this[2].serialize(xs, d1)) :
-                                                                                  (push(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1));
+                                      default: if (has(parse_ternary, d))       return this[0].serialize(xs, d1), push(d), this[1].precedence() > this.precedence()
+                                                                                  ? (this[1].as('(').serialize(xs, d1), push(':'), this[2].serialize(xs, d1))
+                                                                                  : (this[1].        serialize(xs, d1), push(':'), this[2].serialize(xs, d1));
+                                          else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
+                                                                                  ? (push(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), push(semi), this[2].serialize(xs, d1))
+                                                                                  : (push(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1));
                                           else                                  return this.unflatten().serialize(xs, d1)}}};
 
 ## References
