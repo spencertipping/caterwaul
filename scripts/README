@@ -1,5 +1,0 @@
-Scripts useful for Caterwaul users.
-At present, this directory includes caterwaul-app, a Bash script that creates a
-blank application using Caterwaul. It takes care of the boilerplate of
-downloading a local copy of Caterwaul and creates a skeletal HTML page to
-include it.

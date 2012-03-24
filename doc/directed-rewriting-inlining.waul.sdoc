@@ -1,9 +1,0 @@
-Inlining consecutive rewrites.
-This is a problem inherited from Havoc. The idea is that it's worth detecting cases where the RHS of one rewrite is trivially equivalent to the LHS of another one, and to then fuse the two
-rewrites together. Specifically, if T1 -> E[T2] and T2 -> E[T3], then the first and second equations should be composed to replace the first one. Recursive cases can also be handled as long as
-they are known to be productive. For example:
-
-| map(_f, cons(_x, _xs)) = cons(_f(_x), map(_f, _xs))
-
-This is not technically a recursive rewrite because the abstract quantity _xs is not known to be of the form 'cons(_x, _y)'. As such, it won't cause the compiler to infinite-loop. In general,
-any rewriting that happens should be provably terminating. (I'm not necessarily willing to commit to this, but it's a good idea.)

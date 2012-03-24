@@ -1,3 +1,0 @@
-Experiments to determine the relative frequency of symbols. I'm using this to
-figure out whether entropy coding is a good strategy for computing syntax tree
-hash codes.

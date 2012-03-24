@@ -1,3 +1,0 @@
-Entropy.
-Syntax nodes have a strongly nonuniform distribution of values, and this distribution varies depending on the length. This means that it is possible to encode common occurrences of
-shallowly-nested syntax nodes easily.
