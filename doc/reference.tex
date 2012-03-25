@@ -68,6 +68,10 @@
 
     Put differently, caterwaul erases abstractions at compilation time by pre-expanding them. In this sense it encourages well-defined compile-time invariants.
 
+\chapter{Syntax}
+  Caterwaul 2 inherits a lot of syntactic conventions from both caterwaul 1.x and from Mulholland. In particular, it uses SDoc and hash comments, allows arbitrarily many operators, and
+  disregards whitespace. It is designed to enable you to use precedence instead of explicit grouping, though groups are also provided.
+
 \chapter{Notational abstraction}
   Caterwaul is an interpreted programming language whose programs generally return Javascript syntax trees. This means that semantic abstraction within a caterwaul program is erased by the
   time the Javascript is rendered; therefore, it corresponds to notational abstraction in the resulting output. The ability to introduce semantic abstraction into the resulting Javascript is

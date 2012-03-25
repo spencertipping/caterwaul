@@ -1881,6 +1881,7 @@ meta::section('main', <<'__');
   - tableofcontents
 
   - include section::introduction
+  - include section::syntax
   - include section::notational-abstraction
 - end
 
@@ -1910,6 +1911,12 @@ meta::section('notational-abstraction', <<'__');
 
   The main difference between these approaches is that caterwaul's output format is a statically-known subset of all supported operators, so the toplevel is implicitly quasiquoted. These
   heuristics are more difficult to implement in Lisp due to its more general monomorphic consing and mutable global symbol table.
+
+__
+meta::section('syntax', <<'__');
+- sc Syntax
+  Caterwaul 2 inherits a lot of syntactic conventions from both caterwaul 1.x and from Mulholland. In particular, it uses SDoc and hash comments, allows arbitrarily many operators, and
+  disregards whitespace. It is designed to enable you to use precedence instead of explicit grouping, though groups are also provided.
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
