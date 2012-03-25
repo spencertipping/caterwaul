@@ -1,0 +1,75 @@
+\documentclass{report}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm,pxfonts,listings,color}
+\usepackage[colorlinks]{hyperref}
+\definecolor{gray}{rgb}{0.6,0.6,0.6}
+
+\usepackage{caption}
+\DeclareCaptionFormat{listing}{\llap{\color{gray}#1\hspace{10pt}}\tt{}#3}
+\captionsetup[lstlisting]{format=listing, singlelinecheck=false, margin=0pt, font={bf}}
+
+\lstset{columns=fixed,basicstyle={\tt},numbers=left,firstnumber=auto,basewidth=0.5em,showstringspaces=false,numberstyle={\color{gray}\scriptsize}}
+
+\newcommand{\Ref}[2]{\hyperref[#2]{#1 \ref*{#2}}}
+
+\lstnewenvironment{asmcode}       {}{}
+\lstnewenvironment{cppcode}       {\lstset{language=c++}}{}
+\lstnewenvironment{javacode}      {\lstset{language=java}}{}
+\lstnewenvironment{javascriptcode}{}{}
+\lstnewenvironment{htmlcode}      {\lstset{language=html}}{}
+\lstnewenvironment{perlcode}      {\lstset{language=perl}}{}
+\lstnewenvironment{rubycode}      {\lstset{language=ruby}}{}
+
+\lstnewenvironment{resourcecode}{}{}
+
+\title{Caterwaul language reference}
+\author{Spencer Tipping}
+
+\begin{document}
+\maketitle{}
+\tableofcontents{}
+
+\chapter{Introduction}
+  Caterwaul is a strange project. It began as a proof of concept, the idea being that you could usefully macroexpand Javascript functions from inside a runtime environment. Since then it has
+  grown to include an offline precompiler, self-replication, and a bunch of other features that just barely work together.
+
+  Caterwaul 2.0 is a reboot. I'm taking everything I've learned from previous versions and am converting the project to something much more along the lines of CoffeeScript. In particular, my
+  goal is to address these major issues:
+
+\begin{enumerate}
+\item{Caterwaul-generated Javascript is unreadable and not idiomatic, which makes it impossible to debug caterwaul code.}
+\item{Caterwaul syntax is ad-hoc and has no compile-time semantic checks.}
+\item{The parser never managed to cover all edge cases on all browsers.}
+\item{The low-level syntax tree interface makes it too easy to produce syntax errors.}
+\item{Tree rewriting was optimized for ad-hoc online rewriting, which stopped making sense after {\tt defmacro} went away.}
+\end{enumerate}
+
+  The project hasn't lost any of the ugliness or pragmatism that it had before. If anything, it's only gotten worse. But hopefully in such a way that it's more useful.
+
+\section{Ergonomics and readability}
+    Just like before, caterwaul is about ergonomics at the potential expense of readability. The motivation behind this tradeoff is that on the aggregate, good developers will write more
+    readable code if it's easier to do so; but it's more important that the code exists than that it be readable.\footnote{I have no idea whether this assertion is true, but I think it is for
+    me so I'm running with it for now.} To this end, caterwaul 2:
+
+\begin{enumerate}
+\item{Inherits infix operator-precedence grouping from caterwaul 1.x.}
+\item{Bakes SDoc syntax into the language itself and provides hash-marker line comments.}
+\item{Allows for thin, Turing-complete notational abstraction, {\em preferring this to semantic abstraction}.}
+\end{enumerate}
+
+    This last point is worth discussing. A lot of FP languages make it very easy to introduce semantic abstraction into programs. This, in turn, produces layers of indirection. When
+    abstractions are well-defined, this adds value to the resulting code. But fairly often these abstractions are massaged into notation anyway and add complexity.\footnote{Consider the dark
+    voodoo behind ScalaTest, for instance.}
+
+    Caterwaul prefers notational abstraction to semantic abstraction. This furthers the goal of providing good ergonomics, but it also has a broader philosophical context. When writing
+    caterwaul 1.x code, I observed that it was not difficult to work at a low level of semantic abstraction but with better notation. For example, extensive use of the {\tt seq} macro made it
+    easy to perform complex data transformation without introducing extra structure into the program. This had two beneficial effects:~first, it minimized indirection, which eased debugging
+    and improved performance; and second, the resulting notation was more concise and usable than anything that could have been implemented using semantic abstraction.
+
+    Put differently, caterwaul erases abstractions at compilation time by pre-expanding them. In this sense it encourages well-defined compile-time invariants.
+
+\chapter{Notational abstraction}
+  Caterwaul is no longer contained within Javascript. This was a difficult decision for me because Javascript's syntactic constraints provided easy answers to a lot of design questions, but
+  the cost of imposing those limitations is too high. Instead, caterwaul is an entirely self-contained programming language which happens to provide a Javascript backend.
+
+\end{document}
