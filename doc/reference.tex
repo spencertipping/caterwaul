@@ -69,7 +69,28 @@
     Put differently, caterwaul erases abstractions at compilation time by pre-expanding them. In this sense it encourages well-defined compile-time invariants.
 
 \chapter{Notational abstraction}
-  Caterwaul is no longer contained within Javascript. This was a difficult decision for me because Javascript's syntactic constraints provided easy answers to a lot of design questions, but
-  the cost of imposing those limitations is too high. Instead, caterwaul is an entirely self-contained programming language which happens to provide a Javascript backend.
+  Caterwaul is an interpreted programming language whose programs generally return Javascript syntax trees. This means that semantic abstraction within a caterwaul program is erased by the
+  time the Javascript is rendered; therefore, it corresponds to notational abstraction in the resulting output. The ability to introduce semantic abstraction into the resulting Javascript is
+  also present.
+
+  Where possible, caterwaul's libraries make it simple to switch between semantic and notational abstraction. This is done by imposing scoped contexts on various subexpressions. The context
+  determines how trees are interpreted. This homoiconicity is also present in Common Lisp, though this language is more closed under quotation than Lisp's {\tt defmacro}. For example:
+
+\begin{verbatim}
+;;; Common Lisp: macro body is unquoted, so explicit quotation
+;;; is used to change context
+(defmacro foo (x)
+  `(1+ ,x))
+(foo 5)
+\end{verbatim}
+
+\begin{verbatim}
+# Caterwaul: both sides of the macro definition are equally
+# quoted, so macro definitions are maps instead of flat-maps
+foo 5 -wh [foo _x = _x + 1]
+\end{verbatim}
+
+  The main difference between these approaches is that caterwaul's output format is a statically-known subset of all supported operators, so the toplevel is implicitly quasiquoted. These
+  heuristics are more difficult to implement in Lisp due to its more general monomorphic consing and mutable global symbol table.
 
 \end{document}
