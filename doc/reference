@@ -116,17 +116,6 @@ sub meta::functor::editable {
       return associate($attribute, @new_value ? join(' ', @new_value) : join('', <STDIN>)) if $command eq '=' or $command eq 'import' or $options{default} eq 'import' and not defined $command;
       return retrieve($attribute)}}}
 __
-meta::meta('functor::html-templates', <<'__');
-my @html_elements = qw/html head title meta script style link body div/;    # Very incomplete list
-
-for my $e (@html_elements) {
-  meta::externalize "template::$e", "template::$e", sub {
-    my ($line, $block) = @_;
-    "<$e $line>\n$block\n</$e>";
-  };
-}
-
-__
 meta::meta('functor::tex-templates', <<'__');
 package tex;
 
@@ -646,8 +635,9 @@ __
 meta::function('mv', <<'__');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
-associate($to, retrieve($from));
+associate($to, retrieve($from), execute => 1);
 rm($from);
+
 __
 meta::function('name', <<'__');
 my $name = $0;
@@ -1449,7 +1439,7 @@ function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
 function::sdocp                          c3d738d982ba87418a298ff58478a85b
 meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
 meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
-parent::/home/spencertipping/bin/object  f27c395fbe39e7c8c523eab51073cd79
+parent::/home/spencertipping/bin/object  5e8c5be71d2d512cca8dfc1677f94466
 retriever::code-sdoc                     03b87ff8d1ecf7594db9ca0669fc69a1
 retriever::html-sdoc                     8ab7705d03276945b23a71677153233c
 retriever::markdown-sdoc                 67c34ba8223ec36a3ae018e411354db2
@@ -1488,7 +1478,7 @@ function::is                            41564c8f21b12ab80824ac825266d805
 function::load-state                    b6cf278a1f351f316fa6e070359b6081
 function::lock                          5d8db258704e6a8623fac796f62fac02
 function::ls                            01a23d51d5b529e03943bd57e33f92df
-function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::mv                            ccd000960db4cf627d9246c43d87ba4c
 function::name                          955ba2d1fe1d67cd78651a4042283b00
 function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
 function::perl                          9f9fd744f0ed225ad8fb3b79fa53dd9a
@@ -1591,9 +1581,9 @@ meta::template::quotations     f76a27311c8a9d09550dd669e98f9a7f
 meta::template::sections       25cb0a42bf1c2f403f8f9c2e1c5e4105
 meta::type::resource           c521d2de1dcd7f9f7ec4df3557572009
 meta::type::section            fb3b53eaebc1a2433c1763eccdb781c4
-parent::./sdoc                 2ecd8cb07dc216d9eeaaaff793c40318
-parent::preprocessor           75cf22ed4a7e9f565fd9b8ed2b18fe0c
-parent::vim-highlighters       b4e8304583e4f393c53efb58ca5f0ac2
+parent::./sdoc                 6c74033abed05f398572ce8aeb848f08
+parent::preprocessor           803d46480e579c764e7704149fecd7cc
+parent::vim-highlighters       67c827cbb7bffc6ecab4b6a09dcc93a3
 resource::header               165b42e25edb90043f5d3b544adee521
 resource::header-languages     96d12558e40d0df64ff3176b767f4f3b
 resource::header-listings      712557f5989b12ca325bdd2cd36020ef
@@ -1635,7 +1625,7 @@ function::is                            41564c8f21b12ab80824ac825266d805
 function::load-state                    b6cf278a1f351f316fa6e070359b6081
 function::lock                          5d8db258704e6a8623fac796f62fac02
 function::ls                            01a23d51d5b529e03943bd57e33f92df
-function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::mv                            ccd000960db4cf627d9246c43d87ba4c
 function::name                          955ba2d1fe1d67cd78651a4042283b00
 function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
 function::perl                          9f9fd744f0ed225ad8fb3b79fa53dd9a
@@ -1725,23 +1715,20 @@ retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
 __
 meta::parent('preprocessor', <<'__');
 function::preprocess           ab5526a02ff417d4c162357dc327e7c4
-meta::functor::html-templates  2771200f87e9cbfeecfb5f8a0f796f18
 meta::type::template           bc4b0c80b5efc716b19e99b832c22bf3
-parent::object                 f27c395fbe39e7c8c523eab51073cd79
+parent::object                 5e8c5be71d2d512cca8dfc1677f94466
 retriever::pp                  3b5f5c5d30c5a04f72056dedaacfe7b7
 template::comment              dfe273d2dad3d8159b847545e4e5c309
 template::eval                 1a0e2124a05056be4abc11803883c294
 template::failing_conditional  e3a4523110dd859e828f342185de7c62
 template::include              47b5552d609d97fe7f2522d5c1027014
 template::pinclude             c07ff79bf8d642cceaa9ef844bfcb189
-template::script-include       76be051ad116449ddebd10e7c3729afd
-template::style-include        8e5a06b70e1b00379765f319bf6c8066
 
 __
 meta::parent('vim-highlighters', <<'__');
 function::vim                cf9e37026f6cd1499a6dd258fbbcd060
 meta::type::vim_highlighter  27990fddb6d7bd383b55dbdfee0d148d
-parent::object               f27c395fbe39e7c8c523eab51073cd79
+parent::object               5e8c5be71d2d512cca8dfc1677f94466
 
 __
 meta::resource('header', <<'__');
@@ -1828,6 +1815,11 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
+meta::section('contexts', <<'__');
+- sc Contexts
+  {\em TODO: Figure out what a context is.}
+
+__
 meta::section('introduction', <<'__');
 - sc Introduction
   Caterwaul is a strange project. It began as a proof of concept, the idea being that you could usefully macroexpand Javascript functions from inside a runtime environment. Since then it has
@@ -1881,7 +1873,7 @@ meta::section('main', <<'__');
   - tableofcontents
 
   - include section::introduction
-  - include section::syntax
+  - include section::contexts
   - include section::notational-abstraction
 - end
 
@@ -1913,12 +1905,6 @@ meta::section('notational-abstraction', <<'__');
   heuristics are more difficult to implement in Lisp due to its more general monomorphic consing and mutable global symbol table.
 
 __
-meta::section('syntax', <<'__');
-- sc Syntax
-  Caterwaul 2 inherits a lot of syntactic conventions from both caterwaul 1.x and from Mulholland. In particular, it uses SDoc and hash comments, allows arbitrarily many operators, and
-  disregards whitespace. It is designed to enable you to use precedence instead of explicit grouping, though groups are also provided.
-
-__
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
 my $result = eval $_[0];
@@ -1945,20 +1931,6 @@ my ($commands) = @_;
 return '' if template::failing_conditional($commands);
 my $text = join "\n\n", map retrieve($_), split /\s+/, $commands;
 "\n\n$text\n\n";
-__
-meta::template('script-include', <<'__');
-my ($name) = @_;
-my $s      = 'script';
-my $script = retrieve($name);
-"<$s>\n$script\n</$s>";
-
-__
-meta::template('style-include', <<'__');
-my ($name) = @_;
-my $s      = 'style';
-my $style  = retrieve($name);
-"<$s>\n$style\n</$s>";
-
 __
 meta::vim_highlighter('cltex', <<'__');
 " Cleaner TeX
