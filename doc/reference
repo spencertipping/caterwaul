@@ -1817,7 +1817,7 @@ exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
 meta::section('contexts', <<'__');
 - sc Contexts
-  {\em TODO: Figure out what a context is.}
+  A context is an interpreter for caterwaul syntax trees.
 
 __
 meta::section('introduction', <<'__');
