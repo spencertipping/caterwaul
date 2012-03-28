@@ -12,6 +12,16 @@ caterwaul('js_all')(function () {
       continuation = continuation[0](continuation[1], continuation[2]);
     return continuation}),
 
+  bench('closure trampoline', 1000, function () {
+    var l       = numbers.length;
+    var sum_cps = function (context) {return context.i < l ? (f = sum_cps, context.total += numbers[context.i++]) : f = end};
+    var end     = function (context) {throw context.total};
+    var f       = sum_cps;
+    var context = {i: 0, total: 0};
+
+    try       {while (true) f(context)}
+    catch (e) {return e}}),
+
   false && bench('array exception trampoline', 1000, function () {               # Not running this one because it's so slow
     var l = numbers.length;
     var sum_cps = function (total, i) {if (i < l) throw [sum_cps, total + numbers[i], i + 1]; return total};
