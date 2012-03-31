@@ -90,7 +90,7 @@ will be implicitly enabled in the resulting waul script.
 
              waul_identity(file, m)     = file /-waul_output/ m._,
 
-             waul_transform(file, m, t) = file /-waul_output/ t.replace({_name: m._name, _compiled: transformed_function})
+             waul_transform(file, m, t) = file /-waul_output/ t.replace({_name: m._name, _compiled: transformed_function}).guarded()
                                   -where [transformed_function = $(m._transform.as_escaped_string())(m._function) / null /-$.late_bound_tree/ options
                                                             -re- it.replace(it /!$.gensym_rename_table)],
 

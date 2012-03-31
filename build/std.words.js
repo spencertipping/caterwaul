@@ -1,4 +1,4 @@
-caterwaul.module( 'std.words' , (function(qs1,qs2,qs3,qs4,qs5,qs6,qs7,qs8,qs9,qsa,qsb,qsc,qsd,qsf,qsg,qsh,qsi,qsj,qsk,qsl,qsm,qsn) {var result= (function($) { (function( ) {var scope_template=qs1;
+caterwaul.module( 'std.words' , (function(qs1,qs2,qs3,qs4,qs5,qs6,qs7,qs8,qs9,qsa,qsb,qsc,qsd,qsf,qsg,qsh,qsi,qsj,qsk,qsl,qsm,qsn) {var result= (function($) { (function() {var scope_template=qs1;
 return $.words=function(caterwaul_function) {;
 return($.merge(caterwaul_function.modifiers,$.words.modifiers) ,$.merge(caterwaul_function.parameterized_modifiers,$.words.parameterized_modifiers) ,caterwaul_function) } ,$.words.modifiers= {qs:function(match) {;
 return new $.expression_ref($.syntax_to_expression(match._expression) , 'qs' ) } ,qse:function(match) {;
