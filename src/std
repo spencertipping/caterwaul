@@ -1780,6 +1780,46 @@ caterwaul.module('std.grammar', 'js js_literals words', function ($) {
           expand          = rule_cc(rule, anon) /!$.alternatives -re [settings.descend ? $(it) : it]]});
 
 __
+meta::sdoc('waul::std.indent', <<'__');
+Code indentation and formatting | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Caterwaul's default serialization format is functional but looks horrible. This module adds an .indent() method to syntax trees that addresses some of the problems of the built-in
+implementation.
+
+caterwaul.module('std.indent', 'js_all', function ($) {
+  $ /~syntax_tree_methods/ capture [
+
+Formatting rules.
+Binary and keyword operators are always separated from their operands by one character of whitespace. Unary prefix and postfix symbolic operators, e.g. ++, --, etc, are adjoined directly to
+their operands. Failure cases like +++x won't happen because only lvalues can be prefix-incremented.
+
+Arrays, objects, and functions use some heuristics for formatting. Syntax trees have an 'indent_overhead()' method that estimates the amount of space they will take up. For small trees,
+definitions are written on a single line when possible. For example:
+
+| var x = {foo: 'bar'};         // one line because the object is 'small'
+  var y = {foo: 'bar',          // multiple lines because the object is not small
+           bif: 'baz',
+           bok: 'boo'};
+
+The same heuristics are used for functions, arrays, and argument lists as well. Large string literals and regular expressions are always written out verbatim, even if they extend past any
+reasonable right margin.
+
+    indent_overhead()                       = this._indent_overhead <deq> this.data.length + this /[x.indent_overhead()] /seq,
+    is_small(options)                       = this.indent_overhead() <= 40,
+    indent(options, indent, indent -oeq- 0) = this.has_grouped_block()  ? this[1].is_small(options) ? '#{this.data} #{this[0].indent(options)} #{this[1].indent(options)}'
+                                                                                                    : '#{this.data} #{this[0].indent(options)} {\n#{this[1].indent(options, indent + 2)}\n}'
+                                            : /^[,;:]$/.test(this.data) ? '#{this[0].indent(options)}#{this.data} #{this[1].indent(options)}'
+                                            : this.length === 2         ? '#{this[0].indent(options)}#{this.data} #{this[1].indent(options)}'
+                                            :
+
+    ],
+
+  where [ws_memo_table         = [],
+         ws(indentation_level) = ws_memo_table[indentation_level] -deq- n[indentation_level] *[' '] /seq /re [it.join('')]]});
+
+__
 meta::sdoc('waul::std.js', <<'__');
 Javascript-specific macros | Spencer Tipping
 Licensed under the terms of the MIT source code license
