@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # bitmasking: Is it faster to use boxed storage or a bitmask?
 
 caterwaul('js_all')(function () {

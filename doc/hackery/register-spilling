@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # register-spilling: How many locals need to be allocated before performance decreases?
 
 caterwaul('js_all')(function () {

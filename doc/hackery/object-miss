@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # object-miss: Is an object miss more expensive than a hit? (Probably so.)
 
 caterwaul('js_all')(function () {

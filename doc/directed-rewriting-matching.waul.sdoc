@@ -1,6 +1,0 @@
-Match optimization.
-The key to doing this right is assigning the right amount of entropy to each tree element. Fortunately, this is easily done. Caterwaul knows about < 32 operators, about 10 of which are used on
-a regular basis. [1] Constants are similarly biased, though they become less so as the codebase grows. Caterwaul's codebase has the property that about 10% of the constants comprise half of
-the density. If this skew is representative, then entropy coding of some sort should be very beneficial.
-
-| [1] See doc/syntax-profiling for the code that I used to conclude this.

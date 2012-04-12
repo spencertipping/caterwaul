@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # array-vs-pseudo-array: Are boxed arrays faster than pseudo-array access?
 
 caterwaul('js_all')(function () {

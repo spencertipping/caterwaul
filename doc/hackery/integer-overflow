@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # integer-overflow: How expensive is overflowing, and when can it be prevented?
 
 caterwaul('js_all')(function () {

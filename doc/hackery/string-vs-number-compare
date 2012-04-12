@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # string-vs-number-compare: How long do strings need to be before numeric comparisons are significantly faster?
 
 caterwaul('js_all')(function () {

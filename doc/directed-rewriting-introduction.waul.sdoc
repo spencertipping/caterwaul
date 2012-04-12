@@ -1,8 +1,0 @@
-Introduction.
-Previous versions of Caterwaul have used an ad-hoc macroexpansion process. Caterwaul 1.2 adds directed expansion, which is a library that generates fast macroexpanders based on destructuring
-binds. These binds work by using curried functions in the form of syntax trees. This allows you to define rewriting rules for subtrees and contextualize them in the process. For example:
-
-| seq(_xs *[_body]) = (function (_a) {for (var _i = 0, _l = _a.length, _ys = []; _i < _l; ++_i) _ys.push((_body)); return _ys}).call(this, (_xs))
-
-Here, seq() is a pattern-matching marker. Variables bound on the left via the underscore prefix are also bound on the right; unbound variables are replaced with gensyms. (This affects _a, _i,
-_l, and _ys.) Everything else is represented literally.

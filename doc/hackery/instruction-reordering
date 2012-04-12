@@ -1,4 +1,4 @@
-#!/usr/bin/env waul-1.2
+#!/usr/bin/env waul
 # instruction-reordering: Does V8 reorder instructions to break dependencies?
 
 caterwaul('js_all')(function () {
