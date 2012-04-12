@@ -1,2 +1,0 @@
-#!/bin/bash
-curl caterwauljs.org/build/caterwaul.{node,std}.js > caterwaul.node.std.js

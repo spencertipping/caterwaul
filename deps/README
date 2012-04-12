@@ -1,5 +1,0 @@
-Dependencies for Caterwaul. Starting with version 1.1.5, jQuery is
-included inside the self-modifying Perl file that is the index page. This makes
-that page self-contained so that you can view it offline.
-
-I'm using jQuery 1.5 because it's smaller than the latest.

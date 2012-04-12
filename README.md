@@ -1,133 +1,124 @@
-# Caterwaul
+# Self-modifying Perl objects
 
-Caterwaul is two different things. First, and most importantly, it is a powerful low-level Javascript code manipulation library with a Javascript parser, AST, in-process compiler, and
-replication. Second, it is a programming language implementation that uses this library to transform your code in various arcane ways that I happen to find useful.
+Like the title suggests, each Perl script in this directory modifies itself by overwriting its own contents when it is executed. The mechanism for doing this is [described in detail
+here](http://github.com/spencertipping/writing-self-modifying-perl). While this probably sounds like some useless academic exercise, I now use these scripts when writing new projects in Perl
+and in other languages.
 
-The whole project is MIT-licensed, and in the unlikely event that you want to use it you are free to [email me](mailto:spencer@spencertipping.com) with any questions/issues.
+Each script here is MIT-licensed as usual. The only potential caveat is that they link to the GNU Readline Perl module, which may mean that the scripts themselves need to be GPL-licensed. In
+either case, the contents of the scripts can be licensed independently of the scripts themselves.
 
-What follows is a ten-minute introduction to caterwaul's core concepts. It covers about 5% of what caterwaul does.
+## Overview
 
-## Caterwaul as a library
+Each script is fully self-contained and maintains a table of `name -> value` mappings. Each `name` exists inside a namespace; this is written as `namespace::name`. The namespace determines
+how the attribute is interpreted. So, for example, we can ask `./object` to enumerate everything in the `data::` namespace like this:
 
-Caterwaul is implemented in pure Javascript, so you can use it to live-compile your code in a browser, or you can use the `waul` precompiler to compile your code up-front. You can see the
-live compiler in action by going to [the caterwaul website](http://caterwauljs.org). This site embeds a caterwaul compiler configured to use the standard macro library; this causes it to
-compile what I refer to as the caterwaul programming language. The website documents this language in some detail, as does [Caterwaul by
-Example](http://caterwauljs.org/doc/caterwaul-by-example.pdf) - though some of the examples will fail since Caterwaul 1.2.3, which introduces [a breaking
-change](https://github.com/spencertipping/caterwaul/commit/05a5e317336e751cbf90a7f574070d3eca4f69a4) to the `seq` library.
+    $ ./object ls ^data::
+    data::author
+    data::default-action
+    data::license
+    data::permanent-identity
+    $
 
-If you're interested in using caterwaul as a compiler library, I recommend reading the [caterwaul reference manual](http://caterwauljs.org/doc/caterwaul-reference-manual.pdf), which covers
-its core API in significantly more detail than this readme. You can also read through the caterwaul source code, which contains copious documentation, some of which is up to date.
+By convention, namespaces are defined by attributes prefixed with `meta::type::`. So, for instance:
 
-### Parsing things
+    $ ./object ls ^meta::type::
+    meta::type::alias
+    meta::type::bootstrap
+    meta::type::cache
+    meta::type::data
+    meta::type::function
+    meta::type::hook
+    meta::type::inc
+    meta::type::indicator
+    meta::type::internal_function
+    meta::type::library
+    meta::type::message_color
+    meta::type::meta
+    meta::type::parent
+    meta::type::retriever
+    meta::type::state
+    $
 
-  Caterwaul's Javascript parser takes anything with a valid `toString()` method as input, including Javascript functions.
+All attribute values are strings, but the namespace is informed when an attribute is defined. This allows scripts to reinterpret the string values in other ways. For example, the
+`function::` namespace evals its values into Perl functions. These functions can access the attribute table using the `%data` hash, or preferably by using `associate()` and `retrieve()`:
 
-    var tree = caterwaul.parse('3 + 4');
-    tree.toString()           // '3 + 4'
-    tree.data                 // '+'
-    tree.length               // 2
-    tree[0].data              // '3'
-    tree[1].data              // '4'
+    $ ./object cat function::cat
+    join "\n", retrieve(@_);
+    $ ./object cat internal_function::retrieve
+    my @results = map defined $data{$_} ? $data{$_} : retrieve_with_hooks($_), @_;
+    wantarray ? @results : $results[0];
+    $
 
-### Detecting patterns
+## Getting started
 
-If you're serious about this stuff, I recommend writing this code in the caterwaul programming language. It supports a lot of advanced features that make syntax trees much easier to work
-with; in particular, preparsed quoted constructs (similar to the ' operator in Lisp). These will give you a significant performance advantage and better notation.
+I find these scripts easy to use, but that's probably because I wrote them. I suspect anyone else will find them to be a frustrating nightmare (let me know if you find this to be the case
+and I'll see what I can do to fix the problem).
 
-    var pattern = caterwaul.parse('_x + _y');
-    var match   = pattern.match(tree);
-    match._x.data             // '3'
-    match._y.data             // '4'
-    var template = caterwaul.parse('f(_x, _y)');
-    var new_tree = template.replace(match);
-    new_tree.toString()       // 'f(3, 4)'
+First, you'll need the GNU readline library for Perl. On Arch Linux this is a separate package; I think you can install this either using CPAN or the system's package manager. You don't
+absolutely need readline, but it enables tab-completion and makes for a much better shell experience. Once you've got that, make sure you've set your `$EDITOR` or `$VISUAL` environment
+variable appropriately:
 
-### Compiling things
+    $ echo $EDITOR
+    /usr/bin/vim        # /usr/bin/emacs will also work, but is an inappropriate value ;)
+    $
 
-Caterwaul's compiler does a lot, but the basic case works like `eval`:
+At this point you should be all set to create an object. The easiest way to do this is to tell `object` that you want a child of it. This causes your child to stay up-to-date with changes
+you make to `object` later on. Here's how to do that:
 
-    var f = function (x, y) {return x * y};
-    caterwaul.compile(new_tree)       // 12
+    $ ./object child my-object
 
-You can also bind variables from the compiling environment:
+If you run `my-object` you'll enter its shell; at this point you can create and modify its attribute table. Most attributes are inherited from `object`, so it will warn you before you modify
+them. This is a good thing; the logic that overwrites the file in-place is implemented as a series of `function::` and `internal_function::` attributes. If you changed these you could end up
+with a script that obliterated itself. I know this because I've done it a few times.
 
-    var new_f = function (x, y) {return x + y};
-    caterwaul.compile(new_tree, {f: new_f})   // 7
+The `data::` namespace lets you bind data that won't be inherited by child scripts and that won't be evaluated by Perl. This is a good place to stash script-specific data.
 
-You can only compile things that return values (technically, things which are expressions; the litmus test is whether you could legally wrap it in parentheses), so stuff like `var x = 10`
-won't work. This is different from Javascript's `eval` function. If you want to execute imperative code, you should wrap it in a function:
+    $ ./my-object
+    > create data::foo          # opens an editor; this is the value of data::foo
+    > cat data::foo             # prints whatever you put into the editor
+    > cp data::foo data::bar    # sets data::bar to data::foo
+    > rm data::foo              # nukes data::foo
+    > ls data::
+    data::author
+    data::bar
+    data::default-action
+    data::license
+    > exit                      # saves object state
+    $
 
-    var function_wrapper = caterwaul.parse('(function() {_body})');
-    var code = caterwaul.parse('if (x) {console.log(x)}');
-    var new_function = caterwaul.compile(function_wrapper.replace({_body: code}));
-    new_function();
+You can find out what is unique to a given script by using `ls -u`:
 
-## Caterwaul as a programming language
+    $ ./my-object
+    > ls -u
+    cache::parent-identification
+    data::author
+    data::bar
+    data::default-action
+    data::license
+    parent::./object
+    >
 
-I wrote a set of macros that use the above API to modify Javascript code; this macro set has been refined over the past year to become a programming language that I find useful. You can
-learn this language on the caterwaul website, which goes through it by example and provides an interactive shell so you can see what the compilation process looks like.
+Everything in `data::` is considered unique because it won't be updated if it changes in the parent. It was inherited once when the original script (in this case `object`) copied itself, but
+it isn't technically inherited. You can pull updates from all parents (Perl scripts use multiple-inheritance) using the `update` function:
 
-### Using caterwaul this way
+    > update
+    my-object(info) updating from ./object
+    [a whole bunch of junk]
+    >
 
-  There are two ways to use caterwaul as a programming language. You can compile code from inside another Javascript process, which works because all caterwaul code is syntactically valid
-  Javascript code as well (note that the following example will work only if you've loaded `caterwaul.std.js` from the `build/` directory):
+You can also add new parents:
 
-    var compiler = caterwaul(':all');         // :all means 'every macro you know about'
-    var compiled = compiler(function () {
-      console.log(x) -where [x = 10];
-    });
-    compiled();               // logs 10
+    > update-from some-other-perl-object
+    my-object(info) updating from some-other-perl-object
+    >
 
-The other way to use the programming language is by using the `waul` precompiler. This compiles your code to straight Javascript, eliminating the runtime overhead imposed by caterwaul's
-parser, macroexpander, and compiler. Waul files typically end in `.waul` or `.waul.sdoc` (if you're using [SDoc](http://github.com/spencertipping/sdoc), which waul will transparently
-parse) and contain code like this:
+This creates a new entry in the `parent::` namespace and will cause future `update` operations to inherit changes to the given script.
 
-    caterwaul(':all')(function () {
-      n[10] *console.log -seq;
-      console.log('done #{message}')
-        -where [message = 'iterating through numbers'];
-    })();
+## Data integrity and troubleshooting
 
-You can compile this by running `waul file.waul`, which will generate `file.js`. `file.js` may contain references to the `caterwaul` global if you use certain macros, but there will be no
-compilation overhead.
+These scripts are fairly resilient to breaking changes. For instance, if you write something that prevents a script from functioning correctly, it will refuse to overwrite itself and will
+instead save a temporary file so that you can figure out what went wrong. A Perl object overwrites itself only when the new copy can hash its contents correctly. Since implementing these
+checks, I have not lost any data doing normal things with these scripts.
 
-## Caterwaul as a self-replicating monstrosity
-
-This is the coolest part of caterwaul in my opinion. Both `caterwaul` as a Javascript object and `waul` can give you string expressions that reproduce them. This is very useful for library
-bundling; for example:
-
-    var r = caterwaul.replicator();
-    var code = r.toString();
-
-If you do this, someone else can `eval` 'code' and they will end up with a global called `caterwaul` that is configured exactly as your `caterwaul` is configured. The only requirement is
-that configurations be declared as modules, which is done like this:
-
-    // caterwaul.module(name, [compiler_configuration], function)
-    caterwaul.module('my-configuration', ':all', function ($) {
-      // $ is the global caterwaul object
-      $.foo = 'bar';
-    });
-
-The output of `replicator` is a function that recreates all modules by re-running their initializers. Note that `replicator` rewrites the module functions into their post-compilation
-equivalents; in other words, the body of each function has already been compiled into normal Javascript. This reduces total compilation overhead.
-
-### Waul replication
-
-  Suppose you write a custom caterwaul module and want a new version of `waul` that contains it. You can ask `waul` to replicate itself with an extension like this:
-
-    $ ./waul -r -e extension.waul > new-waul
-    $ chmod u+x new-waul
-    $ ./new-waul my-file.waul
-
-This is especially useful for setting up shebang lines for scripts that require custom waul extensions:
-
-    #!./new-waul
-    caterwaul(':all')(function () {
-      // custom code
-    })();
-
-The `waul` in caterwaul's root directory is preloaded with `build/caterwaul.std.js` and `build/caterwaul.ui.js`. As you might guess, `waul` wasn't written specially to contain these;
-rather, it was generated by `waul-core` (which doesn't have any libraries built-in) by this process:
-
-    $ ./waul-core --replicate -e build/caterwaul.std.min.js -e build/caterwaul.ui.min.js > waul
-    $ chmod 0700 waul
+That being said, your data is probably unsafe until you understand how Perl objects work. I highly recommend reading [Writing Self-Modifying
+Perl](http://github.com/spencertipping/writing-self-modifying-perl) for this purpose.
