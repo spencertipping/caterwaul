@@ -108,6 +108,20 @@ caterwaul.module('std.js', 'js js_literals', function ($) {
 
                                                               return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
 
+  # Tuple binding.
+#   Tuples can be created just like functions but using *= instead of =. The right-hand side is an expression that produces a prototype. This is useful for defining container classes with a few
+#   minimal methods without doing all of the setup.
+
+    var tuple_template    = '_f = (function () {var _g = _ctor; _g.prototype = _prototype; return _g}).call(this)'.qs,
+        tuple_constructor = 'function (_formals) {_assignments}'.qs,
+        tuple_assignment  = 'this._name = _name'.qs,
+        tuple_destructure = $.rereplacer('_f(_xs) *= _y'.qs,
+                                         function (match) {for (var formals = match._xs.flatten(','), assignments = [], i = 0, l = formals.length; i < l; ++i)
+                                                             assignments.push(tuple_assignment.replace({_name: formals[i]}));
+                                                           return tuple_template.replace({_f: match._f,  _g: $.gensym('tuple_ctor'),
+                                                                                       _ctor: tuple_constructor.replace({_formals: formals, _assignments: assignments}),
+                                                                                  _prototype: match._y})});
+
   # Infix function application.
 #   Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid grouping constructs. x /y /... /-f/z becomes f(x, y, ..., z). The same goes for vertical bar syntax; that is, x
 #   |y |... |-f| z also becomes f(x, y, ..., z). This macro respects associativity, so you can do this:
@@ -223,7 +237,7 @@ caterwaul.module('std.js', 'js js_literals', function ($) {
 #   function (which will be called lots of times).
 
     var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
-                                            node.length && (modifier.call(this, node) || function_destructure.call(this, node) ||
+                                            node.length && (modifier.call(this, node) || function_destructure.call(this, node) || tuple_destructure.call(this, node) ||
                                                             infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
 
         result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) : $(each_node);
