@@ -3,25 +3,61 @@ Licensed under the terms of the MIT source code license
 
 # Introduction
 
-Caterwaul 1.4 is a self-hosting reimplementation of the Caterwaul compiler and standard library. It contains a number of improvements over previous versions:
+Caterwaul 1.4 is a self-hosting reimplementation of the caterwaul compiler and standard library. It contains a number of improvements over previous versions:
 
     1. The parser is written using regular expressions, which should provide a significant performance improvement on V8.
     2. The parser reads comments and attaches them to nearby syntax nodes.
-    3. Tree serialization produces human-readable output.
-    4. The macroexpander is now contextualized rather than implicitly universal.
-    5. Syntax trees use indexed data elements to accelerate comparisons.
-    6. Syntax tree matching is highly optimized.
+    3. The parser no longer parses Javascript statement-level constructs.
+    4. Tree serialization produces human-readable output.
+    5. The macroexpander is now contextualized rather than implicitly universal.
+    6. Syntax trees use indexed data elements to accelerate comparisons.
+    7. Syntax tree matching is highly optimized.
 
 The standard library is mostly the same, but it has some subtle semantic differences. The largest one is that -seq is now allowed to fuse loops; this may change the way certain comprehensions
 behave in pathological cases.
 
+## Interoperability with Javascript
+
+As before, caterwaul interoperates with Javascript by occupying a subset of Javascript's grammar. However, this version of caterwaul requires you to use only the caterwaul-supported subset;
+it does not parse statement-level constructs. The only statement-level construct recognized is 'return', which is required if you want to use caterwaul in embedded mode:
+
+    caterwaul(':all')(function () {
+      return x, where [x = 10]});
+
+Any function you transform inline must contain a 'return' statement with a value and no semicolon. This means that caterwaul will not work in online mode on Firefox and other
+SpiderMonkey-based runtimes, since these runtimes normalize function source.
+
     caterwaul(':all')(function () {
 
-# Syntax trees
+# Javascript backend
+
+Caterwaul is primarily a Javascript program, so the Javascript backend is integrated into the core. As of 1.4, caterwaul generates human-readable code with comments. This is useful for
+debugging and for using caterwaul to contribute to a Javascript codebase. The backend is written to generate code that is as performant and idiomatic as possible.
+
+# Parse trees
 
 Syntax trees fall into two categories. One is the 'operator' category, which is used for any syntax tree with children. Operator trees contain a numeric 'data' attribute that indexes into a
-table of predefined operators. This table is parser-specific and constructed from the operator table.
+table of predefined operators. The other category is 'identifier' trees, which have no children and have arbitrary string contents.
 
-      console.log('hello world'),
+Tree classes are parser-specific and close over the operator table. You probably shouldn't mix trees from different parsers, though it will most likely work for basic use cases.
 
-      where [$() = $.init.apply(this, arguments)]})();
+## Linking
+
+Trees are singly-linked (parent->child). Parents link to children using named methods; these methods are:
+
+    lhs()  <- for binary operators, returns the left-hand operand; for ternaries, returns the 'then' case
+    rhs()  <- for binary operators, returns the right-hand operand; for ternaries, returns the 'else' case
+    v()    <- for unary operators, returns the operand
+    cond() <- for ternary operators, returns the conditional expression
+    name() <- for identifiers, the name of the identifier
+
+## Hinting
+
+Caterwaul syntax trees contain two kinds of hints. The first is the line number, useful for tracing errors back to their source. The second is a list of notes that will be compiled as
+comments. This list is initially populated based on comments placed near the node. So, for example:
+
+    foo + bar   // sum these two things
+
+Here, '+' is annotated with the note 'sum these two things'. This note follows the '+' node through various code-generation phases and may appear as a comment in the final output code.
+
+    where [$() = $.init.apply(this, arguments)]})();
