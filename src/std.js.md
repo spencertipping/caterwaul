@@ -115,9 +115,9 @@ intending it to be used as a side-effect. (Doing that would just put the value i
 ## Tuple binding
 
 Tuples can be created just like functions but using *= instead of =. The right-hand side is an expression that produces a prototype. This is useful for defining container classes with a few
-minimal methods without doing all of the setup.
+minimal methods without doing all of the setup. Note that the prototype you specify will be referenced, not copied (!) and that its .constructor property will be set to the function.
 
-      var tuple_template    = '_f = (function () {var _g = _ctor; _g.prototype = _prototype; return _g}).call(this)'.qs,
+      var tuple_template    = '_f = (function () {var _g = _ctor; _g.prototype = _prototype; _g.prototype.constructor = _g; return _g}).call(this)'.qs,
           tuple_constructor = 'function (_formals) {_assignments}'.qs,
           tuple_assignment  = 'this._name = _name'.qs,
           tuple_destructure = $.rereplacer('_f(_xs) *= _y'.qs,
