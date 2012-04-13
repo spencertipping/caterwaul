@@ -5,12 +5,11 @@ Licensed under the terms of the MIT source code license
 
 Caterwaul 1.4 is a self-hosting reimplementation of the caterwaul compiler and standard library. It contains a number of improvements over previous versions:
 
-    1. The parser is written using regular expressions, which should provide a significant performance improvement on V8.
-    2. The parser reads comments and attaches them to nearby syntax nodes.
-    3. Tree serialization produces human-readable output.
-    4. The macroexpander is now contextualized rather than implicitly universal.
-    5. Syntax trees use indexed data elements to accelerate comparisons.
-    6. Syntax tree matching is highly optimized.
+    1. The parser reads comments and attaches them to nearby syntax nodes.
+    2. Tree serialization produces human-readable output.
+    3. The macroexpander is now contextualized rather than implicitly universal.
+    4. Syntax trees use indexed data elements to accelerate comparisons.
+    5. Syntax tree matching is highly optimized.
 
 The standard library is mostly the same, but it has some subtle semantic differences. The largest one is that -seq is now allowed to fuse loops; this may change the way certain comprehensions
 behave in pathological cases.
@@ -36,8 +35,7 @@ for debugging and output annotation. For example, the resulting code could read 
 
     var f = function (x) {return x + 1};  // Compiled from f(x) = x + 1 on line 485, column 8
 
-To get this output, you would put 'Compiled from ..., column 8' as a hint on the '=' node. If you put it on the 'var' node the comment would be rendered above; this is more useful for
-describing a group of variable definitions at once.
+To get this output, you would put 'Compiled from ..., column 8' as a hint on the '=' or 'var' node. Either will work; if 'var' has no hints, it will inherit its hint from the '='.
 
 ## Logical groups
 
@@ -66,11 +64,30 @@ Tree classes are parser-specific and close over the operator table. You probably
 
 Trees are singly-linked (parent->child). Parents link to children using named methods; these methods are:
 
-    lhs()  <- for binary operators, returns the left-hand operand; for ternaries, returns the 'then' case
-    rhs()  <- for binary operators, returns the right-hand operand; for ternaries, returns the 'else' case
-    v()    <- for unary operators, returns the operand
+    lhs()  <- for binary operators, returns the left-hand operand; for ternaries, returns the 'then' case; for right-unary, returns the operand
+    rhs()  <- for binary operators, returns the right-hand operand; for ternaries, returns the 'else' case; for left-unary, returns the operand
     cond() <- for ternary operators, returns the conditional expression
-    name() <- for identifiers, the name of the identifier
+    name() <- for named functions, returns the name as an identifier node
+
+Statement block-mode constructs use 'cond' to mean 'the thing in parentheses':
+
+    for (cond) {lhs}       if (cond) {lhs} [else {rhs}]
+    while (cond) {lhs}     do {lhs} while (cond)
+    try {lhs} rhs          catch (cond) lhs [finally {rhs}]
+    with (cond) {lhs}      switch (cond) {lhs}
+    function (cond) {lhs}  function name (cond) {lhs}
+    return [cond]          var cond             <- important!
+    break [cond]           continue [cond]
+    throw [cond]           case cond
+
+This layout has the desirable property that 'lhs' is always interpreted in statement mode, and 'cond' is usually interpreted in expression mode. The only exception is 'for', which allows for
+two different interpretations of its conditional structure:
+
+    for (init; cond; increment) {body}
+    for (x in y) {body}
+
+Return, throw, break, continue, var, and case all use 'cond' instead of 'lhs' because their argument is not in the same context. For instance, 'return {foo: bar}' causes {foo: bar} to be
+interpreted as an expression, not a statement. Similarly, 'break foo' causes 'foo' to be interpreted as a label, not a statement.
 
 ## Hinting
 
@@ -79,6 +96,11 @@ comments. This list is initially populated based on comments placed near the nod
 
     foo + bar   // sum these two things
 
-Here, '+' is annotated with the note 'sum these two things'. This note follows the '+' node through various code-generation phases and may appear as a comment in the final output code.
+Here, '+' is annotated with the note 'sum these two things'. This note follows the '+' node through various code-generation phases and may appear as a comment in the final output code. Hints
+are accessible via the .hint() method:
+
+    node.hint('sum these two things')
+
+Generally, the outermost hinted operator will determine the annotation for a given line. Only one annotation will be shown per line.
 
     where [$() = $.init.apply(this, arguments)]})();
