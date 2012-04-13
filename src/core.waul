@@ -1,14 +1,15 @@
-# Caterwaul core | Spencer Tipping
+# Caterwaul JS | Spencer Tipping
 # Licensed under the terms of the MIT source code license
 
 # Introduction.
 # Caterwaul 1.4 is a self-hosting reimplementation of the caterwaul compiler and standard library. It contains a number of improvements over previous versions:
 
 # | 1. The parser reads comments and attaches them to nearby syntax nodes.
-#   2. Tree serialization produces human-readable output.
-#   3. The macroexpander is now contextualized rather than implicitly universal.
-#   4. Syntax trees use indexed data elements to accelerate comparisons.
-#   5. Syntax tree matching is highly optimized.
+#   2. The parser annotates each node with a line/column.
+#   3. Tree serialization produces human-readable output.
+#   4. The macroexpander is now contextualized rather than implicitly universal.
+#   5. Syntax trees use prototypes to implement polymorphic consing, accelerating comparisons.
+#   6. Syntax tree matching is highly optimized.
 
 # The standard library is mostly the same, but it has some subtle semantic differences. The largest one is that -seq is now allowed to fuse loops; this may change the way certain comprehensions
 # behave in pathological cases.
@@ -16,12 +17,56 @@
   # Interoperability with Javascript.
 #   As before, caterwaul interoperates with Javascript by occupying a superset of Javascript's grammar:
 
-  # | caterwaul(':all')(function () {return x, where [x = 10]});
+  # | caterwaul.waul()(function () {return x, where [x = 10]});
 
   # Unlike before, caterwaul 1.4 allows you to define your own operators. The standard library does this to provide ||=, &&=, ::, :::, ->, =>, <-, etc. These won't work when using caterwaul from
 #   inside Javascript; to use these you'll need to use the waul compiler.
 
-caterwaul(':all')(function () {
+caterwaul.offline(':all', function () {
+
+# Instantiation.
+# Caterwaul 1.4 is much more extensible than previous versions. It allows you to change the lex and parse tables, which lets you define custom operators and block-level constructs. The tradeoff
+# is that the 'caterwaul' global is now a compiler-generator, not a compiler itself. A vanilla Javascript compiler is provided as 'caterwaul.js'; so, for instance:
+
+# | tree = caterwaul.js.parse('foo + bar')        <- here, foo + bar is parsed as Javascript
+#   caterwaul.js.compile(tree)                    <- 'foo + bar' is compiled as Javascript; this does not involve any macroexpansion
+#   caterwaul.js('foo + bar')                     <- parse, then compile
+
+# A caterwaul language compiler can be generated using the .waul() method:
+
+# | waul = caterwaul.waul({options})
+#   tree = waul.parse('foo :: bar')
+#   waul.compile(tree)                            <- compile() will macroexpand the tree automatically before passing it to caterwaul.js.compile()
+
+# Syntax trees.
+# Caterwaul 1.4 uses a completely different strategy for managing syntax trees. Rather than being loosely-structured variadic nodes, syntax trees are now organized into two variants. The first
+# is a 'cons', which encodes its identity in its prototype. The second is an 'atom', which contains a string identifier.
+
+# Unlike previous versions of caterwaul, parsing is now executed by syntax trees. This reduces efficiency but provides a much richer interface for defining languages. Parsers are defined using
+# annotated regular expressions, discussed below.
+
+  $.syntax(forms) = ctor_for(forms)
+  -where [
+
+  # Defining a syntax structure.
+#   Caterwaul uses a fairly canonical grammar description structure to define parsers. This provides uniform parsing and serialization, which is useful for preserving structure. For example,
+#   here are some annotated regexp definitions:
+
+  # | /foo/                                                                                       <- literally, the string 'foo'
+#     /(id:foo)/                                                                                  <- the string 'foo' stored as the accessor 'id()' on the resulting cons
+#     /if @ws \((cond:@expression)\) @ws (lhs:@statement) @ws (else @ws (rhs:@statement))?/       <- the actual definition of an 'if' construct
+#     /\{(lhs:@statements)\}|(lhs:@statement);(rhs:@statements)|(lhs:@statement)/                 <- the pseudo-definition of statements
+
+  # The constructs supported are:
+
+  # | 1. Literal matching: /foo/
+#     2. Binding: (x:y)
+#     3. Recursive descent: @x
+#     4. Alternation: x|y
+#     5. Optional matching: x?
+
+  # Repetition is supported only for constant terms; it isn't supported for things like recursive descent. The reason for this has to do with binding semantics and serialization; I didn't want
+#   to spend too much time thinking about consing up array bindings, for instance. Also, backreferences are not supported. Bindings that do not get executed are set to null.
 
 # Javascript backend.
 # Caterwaul is primarily a Javascript program, so the Javascript backend is integrated into the core. As of 1.4, caterwaul generates human-readable code with comments. This is useful for
@@ -96,6 +141,12 @@ caterwaul(':all')(function () {
 
   # Generally, the outermost hinted operator will determine the annotation for a given line. Only one annotation will be shown per line.
 
-  where [$() = $.init.apply(this, arguments)]})();
+  where [$()            = $.init.apply(this, arguments),
+         original_$     = typeof caterwaul === 'undefined' ? void 0 : caterwaul,
+
+         generate_key() = n[22] *['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_'.charAt(Math.random() * 64 >>> 0)] -seq -re- it.join(''),
+         unique         = generate_key(),
+
+         gensym         = "[_ || '', ++c /~toString/ 36, unique] /~join/ '_'".qf -where [c = 0],  is_gensym = "_.substr(_.length - 22) === unique".qf]});
 
 # Generated by SDoc 
