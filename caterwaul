@@ -4433,6 +4433,7 @@ syn region    jsBraceGroup              matchgroup=jsBrace   start=/{/  end=/}/ 
 syn region    jsTernary                 matchgroup=jsTernaryOperator start=/?/ end=/:/ contains=TOP,jsColonLHS
 syn match     jsOperator                /[-+*^%&\|!~;=><,]\{1,4\}/
 syn match     jsDot                     /\./
+syn match     jsWildcard                /_\k\+/
 
 syn keyword   jsReservedToplevel        if else switch while for do break continue return with case default try catch finally throw delete void
 syn keyword   jsOperator                in instanceof typeof new
@@ -4581,7 +4582,7 @@ hi def link jsModifierSuffix            Special
 hi def link jsBindingMacro              Special
 hi def link jsFunctionMacro             Special
 hi def link jsOtherMacro                Special
-hi def link jsQuotationMacro            Keyword
+hi def link jsQuotationMacro            Special
 
 hi def link jsFunctionGroup             Identifier
 
@@ -4635,6 +4636,8 @@ hi def link jsBuiltinType               Type
 hi def link jsBuiltinLiteral            Special
 hi def link jsBuiltinValue              Special
 hi def link jsPrototype                 Special
+
+hi def link jsWildcard                  Identifier
 
 let b:current_syntax = "caterwaul"
 if main_syntax == 'caterwaul'
