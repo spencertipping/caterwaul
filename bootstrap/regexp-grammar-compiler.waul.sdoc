@@ -34,11 +34,25 @@ Inlining is performed for rules marked with the 'i' modifier: statement: /if | f
 no immediate constant terms. The grammar compiler will generate invalid code if you use anything else.
 
   $.regexp_grammar(rules) = rules /pairs *!visit -seq -re- classes
-                    -where [parsed_rules           = {},
-                            classes                = {},
+                    -where [parsed_rules                 = {},
+                            classes                      = {},
 
-                            visit(pair)            = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]]),
+                            visit(pair)                  = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]]),
 
-                            parser_for(r)          = r.i() ? alternative_parser(r /~flatten/ '|') : sequential_parser(r /~flatten/ ','),
-                            alternative_parser(rs) = '_r, given[s, i]'.qse /~replace/ {_r: rs *['_f(s, i)'.qs /~replace/ {_f: x}] /[new $.syntax('||')][x0 /~push/ x] -seq -re- it.unflatten()},
-                            sequential_parser(rs)  = '']});
+                            flatten(t, d)                = t.data === d && t.length >= 2 ? [t[0]] /~concat/ flatten(t[1], d) : [t],
+
+                            parser_for(r)                = r.i() ? alternative_parser(r /-flatten/ '|') : sequential_parser(r /-flatten/ ','),
+                            alternative_parser(rs)       = '_r, given.s'.qse /~replace/ {_r: rs /['false'.qs]['_x0 || _x(s)'.qs /~replace/ {_x0: x0, _x: x.data}] -seq},
+                            sequential_parser(rs)        = 'given.s in r -where [r = {cons: {}}, _definitions]'.qse
+                                                           /~replace/ {_definitions: rs *[matcher_for(x, xi)] /[new $.syntax(',')][x0 /~push/ x] -seq -re- it.unflatten()},
+
+                            matcher_for(t, i)            = matching_stage_for(t, 's#{i}', i ? 's#{i - 1}' : 's'),
+                            matching_stage_for(t, s, sp) = '_s = r && _sp && _m'.qs /~replace/ {_sp: sp, _s: s, _m: matching_expression(t, sp)},
+                            matching_expression(t, sp)   = t /!is_substep  -re [it ? 'r = (r.cons._name = _step(_sp)) && r'.qse /~replace/ {_name: it._name, _step: it._step, _sp: sp}
+                                                         : t /!is_constant -re [it ? '_sp.s.substr(_sp.i, _l) === _s'.qse /~replace/
+                                                                                     {_sp: sp, _l: '#{it.data.length}', _s: $.syntax.from_string(it.data)}
+                                                         : 'error: no matching form for #{t}']],
+
+                            substep_pattern              = $.regexp(/(_name: _step)/, {atom: 'word'}),
+                            is_substep(t)                = substep_pattern /~match/ t,
+                            is_constant(t)               = t.is_atom() && t.data !== '.' && t || t.is_group() && t[0] /!is_constant]});
