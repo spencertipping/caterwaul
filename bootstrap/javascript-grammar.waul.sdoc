@@ -4,7 +4,7 @@ Licensed under the terms of the MIT source code license
 Introduction.
 This module defines a vanilla Javascript grammar in terms of mutually recursive regular expressions.
 
-caterwaul(':all')(function () {
+caterwaul.module('javascript-grammar', ':all', function ($) {
   $.javascript_grammar = capture [statement        = /:block | :with_semi | ; | :statement_/.x,
                                   block            = /\{ :statements \}/.x,
                                   with_semi        = /:statement_ ;/.x,
@@ -34,7 +34,4 @@ caterwaul(':all')(function () {
 
                                   group            = /\( (x: expression) \)/.x,
                                   array            = /\[ (xs: expression_list) \]/.x,
-                                  object           = /\{ (xs: expression_list) \}/.x] /!caterwaul.regexp_grammar,
-
-  $.javascript_grammar %v*$.compile /pairs *['#{x[0]} = #{x[1]}'] /seq -se- process.stdout.write(it.join(';\n')),
-  where [$ = caterwaul]})();
+                                  object           = /\{ (xs: expression_list) \}/.x] /!caterwaul.regexp_grammar});
