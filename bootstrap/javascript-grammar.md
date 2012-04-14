@@ -25,6 +25,10 @@ This module defines a vanilla Javascript grammar in terms of mutually recursive 
                                       catch_           = /catch (pre: ws) \((cond: expression)\) (rhs: finally_)?/.x,
                                       finally_         = /finally (lhs: statements)/.x,
 
+                                      ws               = /\s\s* (:ws) | (:line_comment) (rest: ws) | (:block_comment) (rest: ws) | \s*/.x,
+                                      line_comment     = /\/\/.*/.x,
+                                      block_comment    = /\/\*([^*]|\*[^\/])*\*\//.x,
+
                                       expression       = /(:literal) | (s: identifier) | (:group) | (:unary) | (:binary)/.x,
                                       literal          = /(v: dstring) | (v: sstring) | (v: number) | (v: regexp) | (:array) | (:object)/.x,
                                       dstring          = /"([^\\"]|\\.)*"/.x,
