@@ -13,11 +13,11 @@ return new this.constructor( ',' ,this.context,this,x) } ,match_groups:function(
 return this.context.groups} ,referenced_group:function() {;
 return this.context.groups[this[0] .data-1] } ,is_zero_width:function() {;
 return/^[\^\$]$|^\\[Bb]$/ .test(this.data) ||this.is_positive_lookahead() ||this.is_negative_lookahead() } ,is_one_or_more:function() {;
-return/^\+\??$/ .test(this.data) } ,is_zero_or_more:function() {;
-return/^\*\??$/ .test(this.data) } ,is_optional:function() {;
-return/^\?$/ .test(this.data) } ,is_non_greedy:function() {;
-return/.\?$/ .test(this.data) } ,is_repetition:function() {;
-return/^[\+\*\{]\??$|^\?$/ .test(this.data) } ,is_wildcard:function() {;
+return this.length&& /^\+\??$/ .test(this.data) } ,is_zero_or_more:function() {;
+return this.length&& /^\*\??$/ .test(this.data) } ,is_optional:function() {;
+return this.length&& /^\?$/ .test(this.data) } ,is_non_greedy:function() {;
+return this.length&& /.\?$/ .test(this.data) } ,is_repetition:function() {;
+return this.length&& /^[\+\*\{]\??$|^\?$/ .test(this.data) } ,is_wildcard:function() {;
 return this.is_atom() && /^_/ .test(this.data) } ,leaf_nodes_only:function() {;
 return false} ,without_metadata:function() {;
 return this} ,repeated_child:function() {;

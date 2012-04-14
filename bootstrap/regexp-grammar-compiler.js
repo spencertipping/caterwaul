@@ -1,11 +1,11 @@
 caterwaul.module( 'regexp-grammar-compiler' , (function(qs,qse,qse1,qse2,qs1,qs2,qs3,qs4,qs5) {var result= (function($) {$.regexp_grammar=function(rules) {;
 return(function() {var parsed_rules= {} ,classes= {} ,visit=function(pair) {;
-return(parsed_rules[pair[0] ] =$.regexp(pair[1] , {atom: 'word' } ) ,classes[pair[0] ] =parser_for(parsed_rules[pair[0] ] ) ) } ,parser_for=function(r) {;
+return(parsed_rules[pair[0] ] =$.regexp(pair[1] , {atom: 'word' } ) ,classes[pair[0] ] = (function() {try{return parser_for(parsed_rules[pair[0] ] ) }catch(e) {return process.stderr.write( ( 'failed to generate a parser for ' + (pair[1] ) + '' ) ) , (function() {throw e} ) .call(this) } } ) .call(this) ) } ,parser_for=function(r) {;
 return(qs) .replace( {_stages:matching_stage_for(r, 's' ) } ) } ,matching_stage_for=function(t,v) {;
 return(function(it) {return it?substep(it,t,v) 
 : (function(it) {return it?inline_substep(it,t,v) 
 :is_constant(t) ?constant(t,v) 
-:t.data=== '*?' ?repetition(t,v) 
+:t.data=== '*' ?repetition(t,v) 
 :t.data=== '?' ?optional(t,v) 
 :t.data=== ',' ?sequence(t,v) 
 :t.data=== '(' ?matching_stage_for(t[0] ,v) 

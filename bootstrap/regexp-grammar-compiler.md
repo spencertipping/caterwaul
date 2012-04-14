@@ -22,7 +22,8 @@ Any unbound regions will be stored as gensym keys, later retrievable via
                         -where [parsed_rules             = {},
                                 classes                  = {},
 
-                                visit(pair)              = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]]),
+                                visit(pair)              = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]])
+                                                           /rescue ['failed to generate a parser for #{pair[1]}' /!process.stderr.write, e /raise],
 
                                 parser_for(r)            = 'function (s) {var cons = {}; _stages; if (s) {s.cons = cons; return s}}'.qs /~replace/ {_stages: matching_stage_for(r, 's')},
 
@@ -30,7 +31,7 @@ Any unbound regions will be stored as gensym keys, later retrievable via
                                                          : t /!is_inline_substep -re [it            ? inline_substep(it, t, v)
 
                                                          : t /!is_constant                          ? constant(t, v)
-                                                         : t.data === '*?'                          ? repetition(t, v)
+                                                         : t.data === '*'                           ? repetition(t, v)
                                                          : t.data === '?'                           ? optional(t, v)
                                                          : t.data === ','                           ? sequence(t, v)
                                                          : t.data === '('                           ? matching_stage_for(t[0], v)
