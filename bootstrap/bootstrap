@@ -1754,70 +1754,62 @@ Regular expression grammar compiler | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-This module converts regular expression grammar maps to string-isomorphic AST nodes. Variants are specified using a group containing a declaration: /(cond: expression)/ defines a variant named
-'cond' that uses the 'expression' rule. Rules are specified in a hash.
+This module compiles regular expression grammars into polymorphic cons cells with associated parsing and serialization methods. Most regular expression syntax is supported and maps
+transparently to Javascript data structures. Here is the mapping:
 
-Certain regular expression operators are not supported:
+| 1. Repetition is encoded in array form: x* maps to [x1, x2, ...], where x1, x2, etc are match data.
+  2. Alternation is encoded using polymorphic conses. That is, each alternative is a new class.
+  3. Optional values are encoded verbatim or with null if there is no match.
+  4. Sub-matches are encoded directly.
+  5. Forgetful groups are structurally erased and encoded as strings (though they have some GC overhead).
 
-| 1. Lookahead/negative lookahead.
-  2. Greedy repetition.
-  3. Most backslash-forms.
-  4. Match groups in their normal context.
-  5. Backreferences.
-  6. Repetition of sub-steps.
-
-Any unbound regions will be stored as gensym keys, later retrievable via 
+Each matched region contains information about its match region, accessible via the start() and end() methods. This is useful for mapping syntactic regions back into string positions.
 
 caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
-  $.regexp_grammar(rules) = rules /pairs *!visit -seq -re- classes
-                    -where [parsed_rules             = {},
-                            classes                  = {},
 
-                            visit(pair)              = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]])
-                                                       /rescue ['failed to generate a parser for #{pair[1]}' /!process.stderr.write, e /raise],
+  Encoding of variants.
+  Regular expressions are made of constant and variant pieces. For example, /foob*ar/ consists of two constants, 'foo' and 'ar', and one variant, 'b*'. Within the variant, 'b' is a constant,
+  but we don't optimize this case specially. We need to know how many times 'b' occurred to reconstruct the original. Because repetition is encoded as an array, the resulting class would look
+  like this:
 
-                            parser_for(r)            = 'function (s) {var cons = {}; _stages; if (s) {s.cons = cons; return s}}'.qs /~replace/ {_stages: matching_stage_for(r, 's')},
+  | foobar_regexp(start_, end_) *= capture [start()    = this.start_,
+                                            end()      = this.end_,
+                                            toString() = +this -seq -re- it.join('')]
 
-                            matching_stage_for(t, v) = t /!is_substep        -re [it            ? substep(it, t, v)
-                                                     : t /!is_inline_substep -re [it            ? inline_substep(it, t, v)
+  Pieces are one of:
 
-                                                     : t /!is_constant                          ? constant(t, v)
-                                                     : t.data === '*'                           ? repetition(t, v)
-                                                     : t.data === '?'                           ? optional(t, v)
-                                                     : t.data === ','                           ? sequence(t, v)
-                                                     : t.data === '('                           ? matching_stage_for(t[0], v)
-                                                     : t.data === '|'                           ? alternate(t, v)
-                                                     : t.is_character_class() || t.data === '.' ? character_class(t, v)
-                                                                                                : raise ['no matching form for #{t}']]],
+  | 1. Constant: contains just the start/end data; the text is encoded in the prototype. This is a metaclass; a single class is generated for each constant.
+    2. Erased variant: contains the result of an erased match; e.g. /(?:foo|bar|bif)/ is stored as just a string snippet, not as a proper alternative. This is not a metaclass.
+    3. Sequence: contains start/end data along with numerically-indexed sub-pieces that are optionally aliased onto named methods. Length is per-instance to allow for seq[] copying.
 
-                            substep(it, t, v)        = 'if (_v && (_v = _step(_v))) cons._name = _v.cons'.qse /~replace/ {_name: it._name.data, _step: it._step.data, _v: v},
-                            inline_substep(it, t, v) = 'if (_v && (_v = _step(_v))) cons = _v.cons'.qse /~replace/ {_v: v, _step: it._step.data},
-                            constant(t, v)           = 'if (_v && _v.s.substr(_v.i, _l) === _s) _v = {s:_v.s, i:_v.i+_l}; else _v = null'.qse
-                                                       /~replace/ {_l: '#{t.data.length}', _s: $.syntax.from_string(t.data), _v: v},
+  You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic). Mapping semantics follow this model.
 
-                            repetition(t, v)         = 'var _last, _original = _v; while (_v) {_last = _v; _each}; _v = _last; if (_v) cons._name = _v.s.substring(_original.i, _v.i)'.qs
-                                                       /~replace/ {_last: $.gensym('last'), _original: $.gensym('s'), _name: t.cons_name = $.gensym('repetition'), _v: v,
-                                                                   _each: matching_stage_for(t[0], v)},
+  Notation.
+  Most regular expression constructs follow normal notational conventions. There are three significant exceptions:
 
-                            optional(t, v)           = 'var _temp = _v; _stage; if (_temp) _v = _temp, _v.cons._name = true'.qs
-                                                       /~replace/ {_v: v, _temp: temp, _name: t.cons_name = $.gensym('optional_term'), _stage: matching_stage_for(t[0], temp)}
-                                                       -where [temp = $.gensym(v)],
+  | 1. Regexps are parsed in terms of words, not characters. This is a big deal and is too involved to explain fully here (see source docs in caterwaul-regexp.waul).
+    2. You can refer to other parse stages using a cross-reference, which is written as 'reference@'.
+    3. You can name a piece of a regexp using a nominal binding, which is written as 'name:thing'. The : binds everything to its right up until a | or group-closer.
 
-                            sequence(t, v)           = '_x; _y'.qs /~replace/ {_x: matching_stage_for(t[0], v), _y: matching_stage_for(t[1], v)},
+  Nominal bindings turn into additional methods that refer to numerically-bound properties.
 
-                            alternate(t, v)          = 'var _temp = _v; _stage1; if (_temp) _v = _temp; else {_stage2}'.qs
-                                                       /~replace/ {_v: v, _temp: temp, _stage1: matching_stage_for(t[0], temp), _stage2: matching_stage_for(t[1], v)}
-                                                       -where [temp = $.gensym(v)],
+Implementation.
+Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program.
 
-                            character_class(t, v)    = 'if (_v && _regexp.test(_v.s.charAt(_v.i))) _v = {s: _v.s, i: _v.i + 1}; else _v = null'.qs /~replace/ {_v: v, _regexp: '/#{t}/'},
+  $.regexp_grammar(rules) = rules %v*parser_entry_point -seq
 
-                            substep_pattern          = $.regexp(/(_name: _step)/, {atom: 'word'}),
-                            inline_substep_pattern   = $.regexp(/(:_step)/, {atom: 'word'}),
+  Metaclass instance generation.
+  Metaclass instances are emitted as cross-referential functions that have two modes of operation:
 
-                            is_substep(t)            = substep_pattern /~match/ t,
-                            is_inline_substep(t)     = inline_substep_pattern /~match/ t,
+  | 1. Direct invocation causes a parse to occur. Returns null if given a non-conforming string. An optional second argument specifies the current input position; the resulting input position
+       can be read using the .end() method.
+    2. Constructor invocation builds a syntax node and returns immediately. This is used internally, though it might also be useful externally.
+    3. Nullary constructor invocation builds a syntax node that has no children. This is used by caterwaul's seq[] macro.
 
-                            is_constant(t)           = t.is_atom() && t.data !== '.']});
+  Each metaclass contains a .map() method that recursively descends through the tree. It uses a standard protocol to indicate nondestructive node replacement, stop-traversal, and continuation.
+  Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modified subtrees.
+
+  -where [metaclass_constructor(name, arity) = qse[_name(start, end, _formals) = this.constructor === _name ? 
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
