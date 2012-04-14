@@ -1,0 +1,44 @@
+Regular expression grammar compiler | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This module converts regular expression grammar maps to string-isomorphic AST nodes. Variants are specified using a group containing a declaration: /(cond: expression)/ defines a variant named
+'cond' that uses the 'expression' rule. Rules are specified in a hash.
+
+Certain regular expression operators are not supported:
+
+| 1. Lookahead/negative lookahead.
+  2. Greedy repetition.
+  3. Most backslash-forms.
+  4. Match groups in their normal context.
+  5. Backreferences.
+  6. Toplevel alternation, unless /i is used.
+
+Anything not defined as a variant must be a constant. A variant must be explicitly created when you use ?, +, or *. For example:
+
+| /(foo: bar*)/         <- foo() returns an array of bar
+  /(foo: bar+)/         <- ditto
+  /(foo: bar?)/         <- foo() returns a bar or null
+
+caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
+
+Implementation details.
+For the most part this compiler is really boring. It splits alternation into separate cons forms; e.g. 'x: /foo | bar/' results in two conses, 'x0' and 'x1', as well as the original 'x' used
+only for parsing. The exact layout is this:
+
+| x: {parse: ...},
+  x0: {} prototype={toString: '"foo"'.qf}
+  x1: {} prototype={toString: '"bar"'.qf}
+
+Inlining is performed for rules marked with the 'i' modifier: statement: /if | for | while | ... | expression/i. This indicates that the rule is comprised of singly-variant alternatives with
+no immediate constant terms. The grammar compiler will generate invalid code if you use anything else.
+
+  $.regexp_grammar(rules) = rules /pairs *!visit -seq -re- classes
+                    -where [parsed_rules           = {},
+                            classes                = {},
+
+                            visit(pair)            = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]]),
+
+                            parser_for(r)          = r.i() ? alternative_parser(r /~flatten/ '|') : sequential_parser(r /~flatten/ ','),
+                            alternative_parser(rs) = '_r, given[s, i]'.qse /~replace/ {_r: rs *['_f(s, i)'.qs /~replace/ {_f: x}] /[new $.syntax('||')][x0 /~push/ x] -seq -re- it.unflatten()},
+                            sequential_parser(rs)  = '']});

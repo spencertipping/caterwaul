@@ -1,0 +1,8 @@
+#!/bin/bash
+waul=./waul-1.3b4
+
+$waul -e regexp.js regexp-grammar-compiler.waul.sdoc
+
+if [[ $1 == '-r' ]]; then
+  $waul -e regexp.js -e regexp-grammar-compiler.js -c :all
+fi
