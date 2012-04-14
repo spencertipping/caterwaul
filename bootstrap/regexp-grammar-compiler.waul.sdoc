@@ -25,17 +25,17 @@ caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
 
                             parser_for(r)            = 'function (s) {var cons = {}; _stages; if (s) {s.cons = cons; return s}}'.qs /~replace/ {_stages: matching_stage_for(r, 's')},
 
-                            matching_stage_for(t, v) = t /!is_substep        -re [it ? substep(it, t, v)
-                                                     : t /!is_inline_substep -re [it ? inline_substep(it, t, v)
+                            matching_stage_for(t, v) = t /!is_substep        -re [it            ? substep(it, t, v)
+                                                     : t /!is_inline_substep -re [it            ? inline_substep(it, t, v)
 
-                                                     : t /!is_constant               ? constant(t, v)
-                                                     : t.data === '*?'               ? repetition(t, v)
-                                                     : t.data === '?'                ? optional(t, v)
-                                                     : t.data === ','                ? sequence(t, v)
-                                                     : t.data === '('                ? matching_stage_for(t[0], v)
-                                                     : t.data === '|'                ? alternate(t, v)
-                                                     : t.is_character_class()        ? character_class(t, v)
-                                                                                     : raise ['no matching form for #{t}']]],
+                                                     : t /!is_constant                          ? constant(t, v)
+                                                     : t.data === '*?'                          ? repetition(t, v)
+                                                     : t.data === '?'                           ? optional(t, v)
+                                                     : t.data === ','                           ? sequence(t, v)
+                                                     : t.data === '('                           ? matching_stage_for(t[0], v)
+                                                     : t.data === '|'                           ? alternate(t, v)
+                                                     : t.is_character_class() || t.data === '.' ? character_class(t, v)
+                                                                                                : raise ['no matching form for #{t}']]],
 
                             substep(it, t, v)        = 'if (_v && (_v = _step(_v))) cons._name = _v.cons'.qse /~replace/ {_name: it._name.data, _step: it._step.data, _v: v},
                             inline_substep(it, t, v) = 'if (_v && (_v = _step(_v))) cons = _v.cons'.qse /~replace/ {_v: v, _step: it._step.data},
