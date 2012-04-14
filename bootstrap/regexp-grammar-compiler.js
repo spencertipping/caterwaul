@@ -2,7 +2,16 @@ caterwaul.module( 'regexp-grammar-compiler' , (function(qs,qse,qse1,qse2,qs1,qs2
 return(function() {var parsed_rules= {} ,classes= {} ,visit=function(pair) {;
 return(parsed_rules[pair[0] ] =$.regexp(pair[1] , {atom: 'word' } ) ,classes[pair[0] ] =parser_for(parsed_rules[pair[0] ] ) ) } ,parser_for=function(r) {;
 return(qs) .replace( {_stages:matching_stage_for(r, 's' ) } ) } ,matching_stage_for=function(t,v) {;
-return(function(it) {return it?substep(it,t,v) : (function(it) {return it?inline_substep(it,t,v) :is_constant(t) ?constant(t,v) :t.data=== '*?' ?repetition(t,v) :t.data=== '?' ?optional(t,v) :t.data=== ',' ?sequence(t,v) :t.data=== '(' ?matching_stage_for(t[0] ,v) :t.data=== '|' ?alternate(t,v) :t.is_character_class() ||t.data=== '.' ?character_class(t,v) : (function() {throw( 'no matching form for ' + (t) + '' ) } ) .call(this) } ) .call(this, (is_inline_substep(t) ) ) } ) .call(this, (is_substep(t) ) ) } ,substep=function(it,t,v) {;
+return(function(it) {return it?substep(it,t,v) 
+: (function(it) {return it?inline_substep(it,t,v) 
+:is_constant(t) ?constant(t,v) 
+:t.data=== '*?' ?repetition(t,v) 
+:t.data=== '?' ?optional(t,v) 
+:t.data=== ',' ?sequence(t,v) 
+:t.data=== '(' ?matching_stage_for(t[0] ,v) 
+:t.data=== '|' ?alternate(t,v) 
+:t.is_character_class() ||t.data=== '.' ?character_class(t,v) 
+: (function() {throw( 'no matching form for ' + (t) + '' ) } ) .call(this) } ) .call(this, (is_inline_substep(t) ) ) } ) .call(this, (is_substep(t) ) ) } ,substep=function(it,t,v) {;
 return(qse) .replace( {_name:it._name.data,_step:it._step.data,_v:v} ) } ,inline_substep=function(it,t,v) {;
 return(qse1) .replace( {_v:v,_step:it._step.data} ) } ,constant=function(t,v) {;
 return(qse2) .replace( {_l: ( '' + (t.data.length) + '' ) ,_s:$.syntax.from_string(t.data) ,_v:v} ) } ,repetition=function(t,v) {;

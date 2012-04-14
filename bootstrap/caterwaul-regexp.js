@@ -1,6 +1,7 @@
 caterwaul.module( 'regexp' ,function($) { (function() {var regexp_ctor=function() {var xs=arguments;
 return(function() {var data=xs[0] ,context=xs[1] ;
-return data instanceof this.constructor? (function(it) {return it.data=data.data,it.length=0,it.context=data.context,it} ) .call(this, (this) ) : (function(it) {return it.data=data,it.length=0,it.context=context, (function(xs) {var x,x0,xi,xl,xr;
+return data instanceof this.constructor? (function(it) {return it.data=data.data,it.length=0,it.context=data.context,it} ) .call(this, (this) ) 
+: (function(it) {return it.data=data,it.length=0,it.context=context, (function(xs) {var x,x0,xi,xl,xr;
 for(var xi=0,xl=xs.length;
 xi<xl;
  ++xi)x=xs[xi] , (it.push(x) ) ;
@@ -20,7 +21,8 @@ return/^[\+\*\{]\??$|^\?$/ .test(this.data) } ,is_wildcard:function() {;
 return this.is_atom() && /^_/ .test(this.data) } ,leaf_nodes_only:function() {;
 return false} ,without_metadata:function() {;
 return this} ,repeated_child:function() {;
-return/^\{/ .test(this.data) ?this[2] :this[0] } ,is_character_class:function() {;
+return/^\{/ .test(this.data) ?this[2] 
+:this[0] } ,is_character_class:function() {;
 return/^\[/ .test(this.data) } ,is_single_escape:function() {;
 return/^\\.+$/ .test(this.data) } ,is_range:function() {;
 return/^-$/ .test(this.data) &&this.length===2} ,is_atom:function() {;
@@ -33,11 +35,38 @@ return/^\(\?!$/ .test(this.data) } ,is_backreference:function() {;
 return/^\\$/ .test(this.data) } ,is_disjunction:function() {;
 return/^\|$/ .test(this.data) &&this.length===2} ,is_join:function() {;
 return/^,$/ .test(this.data) &&this.length===2} ,lower_limit:function() {;
-return/^\+\??$/ .test(this.data) ?1: /^\*\??$|^\?$/ .test(this.data) ?0: /^\{/ .test(this.data) ?this[0] .data: (function() {throw new Error( ( 'lower limit is undefined for nonrepetitive node ' + (this) + '' ) ) } ) .call(this) } ,upper_limit:function() {;
-return/^[\*\+]\??$/ .test(this.data) ?Infinity: /^\?$/ .test(this.data) ?1: /^\{/ .test(this.data) ?this[1] .data: (function() {throw new Error( ( 'upper limit is undefined for nonrepetitive node ' + (this) + '' ) ) } ) .call(this) } ,minimum_length:function() {;
-return this.is_zero_width() ?0:this.is_single_escape() ||this.is_character_class() ?1:this.is_repetition() ?this.lower_limit() *this.repeated_child() .minimum_length() :this.is_group() ||this.is_forgetful() ?this[0] .minimum_length() :this.is_backreference() ?this.referenced_group() .minimum_length() :this.is_disjunction() ?Math.min(this[0] .minimum_length() ,this[1] .minimum_length() ) :this.is_join() ?this[0] .minimum_length() +this[1] .minimum_length() :this.data.length} ,toString:function() {;
-return this.is_any_group() ?this.data+this[0] .toString() + ')' :this.is_character_class() ?this.data+this[0] .toString() + ']' :this.is_range() ? ( '' + (this[0] .toString() ) + '-' + (this[1] .toString() ) + '' ) :this.is_zero_or_more() ||this.is_one_or_more() ||this.is_optional() ?this[0] .toString() +this.data:this.is_repetition() ?this[2] .toString() + (this[0] .data===this[1] .data? ( '{' + (this[0] .data) + '}' ) :this[1] .data===Infinity? ( '{' + (this[0] .data) + ',}' ) : ( '{' + (this[0] .data) + ',' + (this[1] .data) + '}' ) ) :this.is_zero_width() ?this.data:this.is_backreference() ? ( '\\' + (this[0] .data) + '' ) :this.is_disjunction() ? ( '' + (this[0] .toString() ) + '|' + (this[1] .toString() ) + '' ) :this.is_join() ? ( '' + (this[0] .toString() ) + '' + (this[1] .toString() ) + '' ) :this.data} } ,regexp_compile=function(r) {;
-return new RegExp(r.toString() , [r.i() ? 'i' : '' ,r.m() ? 'm' : '' ,r.g() ? 'g' : '' ] .join( '' ) ) } ,regexp_parse=function(r,options) {;
+return/^\+\??$/ .test(this.data) ?1
+: /^\*\??$|^\?$/ .test(this.data) ?0
+: /^\{/ .test(this.data) ?this[0] .data
+: (function() {throw new Error( ( 'lower limit is undefined for nonrepetitive node ' + (this) + '' ) ) } ) .call(this) } ,upper_limit:function() {;
+return/^[\*\+]\??$/ .test(this.data) ?Infinity
+: /^\?$/ .test(this.data) ?1
+: /^\{/ .test(this.data) ?this[1] .data
+: (function() {throw new Error( ( 'upper limit is undefined for nonrepetitive node ' + (this) + '' ) ) } ) .call(this) } ,minimum_length:function() {;
+return this.is_zero_width() ?0
+:this.is_single_escape() ||this.is_character_class() ?1
+:this.is_repetition() ?this.lower_limit() *this.repeated_child() .minimum_length() 
+:this.is_group() ||this.is_forgetful() ?this[0] .minimum_length() 
+:this.is_backreference() ?this.referenced_group() .minimum_length() 
+:this.is_disjunction() ?Math.min(this[0] .minimum_length() ,this[1] .minimum_length() ) 
+:this.is_join() ?this[0] .minimum_length() +this[1] .minimum_length() 
+:this.data.length} ,toString:function() {;
+return this.is_any_group() ?this.data+this[0] .toString() + ')' 
+:this.is_character_class() ?this.data+this[0] .toString() + ']' 
+:this.is_range() ? ( '' + (this[0] .toString() ) + '-' + (this[1] .toString() ) + '' ) 
+:this.is_zero_or_more() ||this.is_one_or_more() ||this.is_optional() ?this[0] .toString() +this.data
+:this.is_repetition() ?this[2] .toString() + (this[0] .data===this[1] .data? ( '{' + (this[0] .data) + '}' ) 
+:this[1] .data===Infinity? ( '{' + (this[0] .data) + ',}' ) 
+: ( '{' + (this[0] .data) + ',' + (this[1] .data) + '}' ) ) 
+:this.is_zero_width() ?this.data
+:this.is_backreference() ? ( '\\' + (this[0] .data) + '' ) 
+:this.is_disjunction() ? ( '' + (this[0] .toString() ) + '|' + (this[1] .toString() ) + '' ) 
+:this.is_join() ? ( '' + (this[0] .toString() ) + '' + (this[1] .toString() ) + '' ) 
+:this.data} } ,regexp_compile=function(r) {;
+return new RegExp(r.toString() , [r.i() ? 'i' 
+: '' ,r.m() ? 'm' 
+: '' ,r.g() ? 'g' 
+: '' ] .join( '' ) ) } ,regexp_parse=function(r,options) {;
 return(function() {var settings=$.merge( {atom: 'character' } ,options) ,pieces= /^\/(.*)\/([gim]*)$/ .exec(r.toString() ) || /^(.*)$/ .exec(r.toString() ) ,s=pieces[1] ,flags= (function(it) {return{i: /i/ .test(it) ,m: /m/ .test(it) ,g: /g/ .test(it) } } ) .call(this, (pieces[2] ) ) ,context= {groups: [] ,flags:flags} ,added_groups= {} ,add_group=function(node,p) {;
 return!added_groups[p.i] && (function(it) {return added_groups[p.i] =true,it} ) .call(this, (context.groups.push(node) ) ) } ,node=function() {var xs=arguments;
 return(function(it) {return(function(xs) {var x,x0,xi,xl,xr;
@@ -50,7 +79,8 @@ return p.i<s.length&&c.indexOf(s.charAt(p.i) ) !== -1&& {v:s.charAt(p.i) ,i:p.i+
 return function(p) {;
 return p.i<s.length&&s.substr(p.i,cs.length) ===cs&& {v:s.substr(p.i,cs.length) ,i:p.i+cs.length} } } ,not=function(n,f) {;
 return function(p) {;
-return p.i>=s.length||f(p) ?false: {v:s.substr(p.i,n) ,i:p.i+n} } } ,any=function(n) {;
+return p.i>=s.length||f(p) ?false
+: {v:s.substr(p.i,n) ,i:p.i+n} } } ,any=function(n) {;
 return function(p) {;
 return p.i<s.length&& {v:s.substr(p.i,n) ,i:p.i+n} } } ,alt=function() {var ps=arguments;
 return function(p) {;
@@ -90,8 +120,12 @@ return alt(map(join(atom,modifiers) ,function(_) {return(function(it) {return it
 return character_class(p) } ,character_class= (function() {var each=alt(map(join(any(1) ,oneof( '-' ) ,any(1) ) ,function(_) {return node( '-' ,node(_[0] ) ,node(_[2] ) ) } ) ,map(join(oneof( '\\' ) ,any(1) ) ,function(_) {return node(_.join( '' ) ) } ) ,map(not(1,oneof( ']' ) ) ,node) ) ;
 return alt(map(join(each,character_class) ,function(_) {return node( ',' ,_[0] ,_[1] ) } ) ,each) } ) .call(this) ,character_not_in=map(join(string( '[^' ) ,character_class,string( ']' ) ) ,function(_) {return node( '[^' ,_[1] ) } ) ,character_in=map(join(string( '[' ) ,character_class,string( ']' ) ) ,function(_) {return node( '[' ,_[1] ) } ) ,zero_width=map(oneof( '^$' ) ,node) ,escaped=map(join(oneof( '\\' ) ,oneof( 'BbWwSsDdfnrtv0*+.?|()[]{}\\$^' ) ) ,function(_) {return node(_.join( '' ) ) } ) ,escaped_slash=map(string( '\\/' ) ,function(_) {return node( '/' ) } ) ,control=map(join(string( '\\c' ) ,any(1) ) ,function(_) {return node(_.join( '' ) ) } ) ,hex_code=map(join(string( '\\x' ) ,hex,hex) ,function(_) {return node(_.join( '' ) ) } ) ,unicode=map(join(string( '\\u' ) ,hex,hex,hex,hex) ,function(_) {return node(_.join( '' ) ) } ) ,backreference=function(p) {;
 return(function() {var single_digit_backreference=map(join(oneof( '\\' ) ,digit) , (function(xs) {return node( '\\' ,node( +xs[1] ) ) } ) ) ;
-return(function(it) {return it&&it.v<=context.groups.length? {v:node( '\\' ,node(it.v) ) ,i:it.i} :single_digit_backreference(p) } ) .call(this, (map(join(oneof( '\\' ) ,digit,digit) ,function(_) {return+ ( '' + (_[1] ) + '' + (_[2] ) + '' ) } ) (p) ) ) } ) .call(this) } ,dot=map(oneof( '.' ) ,node) ,other=map(not(1,oneof( ')|+*?{' ) ) ,node) ,maybe_word=settings.atom=== 'word' ?alt(word,other) :other,maybe_munch_spaces=settings.atom=== 'word' ?alt(many(oneof( ' ' ) ) ,zero) :zero,nontrivial_thing=alt(positive_lookahead,negative_lookahead,forgetful_group,group,character_not_in,character_in,zero_width,escaped,escaped_slash,control,hex_code,unicode,backreference,dot,maybe_word) ,base=alt(map(join(maybe_munch_spaces,nontrivial_thing,maybe_munch_spaces) ,function(_) {return _[1] } ) ,nontrivial_thing) ;
+return(function(it) {return it&&it.v<=context.groups.length? {v:node( '\\' ,node(it.v) ) ,i:it.i} 
+:single_digit_backreference(p) } ) .call(this, (map(join(oneof( '\\' ) ,digit,digit) ,function(_) {return+ ( '' + (_[1] ) + '' + (_[2] ) + '' ) } ) (p) ) ) } ) .call(this) } ,dot=map(oneof( '.' ) ,node) ,other=map(not(1,oneof( ')|+*?{' ) ) ,node) ,maybe_word=settings.atom=== 'word' ?alt(word,other) 
+:other,maybe_munch_spaces=settings.atom=== 'word' ?alt(many(oneof( ' ' ) ) ,zero) 
+:zero,nontrivial_thing=alt(positive_lookahead,negative_lookahead,forgetful_group,group,character_not_in,character_in,zero_width,escaped,escaped_slash,control,hex_code,unicode,backreference,dot,maybe_word) ,base=alt(map(join(maybe_munch_spaces,nontrivial_thing,maybe_munch_spaces) ,function(_) {return _[1] } ) ,nontrivial_thing) ;
 return base} ) .call(this) ;
-return(function(it) {return it?it.v[0] : (function() {throw new Error( ( 'caterwaul.regexp(): failed to parse ' + (r.toString() ) + '' ) ) } ) .call(this) } ) .call(this, (join(toplevel,end) ( {i:0} ) ) ) } ) .call(this) } ;
+return(function(it) {return it?it.v[0] 
+: (function() {throw new Error( ( 'caterwaul.regexp(): failed to parse ' + (r.toString() ) + '' ) ) } ) .call(this) } ) .call(this, (join(toplevel,end) ( {i:0} ) ) ) } ) .call(this) } ;
 return $.regexp=function(r,options) {;
 return $.regexp.parse.apply(this,arguments) } ,$.regexp.syntax=$.syntax_subclass(regexp_ctor,regexp_methods) ,$.regexp.parse=regexp_parse,$.regexp.compile=regexp_compile} ) .call(this) } ) ;

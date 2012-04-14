@@ -636,7 +636,7 @@ my @modules = qw/regexp-grammar-compiler javascript-grammar/;
 file::write("$_.waul.sdoc", retrieve("sdoc::waul::$_"))     for @modules;
 file::write("$_.md",        retrieve("markdown::waul::$_")) for @modules;
 
-sh('./waul-1.3b4 -e caterwaul-regexp.js regexp-grammar-compiler.waul.sdoc javascript-grammar.waul.sdoc') unless $$options{-W};
+sh('./waul caterwaul-regexp.waul regexp-grammar-compiler.waul.sdoc javascript-grammar.waul.sdoc') unless $$options{-W};
 file::write('bootstrap-compiler.js', retrieve('pp::js::bootstrap')) unless $$options{-B};
 file::write('bootstrap.js', join '', qx|node bootstrap-compiler.js|) unless $$options{-B};
 
