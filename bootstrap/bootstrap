@@ -1779,7 +1779,7 @@ caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
   Pieces are one of:
 
   | 1. Constant: contains just the start/end data; the text is encoded in the prototype. This is a metaclass; a single class is generated for each constant.
-    2. Erased variant: contains the result of an erased match; e.g. /(?:foo|bar|bif)/ is stored as just a string snippet, not as a proper alternative. This is not a metaclass.
+    2. Erased variant: contains the result of an erased match; e.g. /(?:foo|bar|bif)/ is stored as just a string snippet, not as a proper alternative.
     3. Sequence: contains start/end data along with numerically-indexed sub-pieces that are optionally aliased onto named methods. Length is per-instance to allow for seq[] copying.
 
   You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic). Mapping semantics follow this model.
@@ -1809,7 +1809,59 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
   Each metaclass contains a .map() method that recursively descends through the tree. It uses a standard protocol to indicate nondestructive node replacement, stop-traversal, and continuation.
   Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modified subtrees.
 
-  -where [metaclass_constructor(name, arity) = qse[_name(start, end, _formals) = this.constructor === _name ? 
+  -where [metaclass_constructor(name, args)  = template /~replace/ {_name: name, _formals: formals, _formal_assignments: formal_assignments}
+                 -where [template            = qse[_name(_formals) = this.constructor === _name ? _formal_assignments -then- this : _name.parse(arguments[0], arguments[1] || 0),
+                                                   _name.parse     = _@parser_implementation],
+
+                         fold_into_comma(xs) = xs /[new $.syntax(',')][x0 /~push/ x] -seq -re- it.unflatten(),
+                         formals             = args /!fold_into_comma,
+                         formal_assignments  = args *[/^_\d+/.test(x) ? 'this[_i] = _x'.qs /~replace/ {_i: x.substr(1), _x: x}
+                                                                      : 'this._x  = _x'.qs /~replace/ {                 _x: x}] /seq /!fold_into_comma],
+
+          metaclass_instance(n, ctor, proto) = qse[_constructor, _prototype, _name.prototype.constructor = _name]
+                                               /~replace/ {_constructor: ctor, _prototype: proto, _name: n},
+
+  Invariant instances.
+  These have predetermined content and length, so all that is necessary for each instance is the 'start' parameter. Serialization and mapping are both trivial. The end() method simply adds the
+  starting position to the precomputed length of the constant. Here, 'k' is the invariant string.
+
+          invariant_metaclass(name, k) = metaclass_instance(name, metaclass_constructor(name, 'start'.qw) /~replace/ {'_@parser_implementation': parser(name, k)},
+                                                                  proto(k))
+
+               -where [proto(k)        = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
+                                                      end()               = this.start_ + _l,
+                                                      length              = 0,
+                                                      toString()          = _s]] /~replace/ {_s: k /!$.syntax.from_string, _l: '#{k.length}'},
+
+                       parser(name, k) = qse[new _name(i) -when [_s === s.substr(i, _l)] -given [s, i]]
+                                                   /~replace/ {_name: name, _s: k /!$.syntax.from_string, _l: '#{k.length}'}],
+
+  Erased-variant instances.
+  These have variant content and length and therefore take two parameters. The metaclass evaluates the given parser and turns the result into a string before saving it.
+
+          erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 1) /~replace/ {'_@parser_implementation': parser(name, p)},
+                                                                         qse[capture [map(f, r = f(this)) = r === true || !r ? this : r
+                                                                                      end()               = this.start_ + this.parsed_.length,
+                                                                                      length              = 0,
+                                                                                      toString()          = this.parsed_]])
+
+                    -where [parser(name, sub) = qse[new _name(i, result.toString()) -when.result -where [result = _sub.parse(s, i)] -given [s, i]]
+                                                /~replace/ {_name: name, _parse: parse}],
+
+  Sequence instances.
+  Sequences destructure regular expressions piece by piece. This isn't quite as simple as the above cases for a couple of reasons. First, regular expressions don't map one-to-one against
+  metaclass instances. In cases like /foo|bar/, two subclasses will be created, one for each constant possibility. Second, pieces of the regular expression can have names aliased onto numeric
+  members. For example, /foo (bar:bif) baz/ creates a prototype method called bar() that returns this[1].
+
+  The alternative case is an interesting one. If the regular expression represents a disjunction, then we flatten it out and construct a virtual class. This class will never be instantiated,
+  but it will have a .parse() static method as promised to whoever created it. That way sub-instantiation and cross-references will both work. Note that there is no prototype chaining; it
+  would be unnecessary because alternatives don't necessarily have anything in common.
+
+  The sequence_metaclass method returns a hash to accommodate sub-definitions.
+
+          sequence_metaclass(name, tree) = 
+
+                         formals_for(arity)  = 'start end'.qw + n[arity] *['_#{x}'] -seq,
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
