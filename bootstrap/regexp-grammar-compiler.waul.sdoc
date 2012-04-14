@@ -34,26 +34,41 @@ Inlining is performed for rules marked with the 'i' modifier: statement: /if | f
 no immediate constant terms. The grammar compiler will generate invalid code if you use anything else.
 
   $.regexp_grammar(rules) = rules /pairs *!visit -seq -re- classes
-                    -where [parsed_rules                    = {},
-                            classes                         = {},
+                    -where [parsed_rules              = {},
+                            classes                   = {},
 
-                            visit(pair)                     = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]]),
+                            visit(pair)               = parsed_rules[pair[0]] -eq- pair[1] /-$.regexp/ {atom: 'word'} <then> classes[pair[0]] -eq- parser_for(parsed_rules[pair[0]]),
 
-                            flatten(t, d)                   = t.data === d && t.length >= 2 ? [t[0]] /~concat/ flatten(t[1], d) : [t],
+                            flatten(t, d)             = t.data === d && t.length >= 2 ? [t[0]] /~concat/ flatten(t[1], d) : [t],
 
-                            parser_for(r)                   = r.i() ? alternative_parser(r /-flatten/ '|') : sequential_parser(r /-flatten/ ','),
-                            alternative_parser(rs)          = '_r, given.s'.qse /~replace/ {_r: rs /['false'.qs]['_x0 || _x(s)'.qs /~replace/ {_x0: x0, _x: x.data}] -seq},
-                            sequential_parser(rs)           = 'function (s) {var cons = {}, _definitions; if (_last) {_last.cons = cons; return _last}}'.qs
-                                                              /~replace/ {_definitions: rs *[matcher_for(x, xi)] /[new $.syntax(',')][x0 /~push/ x] -seq -re- it.unflatten(),
-                                                                          _last:        's#{rs.length - 1}'},
+                            parser_for(r)             = r.i() ? alternative_parser(r /-flatten/ '|') : sequential_parser(r),
+                            alternative_parser(rs)    = '_r, given.s'.qse /~replace/ {_r: rs /['false'.qs]['_x0 || _x(s)'.qs /~replace/ {_x0: x0, _x: x.data}] -seq},
+                            sequential_parser(r)      = 'function (s) {var cons = {}; _stages; if (s) {s.cons = cons; return s}}'.qs /~replace/ {_stages: matching_stage_for(r, 's')},
 
-                            matcher_for(t, i)               = matching_stage_for(t, i, 's#{i}', i ? 's#{i - 1}' : 's'),
-                            matching_stage_for(t, i, s, sp) = '_s = _sp && _m'.qs /~replace/ {_sp: sp, _s: s, _m: matching_expression(t, i, sp)},
-                            matching_expression(t, i, sp)   = t /!is_substep  -re [it ? 'cons._name = _step(_sp)'.qse /~replace/ {_name: it._name.data, _step: it._step.data, _sp: sp}
-                                                            : t /!is_constant -re [it ? '_sp.s.substr(_sp.i, _l) === _s'.qse /~replace/
-                                                                                        {_sp: sp, _l: '#{it.data.length}', _s: $.syntax.from_string(it.data)}
-                                                            : 'error: no matching form for #{t}']],
+                            matching_stage_for(t, v)  = t /!is_substep  -re [it ? 'if (_v && (_v = _step(_v))) (cons._name || (cons._name = [])).push(_v.cons)'.qse
+                                                                                  /~replace/ {_name: it._name.data, _step: it._step.data, _v: v}
 
-                            substep_pattern                 = $.regexp(/(_name: _step)/, {atom: 'word'}),
-                            is_substep(t)                   = substep_pattern /~match/ t,
-                            is_constant(t)                  = t.is_atom() && t.data !== '.' && t || t.is_group() && t[0] /!is_constant]});
+                                                      : t /!is_constant -re [it ? 'if (_v && _v.s.substr(_v.i, _l) === _s) _v = {s: _v.s, i: _v.i + _l}; else _v = null'.qse
+                                                                                  /~replace/ {_l: '#{it.data.length}', _s: $.syntax.from_string(it.data), _v: v}
+
+                                                      : t.data === '*?'         ? 'var _last; while (_v) {_last = _v; _each}; _v = _last'.qs
+                                                                                  /~replace/ {_last: $.gensym('last'), _v: v, _each: matching_stage_for(t[0], v)}
+
+                                                      : t.data === '?'          ? 'var _temp = _v; _stage; if (_temp) _v = _temp'.qs
+                                                                                  /~replace/ {_v: v, _temp: temp, _stage: matching_stage_for(t[0], v)}
+                                                                                  -where [temp = $.gensym(v)]
+
+                                                      : t.data === ','          ? '_x; _y'.qs /~replace/ {_x: matching_stage_for(t[0], v), _y: matching_stage_for(t[1], v)}
+                                                      : t.data === '('          ? matching_stage_for(t[0], v)
+                                                      : t.data === '|'          ? 'var _temp = _v; _stage1; if (_temp) _v = _temp; else _stage2'.qs
+                                                                                  /~replace/ {_v: v, _temp: temp, _stage1: matching_stage_for(t[0], temp), _stage2: matching_stage_for(t[1], v)}
+                                                                                  -where [temp = $.gensym(v)]
+
+                                                      : t.is_character_class()  ? 'if (_v && _regexp.test(_v.s.charAt(_v.i))) _v = {s: _v.s, i: _v.i + 1}'.qs
+                                                                                  /~replace/ {_v: v, _regexp: '/#{t}/'}
+
+                                                                                : 'error: no matching form for #{t}']],
+
+                            substep_pattern           = $.regexp(/(_name: _step)/, {atom: 'word'}),
+                            is_substep(t)             = substep_pattern /~match/ t,
+                            is_constant(t)            = t.is_atom() && t.data !== '.' && t]});
