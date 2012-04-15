@@ -42,12 +42,13 @@ will be implicitly enabled in the resulting waul script.
              main_action()              = options.replicate ? replicate() : options.input_files.length ? options.input_files *!waul -seq : waul_repl(),
 
              fs                         = require('fs'),
-             options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true}
+             options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true, simple_repl: false}
                                           -se [it.input_files = []]
                                           -se- process.argv.slice(2) *![x === '--extension' || x === '-e' ? it.extensions /~push/ xs[++xi]  :
                                                                         x === '--output'    || x === '-o' ? it.output_pattern = xs[++xi]    :
                                                                         x === '--no-table'  || x === '-T' ? it.expression_ref_table = false :
                                                                         x === '--replicate' || x === '-r' ? it.replicate = true             :
+                                                                        x === '--stdin'                   ? it.simple_repl = true           :
                                                                         x === '--configure' || x === '-c' ? it.configuration = xs[++xi]     : it.input_files /~push/ x] /seq,
 
              waul_input(filename)       = fs.readFileSync(filename, 'utf8') -re [/\.sdoc$/i.test(filename) ? it.split(/(?:\n\s*)+\n/) %![/^\s*[A-Z|]/.test(x)] -seq -re- it.join('\n') : it],
@@ -84,9 +85,18 @@ will be implicitly enabled in the resulting waul script.
                                                                'Licensed under the terms of the MIT source code license\n' +
                                                                'http://github.com/spencertipping/caterwaul\n'),
 
-             waul_repl()                = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
+             waul_node_repl()           = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
                                   -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: $, caterwaul: $, require: require})) -rescue- cc(e, undefined),
                                           instance                 = $(options.configuration)],
+
+             waul_simple_repl()         = introduce() -then- process.stdin.on('data', require('util') /~inspect/ instance(s, {$: $, caterwaul: $, require: require})
+                                                                                      -re- process.stderr.write('#{it}\n', 'utf8')
+                                                                                      -rescue- process.stderr.write('Error: #{e}') -given.s)
+                                                      -then- process.stdin /~setEncoding/ 'utf8'
+                                                      -then- process.stdin.resume()
+                                  -where [instance = $(options.configuration)],
+
+             waul_repl()                = options.simple_repl ? waul_simple_repl() : waul_node_repl(),
 
              waul_identity(file, m)     = file /-waul_output/ m._,
 
