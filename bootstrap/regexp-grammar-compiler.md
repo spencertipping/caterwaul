@@ -237,9 +237,7 @@ performant across browsers/platforms if possible.
                                                               tostring_stages(ps) = pieces *['this[_i].toString()'.qs /~replace/ {_i: '#{xi}'}]
                                                                                            /['_x, _y'.qs              /~replace/ {_x: x0, _y: x}] -seq,
 
-                                                              intrinsics          = capture [map = map_qs(), toString = tostring_qs(), length = new $.syntax('#{pieces.length}')]
-                                                                                    /!$.syntax.from_object,
-
+                                                              intrinsics          = capture [map = map_qs(), toString = tostring_qs(), length = new $.syntax('#{pieces.length}')],
                                                               nominal_bindings    = pieces %~![[x._name, 'function () {return this[_i]}'.qs /~replace/ {_i: xi}], when[x._name]] /object -seq]],
 
 ## Alternative instances
