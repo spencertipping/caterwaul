@@ -6,10 +6,10 @@ Licensed under the terms of the MIT source code license
 This module defines a vanilla Javascript grammar in terms of mutually recursive regular expressions.
 
     caterwaul.module('javascript-grammar', ':all', function ($) {
-      $.javascript_grammar = capture [statement        = /v:block | v:with_semi | ; | v:statement_/.x,
-                                      block            = /\{ :statements \}/.x,
-                                      with_semi        = /:statement_ ;/.x,
-                                      statement_       = /:if_ | :for_iterator | :for_in | :while_ | :do_ | :switch_ | :throw_ | :try_ | :expression/.x,
+      $.javascript_grammar = capture [statement        = /block@ | with_semi@ | ; | statement_@/.x,
+                                      block            = /\{ statements@ \}/.x,
+                                      with_semi        = /(s:statement_@) ;/.x,
+                                      statement_       = /if_@ | for_iterator@ | for_in@ | while_@ | do_@ | switch_@ | throw_@ | try_@ | expression@/.x,
                                       if_              = /if (pre:ws@) \((cond:expression@)\) (lhs:statement@) (else (rhs:statement@))?/.x,
                                       for_iterator     = /for (pre:ws@) \((init:statement@) (cond:expression@) (post_cond:ws@); (inc:expression@)\) (lhs:statement@)/.x,
                                       for_in           = /for (pre:ws@) \(var? (variable:identifier@) (post_variable:ws@) in (cond:expression@)\) (lhs:statement@)/.x,
@@ -21,19 +21,19 @@ This module defines a vanilla Javascript grammar in terms of mutually recursive 
                                       default_         = /(pre:ws@) default (post:ws@) [:]/.x,
                                       throw_           = /throw (lhs:expression@)/.x,
                                       try_             = /try (lhs:statements@) (rhs:catch_or_finally@)/.x,
-                                      catch_or_finally = /:catch_ | :finally_/.x,
+                                      catch_or_finally = /catch_@ | finally_@/.x,
                                       catch_           = /catch (pre:ws@) \((cond:expression@)\) (rhs:finally_@)?/.x,
                                       finally_         = /finally (lhs:statements@)/.x,
 
-                                      ws               = /\s\s* :ws | :line_comment (rest:ws@) | :block_comment (rest:ws@) | \s*/.x,
+                                      ws               = /(spacing:[\s]+) ws@ | (comment:line_comment@) (rest:ws@) | (comment:block_comment@) (rest:ws@) | \s*/.x,
                                       line_comment     = /\/\/.*/.x,
                                       block_comment    = /\/\*([^*]|\*[^\/])*\*\//.x,
 
-                                      expression       = /:literal | (s:identifier@) | :group | :unary | :binary/.x,
-                                      literal          = /(v:dstring@) | (v:sstring@) | (v:number@) | (v:regexp@) | :array | :object/.x,
+                                      expression       = /literal@ | identifier@ | group@ | unary@ | binary@/.x,
+                                      literal          = /dstring@ | sstring@ | number@ | regexp@ | array@ | object@/.x,
                                       dstring          = /"([^\\"]|\\.)*"/.x,
                                       sstring          = /'([^\\']|\\.)*"/.x,
-                                      number           = /-?0x[0-9a-fA-F]* | -?0[0-7]* | -?[0-9][0-9]*(\.[0-9]*([eE][-+]?[0-9][0-9]*)?)? | -?[0-9]*\.[0-9]*([eE][-+]?[0-9][0-9]*)?/.x,
+                                      number           = /-?0x[0-9a-fA-F]* | -?0[0-7]* | -?[0-9]+(\.[0-9]*([eE][-+]?[0-9]+)?)? | -?[0-9]*\.[0-9]*([eE][-+]?[0-9]+)?/.x,
                                       regexp           = /\/([^\\\/]|\\.)*\//.x,
                                       identifier       = /[A-Za-z$_][A-Za-z0-9$_]*/.x,
 

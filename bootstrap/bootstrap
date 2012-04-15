@@ -1724,10 +1724,10 @@ Introduction.
 This module defines a vanilla Javascript grammar in terms of mutually recursive regular expressions.
 
 caterwaul.module('javascript-grammar', ':all', function ($) {
-  $.javascript_grammar = capture [statement        = /v:block | v:with_semi | ; | v:statement_/.x,
-                                  block            = /\{ :statements \}/.x,
-                                  with_semi        = /:statement_ ;/.x,
-                                  statement_       = /:if_ | :for_iterator | :for_in | :while_ | :do_ | :switch_ | :throw_ | :try_ | :expression/.x,
+  $.javascript_grammar = capture [statement        = /block@ | with_semi@ | ; | statement_@/.x,
+                                  block            = /\{ statements@ \}/.x,
+                                  with_semi        = /(s:statement_@) ;/.x,
+                                  statement_       = /if_@ | for_iterator@ | for_in@ | while_@ | do_@ | switch_@ | throw_@ | try_@ | expression@/.x,
                                   if_              = /if (pre:ws@) \((cond:expression@)\) (lhs:statement@) (else (rhs:statement@))?/.x,
                                   for_iterator     = /for (pre:ws@) \((init:statement@) (cond:expression@) (post_cond:ws@); (inc:expression@)\) (lhs:statement@)/.x,
                                   for_in           = /for (pre:ws@) \(var? (variable:identifier@) (post_variable:ws@) in (cond:expression@)\) (lhs:statement@)/.x,
@@ -1739,19 +1739,19 @@ caterwaul.module('javascript-grammar', ':all', function ($) {
                                   default_         = /(pre:ws@) default (post:ws@) [:]/.x,
                                   throw_           = /throw (lhs:expression@)/.x,
                                   try_             = /try (lhs:statements@) (rhs:catch_or_finally@)/.x,
-                                  catch_or_finally = /:catch_ | :finally_/.x,
+                                  catch_or_finally = /catch_@ | finally_@/.x,
                                   catch_           = /catch (pre:ws@) \((cond:expression@)\) (rhs:finally_@)?/.x,
                                   finally_         = /finally (lhs:statements@)/.x,
 
-                                  ws               = /\s\s* :ws | :line_comment (rest:ws@) | :block_comment (rest:ws@) | \s*/.x,
+                                  ws               = /(spacing:[\s]+) ws@ | (comment:line_comment@) (rest:ws@) | (comment:block_comment@) (rest:ws@) | \s*/.x,
                                   line_comment     = /\/\/.*/.x,
                                   block_comment    = /\/\*([^*]|\*[^\/])*\*\//.x,
 
-                                  expression       = /:literal | (s:identifier@) | :group | :unary | :binary/.x,
-                                  literal          = /(v:dstring@) | (v:sstring@) | (v:number@) | (v:regexp@) | :array | :object/.x,
+                                  expression       = /literal@ | identifier@ | group@ | unary@ | binary@/.x,
+                                  literal          = /dstring@ | sstring@ | number@ | regexp@ | array@ | object@/.x,
                                   dstring          = /"([^\\"]|\\.)*"/.x,
                                   sstring          = /'([^\\']|\\.)*"/.x,
-                                  number           = /-?0x[0-9a-fA-F]* | -?0[0-7]* | -?[0-9][0-9]*(\.[0-9]*([eE][-+]?[0-9][0-9]*)?)? | -?[0-9]*\.[0-9]*([eE][-+]?[0-9][0-9]*)?/.x,
+                                  number           = /-?0x[0-9a-fA-F]* | -?0[0-7]* | -?[0-9]+(\.[0-9]*([eE][-+]?[0-9]+)?)? | -?[0-9]*\.[0-9]*([eE][-+]?[0-9]+)?/.x,
                                   regexp           = /\/([^\\\/]|\\.)*\//.x,
                                   identifier       = /[A-Za-z$_][A-Za-z0-9$_]*/.x,
 
@@ -1906,13 +1906,13 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                                                           -then- this *![r[xi] = x] /seq /when [r !== this && (t = x /~map/ f) !== x]
                                                                                           -then- r[xi] /eq.t] -seq
                                                                                          -then.r,
-                                                          toString()                   = this *[x.toString()] -seq -re- it.join('')]],
+                                                          toString()                   = +this /seq /~join/ '']],
 
                         sub                = $.gensym(),
                         repeated_metaclass = sub /-metaclass/ tree.repeated_child(),
 
                         parser             = raise [new Error('lazy matching semantics are not supported: #{tree}')] -when- tree.is_non_greedy()
-                                      -then- qse[function (s, i) {var ii = i, r = new _name.constructor(i, 0, 0), x = _sub(s, i), count = 1;
+                                      -then- qse[function (s, i) {var ii = i, r = new _name(i, 0, 0), x = _sub(s, i), count = 1;
                                                                   while (x && ++count <= _upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
                                                                   if (count >= _lower) return r}]
 

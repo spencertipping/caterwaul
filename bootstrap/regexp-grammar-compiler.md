@@ -153,13 +153,13 @@ to the original input string. You won't have this problem if you use map() inste
                                                                                             -then- this *![r[xi] = x] /seq /when [r !== this && (t = x /~map/ f) !== x]
                                                                                             -then- r[xi] /eq.t] -seq
                                                                                            -then.r,
-                                                            toString()                   = this *[x.toString()] -seq -re- it.join('')]],
+                                                            toString()                   = +this /seq /~join/ '']],
 
                           sub                = $.gensym(),
                           repeated_metaclass = sub /-metaclass/ tree.repeated_child(),
 
                           parser             = raise [new Error('lazy matching semantics are not supported: #{tree}')] -when- tree.is_non_greedy()
-                                        -then- qse[function (s, i) {var ii = i, r = new _name.constructor(i, 0, 0), x = _sub(s, i), count = 1;
+                                        -then- qse[function (s, i) {var ii = i, r = new _name(i, 0, 0), x = _sub(s, i), count = 1;
                                                                     while (x && ++count <= _upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
                                                                     if (count >= _lower) return r}]
 
