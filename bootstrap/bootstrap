@@ -1701,7 +1701,9 @@ meta::sdoc('js::bootstrap', <<'__');
 - include regexp-grammar-compiler.js
 - include javascript-grammar.js
 
-caterwaul(':all')(function ($) {process.stdout.write($.javascript_grammar.toString())})(caterwaul);
+caterwaul(':all')(function ($) {
+  var rename_table = $.gensym_rename_table($.javascript_grammar);
+  process.stdout.write($.javascript_grammar.replace(rename_table).toString())})(caterwaul);
 
 __
 meta::sdoc('waul::javascript-grammar', <<'__');
@@ -1795,7 +1797,7 @@ caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
 Implementation.
 Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program.
 
-  $.regexp_grammar(rules) = rules %v*[$.regexp(x, {atom: 'word'})] /pairs *[x[0] /-metaclass/ x[1]] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+  $.regexp_grammar(rules) = rules /pairs *[x[0] /-metaclass/ $.regexp(x[1], {atom: 'word'})] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
 
   Metaclass instantiation.
   The metaclass constructor function (just a regular function) looks at the tree you hand it and builds a metaclass instance based on that.
@@ -1944,7 +1946,8 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
 
                   pieces                            = tree /!unflatten,
                   formals                           = 'start_ end_'.qw + pieces *['_#{xi}'] -seq,
-                  parse_invocation(piece)           = auxiliary(piece._value || piece),
+                  parse_invocation(piece)           = piece._ref ? '_f(s, ii)'.qs /~replace/ {_f: piece._ref.data}
+                                                                 : auxiliary(piece._value || piece),
 
                   parser                            = qse[function (s, i) {var ii = i; _steps; return _instantiation}] /~replace/ {_steps:         pieces /!steps,
                                                                                                                                    _instantiation: instantiation}

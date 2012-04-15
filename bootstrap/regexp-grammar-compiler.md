@@ -48,7 +48,7 @@ Nominal bindings turn into additional methods that refer to numerically-bound pr
 
 Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program.
 
-      $.regexp_grammar(rules) = rules %v*[$.regexp(x, {atom: 'word'})] /pairs *[x[0] /-metaclass/ x[1]] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+      $.regexp_grammar(rules) = rules /pairs *[x[0] /-metaclass/ $.regexp(x[1], {atom: 'word'})] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
 
 ## Metaclass instantiation
 
@@ -206,7 +206,8 @@ performant across browsers/platforms if possible.
 
                   pieces                            = tree /!unflatten,
                   formals                           = 'start_ end_'.qw + pieces *['_#{xi}'] -seq,
-                  parse_invocation(piece)           = auxiliary(piece._value || piece),
+                  parse_invocation(piece)           = piece._ref ? '_f(s, ii)'.qs /~replace/ {_f: piece._ref.data}
+                                                                 : auxiliary(piece._value || piece),
 
                   parser                            = qse[function (s, i) {var ii = i; _steps; return _instantiation}] /~replace/ {_steps:         pieces /!steps,
                                                                                                                                    _instantiation: instantiation}
