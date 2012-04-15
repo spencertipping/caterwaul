@@ -246,7 +246,10 @@ meta::alias('eb', 'edit sdoc::js::bootstrap');
 meta::alias('ej', 'edit sdoc::waul::javascript-grammar');
 meta::alias('er', 'edit sdoc::waul::regexp-grammar-compiler');
 meta::alias('erf', 'edit function::render');
-meta::alias('r', 'sh waul -e bootstrap.js -c :all');
+meta::alias('r', <<'__');
+sh ./waul --stdin -e bootstrap.js -c :all
+
+__
 meta::bootstrap('html', <<'__');
 <html>
   <head>
@@ -1707,7 +1710,7 @@ meta::sdoc('js::bootstrap', <<'__');
 
 caterwaul(':all')(function ($) {
   var rename_table = $.gensym_rename_table($.javascript_grammar);
-  process.stdout.write($.javascript_grammar.replace(rename_table).toString())})(caterwaul);
+  process.stdout.write($.javascript_grammar.replace(rename_table).guarded().toString())})(caterwaul);
 
 __
 meta::sdoc('waul::javascript-grammar', <<'__');
