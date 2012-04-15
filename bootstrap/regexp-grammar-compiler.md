@@ -56,8 +56,6 @@ The metaclass constructor function (just a regular function) looks at the tree y
 
     -where [metaclass(name, tree) = tree.is_join()                                                   ? name /-sequence_metaclass/ tree
                                   : tree.is_disjunction()                                            ? name /-alternative_metaclass/ tree
-                                  : tree.is_forgetful()                                              ? erased_variant_metaclass(name, metaclass(sub, tree[0]) -then- sub)
-                                                                                                       -where [sub = name /!$.gensym]
                                   : tree.is_group()                                                  ? name /-metaclass/ tree[0]
                                   : tree.is_character_class() || tree.is_atom() && tree.data === '.' ? name /-trivially_variant_metaclass/ tree
                                   : tree.is_repetition()                                             ? name /-repetition_metaclass/ tree
@@ -81,7 +79,7 @@ Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modif
 
                            fold_into_comma(xs) = xs /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
                            formals             = args /!fold_into_comma,
-                           formal_assignments  = args *[/^_\d+/.test(x) ? 'this[_i] = _x'.qs /~replace/ {_i: x.substr(1), _x: x}
+                           formal_assignments  = args *[/^v\d+/.test(x) ? 'this[_i] = _x'.qs /~replace/ {_i: x.substr(1), _x: x}
                                                                         : 'this._x  = _x'.qs /~replace/ {                 _x: x}] /seq /!fold_into_comma],
 
             metaclass_instance(n, ctor, proto) = qse[_constructor, _name.prototype = _prototype, _name.prototype.constructor = _name]
@@ -143,10 +141,11 @@ probably a better way to do it.
 Note that any copies that seq[] creates won't have start() or end() defined. This probably isn't a problem in most cases, since dynamically-constructed instances don't necessarily map back
 to the original input string. You won't have this problem if you use map() instead.
 
-            repetition_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {_parser_implementation: parser},
-                                                                        proto(tree))
+            repetition_metaclass(name, tree) = '_init, _repeated'.qs /~replace/ {_init: this_metaclass(), _repeated: repeated_metaclass}
 
-                 -where [proto(t)            = qse[capture [start()                      = this.start_,
+                 -where [this_metaclass()    = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {_parser_implementation: parser},
+                                                                        proto(tree)),
+                         proto(t)            = qse[capture [start()                      = this.start_,
                                                             end()                        = this.end_,
                                                             push(x, this.length -oeq- 0) = this[this.length++] -eq- x -then- this,
                                                             pop(x = this[--this.length]) = delete this[this.length] -then- x,
@@ -156,7 +155,7 @@ to the original input string. You won't have this problem if you use map() inste
                                                                                            -then.r,
                                                             toString()                   = this *[x.toString()] -seq -re- it.join('')]],
 
-                          sub                = name /!$.gensym,
+                          sub                = $.gensym(),
                           repeated_metaclass = sub /-metaclass/ tree.repeated_child(),
 
                           parser             = raise [new Error('lazy matching semantics are not supported: #{tree}')] -when- tree.is_non_greedy()
@@ -207,10 +206,10 @@ performant across browsers/platforms if possible.
                                                                   : [t],
                   auxiliary_classes                 = {},
                   auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- new $.syntax(sub)
-                                                      -where [sub = name /!$.gensym],
+                                                      -where [sub = $.gensym()],
 
                   pieces                            = tree /!unflatten,
-                  formals                           = 'start_ end_'.qw + pieces *['_#{xi}'] -seq,
+                  formals                           = 'start_ end_'.qw + pieces *['v#{xi}'] -seq,
                   parse_invocation(piece)           = piece._ref ? '_f(s, ii)'.qs /~replace/ {_f: piece._ref.data}
                                                                  : auxiliary(piece._value || piece),
 
@@ -219,12 +218,12 @@ performant across browsers/platforms if possible.
                                                       -where [steps(ps)          = ps *[step_for(x, xi)] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
 
                                                               step_template      = qs[var _name = _invocation; if (!_name) return; ii = _name.end()],
-                                                              step_for(piece, i) = step_template /~replace/ {_name:       '_#{i}',
+                                                              step_for(piece, i) = step_template /~replace/ {_name:       'v#{i}',
                                                                                                              _invocation: '_f(s, ii)'.qs /~replace/ {_f: piece /!parse_invocation}},
 
                                                               instantiation      = qse[new _name(i, _end.end(), _formals)]
                                                                                    /~replace/ {_name:    name,
-                                                                                               _end:     '_#{pieces.length - 1}',
+                                                                                               _end:     'v#{pieces.length - 1}',
                                                                                                _formals: formals.slice(2) /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq}],
 
                   proto                             = {} /nominal_bindings /-$.merge/intrinsics /!$.syntax.from_object
@@ -262,7 +261,7 @@ would be unnecessary because alternatives don't necessarily have anything in com
                 -where [unflatten(tree)       = tree.data === '|' ? [tree[0]] /~concat/ unflatten(tree[1]) : [tree],
 
                         alternatives          = tree /!unflatten,
-                        alternative_names     = alternatives *['#{name}_alternative' /!$.gensym] -seq,
+                        alternative_names     = alternatives *[$.gensym()] -seq,
                         alternative_instances = alternatives *[alternative_names[xi] /-metaclass/ x] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
                         parser                = qse[_disjunction, given[s, i]]
                                                 /~replace/ {_disjunction: alternative_names *['_f(s, i)'.qs /~replace/ {_f: x}]
