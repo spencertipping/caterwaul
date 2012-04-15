@@ -242,9 +242,9 @@ meta::meta('type::waul', <<'__');
 meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => 'edit';
 
 __
-meta::alias('e', 'edit sdoc::waul::regexp-grammar-compiler');
 meta::alias('eb', 'edit sdoc::js::bootstrap');
 meta::alias('ej', 'edit sdoc::waul::javascript-grammar');
+meta::alias('er', 'edit sdoc::waul::regexp-grammar-compiler');
 meta::alias('erf', 'edit function::render');
 meta::alias('r', 'sh waul -e bootstrap.js -c :all');
 meta::bootstrap('html', <<'__');
@@ -1825,7 +1825,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
   These have predetermined content and length, so all that is necessary for each instance is the 'start' parameter. Serialization and mapping are both trivial. The end() method simply adds the
   starting position to the precomputed length of the constant. Here, 'k' is the invariant string.
 
-          invariant_metaclass(name, k) = metaclass_instance(name, metaclass_constructor(name, 'start'.qw) /~replace/ {'_@parser_implementation': parser(name, k)},
+          invariant_metaclass(name, k) = metaclass_instance(name, metaclass_constructor(name, 'start_'.qw) /~replace/ {'_@parser_implementation': parser(name, k)},
                                                                   proto(k))
 
                -where [proto(k)        = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
@@ -1834,12 +1834,12 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                       toString()          = _s]] /~replace/ {_s: k /!$.syntax.from_string, _l: '#{k.length}'},
 
                        parser(name, k) = qse[new _name(i) -when [_s === s.substr(i, _l)] -given [s, i]]
-                                                   /~replace/ {_name: name, _s: k /!$.syntax.from_string, _l: '#{k.length}'}],
+                                         /~replace/ {_name: name, _s: k /!$.syntax.from_string, _l: '#{k.length}'}],
 
   Erased-variant instances.
   These have variant content and length and therefore take two parameters. The metaclass evaluates the given parser and turns the result into a string before saving it.
 
-          erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 1) /~replace/ {'_@parser_implementation': parser(name, p)},
+          erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 'parsed_'.qw) /~replace/ {'_@parser_implementation': parser(name, p)},
                                                                          qse[capture [map(f, r = f(this)) = r === true || !r ? this : r
                                                                                       end()               = this.start_ + this.parsed_.length,
                                                                                       length              = 0,
@@ -1848,20 +1848,48 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                     -where [parser(name, sub) = qse[new _name(i, result.toString()) -when.result -where [result = _sub.parse(s, i)] -given [s, i]]
                                                 /~replace/ {_name: name, _parse: parse}],
 
+  Repetition instances.
+  Repetitions represent *, +, and ? in sequences. Each contains numerically indexed children along with a .length property; this allows you to iterate through the entries using the seq[]
+  macro.
+
   Sequence instances.
   Sequences destructure regular expressions piece by piece. This isn't quite as simple as the above cases for a couple of reasons. First, regular expressions don't map one-to-one against
   metaclass instances. In cases like /foo|bar/, two subclasses will be created, one for each constant possibility. Second, pieces of the regular expression can have names aliased onto numeric
   members. For example, /foo (bar:bif) baz/ creates a prototype method called bar() that returns this[1].
 
+  Identifying the sequence elements isn't as simple as pulling off one piece at a time. Because there are some special forms built from the other ones, we need to first test to see if we have
+  one. The tree is right-associative, which is ideal.
+
+          sequence_special_forms         = [/_ref@/, /_ref@_rest/, /_name:_value/, /_name:_value _rest/] *[x /-$.regexp/ {atom: 'word'}] -seq,
+          sequence_metaclass(name, tree) = auxiliary_classes /values /[metaclass()][new $.syntax(';', x0, x)] -seq
+          -where [metaclass()                       = metaclass_instance(name, metaclass_constructor(name, formals) /~replace/ {'_@parser_implementation': parser},
+                                                                               proto),
+
+                  special_form(t)                   = sequence_special_forms |[x /~match/ t] |seq,
+                  unflatten(t, s = special_form(t)) = s           ? s._rest ? [s] /~concat/ unflatten(rest) : [s]
+                                                    : t.is_join() ? [t[0]] /~concat/ unflatten(t[1])
+                                                                  : [t],
+                  auxiliary_classes                 = {},
+                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- '_name(s, i)'.qse /~replace/ {_name: sub}
+                                                      -where [sub = name /!$.gensym],
+
+                  pieces                            = tree /!unflatten,
+                  formals                           = 'start_ end_ length_'.qw + pieces *['_#{x}'] -seq,
+
+                  parse_invocation(piece)           = auxiliary(piece._value || piece)],
+
+  Alternative instances.
   The alternative case is an interesting one. If the regular expression represents a disjunction, then we flatten it out and construct a virtual class. This class will never be instantiated,
   but it will have a .parse() static method as promised to whoever created it. That way sub-instantiation and cross-references will both work. Note that there is no prototype chaining; it
   would be unnecessary because alternatives don't necessarily have anything in common.
 
-  The sequence_metaclass method returns a hash to accommodate sub-definitions.
+          alternative_metaclass(name, tree) = qse[_name = capture [parse = _parser], _alternatives] /~replace/ {_name: name, _parser: parser, _alternatives: alternative_instances}
+              -where [unflatten(tree)       = tree.data === '|' ? [tree[0]] /~concat/ unflatten(tree[1]) : [tree],
 
-          sequence_metaclass(name, tree) = 
-
-                         formals_for(arity)  = 'start end'.qw + n[arity] *['_#{x}'] -seq,
+                      alternatives          = tree /!unflatten,
+                      alternative_names     = alternatives *['#{name}_alternative' /!$.gensym] -seq,
+                      alternative_instances = alternatives *[[alternative_names[xi], '/#{x}/']] /object /seq /!$.regexp_grammar,
+                      parser                = qse[_names |[x.parse(s, i)] |seq, given[s, i]] /~replace/ {_names: alternative_names /!$.syntax.from_array}]]});
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
