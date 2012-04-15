@@ -127,7 +127,7 @@ memory in the common case).
                                             : t.is_disjunction() ? 'var _ni=_i;_t1;if(_ni>-1)_i=_ni; else{_t2}'.qs /~replace/ {_ni: ni, _i: i, _t1: compile(t[0], ni), _t2: compile(t[1], i)}
                                                                                                                    /where     [ni = $.gensym()]
                                             : t.is_repetition()  ? qse[var _ni = _i, _count = 0; _each;
-                                                                                                 while (_ni > -1 && ++_count <= _upper) _i = _ni, _each;
+                                                                                                 while (_ni > -1 && ++_count <= _upper) {_i = _ni; _each}
                                                                                                  if (_count < _lower) _i = -1]
                                                                    /~replace/ {_i:    i,                                _count:  $.gensym(),
                                                                                _ni:   ni,                               _upper: '#{t.upper_limit()}',
