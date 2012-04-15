@@ -1821,13 +1821,14 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
   The metaclass constructor function (just a regular function) looks at the tree you hand it and builds a metaclass instance based on that.
 
   -where [metaclass(name, tree) = tree /!is_primitive                                              ? name /-primitive_metaclass/         tree
+                                : inline_ref_form /~match/ tree -re [it && !it._ref.length]        ? name /-alias_metaclass/             tree[1].data
                                 : tree.is_group()                                                  ? name /-metaclass/                   tree[0]
                                 : tree.is_join()                                                   ? name /-sequence_metaclass/          tree
                                 : tree.is_disjunction()                                            ? name /-alternative_metaclass/       tree
                                 : tree.is_character_class() || tree.is_atom() && tree.data === '.' ? name /-trivially_variant_metaclass/ tree
                                 : tree.is_repetition()                                             ? name /-repetition_metaclass/        tree
                                                                                                    : name /-invariant_metaclass/         tree.toString(),
-
+          inline_ref_form    = $.regexp(/@_ref/, {atom: 'word'}),
           special_forms      = [/@_ref _rest/, /@_ref/, /_name:@_ref _rest/, /_name:@_ref/, /_name:_value _rest/, /_name:_value/] *[x /-$.regexp/ {atom: 'word'}] -seq,
           is_primitive(tree) = special_forms |![x /~match/ tree] |seq |and[tree.is_join()        ? tree[0] /!is_primitive -and- tree[1] /!is_primitive
                                                                          : tree.is_disjunction() ? tree[0] /!is_primitive -and- tree[1] /!is_primitive
@@ -1857,6 +1858,12 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                          formals             = args /!fold_into_comma,
                          formal_assignments  = args *[/^_\d+/.test(x) ? 'this[_i] = _x'.qs /~replace/ {_i: x.substr(1), _x: x}
                                                                       : 'this._x  = _x'.qs /~replace/ {                 _x: x}] /seq /!fold_into_comma],
+
+  Alias instances.
+  This is really simple. Sometimes someone will have requested a metaclass with a given name, but in practice it already exists. We can simply write an equivalence for cases like these. The
+  only thing we need to do is allow for the fact that the target may not yet be defined. This can be done using a forward definition.
+
+          alias_metaclass(name, target) = qse[_name() = _target.apply(this, arguments), _name.parse() = _target.parse.apply(this, arguments)] /~replace/ {_name: name, _target: target},
 
   Primitive instances.
   These just map to a range within the original string, but they don't actually parse things. The idea is to not cons up tons of memory for simple sequences of unlabeled things, and to enable
