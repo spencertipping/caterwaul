@@ -1861,7 +1861,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
   one. The tree is right-associative, which is ideal.
 
           sequence_special_forms         = [/_ref@/, /_ref@_rest/, /_name:_value/, /_name:_value _rest/] *[x /-$.regexp/ {atom: 'word'}] -seq,
-          sequence_metaclass(name, tree) = auxiliary_classes /values /[metaclass()][new $.syntax(';', x0, x)] -seq
+          sequence_metaclass(name, tree) = auxiliary_classes /values /[metaclass()]['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq
           -where [metaclass()                       = metaclass_instance(name, metaclass_constructor(name, formals) /~replace/ {'_@parser_implementation': parser},
                                                                                proto),
 
@@ -1870,13 +1870,32 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                     : t.is_join() ? [t[0]] /~concat/ unflatten(t[1])
                                                                   : [t],
                   auxiliary_classes                 = {},
-                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- '_name(s, i)'.qse /~replace/ {_name: sub}
+                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- '_name(s, ii)'.qse /~replace/ {_name: sub}
                                                       -where [sub = name /!$.gensym],
 
                   pieces                            = tree /!unflatten,
-                  formals                           = 'start_ end_ length_'.qw + pieces *['_#{x}'] -seq,
+                  formals                           = 'start_ end_'.qw + pieces *['_#{x}'] -seq,
+                  parse_invocation(piece)           = auxiliary(piece._value || piece),
 
-                  parse_invocation(piece)           = auxiliary(piece._value || piece)],
+                  parser                            = qse[function (s, i) {var ii = i; _steps; return _instantiation}] /~replace/ {_steps:         pieces /!steps,
+                                                                                                                                   _instantiation: instantiation}
+                                                      -where [steps(ps)          = ps /['null'.qs]['_x; _y' /~replace/ {_x: x0, _y: step_for(x, xi)}] -seq,
+
+                                                              step_template      = qs[var _name = _invocation; if (!_name) return; ii = _name.end()],
+                                                              step_for(piece, i) = step_template /~replace/ {_name:       '_#{i}',
+                                                                                                             _invocation: '_f(s, ii)'.qs /~replace/ {_f: piece /!parse_invocation}},
+
+                                                              instantiation      = qse[new _name(i, _end.end(), _formals)]
+                                                                                   /~replace/ {_name:    name,
+                                                                                               _end:     '_#{pieces.length - 1}',
+                                                                                               _formals: formals.slice(2) /['_x, _y' /~replace/ {_x: x0, _y: x}] -seq}],
+
+                  proto                             = $.syntax.from_object(nominally_bound_methods + intrinsics -object -seq)
+                                                      -where [map_qs = 
+
+                                                                intrinsics = 
+
+                  ],
 
   Alternative instances.
   The alternative case is an interesting one. If the regular expression represents a disjunction, then we flatten it out and construct a virtual class. This class will never be instantiated,
