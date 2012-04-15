@@ -44,7 +44,18 @@ caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
 Implementation.
 Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program.
 
-  $.regexp_grammar(rules) = rules %v*parser_entry_point -seq
+  $.regexp_grammar(rules) = rules %v*$.regexp /pairs *[metaclass(x[0], x[1])] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+
+  Metaclass instantiation.
+  The metaclass constructor function (just a regular function) looks at the tree you hand it and builds a metaclass instance based on that.
+
+  -where [metaclass(name, tree) = tree.is_join()                                                   ? name /-sequence_metaclass/ tree
+                                : tree.is_disjunction()                                            ? name /-alternative_metaclass/ tree
+                                : tree.is_forgetful()                                              ? erased_variant_metaclass(name, metaclass(sub, tree[0]) -then- sub)
+                                                                                                     -where [sub = name /!$.gensym]
+                                : tree.is_character_class() || tree.is_atom() && tree.data === '.' ? name /-trivially_variant_metaclass/ tree
+                                : tree.is_repetition()                                             ? name /-repetition_metaclass/ tree
+                                                                                                   : name /-invariant_metaclass/ tree.toString(),
 
   Metaclass instance generation.
   Metaclass instances are emitted as cross-referential functions that have two modes of operation:
@@ -57,7 +68,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
   Each metaclass contains a .map() method that recursively descends through the tree. It uses a standard protocol to indicate nondestructive node replacement, stop-traversal, and continuation.
   Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modified subtrees.
 
-  -where [metaclass_constructor(name, args)  = template /~replace/ {_name: name, _formals: formals, _formal_assignments: formal_assignments}
+          metaclass_constructor(name, args)  = template /~replace/ {_name: name, _formals: formals, _formal_assignments: formal_assignments}
                  -where [template            = qse[_name(_formals) = this.constructor === _name ? _formal_assignments -then- this : _name.parse(arguments[0], arguments[1] || 0),
                                                    _name.parse     = _@parser_implementation],
 
@@ -108,8 +119,24 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
   Identifying the sequence elements isn't as simple as pulling off one piece at a time. Because there are some special forms built from the other ones, we need to first test to see if we have
   one. The tree is right-associative, which is ideal.
 
+    Map function semantics.
+    Mapping over a sequence node is fairly straightforward. It has the following semantics:
+
+    | 1. If f(node) returns false, node is replaced by node.map(f).
+      2. If f(node) returns true, node is not replaced at all and is not descended into.
+      3. If f(node) returns anything else, node is replaced immediately and the new value is not descended into.
+
+    This allows you to use map() as a non-consing iterator by continuously returning false or the receiver.
+
+    Serialization.
+    Any AST can be rendered back into the string that produced it using toString(). If you've modified the node, however, it will need to generate a new string since it no longer reflects its
+    original state. It's important for this operation to be as fast as possible, so I'm constructing an array and join()ing the pieces.
+
+    Technically this is not the fastest way to do it on V8. Because V8 uses string cons trees, it's actually a little faster to just use naive + concatenation. But this code should be
+    performant across browsers/platforms if possible.
+
           sequence_special_forms         = [/_ref@/, /_ref@_rest/, /_name:_value/, /_name:_value _rest/] *[x /-$.regexp/ {atom: 'word'}] -seq,
-          sequence_metaclass(name, tree) = auxiliary_classes /values /[metaclass()][new $.syntax(';', x0, x)] -seq
+          sequence_metaclass(name, tree) = auxiliary_classes /values /[metaclass()]['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq
           -where [metaclass()                       = metaclass_instance(name, metaclass_constructor(name, formals) /~replace/ {'_@parser_implementation': parser},
                                                                                proto),
 
@@ -118,13 +145,44 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                     : t.is_join() ? [t[0]] /~concat/ unflatten(t[1])
                                                                   : [t],
                   auxiliary_classes                 = {},
-                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- '_name(s, i)'.qse /~replace/ {_name: sub}
+                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- '_name(s, ii)'.qse /~replace/ {_name: sub}
                                                       -where [sub = name /!$.gensym],
 
                   pieces                            = tree /!unflatten,
-                  formals                           = 'start_ end_ length_'.qw + pieces *['_#{x}'] -seq,
+                  formals                           = 'start_ end_'.qw + pieces *['_#{x}'] -seq,
+                  parse_invocation(piece)           = auxiliary(piece._value || piece),
 
-                  parse_invocation(piece)           = auxiliary(piece._value || piece)],
+                  parser                            = qse[function (s, i) {var ii = i; _steps; return _instantiation}] /~replace/ {_steps:         pieces /!steps,
+                                                                                                                                   _instantiation: instantiation}
+                                                      -where [steps(ps)          = ps /['null'.qs]['_x; _y' /~replace/ {_x: x0, _y: step_for(x, xi)}] -seq,
+
+                                                              step_template      = qs[var _name = _invocation; if (!_name) return; ii = _name.end()],
+                                                              step_for(piece, i) = step_template /~replace/ {_name:       '_#{i}',
+                                                                                                             _invocation: '_f(s, ii)'.qs /~replace/ {_f: piece /!parse_invocation}},
+
+                                                              instantiation      = qse[new _name(i, _end.end(), _formals)]
+                                                                                   /~replace/ {_name:    name,
+                                                                                               _end:     '_#{pieces.length - 1}',
+                                                                                               _formals: formals.slice(2) /['_x, _y' /~replace/ {_x: x0, _y: x}] -seq}],
+
+                  proto                             = {} /nominal_bindings /-$.merge/intrinsics /!$.syntax.from_object
+                                                      -where [map_qs()            = qse[function (f) {var receiver = f(this) || this; if (receiver === true) return this;
+                                                                                                      _stages; return receiver}]
+                                                                                    /~replace/ {_stages: pieces /!map_stages},
+
+                                                              map_stages(ps)      = ps *[map_stage(xi)] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
+                                                              map_stage(i)        = qse[if (receiver === this && (x = this[_i].map(f)) !== receiver[_i]) {
+                                                                                          receiver = new this.constructor(this.start(), this.end());
+                                                                                          for (var j = 0; j < _i; ++j) receiver[j] = this[j]}
+                                                                                        receiver[_i] = x]
+                                                                                    /~replace/ {_i: '#{i}'},
+
+                                                              tostring_qs()       = qse[function () {return [_pieces].join('')}] /~replace/ {_pieces: pieces /!tostring_stages},
+                                                              tostring_stages(ps) = pieces *['this[_i].toString()'.qs /~replace/ {_i: '#{xi}'}]
+                                                                                           /['_x, _y'.qs              /~replace/ {_x: x0, _y: x}] -seq,
+
+                                                              intrinsics          = capture [map = map_qs(), toString = tostring_qs()] /!$.syntax.from_object,
+                                                              nominal_bindings    = pieces %~![[x._name, 'function () {return this[_i]}'.qs /~replace/ {_i: xi}], when[x._name]] /object -seq]],
 
   Alternative instances.
   The alternative case is an interesting one. If the regular expression represents a disjunction, then we flatten it out and construct a virtual class. This class will never be instantiated,
