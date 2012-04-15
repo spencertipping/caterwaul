@@ -40,7 +40,9 @@ syn match     jsAssignment              /\k\+\s*[-+*/^&|%<>]*=[^=]\@=/ contains=
 
 syn match     jsWordPrefix              /[-\/|,<]\k\@=/
 
-syn match     jsIdentifier              /[A-Za-z$_][A-Za-z0-9$_]*/
+syn match     jsIdentifier              /[A-Za-z$_][A-Za-z0-9$@_]*/ contains=jsMetadata
+syn match     jsMetadata                /@[A-Za-z0-9$@_]*/ contained
+syn match     jsWildcard                /\<_[A-Za-z0-9$_@]\+\>/
 syn match     jsNumber                  /-\?0x[0-9A-Fa-f]\+\|-\?\(\d*\.\d\+\|\d\+\.\d*\|\d\+\)\([eE][+-]\?\d\{1,3\}\)\?\|-\?0[0-7]\+/
 syn region    jsStringD                 matchgroup=jsQuote start=/"/ skip=/\\\\\|\\"/ end=/"/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
 syn region    jsStringS                 matchgroup=jsQuote start=/'/ skip=/\\\\\|\\'/ end=/'/ oneline keepend contains=jsStringEscape,jsCaterwaulEscape
@@ -175,7 +177,7 @@ hi def link jsModifierSuffix            Special
 hi def link jsBindingMacro              Special
 hi def link jsFunctionMacro             Special
 hi def link jsOtherMacro                Special
-hi def link jsQuotationMacro            Keyword
+hi def link jsQuotationMacro            Special
 
 hi def link jsFunctionGroup             Identifier
 
@@ -229,6 +231,9 @@ hi def link jsBuiltinType               Type
 hi def link jsBuiltinLiteral            Special
 hi def link jsBuiltinValue              Special
 hi def link jsPrototype                 Special
+
+hi def link jsWildcard                  Identifier
+hi def link jsMetadata                  Type
 
 let b:current_syntax = "caterwaul"
 if main_syntax == 'caterwaul'
