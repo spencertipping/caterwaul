@@ -11,14 +11,14 @@ for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
 xi<xl;
  ++xi)x=xs[xi] ,xr.push( ($.regexp(x, {atom: 'word' } ) ) ) ;
 return xr} ) .call(this, [ /_ref@/ , /_ref@_rest/ , /_name:_value/ , /_name:_value _rest/ ] ) ,is_primitive=function(tree) {;
-return tree.is_join() ?is_primitive(tree[0] ) &&is_primitive(tree[1] ) 
-:tree.is_disjunction() ?is_primitive(tree[0] ) &&is_primitive(tree[1] ) 
-:tree.is_repetition() ?is_primitive(tree.repeated_child() ) 
-: (function(xs) {var x,x0,xi,xl,xr;
+return(function(xs) {var x,x0,xi,xl,xr;
 for(var x=xs[0] ,xi=0,xl=xs.length,x1;
 xi<xl;
  ++xi) {x=xs[xi] ;
-if(x1= ( (x) .match(tree) ) )return false}return true} ) .call(this,special_forms) } ,metaclass_instance=function(n,ctor,proto) {;
+if(x1= ( (x) .match(tree) ) )return false}return true} ) .call(this,special_forms) && (tree.is_join() ?is_primitive(tree[0] ) &&is_primitive(tree[1] ) 
+:tree.is_disjunction() ?is_primitive(tree[0] ) &&is_primitive(tree[1] ) 
+:tree.is_repetition() ?is_primitive(tree.repeated_child() ) 
+:true) } ,metaclass_instance=function(n,ctor,proto) {;
 return(qse) .replace( {_constructor:ctor,_prototype:proto,_name:n} ) } ,metaclass_constructor=function(name,args) {;
 return(function() {var template=qse1,fold_into_comma=function(xs) {;
 return(function(xs) {var x,x0,xi,xl,xr;

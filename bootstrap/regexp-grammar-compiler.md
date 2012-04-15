@@ -62,10 +62,10 @@ The metaclass constructor function (just a regular function) looks at the tree y
                                                                                                      : name /-invariant_metaclass/         tree.toString(),
 
             special_forms      = [/_ref@/, /_ref@_rest/, /_name:_value/, /_name:_value _rest/] *[x /-$.regexp/ {atom: 'word'}] -seq,
-            is_primitive(tree) = tree.is_join()        ? tree[0] /!is_primitive -and- tree[1] /!is_primitive
-                               : tree.is_disjunction() ? tree[0] /!is_primitive -and- tree[1] /!is_primitive
-                               : tree.is_repetition()  ? tree.repeated_child() /!is_primitive
-                                                       : special_forms |![x /~match/ tree] |seq,
+            is_primitive(tree) = special_forms |![x /~match/ tree] |seq |and[tree.is_join()        ? tree[0] /!is_primitive -and- tree[1] /!is_primitive
+                                                                           : tree.is_disjunction() ? tree[0] /!is_primitive -and- tree[1] /!is_primitive
+                                                                           : tree.is_repetition()  ? tree.repeated_child() /!is_primitive
+                                                                                                   : true],
 
 ## Metaclass instance generation
 
