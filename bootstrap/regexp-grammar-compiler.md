@@ -84,7 +84,7 @@ Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modif
                            formal_assignments  = args *[/^_\d+/.test(x) ? 'this[_i] = _x'.qs /~replace/ {_i: x.substr(1), _x: x}
                                                                         : 'this._x  = _x'.qs /~replace/ {                 _x: x}] /seq /!fold_into_comma],
 
-            metaclass_instance(n, ctor, proto) = qse[_constructor, _prototype, _name.prototype.constructor = _name]
+            metaclass_instance(n, ctor, proto) = qse[_constructor, _name.prototype = _prototype, _name.prototype.constructor = _name]
                                                  /~replace/ {_constructor: ctor, _prototype: proto, _name: n},
 
 ## Invariant instances
