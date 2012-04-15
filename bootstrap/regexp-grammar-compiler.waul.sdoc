@@ -53,6 +53,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                 : tree.is_disjunction()                                            ? name /-alternative_metaclass/ tree
                                 : tree.is_forgetful()                                              ? erased_variant_metaclass(name, metaclass(sub, tree[0]) -then- sub)
                                                                                                      -where [sub = name /!$.gensym]
+                                : tree.is_group()                                                  ? name /-metaclass/ tree[0]
                                 : tree.is_character_class() || tree.is_atom() && tree.data === '.' ? name /-trivially_variant_metaclass/ tree
                                 : tree.is_repetition()                                             ? name /-repetition_metaclass/ tree
                                                                                                    : name /-invariant_metaclass/ tree.toString(),
@@ -107,9 +108,51 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                     -where [parser(name, sub) = qse[new _name(i, result.toString()) -when.result -where [result = _sub.parse(s, i)] -given [s, i]]
                                                 /~replace/ {_name: name, _parse: parse}],
 
+  Trivially variant instances.
+  These are single-component variants like character classes. The match result is stored as a string.
+
+          trivially_variant_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ match_'.qw) /~replace/ {'_@parser_implementation': parser(name, tree)},
+                                                                             proto)
+
+                          -where [proto           = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
+                                                                 end()               = this.start_ + this.match_.length,
+                                                                 length              = 0,
+                                                                 toString()          = this.match_]],
+
+                                  parser(name, t) = qse[new _name(i, s.charAt(i)) -when [_r /~test/ s.charAt(i)] -given [s, i]]
+                                                    /~replace/ {_name: name, _r: '/#{t}/'}],
+
   Repetition instances.
   Repetitions represent *, +, and ? in sequences. Each contains numerically indexed children along with a .length property; this allows you to iterate through the entries using the seq[]
-  macro.
+  macro. Unlike other instances, they are designed to support local mutability; this is useful when copying information from one repetition instance to another using seq[] -- though .map() is
+  probably a better way to do it.
+
+  Note that any copies that seq[] creates won't have start() or end() defined. This probably isn't a problem in most cases, since dynamically-constructed instances don't necessarily map back
+  to the original input string. You won't have this problem if you use map() instead.
+
+          repetition_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {'_@parser_implementation': parser},
+                                                                      proto(tree))
+
+               -where [proto(t)            = qse[capture [push(x, this.length -oeq- 0) = this[this.length++] -eq- x -then- this,
+                                                          pop(x = this[--this.length]) = delete this[this.length] -then- x,
+                                                          map(f, r = this, t = null)   = this *![r -eq- new this.constructor(this.start_, this.end_, this.length)
+                                                                                          -then- this *![r[xi] = x] /seq /when [r !== this && (t = x /~map/ f) !== x]
+                                                                                          -then- r[xi] /eq.t] -seq
+                                                                                         -then.r,
+                                                          toString()                   = this *[x.toString()] -seq -re- it.join('')]],
+
+                        sub                = name /!$.gensym,
+                        repeated_metaclass = sub /-metaclass/ tree.repeated_child(),
+
+                        parser             = raise [new Error('lazy matching semantics are not supported: #{tree}')] -when- tree.is_non_greedy()
+                                      -then- qse[function (s, i) {var ii = i, r = new _name.constructor(i, 0, 0), x = _sub(s, i), count = 1, limit = _upper;
+                                                                  while (x && ++count <= upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
+                                                                  if (count >= _lower) return r}]
+
+                                             /~replace/ {_name:  name,
+                                                         _sub:   sub,
+                                                         _upper: '#{tree.upper_limit()}',
+                                                         _lower: '#{tree.lower_limit()}'}],
 
   Sequence instances.
   Sequences destructure regular expressions piece by piece. This isn't quite as simple as the above cases for a couple of reasons. First, regular expressions don't map one-to-one against
@@ -122,7 +165,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
     Map function semantics.
     Mapping over a sequence node is fairly straightforward. It has the following semantics:
 
-    | 1. If f(node) returns false, node is replaced by node.map(f).
+    | 1. If f(node) returns false or node, node is replaced by node.map(f).
       2. If f(node) returns true, node is not replaced at all and is not descended into.
       3. If f(node) returns anything else, node is replaced immediately and the new value is not descended into.
 
@@ -163,7 +206,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                               instantiation      = qse[new _name(i, _end.end(), _formals)]
                                                                                    /~replace/ {_name:    name,
                                                                                                _end:     '_#{pieces.length - 1}',
-                                                                                               _formals: formals.slice(2) /['_x, _y' /~replace/ {_x: x0, _y: x}] -seq}],
+                                                                                               _formals: formals.slice(2) /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq}],
 
                   proto                             = {} /nominal_bindings /-$.merge/intrinsics /!$.syntax.from_object
                                                       -where [map_qs()            = qse[function (f) {var receiver = f(this) || this; if (receiver === true) return this;
@@ -181,7 +224,9 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                               tostring_stages(ps) = pieces *['this[_i].toString()'.qs /~replace/ {_i: '#{xi}'}]
                                                                                            /['_x, _y'.qs              /~replace/ {_x: x0, _y: x}] -seq,
 
-                                                              intrinsics          = capture [map = map_qs(), toString = tostring_qs()] /!$.syntax.from_object,
+                                                              intrinsics          = capture [map = map_qs(), toString = tostring_qs(), length = new $.syntax('#{pieces.length}')]
+                                                                                    /!$.syntax.from_object,
+
                                                               nominal_bindings    = pieces %~![[x._name, 'function () {return this[_i]}'.qs /~replace/ {_i: xi}], when[x._name]] /object -seq]],
 
   Alternative instances.
