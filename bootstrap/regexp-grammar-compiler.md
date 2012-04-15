@@ -48,7 +48,7 @@ Nominal bindings turn into additional methods that refer to numerically-bound pr
 
 Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program.
 
-      $.regexp_grammar(rules) = rules %v*$.regexp /pairs *[metaclass(x[0], x[1])] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+      $.regexp_grammar(rules) = rules %v*[$.regexp(x, {atom: 'word'})] /pairs *[x[0] /-metaclass/ x[1]] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
 
 ## Metaclass instantiation
 
@@ -77,9 +77,9 @@ Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modif
 
             metaclass_constructor(name, args)  = template /~replace/ {_name: name, _formals: formals, _formal_assignments: formal_assignments}
                    -where [template            = qse[_name(_formals) = this.constructor === _name ? _formal_assignments -then- this : _name.parse(arguments[0], arguments[1] || 0),
-                                                     _name.parse     = _@parser_implementation],
+                                                     _name.parse     = _parser_implementation],
 
-                           fold_into_comma(xs) = xs /[new $.syntax(',')][x0 /~push/ x] -seq -re- it.unflatten(),
+                           fold_into_comma(xs) = xs /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
                            formals             = args /!fold_into_comma,
                            formal_assignments  = args *[/^_\d+/.test(x) ? 'this[_i] = _x'.qs /~replace/ {_i: x.substr(1), _x: x}
                                                                         : 'this._x  = _x'.qs /~replace/ {                 _x: x}] /seq /!fold_into_comma],
@@ -92,7 +92,7 @@ Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modif
 These have predetermined content and length, so all that is necessary for each instance is the 'start' parameter. Serialization and mapping are both trivial. The end() method simply adds the
 starting position to the precomputed length of the constant. Here, 'k' is the invariant string.
 
-            invariant_metaclass(name, k) = metaclass_instance(name, metaclass_constructor(name, 'start_'.qw) /~replace/ {'_@parser_implementation': parser(name, k)},
+            invariant_metaclass(name, k) = metaclass_instance(name, metaclass_constructor(name, 'start_'.qw) /~replace/ {_parser_implementation: parser(name, k)},
                                                                     proto(k))
 
                  -where [proto(k)        = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
@@ -107,7 +107,7 @@ starting position to the precomputed length of the constant. Here, 'k' is the in
 
 These have variant content and length and therefore take two parameters. The metaclass evaluates the given parser and turns the result into a string before saving it.
 
-            erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 'parsed_'.qw) /~replace/ {'_@parser_implementation': parser(name, p)},
+            erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 'parsed_'.qw) /~replace/ {_parser_implementation: parser(name, p)},
                                                                            qse[capture [map(f, r = f(this)) = r === true || !r ? this : r
                                                                                         end()               = this.start_ + this.parsed_.length,
                                                                                         length              = 0,
@@ -120,7 +120,7 @@ These have variant content and length and therefore take two parameters. The met
 
 These are single-component variants like character classes. The match result is stored as a string.
 
-            trivially_variant_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ match_'.qw) /~replace/ {'_@parser_implementation': parser(name, tree)},
+            trivially_variant_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ match_'.qw) /~replace/ {_parser_implementation: parser(name, tree)},
                                                                                proto)
 
                             -where [proto           = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
@@ -140,7 +140,7 @@ probably a better way to do it.
 Note that any copies that seq[] creates won't have start() or end() defined. This probably isn't a problem in most cases, since dynamically-constructed instances don't necessarily map back
 to the original input string. You won't have this problem if you use map() instead.
 
-            repetition_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {'_@parser_implementation': parser},
+            repetition_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {_parser_implementation: parser},
                                                                         proto(tree))
 
                  -where [proto(t)            = qse[capture [push(x, this.length -oeq- 0) = this[this.length++] -eq- x -then- this,
@@ -192,8 +192,8 @@ Technically this is not the fastest way to do it on V8. Because V8 uses string c
 performant across browsers/platforms if possible.
 
           sequence_special_forms         = [/_ref@/, /_ref@_rest/, /_name:_value/, /_name:_value _rest/] *[x /-$.regexp/ {atom: 'word'}] -seq,
-          sequence_metaclass(name, tree) = auxiliary_classes /values /[metaclass()]['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq
-          -where [metaclass()                       = metaclass_instance(name, metaclass_constructor(name, formals) /~replace/ {'_@parser_implementation': parser},
+          sequence_metaclass(name, tree) = auxiliary_classes /values /[base_metaclass()]['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+          -where [base_metaclass()                  = metaclass_instance(name, metaclass_constructor(name, formals) /~replace/ {_parser_implementation: parser},
                                                                                proto),
 
                   special_form(t)                   = sequence_special_forms |[x /~match/ t] |seq,
@@ -205,7 +205,7 @@ performant across browsers/platforms if possible.
                                                       -where [sub = name /!$.gensym],
 
                   pieces                            = tree /!unflatten,
-                  formals                           = 'start_ end_'.qw + pieces *['_#{x}'] -seq,
+                  formals                           = 'start_ end_'.qw + pieces *['_#{xi}'] -seq,
                   parse_invocation(piece)           = auxiliary(piece._value || piece),
 
                   parser                            = qse[function (s, i) {var ii = i; _steps; return _instantiation}] /~replace/ {_steps:         pieces /!steps,
@@ -246,10 +246,12 @@ The alternative case is an interesting one. If the regular expression represents
 but it will have a .parse() static method as promised to whoever created it. That way sub-instantiation and cross-references will both work. Note that there is no prototype chaining; it
 would be unnecessary because alternatives don't necessarily have anything in common.
 
-            alternative_metaclass(name, tree) = qse[_name = capture [parse = _parser], _alternatives] /~replace/ {_name: name, _parser: parser, _alternatives: alternative_instances}
+            alternative_metaclass(name, tree) = qse[_name(s, i) = _name.parse(s, i), _name.parse = _parser, _alternatives]
+                                                /~replace/ {_name: name, _parser: parser, _alternatives: alternative_instances}
+
                 -where [unflatten(tree)       = tree.data === '|' ? [tree[0]] /~concat/ unflatten(tree[1]) : [tree],
 
                         alternatives          = tree /!unflatten,
                         alternative_names     = alternatives *['#{name}_alternative' /!$.gensym] -seq,
-                        alternative_instances = alternatives *[[alternative_names[xi], '/#{x}/']] /object /seq /!$.regexp_grammar,
+                        alternative_instances = alternatives *[alternative_names[xi] /-metaclass/ x] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
                         parser                = qse[_names |[x.parse(s, i)] |seq, given[s, i]] /~replace/ {_names: alternative_names /!$.syntax.from_array}]]});
