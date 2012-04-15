@@ -202,7 +202,7 @@ performant across browsers/platforms if possible.
                                                                                proto),
 
                   special_form(t)                   = sequence_special_forms |[x /~match/ t] |seq,
-                  unflatten(t, s = special_form(t)) = s           ? s._rest ? [s] /~concat/ unflatten(rest) : [s]
+                  unflatten(t, s = special_form(t)) = s           ? s._rest ? [s] /~concat/ unflatten(s._rest) : [s]
                                                     : t.is_join() ? [t[0]] /~concat/ unflatten(t[1])
                                                                   : [t],
                   auxiliary_classes                 = {},

@@ -45,7 +45,7 @@ for(var x=xs[0] ,xi=0,xl=xs.length,x1;
 xi<xl;
  ++xi) {x=xs[xi] ;
 if(x1= ( (x) .match(t) ) )return x1}return false} ) .call(this,sequence_special_forms) } ,unflatten=function(t) {var s=special_form(t) ;
-return s?s._rest? ( [s] ) .concat(unflatten(rest) ) 
+return s?s._rest? ( [s] ) .concat(unflatten(s._rest) ) 
 : [s] 
 :t.is_join() ? ( [t[0] ] ) .concat(unflatten(t[1] ) ) 
 : [t] } ,auxiliary_classes= {} ,auxiliary=function(piece) {;
