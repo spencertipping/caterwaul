@@ -9,6 +9,7 @@ xi<xl;
 return xr} ) .call(this, (function(xs) {var x,x0,xi,xl,xr;
 for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
 xi<xl;
- ++xi)x=xs[xi] ,xr.push.apply(xr,Array.prototype.slice.call( (x.constructor===Array?x:x.split( ' ' ) ) ) ) ;
+ ++xi)x=xs[xi] ,xr.push.apply(xr,Array.prototype.slice.call( (x.constructor===Array?x
+:x.split( ' ' ) ) ) ) ;
 return xr} ) .call(this,Array.prototype.slice.call( (xs) ) ) ) ) ) ;
-return function(_) {return( ($) .parse(_) ) .replace(table) } } ) .call(this) } } ) ;
+return(function(_) {return function() {return unescape_string(this.as_escaped_string() ) } } ) } ) .call(this) } } ) ;

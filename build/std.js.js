@@ -10,17 +10,25 @@ else got_hash=false;
 pieces.push(s.substring(start,l) ) ,is_code.push(false) ;
 for(var quoted=new RegExp( '\\\\' +q, 'g' ) ,i=0,l=pieces.length;
 i<l;
- ++i)pieces[i] =is_code[i] ?this($.parse(pieces[i] .replace(quoted,q) ) .as( '(' ) ) :new syntax(q+pieces[i] +q) ;
+ ++i)pieces[i] =is_code[i] ?this($.parse(pieces[i] .replace(quoted,q) ) .as( '(' ) ) 
+:new syntax(q+pieces[i] +q) ;
 return new syntax( '+' ,pieces) .unflatten() .as( '(' ) } ;
 var function_local_template=qs,function_bind_pattern=qs1,function_result_pattern=qs2,function_with_afters=qs3,function_without_afters=qs4,function_assignment_template=qs5,function_is_result=function(n) {return n.is_empty() &&n.data=== 'result' } ,function_destructure=$.rereplacer(qs6,function(match) {for(var formals= [] ,befores= [] ,afters= [] ,ps=match._xs.flatten( ',' ) ,i=0,l=ps.length;
 i<l;
- ++i) (afters.length||ps[i] .contains(function_is_result) ?afters:befores.length||ps[i] .length?befores:formals) .push(ps[i] ) ;
+ ++i) (afters.length||ps[i] .contains(function_is_result) ?afters
+:befores.length||ps[i] .length?befores
+:formals) .push(ps[i] ) ;
 for(var contains_locals= [befores,afters] ,i=0,l=contains_locals.length;
 i<l;
  ++i)for(var xs=contains_locals[i] ,j=0,lj=xs.length,m;
 j<lj;
- ++j)xs[j] = (m=function_bind_pattern.match(xs[j] ) ) &&m._x.is_empty() ?function_local_template.replace(m) :xs[j] .as( '(' ) ;
-var new_formals=formals.length?new $.syntax( ',' ,formals) .unflatten() :$.empty,new_befores=befores.length?new $.syntax( ';' ,befores) .unflatten() :$.empty,new_afters=afters.length?new $.syntax( ';' ,afters) .unflatten() :$.empty,template=function_assignment_template.replace( {_f:match._f,_x:afters.length?function_with_afters:function_without_afters} ) ;
+ ++j)xs[j] = (m=function_bind_pattern.match(xs[j] ) ) &&m._x.is_empty() ?function_local_template.replace(m) 
+:xs[j] .as( '(' ) ;
+var new_formals=formals.length?new $.syntax( ',' ,formals) .unflatten() 
+:$.empty,new_befores=befores.length?new $.syntax( ';' ,befores) .unflatten() 
+:$.empty,new_afters=afters.length?new $.syntax( ';' ,afters) .unflatten() 
+:$.empty,template=function_assignment_template.replace( {_f:match._f,_x:afters.length?function_with_afters
+:function_without_afters} ) ;
 return template.replace( {_formals:new_formals,_befores:new_befores,_afters:new_afters,_result:match._y} ) } ) ;
 var tuple_template=qs7,tuple_constructor=qs8,tuple_assignment=qs9,tuple_destructure=$.rereplacer(qsa,function(match) {for(var formals=match._xs.flatten( ',' ) ,assignments=new $.syntax( ';' ) ,i=0,l=formals.length;
 i<l;
@@ -34,7 +42,12 @@ return new $.syntax( '()' ,new $.syntax( '.' ,new $.syntax( '(' ,object) ,fn) ,n
 var postfix_function_template=qsb,postfix_function=$.rereplacer(qsc,function(match) {return postfix_function_template.replace( {_f:match._f,_x:this(match._x) .flatten( '/' ) .with_data( ',' ) .unflatten() } ) } ) ;
 var modified_literal_form=$.pattern(qsd) ,lookup_literal_modifier=function(caterwaul,type,modifier) {var hash=caterwaul.literal_modifiers[type] ;
 return hash.hasOwnProperty(modifier) &&hash[modifier] } ,literal_modifier=function(node) {var modified_literal=modified_literal_form.call(this,node) ,literal,expander;
-if(modified_literal&& (literal=modified_literal._literal) && (expander=literal.is_identifier() ?lookup_literal_modifier(this, 'identifier' ,modified_literal._modifier.data) :literal.is_array() ?lookup_literal_modifier(this, 'array' ,modified_literal._modifier.data) :literal.is_regexp() ?lookup_literal_modifier(this, 'regexp' ,modified_literal._modifier.data) :literal.is_number() ?lookup_literal_modifier(this, 'number' ,modified_literal._modifier.data) :literal.is_string() ?lookup_literal_modifier(this, 'string' ,modified_literal._modifier.data) :null) )return expander.call(this,literal) } ;
+if(modified_literal&& (literal=modified_literal._literal) && (expander=literal.is_identifier() ?lookup_literal_modifier(this, 'identifier' ,modified_literal._modifier.data) 
+:literal.is_array() ?lookup_literal_modifier(this, 'array' ,modified_literal._modifier.data) 
+:literal.is_regexp() ?lookup_literal_modifier(this, 'regexp' ,modified_literal._modifier.data) 
+:literal.is_number() ?lookup_literal_modifier(this, 'number' ,modified_literal._modifier.data) 
+:literal.is_string() ?lookup_literal_modifier(this, 'string' ,modified_literal._modifier.data) 
+:null) )return expander.call(this,literal) } ;
 var bracket_modifier_form=$.pattern(qse) ,slash_modifier_form=$.pattern(qsf) ,minus_modifier_form=$.pattern(qsg) ,in_modifier_form=$.pattern(qsh) ,pipe_modifier_form=$.pattern(qsi) ,comma_modifier_form=$.pattern(qsj) ,dot_parameters=$.pattern(qsk) ,bracket_parameters=$.pattern(qsl) ,parameterized_wickets=$.pattern(qsm) ,parameterized_minus=$.pattern(qsn) ,modifier=function(node) {var modifier,parameterized_match=parameterized_wickets.call(this,node) ||parameterized_minus.call(this,node) ;
 if(parameterized_match&&this.parameterized_modifiers.hasOwnProperty(modifier=parameterized_match._modifier.data) ) {var r=this.parameterized_modifiers[modifier] .call(this,parameterized_match) ;
 if(r)return r}var regular_match=bracket_modifier_form.call(this,node) ||slash_modifier_form.call(this,node) ||minus_modifier_form.call(this,node) ||in_modifier_form.call(this,node) ||pipe_modifier_form.call(this,node) ||comma_modifier_form.call(this,node) ;
@@ -42,7 +55,8 @@ if(regular_match) {var parameter_match=dot_parameters.call(this,regular_match._m
 if(parameter_match) {regular_match._modifier=parameter_match._modifier;
 regular_match._parameters=parameter_match._parameters;
 return this.parameterized_modifiers.hasOwnProperty(modifier=regular_match._modifier.data) &&this.parameterized_modifiers[modifier] .call(this,regular_match) }else return this.modifiers.hasOwnProperty(modifier=regular_match._modifier.data) &&this.modifiers[modifier] .call(this,regular_match) } } ;
-var each_node=function(node) {return string_interpolator.call(this,node) ||literal_modifier.call(this,node) ||node.length&& (modifier.call(this,node) ||function_destructure.call(this,node) ||tuple_destructure.call(this,node) ||infix_function.call(this,node) ||infix_method.call(this,node) ||postfix_function.call(this,node) ) } ,result=macroexpander?$(function(node) {return macroexpander.call(this,node) ||each_node.call(this,node) } ) :$(each_node) ;
+var each_node=function(node) {return string_interpolator.call(this,node) ||literal_modifier.call(this,node) ||node.length&& (modifier.call(this,node) ||function_destructure.call(this,node) ||tuple_destructure.call(this,node) ||infix_function.call(this,node) ||infix_method.call(this,node) ||postfix_function.call(this,node) ) } ,result=macroexpander?$(function(node) {return macroexpander.call(this,node) ||each_node.call(this,node) } ) 
+:$(each_node) ;
 result.modifiers= {} ;
 result.parameterized_modifiers= {} ;
 result.literal_modifiers= {regexp: {} ,array: {} ,string: {} ,number: {} ,identifier: {} } ;

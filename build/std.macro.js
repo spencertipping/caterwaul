@@ -3,7 +3,9 @@ i<l;
  ++i)ys.push(result(x[i] ) ) ;
 return function(tree) {for(var i=ys.length-1,r;
 i>=0;
- --i)if(r=ys[i] .call(this,tree) )return r} }else return x.constructor===String?result($.parse(x) ) :x.constructor===$.syntax?base_case.call(this,x) :x} ;
+ --i)if(r=ys[i] .call(this,tree) )return r} }else return x.constructor===String?result($.parse(x) ) 
+:x.constructor===$.syntax?base_case.call(this,x) 
+:x} ;
 return result} ;
 $.pattern=syntax_manipulator(function(pattern) {return function(tree) {return pattern.match(tree) } } ) ;
 $.expander=syntax_manipulator(function(expander) {return function(match) {return expander.replace(match) } } ) ;
