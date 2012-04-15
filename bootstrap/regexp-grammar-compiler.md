@@ -10,7 +10,6 @@ transparently to Javascript data structures. Here is the mapping:
     2. Alternation is encoded using polymorphic conses. That is, each alternative is a new class.
     3. Optional values are encoded verbatim or with null if there is no match.
     4. Sub-matches are encoded directly.
-    5. Forgetful groups are structurally erased and encoded as strings (though they have some GC overhead).
 
 Each matched region contains information about its match region, accessible via the start() and end() methods. This is useful for mapping syntactic regions back into string positions.
 
@@ -29,8 +28,8 @@ like this:
 Pieces are one of:
 
     1. Constant: contains just the start/end data; the text is encoded in the prototype. This is a metaclass; a single class is generated for each constant.
-    2. Erased variant: contains the result of an erased match; e.g. /(?:foo|bar|bif)/ is stored as just a string snippet, not as a proper alternative.
-    3. Sequence: contains start/end data along with numerically-indexed sub-pieces that are optionally aliased onto named methods. Length is per-instance to allow for seq[] copying.
+    2. Sequence: contains start/end data along with numerically-indexed sub-pieces that are optionally aliased onto named methods. Length is per-instance to allow for seq[] copying.
+    3. Primitive: contains start/end data but no structure. You get this when you don't use cross-references or nominal bindings within an alternative branch.
 
 You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic). Mapping semantics follow this model.
 
@@ -152,20 +151,6 @@ starting position to the precomputed length of the constant. Here, 'k' is the in
                                                         end()               = this.start_ + _l,
                                                         length              = 0,
                                                         toString()          = _s]] /~replace/ {_s: k /!$.syntax.from_string, _l: '#{k.length}'}],
-
-## Erased-variant instances
-
-These have variant content and length and therefore take two parameters. The metaclass evaluates the given parser and turns the result into a string before saving it.
-
-            erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 'parsed_'.qw) /~replace/ {_parser_implementation: parser(name, p)},
-                                                                           qse[capture [map(f, r = f(this)) = r === true || !r ? this : r
-                                                                                        start()             = this.start_,
-                                                                                        end()               = this.start_ + this.parsed_.length,
-                                                                                        length              = 0,
-                                                                                        toString()          = this.parsed_]])
-
-                      -where [parser(name, sub) = qse[new _name(i, result.toString()) -when.result -where [result = _sub.parse(s, i)] -given [s, i]]
-                                                  /~replace/ {_name: name, _parse: parse}],
 
 ## Trivially variant instances
 
