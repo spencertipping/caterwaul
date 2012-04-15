@@ -89,6 +89,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                                   proto(k))
 
                -where [proto(k)        = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
+                                                      start()             = this.start_,
                                                       end()               = this.start_ + _l,
                                                       length              = 0,
                                                       toString()          = _s]] /~replace/ {_s: k /!$.syntax.from_string, _l: '#{k.length}'},
@@ -101,6 +102,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
 
           erased_variant_metaclass(name, sub) = metaclass_instance(name, metaclass_constructor(name, 'parsed_'.qw) /~replace/ {_parser_implementation: parser(name, p)},
                                                                          qse[capture [map(f, r = f(this)) = r === true || !r ? this : r
+                                                                                      start()             = this.start_,
                                                                                       end()               = this.start_ + this.parsed_.length,
                                                                                       length              = 0,
                                                                                       toString()          = this.parsed_]])
@@ -115,6 +117,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                                              proto)
 
                           -where [proto           = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
+                                                                 start()             = this.start_,
                                                                  end()               = this.start_ + this.match_.length,
                                                                  length              = 0,
                                                                  toString()          = this.match_]],
@@ -133,7 +136,9 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
           repetition_metaclass(name, tree) = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {_parser_implementation: parser},
                                                                       proto(tree))
 
-               -where [proto(t)            = qse[capture [push(x, this.length -oeq- 0) = this[this.length++] -eq- x -then- this,
+               -where [proto(t)            = qse[capture [start()                      = this.start_,
+                                                          end()                        = this.end_,
+                                                          push(x, this.length -oeq- 0) = this[this.length++] -eq- x -then- this,
                                                           pop(x = this[--this.length]) = delete this[this.length] -then- x,
                                                           map(f, r = this, t = null)   = this *![r -eq- new this.constructor(this.start_, this.end_, this.length)
                                                                                           -then- this *![r[xi] = x] /seq /when [r !== this && (t = x /~map/ f) !== x]
@@ -145,8 +150,8 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                         repeated_metaclass = sub /-metaclass/ tree.repeated_child(),
 
                         parser             = raise [new Error('lazy matching semantics are not supported: #{tree}')] -when- tree.is_non_greedy()
-                                      -then- qse[function (s, i) {var ii = i, r = new _name.constructor(i, 0, 0), x = _sub(s, i), count = 1, limit = _upper;
-                                                                  while (x && ++count <= upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
+                                      -then- qse[function (s, i) {var ii = i, r = new _name.constructor(i, 0, 0), x = _sub(s, i), count = 1;
+                                                                  while (x && ++count <= _upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
                                                                   if (count >= _lower) return r}]
 
                                              /~replace/ {_name:  name,
@@ -188,7 +193,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                     : t.is_join() ? [t[0]] /~concat/ unflatten(t[1])
                                                                   : [t],
                   auxiliary_classes                 = {},
-                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- '_name(s, ii)'.qse /~replace/ {_name: sub}
+                  auxiliary(piece)                  = auxiliary_classes[sub] -eq- metaclass(sub, piece) -then- new $.syntax(sub)
                                                       -where [sub = name /!$.gensym],
 
                   pieces                            = tree /!unflatten,
@@ -198,7 +203,7 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
 
                   parser                            = qse[function (s, i) {var ii = i; _steps; return _instantiation}] /~replace/ {_steps:         pieces /!steps,
                                                                                                                                    _instantiation: instantiation}
-                                                      -where [steps(ps)          = ps /['null'.qs]['_x; _y' /~replace/ {_x: x0, _y: step_for(x, xi)}] -seq,
+                                                      -where [steps(ps)          = ps *[step_for(x, xi)] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
 
                                                               step_template      = qs[var _name = _invocation; if (!_name) return; ii = _name.end()],
                                                               step_for(piece, i) = step_template /~replace/ {_name:       '_#{i}',
@@ -225,8 +230,12 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                                                               tostring_stages(ps) = pieces *['this[_i].toString()'.qs /~replace/ {_i: '#{xi}'}]
                                                                                            /['_x, _y'.qs              /~replace/ {_x: x0, _y: x}] -seq,
 
-                                                              intrinsics          = capture [map = map_qs(), toString = tostring_qs(), length = new $.syntax('#{pieces.length}')],
-                                                              nominal_bindings    = pieces %~![[x._name, 'function () {return this[_i]}'.qs /~replace/ {_i: xi}], when[x._name]] /object -seq]],
+                                                              intrinsics          = capture [map      = map_qs(),
+                                                                                             toString = tostring_qs(),
+                                                                                             start    = qse[this.start_, given[]],
+                                                                                             end      = qse[this.end_,   given[]],
+                                                                                             length   = new $.syntax('#{pieces.length}')],
+                                                              nominal_bindings    = pieces %~![[x._name, 'this[_i], given[]'.qse /~replace/ {_i: '#{xi}'}], when[x._name]] /object -seq]],
 
   Alternative instances.
   The alternative case is an interesting one. If the regular expression represents a disjunction, then we flatten it out and construct a virtual class. This class will never be instantiated,
@@ -241,4 +250,6 @@ Classes are emitted as uncompiled syntax trees rather than closures. This allows
                       alternatives          = tree /!unflatten,
                       alternative_names     = alternatives *['#{name}_alternative' /!$.gensym] -seq,
                       alternative_instances = alternatives *[alternative_names[xi] /-metaclass/ x] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
-                      parser                = qse[_names |[x.parse(s, i)] |seq, given[s, i]] /~replace/ {_names: alternative_names /!$.syntax.from_array}]]});
+                      parser                = qse[_disjunction, given[s, i]]
+                                              /~replace/ {_disjunction: alternative_names *['_f(s, i)'.qs /~replace/ {_f: x}]
+                                                                                          /['_x || _y'.qs /~replace/ {_x: x0, _y: x}] -seq}]]});
