@@ -6,35 +6,35 @@ Licensed under the terms of the MIT source code license
 This module defines a vanilla Javascript grammar in terms of mutually recursive regular expressions.
 
     caterwaul.module('javascript-grammar', ':all', function ($) {
-      $.javascript_grammar = capture [statement     = /@block | @with_semi | ; | @statement_/,
-                                      block         = /\{ @statement \}/,
-                                      with_semi     = /s:@statement_ ;/,
-                                      statement_    = /@if_ | @for_iterator | @for_in | @while_ | @do_ | @switch_ | @throw_ | @try_ | @return_ | @break_ | @continue_ | @expression/,
-                                      if_           = /if pre:@ws \(cond:@expression\) lhs:@statement rhs:@else_/,
-                                      else_         = /else pre:@ws lhs:@statement | @ws/,
-                                      for_iterator  = /for pre:@ws \(init:@statement cond:@expression post_cond:@ws; inc:@expression\) lhs:@statement/,
-                                      for_in        = /for pre:@ws \(var? variable:@identifier post_variable:@ws in cond:@expression\) lhs:@statement/,
-                                      while_        = /while pre:@ws \(cond:@expression\) lhs:@statement/,
-                                      do_           = /do lhs:@statement while pre:@ws \(cond:@expression\)/,
-                                      switch_       = /switch pre:@ws \(cond:@expression\) post:@ws \{cases:@cases\}/,
-                                      cases         = /lhs:@case_ rhs:@cases | lhs:@default_ rhs:@cases | @statement/,
-                                      case_         = /pre:@ws case cond:@expression \:/,
-                                      default_      = /pre:@ws default post:@ws \:/,
-                                      throw_        = /throw lhs:@expression/,
-                                      try_          = /try lhs:@statement (rhs: (@catch_ | @finally_))/,
-                                      catch_        = /catch pre:@ws \(cond:@expression\) rhs:@finally_/,
-                                      finally_      = /finally lhs:@statement | @ws/,
-                                      return_       = /return pre:@ws lhs:@expression | return/,
-                                      break_        = /break pre:@ws cond:@identifier | break/,
-                                      continue_     = /continue pre:@ws cond:@identifier | break/,
+      $.javascript_grammar = capture [program       = /l:@statement data:$/,
+                                      statement     = /@block | @with_semi | data:; | @statement_/,
+                                      block         = /data:\{ l:@statement \}/,
+                                      with_semi     = /l:@statement_ data:;/,
+                                      statement_    = /@if_ | @for_iterator | @for_in | @while_ | @do_ | @switch_ | @throw_ | @try_ | @return_ | @break_ | @continue_ | @expressions/,
+                                      if_           = /data:if pre:@ws \(cond:@expressions\) l:@statement r:@else_/,
+                                      else_         = /data:else pre:@ws l:@statement | @ws/,
+                                      for_iterator  = /data:for pre:@ws \(init:@statement cond:@expressions post_cond:@ws; inc:@expression\) l:@statement/,
+                                      for_in        = /data:for pre:@ws \(var? variable:@identifier post_variable:@ws in cond:@expression\) l:@statement/,
+                                      while_        = /data:while pre:@ws \(cond:@expressions\) l:@statement/,
+                                      do_           = /data:do l:@statement while pre:@ws \(cond:@expressions\)/,
+                                      switch_       = /data:switch pre:@ws \(cond:@expressions\) post:@ws \{l:@cases\}/,
+                                      cases         = /l:@case_ r:@cases | l:@default_ r:@cases | @statement/,
+                                      case_         = /pre:@ws data:case cond:@expressions \:/,
+                                      default_      = /pre:@ws data:default post:@ws \:/,
+                                      throw_        = /data:throw l:@expressions/,
+                                      try_          = /data:try l:@statement (r: (@catch_ | @finally_))/,
+                                      catch_        = /data:catch pre:@ws \(cond:@expressions\) r:@finally_/,
+                                      finally_      = /data:finally l:@statement | @ws/,
+                                      return_       = /data:return pre:@ws l:@expressions | return/,
+                                      break_        = /data:break pre:@ws cond:@identifier | break/,
+                                      continue_     = /data:continue pre:@ws cond:@identifier | break/,
 
-                                      ws            = /(spacing:[\s]+) rest:@ws | comment:@line_comment rest:@ws | comment:@block_comment rest:@ws | [\s]*/,
-                                      line_comment  = /\/\/ text:.*/,
-                                      block_comment = /\/\* (text:([^*]|\*[^\/])*) \*\//,
+                                      nontrivial_ws = /data:([\s]+) l:@ws | data:(\/\/) text:.* l:@ws | data:(\/\*) text:(([^*]|\*[^\/])*) \*\/ l:@ws/,
+                                      ws            = /@nontrivial_ws | \s*/,
 
-                                      expressions   = /lhs:@expression op:[,] rhs:@expressions | @expression/,
+                                      expressions   = /l:@expression data:[,] r:@expressions | @expression/,
 
-                                      expression    = /@unary | @binary | @group | @literal | @identifier/,
+                                      expression    = /@unary | @binary | @group | @literal | @identifier | data:@nontrivial_ws l:@expression/,
                                       literal       = /@dstring | @sstring | @number | @regexp | @array | @object/,
                                       dstring       = /"([^\\"]|\\.)*"/,
                                       sstring       = /'([^\\']|\\.)*'/,
@@ -42,10 +42,15 @@ This module defines a vanilla Javascript grammar in terms of mutually recursive 
                                       regexp        = /\/([^\\\/]|\\.)*\//,
                                       identifier    = /[A-Za-z$_][A-Za-z0-9$_]*/,
 
-                                      atom          = /pre:@ws lhs:@literal post:@ws op:[.] rhs:@atom | pre:@ws lhs:@literal/,
-                                      unary         = /pre:@ws op:(-- | \+\+ | - | \+ | ~ | ! | new | typeof | delete | void) rhs:@expression/,
-                                      binary        = /lhs:@atom pre:@ws op: ([-.+*\/%!=<>&|^?:] | instanceof | in) rhs:@expression/,
+                                      atom          = /pre:@ws l:@literal post:@ws data:[.] r:@atom | pre:@ws l:@literal/,
+                                      unary         = /pre:@ws data:(-- | \+\+ | - | \+ | ~ | ! | new | typeof | delete | void) r:@expression/,
+                                      binary        = /l:@atom pre:@ws data:([-.+*\/%!=<>&|^?:] | instanceof | in) r:@expression/,
 
-                                      group         = /\( x:@expressions \)/,
-                                      array         = /\[ xs:@expressions \]/,
-                                      object        = /\{ xs:@expressions \}/] /!caterwaul.regexp_grammar});
+                                      group         = /data:\( l:@expressions \)/,
+                                      array         = /data:\[ l:@expressions \]/,
+                                      object        = /data:\{ l:@expressions \}/] /-caterwaul.regexp_grammar/ common_methods
+
+      -where [traversal_for(name) = '_v, given[]'.qse /~replace/ {_v: name.split('') /['this'.qs]['_x._y()'.qs /~replace/ {_x: x0, _y: x}] /seq} /!$.compile,
+              common_methods      = {}
+                                    |-$.merge| ni[2, 5] *~!level *[[x, traversal_for(x)]] /object -seq
+                                               -where [level(n) = 'l r'.qw *~![n > 1 ? level(n - 1) *y[x + y] -seq : [x]] -seq]]});
