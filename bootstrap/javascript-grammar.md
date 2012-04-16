@@ -32,7 +32,7 @@ This module defines a vanilla Javascript grammar in terms of mutually recursive 
                                       line_comment  = /\/\/ text:.*/,
                                       block_comment = /\/\* (text:([^*]|\*[^\/])*) \*\//,
 
-                                      expressions   = /lhs:@expression op:, rhs:@expressions | @expression/,
+                                      expressions   = /lhs:@expression op:[,] rhs:@expressions | @expression/,
 
                                       expression    = /@unary | @binary | @group | @literal | @identifier/,
                                       literal       = /@dstring | @sstring | @number | @regexp | @array | @object/,
@@ -43,8 +43,8 @@ This module defines a vanilla Javascript grammar in terms of mutually recursive 
                                       identifier    = /[A-Za-z$_][A-Za-z0-9$_]*/,
 
                                       atom          = /pre:@ws lhs:@literal post:@ws op:[.] rhs:@atom | pre:@ws lhs:@literal/,
-                                      unary         = /pre:@ws (op:(-- | \+\+ | - | \+ | ~ | ! | new | typeof | delete | void)) rhs:@expression/,
-                                      binary        = /lhs:@atom pre:@ws (op: [-.+*\/%!=<>&|^?:] | instanceof | in) rhs:@expression/,
+                                      unary         = /pre:@ws op:(-- | \+\+ | - | \+ | ~ | ! | new | typeof | delete | void) rhs:@expression/,
+                                      binary        = /lhs:@atom pre:@ws op: ([-.+*\/%!=<>&|^?:] | instanceof | in) rhs:@expression/,
 
                                       group         = /\( x:@expressions \)/,
                                       array         = /\[ xs:@expressions \]/,

@@ -5,7 +5,7 @@ Introduction.
 This module compiles regular expression grammars into polymorphic cons cells with associated parsing and serialization methods. Most regular expression syntax is supported and maps
 transparently to Javascript data structures. Here is the mapping:
 
-| 1. Repetition is encoded in array form: x* maps to [x1, x2, ...], where x1, x2, etc are match data.
+| 1. Repetition is encoded in array form: x* maps to [x1, x2, ...], where x1, x2, etc are match data. Note that a native array is not used.
   2. Alternation is encoded using polymorphic conses. That is, each alternative is a new class.
   3. Optional values are encoded verbatim or with null if there is no match.
   4. Sub-matches are encoded directly.
@@ -21,15 +21,18 @@ caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
 
   | foobar_regexp(start_, end_) *= capture [start()    = this.start_,
                                             end()      = this.end_,
+                                            map(f)     = ...,
                                             toString() = +this -seq -re- it.join('')]
 
   Pieces are one of:
 
   | 1. Constant: contains just the start/end data; the text is encoded in the prototype. This is a metaclass; a single class is generated for each constant.
-    2. Sequence: contains start/end data along with numerically-indexed sub-pieces that are optionally aliased onto named methods. Length is per-instance to allow for seq[] copying.
+    2. Sequence: contains start/end data along with numerically-indexed sub-pieces that are optionally aliased onto named methods. Length is shared through the prototype.
     3. Primitive: contains start/end data but no structure. You get this when you don't use cross-references or nominal bindings within an alternative branch.
+    4. Repetition: contians start/end data and numerically-indexed sub-pieces, along with an instance-specific length property.
 
-  You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic). Mapping semantics follow this model.
+  You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic, except for repetition). Mapping semantics follow this
+  model.
 
   Notation.
   Most regular expression constructs follow normal notational conventions. There are three significant exceptions:
@@ -41,20 +44,35 @@ caterwaul.module('regexp-grammar-compiler', ':all', function ($) {
   Nominal bindings turn into additional methods that refer to numerically-bound properties.
 
 Implementation.
-Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program.
+Classes are emitted as uncompiled syntax trees rather than closures. This allows you to emit the output from this function as a runnable Javascript program. Each input can have custom methods
+that get compiled into its prototype. You can access this functionality by attaching additional methods to each regexp:
 
-  $.regexp_grammar(rules) = rules /pairs *[x[0] /-metaclass/ $.regexp(x[1], {atom: 'word'})] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+| $.regexp_grammar(capture [add = $.merge(/lhs:(\d+) op:\+ rhs:(\d+)/, capture [eval() = this.lhs() + this.rhs()])])
+
+Methods that you bind this way can't be closures, since they'll be destructured into syntax trees. They can contain expression refs, however, if you call .late_bound_tree on the result of
+$.regexp_grammar().
+
+  $.regexp_grammar(rules) = (metaclass_definitions() + prototype_extensions()) /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+
+  -where [rule_pairs              = rules /pairs -seq,
+          metaclass_definitions() = rule_pairs *[x[0] /-metaclass/ $.regexp(x[1], {atom: 'word'})] -seq,
+          prototype_extensions()  = rule_pairs *~![x[0] /-prototype_extension/ x[1]] -seq,
+
+  Prototype extensions.
+  This is just a series of side-effectful assignments into the constructor function prototypes. These are rendered after all of the constructors are defined.
+
+          prototype_extension(name, regexp) = regexp /pairs *['_name.prototype._k = _v'.qs /~replace/ {_name: name, _k: x[0], _v: new $.opaque_tree(x[1])}] -seq,
 
   Metaclass instantiation.
   The metaclass constructor function (just a regular function) looks at the tree you hand it and builds a metaclass instance based on that.
 
-  -where [metaclass(name, tree) = tree /!is_primitive                                              ? name /-primitive_metaclass/         tree
+          metaclass(name, tree) = tree /!is_primitive                                              ? name /-primitive_metaclass/         tree
                                 : inline_ref_form /~match/ tree -re [it && !it._ref.length]        ? name /-alias_metaclass/             tree[1].data
                                 : tree.is_group()                                                  ? name /-metaclass/                   tree[0]
-                                : tree.is_join()                                                   ? name /-sequence_metaclass/          tree
                                 : tree.is_disjunction()                                            ? name /-alternative_metaclass/       tree
-                                : tree.is_character_class() || tree.is_atom() && tree.data === '.' ? name /-trivially_variant_metaclass/ tree
                                 : tree.is_repetition()                                             ? name /-repetition_metaclass/        tree
+                                : tree.is_join()                                                   ? name /-sequence_metaclass/          tree
+                                : tree.is_character_class() || tree.is_atom() && tree.data === '.' ? name /-trivially_variant_metaclass/ tree
                                                                                                    : name /-invariant_metaclass/         tree.toString(),
           inline_ref_form    = $.regexp(/@_ref/, {atom: 'word'}),
           special_forms      = [/@_ref _rest/, /@_ref/, /_name:@_ref _rest/, /_name:@_ref/, /_name:_value _rest/, /_name:_value/] *[x /-$.regexp/ {atom: 'word'}] -seq,
