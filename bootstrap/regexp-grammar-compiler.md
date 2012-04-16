@@ -56,14 +56,18 @@ that get compiled into its prototype. You can access this functionality by attac
 Methods that you bind this way can't be closures, since they'll be destructured into syntax trees. They can contain expression refs, however, if you call .late_bound_tree on the result of
 $.regexp_grammar().
 
-      $.regexp_grammar(rules, common_methods) = (common_method_definitions() + metaclass_definitions() + prototype_extensions()) /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+      $.regexp_grammar(rules, common_methods) = '(function () {_definitions; return _result})'.qs /~replace/ {_definitions: definition_body(), _result: return_object()}
 
-      -where [rule_pairs                  = rules /pairs -seq,
+      -where [definition_body()           = (common_method_definitions() + metaclass_definitions() + prototype_extensions()) /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
+
+              rule_pairs                  = rules /pairs -seq,
               metaclass_definitions()     = rule_pairs *[x[0] /-metaclass/ $.regexp(x[1], {atom: 'word'})] -seq,
               prototype_extensions()      = rule_pairs *~![x[0] /-prototype_extension/ x[1]] -seq,
 
               common_method_prefix        = 'common_method' /!$.gensym,
-              common_method_definitions() = common_methods /pairs *['_name = _v'.qs /~replace/ {_name: '#{common_method_prefix}#{x[0]}', _v: new $.opaque_tree(x[1])}] -seq,
+              common_method_definitions() = common_methods /pairs *['var _name = _v'.qs /~replace/ {_name: '#{common_method_prefix}#{x[0]}', _v: new $.opaque_tree(x[1])}] -seq,
+
+              return_object()             = rules /keys *[[x, new $.syntax(x)]] /object /seq /!$.syntax.from_object,
 
 ## Prototype extensions
 
@@ -107,12 +111,12 @@ Metaclass instances are emitted as cross-referential functions that have two mod
 Each metaclass contains a .map() method that recursively descends through the tree. It uses a standard protocol to indicate nondestructive node replacement, stop-traversal, and continuation.
 Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modified subtrees.
 
-            metaclass_instance(n, ctor, proto) = qse[_constructor, _name.prototype = _prototype, _name.original_name = _string_name, _name.prototype.constructor = _name, _common_methods]
+            metaclass_instance(n, ctor, proto) = qse[_constructor; _name.prototype = _prototype; _name.original_name = _string_name; _name.prototype.constructor = _name; _common_methods]
                                                  /~replace/ {_constructor:    ctor, _prototype: proto, _name: n, _string_name: n /!$.syntax.from_string, _common_methods: n /!common_method_tree},
 
             metaclass_constructor(name, args)  = template /~replace/ {_name: name, _formals: formals, _formal_assignments: formal_assignments}
-                   -where [template            = qse[_name(_formals) = this.constructor === _name ? _formal_assignments -then- this : _name.parse(arguments[0], arguments[1] || 0),
-                                                     _name.parse     = _parser_implementation],
+                   -where [template            = qse[var _name(_formals) = this.constructor === _name ? _formal_assignments -then- this : _name.parse(arguments[0], arguments[1] || 0);
+                                                     _name.parse         = _parser_implementation],
 
                            fold_into_comma(xs) = xs /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
                            formals             = args /!fold_into_comma,
@@ -124,7 +128,7 @@ Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modif
 This is really simple. Sometimes someone will have requested a metaclass with a given name, but in practice it already exists. We can simply write an equivalence for cases like these. The
 only thing we need to do is allow for the fact that the target may not yet be defined. This can be done using a forward definition.
 
-            alias_metaclass(name, target) = qse[_name() = _target.apply(this, arguments), _name.parse() = _target.parse.apply(this, arguments)] /~replace/ {_name: name, _target: target},
+            alias_metaclass(name, target) = qse[var _name() = _target.apply(this, arguments); _name.parse() = _target.parse.apply(this, arguments)] /~replace/ {_name: name, _target: target},
 
 ## Primitive instances
 
@@ -332,7 +336,7 @@ The alternative case is an interesting one. If the regular expression represents
 but it will have a .parse() static method as promised to whoever created it. That way sub-instantiation and cross-references will both work. Note that there is no prototype chaining; it
 would be unnecessary because alternatives don't necessarily have anything in common.
 
-            alternative_metaclass(name, tree) = qse[_name(s, i) = _name.parse(s, i), _name.parse = _parser, _alternatives]
+            alternative_metaclass(name, tree) = qse[var _name(s, i) = _name.parse(s, i); _name.parse = _parser, _alternatives]
                                                 /~replace/ {_name: name, _parser: parser, _alternatives: alternative_instances}
 
                 -where [unflatten(tree)       = tree.is_disjunction() ? [tree[0]] /~concat/ unflatten(tree[1]) : [tree],
