@@ -616,10 +616,11 @@ basically want to push the child to parenthesize if it's the same precedence, si
 Groups are unambiguous despite having high precedence. To prevent double-grouping in cases like this, a precedence of 'undefined' is passed into children of groups or invocations. This
 simulates a toplevel invocation, which is implicitly unparenthesized.
 
-      guarded: function (p) {var this_p = this.is_group() ? undefined : this.precedence(), associative = this.is_associative(), right = this.is_right_associative(),
-                                 result = this.map(function (x, i) {return x.guarded(this_p - (!associative && !right && !!i))});
+      never_guarded: function ()  {return this.is_group() || this.precedence() > parse_inverse_order[',']},
+            guarded: function (p) {var this_p = this.never_guarded() ? undefined : this.precedence(), associative = this.is_associative(), right = this.is_right_associative(),
+                                       result = this.map(function (x, i) {return x.guarded(this_p - (!associative && !right && !!i))});
 
-                             return this_p > p ? result.as('(') : result},
+                                   return this_p > p ? result.as('(') : result},
 
 ### Optimized serialization cases
 
