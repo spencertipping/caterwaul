@@ -6,7 +6,7 @@ Licensed under the terms of the MIT source code license
 This module defines a vanilla Javascript grammar in terms of mutually recursive regular expressions.
 
     caterwaul.module('javascript-grammar', ':all', function ($) {
-      $.javascript_grammar = capture [program       = /l:@statement data:$/,
+      $.javascript_grammar = capture [program       = /l:@statement post:@ws data:$/,
                                       statement     = /@block | @with_semi | data:; | @statement_/,
                                       block         = /data:\{ l:@statement \}/,
                                       with_semi     = /l:@statement_ data:;/,
