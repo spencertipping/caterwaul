@@ -1882,7 +1882,7 @@ $.regexp_grammar().
   Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modified subtrees.
 
           metaclass_instance(n, ctor, proto) = qse[_constructor; _name.prototype = _prototype; _name.original_name = _string_name; _name.prototype.constructor = _name; _common_methods]
-                                               /~replace/ {_constructor:    ctor, _prototype: proto, _name: n, _string_name: n /!$.syntax.from_string, _common_methods: n /!common_method_tree},
+                                               /~replace/ {_constructor: ctor, _prototype: proto, _name: n, _string_name: n /!$.syntax.from_string, _common_methods: n /!common_method_tree},
 
           metaclass_constructor(name, args)  = template /~replace/ {_name: name, _formals: formals, _formal_assignments: formal_assignments}
                  -where [template            = qse[var _name(_formals) = this.constructor === _name ? _formal_assignments -then- this : _name.parse(arguments[0], arguments[1] || 0);
@@ -1986,7 +1986,7 @@ $.regexp_grammar().
   Note that any copies that seq[] creates won't have start() or end() defined. This probably isn't a problem in most cases, since dynamically-constructed instances don't necessarily map back
   to the original input string. You won't have this problem if you use map() instead.
 
-          repetition_metaclass(name, tree) = '_init, _repeated'.qs /~replace/ {_init: this_metaclass(), _repeated: repeated_metaclass}
+          repetition_metaclass(name, tree) = '_init; _repeated'.qs /~replace/ {_init: this_metaclass(), _repeated: repeated_metaclass}
 
                -where [this_metaclass()    = metaclass_instance(name, metaclass_constructor(name, 'start_ end_ length'.qw) /~replace/ {_parser_implementation: parser},
                                                                       proto(tree)),
@@ -2037,7 +2037,7 @@ $.regexp_grammar().
     Technically this is not the fastest way to do it on V8. Because V8 uses string cons trees, it's actually a little faster to just use naive + concatenation. But this code should be
     performant across browsers/platforms if possible.
 
-          sequence_metaclass(name, tree) = auxiliary_classes /values /[base_metaclass()]['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq
+          sequence_metaclass(name, tree) = auxiliary_classes /values /[base_metaclass()]['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq
           -where [base_metaclass()                  = metaclass_instance(name, metaclass_constructor(name, formals) /~replace/ {_parser_implementation: parser},
                                                                                proto),
 
@@ -2097,14 +2097,14 @@ $.regexp_grammar().
   but it will have a .parse() static method as promised to whoever created it. That way sub-instantiation and cross-references will both work. Note that there is no prototype chaining; it
   would be unnecessary because alternatives don't necessarily have anything in common.
 
-          alternative_metaclass(name, tree) = qse[var _name(s, i) = _name.parse(s, i); _name.parse = _parser, _alternatives]
+          alternative_metaclass(name, tree) = qse[var _name(s, i) = _name.parse(s, i); _name.parse = _parser; _alternatives]
                                               /~replace/ {_name: name, _parser: parser, _alternatives: alternative_instances}
 
               -where [unflatten(tree)       = tree.is_disjunction() ? [tree[0]] /~concat/ unflatten(tree[1]) : [tree],
 
                       alternatives          = tree /!unflatten,
                       alternative_names     = alternatives *[$.gensym()] -seq,
-                      alternative_instances = alternatives *[alternative_names[xi] /-metaclass/ x] /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
+                      alternative_instances = alternatives *[alternative_names[xi] /-metaclass/ x] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
                       parser                = qse[_disjunction, given[s, i]]
                                               /~replace/ {_disjunction: alternative_names *['_f(s, i)'.qs /~replace/ {_f: x}]
                                                                                           /['_x || _y'.qs /~replace/ {_x: x0, _y: x}] -seq}]]});
