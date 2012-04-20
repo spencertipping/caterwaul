@@ -6,20 +6,20 @@ Licensed under the terms of the MIT source code license
 This module defines a vanilla Javascript grammar in terms of mutually recursive regular expressions.
 
     caterwaul.module('javascript-grammar', ':all', function ($) {
-      $.javascript_grammar = capture [program       = /l:@statement post:@ws data:$/,
-                                      statement     = /@block | @with_semi | data:; | @statement_/,
-                                      block         = /data:\{ l:@statement \}/,
-                                      with_semi     = /l:@statement_ data:;/,
+      $.javascript_grammar = capture [program       = /l:@statement data:$/,
+                                      statement     = /@block | @with_semi | data:; post:@ws | @statement_/,
+                                      block         = /data:\{ l:@statement \} post:@ws/,
+                                      with_semi     = /l:@statement_ data:; post:@ws/,
                                       statement_    = /@if_ | @for_iterator | @for_in | @while_ | @do_ | @switch_ | @throw_ | @try_ | @return_ | @break_ | @continue_ | @expressions/,
                                       if_           = /data:if pre:@ws \(cond:@expressions\) l:@statement r:@else_/,
                                       else_         = /data:else pre:@ws l:@statement | @ws/,
                                       for_iterator  = /data:for pre:@ws \(init:@statement cond:@expressions post_cond:@ws; inc:@expression\) l:@statement/,
                                       for_in        = /data:for pre:@ws \(var? variable:@identifier post_variable:@ws in cond:@expression\) l:@statement/,
                                       while_        = /data:while pre:@ws \(cond:@expressions\) l:@statement/,
-                                      do_           = /data:do l:@statement while pre:@ws \(cond:@expressions\)/,
+                                      do_           = /data:do l:@statement while pre:@ws \(cond:@expressions\) post:@ws/,
                                       switch_       = /data:switch pre:@ws \(cond:@expressions\) post:@ws \{l:@cases\}/,
                                       cases         = /l:@case_ r:@cases | l:@default_ r:@cases | @statement/,
-                                      case_         = /pre:@ws data:case cond:@expressions \:/,
+                                      case_         = /pre:@ws data:case cond:@expressions \: post:@ws/,
                                       default_      = /pre:@ws data:default post:@ws \:/,
                                       throw_        = /data:throw l:@expressions/,
                                       try_          = /data:try l:@statement (r: (@catch_ | @finally_))/,
@@ -32,7 +32,7 @@ This module defines a vanilla Javascript grammar in terms of mutually recursive 
                                       nontrivial_ws = /data:([\s]+) l:@ws | data:(\/\/) text:.* l:@ws | data:(\/\*) text:(([^*]|\*[^\/])*) \*\/ l:@ws/,
                                       ws            = /@nontrivial_ws | \s*/,
 
-                                      expressions   = /l:@expression data:[,] r:@expressions | @expression/,
+                                      expressions   = /l:@expression data:[,] r:@expressions | @expression | @ws/,
 
                                       expression    = /@unary | @binary | @group | @literal | @identifier | data:@nontrivial_ws l:@expression/,
                                       literal       = /@dstring | @sstring | @number | @regexp | @array | @object/,
