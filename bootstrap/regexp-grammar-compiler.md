@@ -23,7 +23,6 @@ like this:
 
     foobar_regexp(start_, end_) *= capture [start()    = this.start_,
                                             end()      = this.end_,
-                                            map(f)     = ...,
                                             toString() = +this -seq -re- it.join('')]
 
 Pieces are one of:
@@ -33,8 +32,8 @@ Pieces are one of:
     3. Primitive: contains start/end data but no structure. You get this when you don't use cross-references or nominal bindings within an alternative branch.
     4. Repetition: contians start/end data and numerically-indexed sub-pieces, along with an instance-specific length property.
 
-You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic, except for repetition). Mapping semantics follow this
-model. The data contained within an atom is accessible via the .data() method. Conses don't have this method predefined, but you can use nominal binding to create it.
+You can think of these classes as being variations of atoms and conses, where conses have arbitrarily high arity (but are not variadic, except for repetition). The data contained within an
+atom is accessible via the .data() method. Conses don't have this method predefined, but you can use nominal binding to create it.
 
 ## Notation
 
@@ -108,9 +107,6 @@ Metaclass instances are emitted as cross-referential functions that have two mod
     2. Constructor invocation builds a syntax node and returns immediately. This is used internally, though it might also be useful externally.
     3. Nullary constructor invocation builds a syntax node that has no children. This is used by caterwaul's seq[] macro.
 
-Each metaclass contains a .map() method that recursively descends through the tree. It uses a standard protocol to indicate nondestructive node replacement, stop-traversal, and continuation.
-Unlike caterwaul 1.3's map() method, this one is optimized to rewrite only modified subtrees.
-
             metaclass_instance(n, ctor, proto) = qse[_constructor; _name.prototype = _prototype; _name.original_name = _string_name; _name.prototype.constructor = _name; _common_methods]
                                                  /~replace/ {_constructor: ctor, _prototype: proto, _name: n, _string_name: n /!$.syntax.from_string, _common_methods: n /!common_method_tree},
 
@@ -151,12 +147,11 @@ memory in the common case). You can get to the string data using the data() meth
                                                                        proto()),
 
                               parser()      = qse[function (s, i) {var ii = i; _body; if (ii > -1) return new _name(s, i, ii)}] /~replace/ {_name: name},
-                              proto()       = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
-                                                           start()             = this.start_,
-                                                           end()               = this.end_,
-                                                           length              = 0,
-                                                           toString()          = this.input_.substring(this.start_, this.end_),
-                                                           data()              = this.toString()]],
+                              proto()       = qse[capture [start()    = this.start_,
+                                                           end()      = this.end_,
+                                                           length     = 0,
+                                                           toString() = this.input_.substring(this.start_, this.end_),
+                                                           data()     = this.toString()]],
 
                               use_regexp(t) = t.is_character_class() || t.is_single_escape() || t.data === '.' && t.length === 0,
                               marks_end(t)  = t.is_zero_width() && t.data === '$',
@@ -180,8 +175,8 @@ memory in the common case). You can get to the string data using the data() meth
 
 ## Invariant instances
 
-These have predetermined content and length, so all that is necessary for each instance is the 'start' parameter. Serialization and mapping are both trivial. The end() method simply adds the
-starting position to the precomputed length of the constant. Here, 'k' is the invariant string.
+These have predetermined content and length, so all that is necessary for each instance is the 'start' parameter. Serialization is trivial. The end() method simply adds the starting position
+to the precomputed length of the constant. Here, 'k' is the invariant string.
 
             invariant_metaclass(name, k) = metaclass_instance(name, metaclass_constructor(name, 'start_'.qw) /~replace/ {_parser_implementation: parser(name, k)},
                                                                     proto(k))
@@ -189,11 +184,10 @@ starting position to the precomputed length of the constant. Here, 'k' is the in
                  -where [parser(name, k) = qse[new _name(i) -when [_s === s.substr(i, _l)] -given [s, i]]
                                            /~replace/ {_name: name, _s: k /!$.syntax.from_string, _l: '#{k.length}'},
 
-                         proto(k)        = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
-                                                        start()             = this.start_,
-                                                        end()               = this.start_ + _l,
-                                                        length              = 0,
-                                                        toString()          = _s]] /~replace/ {_s: k /!$.syntax.from_string, _l: '#{k.length}'}],
+                         proto(k)        = qse[capture [start()    = this.start_,
+                                                        end()      = this.start_ + _l,
+                                                        length     = 0,
+                                                        toString() = _s]] /~replace/ {_s: k /!$.syntax.from_string, _l: '#{k.length}'}],
 
 ## Trivially variant instances
 
@@ -205,21 +199,20 @@ These are single-component variants like character classes. The match result is 
                             -where [parser(name, t) = qse[new _name(i, s.charAt(i)) -when [_r /~test/ s.charAt(i)] -given [s, i]]
                                                       /~replace/ {_name: name, _r: '/#{t}/'},
 
-                                    proto           = qse[capture [map(f, r = f(this)) = r === true || !r ? this : r,
-                                                                   start()             = this.start_,
-                                                                   end()               = this.start_ + this.match_.length,
-                                                                   length              = 0,
-                                                                   toString()          = this.match_,
-                                                                   data()              = this.match_]]],
+                                    proto           = qse[capture [start()    = this.start_,
+                                                                   end()      = this.start_ + this.match_.length,
+                                                                   length     = 0,
+                                                                   toString() = this.match_,
+                                                                   data()     = this.match_]]],
 
 ## Repetition instances
 
 Repetitions represent *, +, and ? in sequences. Each contains numerically indexed children along with a .length property; this allows you to iterate through the entries using the seq[]
-macro. Unlike other instances, they are designed to support local mutability; this is useful when copying information from one repetition instance to another using seq[] -- though .map() is
-probably a better way to do it.
+macro. Unlike other instances, they are designed to support local mutability; this is useful when copying information from one repetition instance to another using seq[] -- though structured
+mapping is probably a better way to do it.
 
 Note that any copies that seq[] creates won't have start() or end() defined. This probably isn't a problem in most cases, since dynamically-constructed instances don't necessarily map back
-to the original input string. You won't have this problem if you use map() instead.
+to the original input string.
 
             repetition_metaclass(name, tree) = '_init; _repeated'.qs /~replace/ {_init: this_metaclass(), _repeated: repeated_metaclass}
 
@@ -242,10 +235,6 @@ to the original input string. You won't have this problem if you use map() inste
                                                             end()                        = this.end_,
                                                             push(x, this.length -oeq- 0) = this[this.length++] -eq- x -then- this,
                                                             pop(x = this[--this.length]) = delete this[this.length] -then- x,
-                                                            map(f, r = this, t = null)   = this *![r -eq- new this.constructor(this.start_, this.end_, this.length)
-                                                                                            -then- this *![r[xi] = x] /seq /when [r !== this && (t = x /~map/ f) !== x]
-                                                                                            -then- r[xi] /eq.t] -seq
-                                                                                           -then.r,
                                                             toString()                   = +this /seq /~join/ '']]],
 
 ## Sequence instances
@@ -257,20 +246,10 @@ members. For example, /foo (bar:bif) baz/ creates a prototype method called bar(
 Identifying the sequence elements isn't as simple as pulling off one piece at a time. Because there are some special forms built from the other ones, we need to first test to see if we have
 one. The tree is right-associative, which is ideal.
 
-### Map function semantics
-
-  Mapping over a sequence node is fairly straightforward. It has the following semantics:
-
-    1. If f(node) returns false or node, node is replaced by node.map(f).
-    2. If f(node) returns true, node is not replaced at all and is not descended into.
-    3. If f(node) returns anything else, node is replaced immediately and the new value is not descended into.
-
-This allows you to use map() as a non-consing iterator by continuously returning false or the receiver.
-
 ### Serialization
 
-Any AST can be rendered back into the string that produced it using toString(). If you've modified the node, however, it will need to generate a new string since it no longer reflects its
-original state. It's important for this operation to be as fast as possible, so I'm constructing an array and join()ing the pieces.
+  Any AST can be rendered back into the string that produced it using toString(). If you've modified the node, however, it will need to generate a new string since it no longer reflects its
+  original state. It's important for this operation to be as fast as possible, so I'm constructing an array and join()ing the pieces.
 
 Technically this is not the fastest way to do it on V8. Because V8 uses string cons trees, it's actually a little faster to just use naive + concatenation. But this code should be
 performant across browsers/platforms if possible.
@@ -307,23 +286,11 @@ performant across browsers/platforms if possible.
                                                                                                _formals: formals.slice(2) /['_x, _y'.qs /~replace/ {_x: x0, _y: x}] -seq}],
 
                   proto                             = {} /nominal_bindings /-$.merge/intrinsics /!$.syntax.from_object
-                                                      -where [map_qs()            = qse[function (f) {var receiver = f(this) || this; if (receiver === true) return this;
-                                                                                                      _stages; return receiver}]
-                                                                                    /~replace/ {_stages: pieces /!map_stages},
-
-                                                              map_stages(ps)      = ps *[map_stage(xi)] /['_x; _y'.qs /~replace/ {_x: x0, _y: x}] -seq,
-                                                              map_stage(i)        = qse[if (receiver === this && (x = this[_i].map(f)) !== receiver[_i]) {
-                                                                                          receiver = new this.constructor(this.start(), this.end());
-                                                                                          for (var j = 0; j < _i; ++j) receiver[j] = this[j]}
-                                                                                        receiver[_i] = x]
-                                                                                    /~replace/ {_i: '#{i}'},
-
-                                                              tostring_qs()       = qse[function () {return [_pieces].join('')}] /~replace/ {_pieces: pieces /!tostring_stages},
+                                                      -where [tostring_qs()       = qse[function () {return [_pieces].join('')}] /~replace/ {_pieces: pieces /!tostring_stages},
                                                               tostring_stages(ps) = pieces *['this[_i].toString()'.qs /~replace/ {_i: '#{xi}'}]
                                                                                            /['_x, _y'.qs              /~replace/ {_x: x0, _y: x}] -seq,
 
-                                                              intrinsics          = capture [map      = map_qs(),
-                                                                                             toString = tostring_qs(),
+                                                              intrinsics          = capture [toString = tostring_qs(),
                                                                                              start    = qse[this.start_, given[]],
                                                                                              end      = qse[this.end_,   given[]],
                                                                                              length   = new $.syntax('#{pieces.length}')],
