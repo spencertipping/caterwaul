@@ -243,6 +243,7 @@ meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => '
 
 __
 meta::alias('e', 'edit sdoc::waul::caterwaul');
+meta::alias('ecg', 'edit sdoc::waul::core.gensym');
 meta::alias('er', 'edit sdoc::readme');
 meta::alias('erf', 'edit function::render');
 meta::bootstrap('html', <<'__');
@@ -629,11 +630,25 @@ else    {pop @{$transient{path}}}
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__');
+terminal::info('rendering caterwaul');
 file::write('README.md', retrieve('markdown::readme'));
 
 # Render caterwaul core
-file::write('src/caterwaul.waul', retrieve('pp::waul::caterwaul'), mkpath => 1);
-file::write('src/caterwaul.md',   retrieve('markdown::pp::sdoc::waul::caterwaul'));
+file::write('src/caterwaul.waul',   retrieve('pp::waul::caterwaul'), mkpath => 1);
+file::write('src/caterwaul.md',     retrieve('markdown::sdoc::waul::caterwaul'));
+file::write('src/caterwaul-all.md', retrieve('markdown::pp::sdoc::waul::caterwaul'));
+
+# Render module documentation
+my @modules = qw/core.gensym/;
+file::write("src/$_.md", retrieve("markdown::sdoc::waul::$_")) for @modules;
+
+# Render waul
+file::write('src/waul.waul', retrieve('pp::waul::waul'));
+file::write('src/waul.md',   retrieve('markdown::sdoc::waul::waul'));
+
+# Bootstrap everything
+terminal::info('bootstrapping waul (pass 1 of 2)'), sh('./waul src/waul.waul && cp src/waul.js ./waul && chmod 0700 waul');
+terminal::info('bootstrapping waul (pass 2 of 2)'), sh('./waul src/waul.waul && cp src/waul.js ./waul && chmod 0700 waul');
 
 __
 meta::function('rm', <<'__');
@@ -1717,10 +1732,12 @@ These provide basic functionality that is needed by other modules inside caterwa
 Compiler modules.
 These define caterwaul's compiler internals and are bootstrapped. That is, the current Javascript and regexp parsers are used to build the next ones.
 
-- pinclude sdoc::waul::parser.javascript
+- pinclude sdoc::waul::parser.waul
 - pinclude sdoc::waul::parser.regexp
 - pinclude sdoc::waul::compiler.parser
 - pinclude sdoc::waul::compiler.javascript
+- pinclude sdoc::waul::grammar.regexp
+- pinclude sdoc::waul::grammar.waul
 
 Language implementation.
 These modules implement the caterwaul programming language. Unlike before, this is baked into caterwaul.js. I'm doing it this way because caterwaul now bootstrap-compiles itself, so it should
@@ -1744,6 +1761,17 @@ the core.replication module.
               module(name, configuration, f) = arguments.length === 1 ? $['#{name}_initializer']
                                                                       : $.modules /~push/ name /unless [$['#{name}_initializer']] -then- $['#{name}_initializer'] -eq- $(configuration)(f)
                                                                                                                                   -then- $['#{name}_initializer']($)]]});
+
+__
+meta::sdoc('waul::core.gensym', <<'__');
+  Symbol generation.
+  Gensyms are identifiers that contain at least 128 bits of pseudorandom data, in this case encoded as base-62. Each base-62 digit contains ~ 5.95 bits of entropy, so a length of 22 digits is
+  sufficient. Gensyms are associated with generators, each of which has its own entropy.
+
+  caterwaul.module('core.gensym', ':all', function ($) {
+    $.entropy()                                            = n[22] *['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charCodeAt(Math.random() * 62 >>> 0)] -seq |~join| '',
+    $.gensym_generator(entropy = $.entropy(), i = 0)(name) = '#{name || ""}_#{++i}_#{entropy}',
+    $.gensym                                               = $.gensym_generator()}),
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');

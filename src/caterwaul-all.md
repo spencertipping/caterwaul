@@ -13,29 +13,24 @@ a lot of technical information in the comments inside this file.
 
 These provide basic functionality that is needed by other modules inside caterwaul. They need to be loaded first, and probably in this order.
 
-    - pinclude sdoc::waul::core.gensym
-    - pinclude sdoc::waul::core.replication
-    - pinclude sdoc::waul::core.bloom
+## Symbol generation
+
+Gensyms are identifiers that contain at least 128 bits of pseudorandom data, in this case encoded as base-62. Each base-62 digit contains ~ 5.95 bits of entropy, so a length of 22 digits is
+sufficient. Gensyms are associated with generators, each of which has its own entropy.
+
+    caterwaul.module('core.gensym', ':all', function ($) {
+      $.entropy()                                            = n[22] *['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charCodeAt(Math.random() * 62 >>> 0)] -seq |~join| '',
+      $.gensym_generator(entropy = $.entropy(), i = 0)(name) = '#{name || ""}_#{++i}_#{entropy}',
+      $.gensym                                               = $.gensym_generator()}),
 
 # Compiler modules
 
 These define caterwaul's compiler internals and are bootstrapped. That is, the current Javascript and regexp parsers are used to build the next ones.
 
-    - pinclude sdoc::waul::parser.waul
-    - pinclude sdoc::waul::parser.regexp
-    - pinclude sdoc::waul::compiler.parser
-    - pinclude sdoc::waul::compiler.javascript
-    - pinclude sdoc::waul::grammar.regexp
-    - pinclude sdoc::waul::grammar.waul
-
 # Language implementation
 
 These modules implement the caterwaul programming language. Unlike before, this is baked into caterwaul.js. I'm doing it this way because caterwaul now bootstrap-compiles itself, so it should
 contain all required dependencies.
-
-    - pinclude sdoc::waul::macro.javascript
-    - pinclude sdoc::waul::macro.strings
-    - pinclude sdoc::waul::macro.seq
 
 # Global initialization
 
