@@ -242,7 +242,7 @@ meta::meta('type::waul', <<'__');
 meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => 'edit';
 
 __
-meta::alias('e', 'edit sdoc::waul::core');
+meta::alias('e', 'edit sdoc::waul::caterwaul');
 meta::alias('er', 'edit sdoc::readme');
 meta::alias('erf', 'edit function::render');
 meta::bootstrap('html', <<'__');
@@ -631,9 +631,9 @@ meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^
 meta::function('render', <<'__');
 file::write('README.md', retrieve('markdown::readme'));
 
-my @modules = qw/core/;
-file::write("src/$_.waul", retrieve("waul::$_"), mkpath => 1) for @modules;
-file::write("src/$_.md",   retrieve("markdown::waul::$_"))    for @modules;
+# Render caterwaul core
+file::write('src/caterwaul.waul', retrieve('pp::waul::caterwaul'), mkpath => 1);
+file::write('src/caterwaul.md',   retrieve('markdown::pp::sdoc::waul::caterwaul'));
 
 __
 meta::function('rm', <<'__');
@@ -1694,6 +1694,56 @@ Caterwaul is a programming language that compiles into Javascript. The syntax is
 number of design choices that make it an ideal foundation for a Javascript or Caterwaul IDE.
 
 Version 1.4 is still under construction.
+
+__
+meta::sdoc('waul::caterwaul', <<'__');
+Caterwaul compiler | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+Caterwaul is a programming language that compiles into Javascript. Visit http://caterwauljs.org and http://github.com/spencertipping/caterwaul for more information about it. You can also find
+a lot of technical information in the comments inside this file.
+
+caterwaul.offline(':all')(function () {
+  initializer(initializer),
+
+Core modules.
+These provide basic functionality that is needed by other modules inside caterwaul. They need to be loaded first, and probably in this order.
+
+- pinclude sdoc::waul::core.gensym
+- pinclude sdoc::waul::core.replication
+- pinclude sdoc::waul::core.bloom
+
+Compiler modules.
+These define caterwaul's compiler internals and are bootstrapped. That is, the current Javascript and regexp parsers are used to build the next ones.
+
+- pinclude sdoc::waul::parser.javascript
+- pinclude sdoc::waul::parser.regexp
+- pinclude sdoc::waul::compiler.parser
+- pinclude sdoc::waul::compiler.javascript
+
+Language implementation.
+These modules implement the caterwaul programming language. Unlike before, this is baked into caterwaul.js. I'm doing it this way because caterwaul now bootstrap-compiles itself, so it should
+contain all required dependencies.
+
+- pinclude sdoc::waul::macro.javascript
+- pinclude sdoc::waul::macro.strings
+- pinclude sdoc::waul::macro.seq
+
+Global initialization.
+This tracks the code that was used to create the caterwaul global. If you run this again, you'll get a new global with no modules defined. Storing this is necessary for replication, defined in
+the core.replication module.
+
+  where [initializer(initializer, undefined) = $.merge   /eq.merge -then- $.deglobalize /eq.deglobalize -then- $.initializer /eq.initializer
+                                        -then- $.modules /eq.[]    -then- $.module      /eq.module      -then- caterwaul     /eq.$
+
+      -where [original_caterwaul             = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+              $(configuration, options)      = $.init(configuration, options),
+              merge(o, xs = arguments)       = Array.prototype.slice.call(xs, 1) *![x %k*!k[o[k] = x[k]] -seq -when.x] -seq -then- o,
+              deglobalize()                  = caterwaul -eq.original_caterwaul -then- $,
+              module(name, configuration, f) = arguments.length === 1 ? $['#{name}_initializer']
+                                                                      : $.modules /~push/ name /unless [$['#{name}_initializer']] -then- $['#{name}_initializer'] -eq- $(configuration)(f)
+                                                                                                                                  -then- $['#{name}_initializer']($)]]});
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
