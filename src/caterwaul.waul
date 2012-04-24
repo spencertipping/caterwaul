@@ -54,24 +54,14 @@ caterwaul.offline(':all')(function () {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Language implementation.
 # These modules implement the caterwaul programming language. Unlike before, this is baked into caterwaul.js. I'm doing it this way because caterwaul now bootstrap-compiles itself, so it should
 # contain all required dependencies.
+
+
+
+
+
 
 
 

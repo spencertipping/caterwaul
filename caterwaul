@@ -1732,12 +1732,9 @@ These provide basic functionality that is needed by other modules inside caterwa
 Compiler modules.
 These define caterwaul's compiler internals and are bootstrapped. That is, the current Javascript and regexp parsers are used to build the next ones.
 
-- pinclude sdoc::waul::parser.waul
-- pinclude sdoc::waul::parser.regexp
-- pinclude sdoc::waul::compiler.parser
-- pinclude sdoc::waul::compiler.javascript
-- pinclude sdoc::waul::grammar.regexp
 - pinclude sdoc::waul::grammar.waul
+- pinclude sdoc::waul::grammar.regexp
+- pinclude sdoc::waul::compiler.javascript
 
 Language implementation.
 These modules implement the caterwaul programming language. Unlike before, this is baked into caterwaul.js. I'm doing it this way because caterwaul now bootstrap-compiles itself, so it should
@@ -1746,6 +1743,7 @@ contain all required dependencies.
 - pinclude sdoc::waul::macro.javascript
 - pinclude sdoc::waul::macro.strings
 - pinclude sdoc::waul::macro.seq
+- pinclude sdoc::waul::macro.peg
 
 Global initialization.
 This tracks the code that was used to create the caterwaul global. If you run this again, you'll get a new global with no modules defined. Storing this is necessary for replication, defined in

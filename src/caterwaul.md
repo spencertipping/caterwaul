@@ -21,12 +21,9 @@ These provide basic functionality that is needed by other modules inside caterwa
 
 These define caterwaul's compiler internals and are bootstrapped. That is, the current Javascript and regexp parsers are used to build the next ones.
 
-    - pinclude sdoc::waul::parser.waul
-    - pinclude sdoc::waul::parser.regexp
-    - pinclude sdoc::waul::compiler.parser
-    - pinclude sdoc::waul::compiler.javascript
-    - pinclude sdoc::waul::grammar.regexp
     - pinclude sdoc::waul::grammar.waul
+    - pinclude sdoc::waul::grammar.regexp
+    - pinclude sdoc::waul::compiler.javascript
 
 # Language implementation
 
@@ -36,6 +33,7 @@ contain all required dependencies.
     - pinclude sdoc::waul::macro.javascript
     - pinclude sdoc::waul::macro.strings
     - pinclude sdoc::waul::macro.seq
+    - pinclude sdoc::waul::macro.peg
 
 # Global initialization
 
