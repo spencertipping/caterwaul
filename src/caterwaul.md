@@ -31,9 +31,8 @@ These modules implement the caterwaul programming language. Unlike before, this 
 contain all required dependencies.
 
     - pinclude sdoc::waul::macro.javascript
-    - pinclude sdoc::waul::macro.strings
     - pinclude sdoc::waul::macro.seq
-    - pinclude sdoc::waul::macro.peg
+    - pinclude sdoc::waul::macro.inversion
 
 # Global initialization
 

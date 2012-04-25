@@ -244,6 +244,7 @@ meta::functor::editable 'waul', inherit => 1, extension => '.waul', default => '
 __
 meta::alias('e', 'edit sdoc::waul::caterwaul');
 meta::alias('ecg', 'edit sdoc::waul::core.gensym');
+meta::alias('emi', 'edit sdoc::waul::macro.inversion');
 meta::alias('er', 'edit sdoc::readme');
 meta::alias('erf', 'edit function::render');
 meta::bootstrap('html', <<'__');
@@ -340,7 +341,6 @@ object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
 __
 meta::data('author', 'Spencer Tipping');
-meta::data('current-continuation', 'figure out how to generalize parsers into recursive-descent destructuring binds');
 meta::data('default-action', 'shell');
 meta::data('license', <<'__');
 MIT License
@@ -1746,9 +1746,8 @@ These modules implement the caterwaul programming language. Unlike before, this 
 contain all required dependencies.
 
 - pinclude sdoc::waul::macro.javascript
-- pinclude sdoc::waul::macro.strings
 - pinclude sdoc::waul::macro.seq
-- pinclude sdoc::waul::macro.restructure
+- pinclude sdoc::waul::macro.inversion
 
 Global initialization.
 This tracks the code that was used to create the caterwaul global. If you run this again, you'll get a new global with no modules defined. Storing this is necessary for replication, defined in
@@ -1777,9 +1776,36 @@ meta::sdoc('waul::core.gensym', <<'__');
     $.gensym                                               = $.gensym_generator()}),
 
 __
-meta::sdoc('waul::restructure', <<'__');
-  Restructuring binds.
-  A restructuring bind 
+meta::sdoc('waul::macro.inversion', <<'__');
+  Expression inversion.
+  Many expressions in Javascript are invertible; that is, if you consider the expression to be a function over its free variables, you can take the output and rebind those variables. Sometimes
+  you can do this ambiguously, but some information is lost. This module gives you operators that allow you to invert expressions.
+
+    Invertible functions.
+    Most simple functions can be inverted in some way, though some information may be lost. Generally this information is lost in the initial projection; that is, fi(f(x)) may not be x, but
+    f(fi(f(x))) === f(x). For example:
+
+    | f(x) = x + 'foo'          <-> f.unapply(t, result) = [result.replace(/foo$/, '')] -when- /foo$/.test(x)
+      f(x) = x + 1              <-> f.unapply(t, result) = [result - 1]                                                         // not correct for strings; + is a hard operator this way
+      f(x) = 'foo' + x + 'bar'  <-> f.unapply(t, result) = [result.replace(/^foo(.*)bar$/, '$1')] -when- /^foo.*bar$/.test(x)
+      f(x) = Math.sin(x)        <-> f.unapply(t, result) = [Math.sin.unapply(Math, result)]
+
+    In general, functions are invertible when they specify an unapply() method with the property that f.unapply(receiver, f.apply(receiver, xs)) is roughly equivalent to xs or a falsy value.
+    Because xs must be an array or arguments object, each of which is truthy, the true/false distinction suffices to indicate whether a function could be successfully unapplied. It also has
+    the convenient property that || is semi-distributive across inversion:
+
+    | f(x)                   = g(x) || h(x) || i(x)
+      f.unapply(receiver, x) = g.unapply(receiver, x) || h.unapply(receiver, x) || i.unapply(receiver, x)
+
+    This is a lossy inversion if 'g' accepts values produced by 'h' or 'i'. The lossiness comes from the fact that the original function's decision tree was not recorded; all we can do from
+    the inverse function is observe properties of its output. One way to prevent this is to use constructors.
+
+    Constructor inversion.
+    This is another case where inversion is not technically possible due to lossy transformations that happen inside constructor functions. However, we can define a lossy unnew() that tracks
+    field assignments and remaps them into constructor arguments:
+
+    | f(x, y, z)        = this.x -eq.x <then> this.y -eq.y <then> this.z -eq.z <then> this
+      f.unnew(receiver) = [receiver.x, receiver.y, receiver.z] -when [receiver && receiver.constructor === f]
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
