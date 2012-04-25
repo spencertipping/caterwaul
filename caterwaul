@@ -1748,7 +1748,7 @@ contain all required dependencies.
 - pinclude sdoc::waul::macro.javascript
 - pinclude sdoc::waul::macro.strings
 - pinclude sdoc::waul::macro.seq
-- pinclude sdoc::waul::macro.peg
+- pinclude sdoc::waul::macro.restructure
 
 Global initialization.
 This tracks the code that was used to create the caterwaul global. If you run this again, you'll get a new global with no modules defined. Storing this is necessary for replication, defined in
@@ -1775,6 +1775,11 @@ meta::sdoc('waul::core.gensym', <<'__');
     $.entropy()                                            = n[22] *['ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charCodeAt(Math.random() * 62 >>> 0)] -seq |~join| '',
     $.gensym_generator(entropy = $.entropy(), i = 0)(name) = '#{name || ""}_#{++i}_#{entropy}',
     $.gensym                                               = $.gensym_generator()}),
+
+__
+meta::sdoc('waul::restructure', <<'__');
+  Restructuring binds.
+  A restructuring bind 
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
