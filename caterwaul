@@ -340,6 +340,7 @@ object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
 __
 meta::data('author', 'Spencer Tipping');
+meta::data('current-continuation', 'figure out how to generalize parsers into recursive-descent destructuring binds');
 meta::data('default-action', 'shell');
 meta::data('license', <<'__');
 MIT License
