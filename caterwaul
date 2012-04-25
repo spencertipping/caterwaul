@@ -245,6 +245,7 @@ __
 meta::alias('e', 'edit sdoc::waul::caterwaul');
 meta::alias('ecg', 'edit sdoc::waul::core.gensym');
 meta::alias('emi', 'edit sdoc::waul::macro.inversion');
+meta::alias('emp', 'edit sdoc::waul::macro.peg');
 meta::alias('er', 'edit sdoc::readme');
 meta::alias('erf', 'edit function::render');
 meta::bootstrap('html', <<'__');
@@ -1747,6 +1748,7 @@ contain all required dependencies.
 
 - pinclude sdoc::waul::macro.javascript
 - pinclude sdoc::waul::macro.seq
+- pinclude sdoc::waul::macro.peg
 - pinclude sdoc::waul::macro.inversion
 
 Global initialization.
@@ -1781,6 +1783,8 @@ meta::sdoc('waul::macro.inversion', <<'__');
   Many expressions in Javascript are invertible; that is, if you consider the expression to be a function over its free variables, you can take the output and rebind those variables. Sometimes
   you can do this ambiguously, but some information is lost. This module gives you operators that allow you to invert expressions.
 
+  caterwaul.module('macro.inversion', ':all', function ($) {
+
     Invertible functions.
     Most simple functions can be inverted in some way, though some information may be lost. Generally this information is lost in the initial projection; that is, fi(f(x)) may not be x, but
     f(fi(f(x))) === f(x). For example:
@@ -1800,12 +1804,76 @@ meta::sdoc('waul::macro.inversion', <<'__');
     This is a lossy inversion if 'g' accepts values produced by 'h' or 'i'. The lossiness comes from the fact that the original function's decision tree was not recorded; all we can do from
     the inverse function is observe properties of its output. One way to prevent this is to use constructors.
 
+    Formally, here are the inversion forms for function calls:
+
+    | inverse [y = f(x)]           = f.unapply(this, y)
+      inverse [y = f.call(r, x)]   = f.call.unapply(f, y)
+      inverse [y = f.apply(r, xs)] = f.apply.unapply(f, y)
+
+    Caterwaul provides standard implementations of unapply() for these cases, and you can install them using caterwaul.inversion.enable_intrinsics(). This installs methods onto the functions
+    defined on Function.prototype and RegExp.prototype.
+
     Constructor inversion.
     This is another case where inversion is not technically possible due to lossy transformations that happen inside constructor functions. However, we can define a lossy unnew() that tracks
     field assignments and remaps them into constructor arguments:
 
     | f(x, y, z)        = this.x -eq.x <then> this.y -eq.y <then> this.z -eq.z <then> this
       f.unnew(receiver) = [receiver.x, receiver.y, receiver.z] -when [receiver && receiver.constructor === f]
+
+    Conditional inversion.
+    Conditional constructs such as ?:, &&, ||, and if/else cannot generally be inverted, but if we allow for lossy inversion then we can usefully approximate in most cases. For example:
+
+    | inverse [x || y]          = inverse[x] || inverse[y]
+      inverse [x && y]          = inverse[x] && inverse[y]
+      inverse [x ? y : z]       = inverse[y] || inverse[z]      <- very lossy!
+      inverse [if (x) y else z] = inverse[y] || inverse[z]      <- very lossy!
+
+    Assignment inversion.
+    Side effects cannot generally be inverted, but sometimes you can derive the value of a parameter based on some aspect of the result. For example:
+
+    | f(x)                 = this.foo -eq.x <then> this
+      f.unapply(r, result) = [r.foo]
+
+    The inversion rule used here is this:
+
+    | inverse [lhs = rhs] = inverse[rhs] = inverse[lhs]
+      inverse [this.foo = x] = inverse[x] = inverse[this.foo]
+                             = match_array[0] = inverse[this].foo
+                             = match_array[0] = r.foo
+
+    });
+
+__
+meta::sdoc('waul::macro.peg', <<'__');
+  Parsing expression grammar macro.
+  This macro allows you to write parsing expression grammars in terms of regular expressions. Caterwaul takes some liberties with notation here; the regular expressions that form PEGs are not
+  interpreted in a way that is consistent with Javascript's native regexp implementation. Moreover, a large class of regular expression operators is unsupported.
+
+  PEGs generalize to more than just strings. At a more fundamental level, the PEGs implemented here are combinations of the following constructs:
+
+  | 1. Atomic matching. This either succeeds or fails, returning a new cursor on success.
+    2. Biased disjunction. This accepts the first matcher that succeeds.
+    3. Conjunction. Combines the output of a series of matchers, failing if any one of them fails. The cursor is provided by the last (rightmost) matcher.
+    4. Series conjunction. Combines the output of a matcher as many times as it will match, optionally with an upper and lower bound. More efficient than repeated disjunction, and operates in
+       constant stack space.
+
+  Nothing about these constructs is restricted to strings or even linear sequences of elements. Here is the regexp encoding:
+
+  |  1. Atomic matching: /foo/.
+     2. Disjunction: /foo | bar/.
+     3. Conjunction: /foo bar/.
+     4. Greedy repetition: /foo*/, encoded as R = /foo R | zero/. Forms a linked list of results.
+     5. Greedy repetition: /foo+/, encoded as R = /foo R | foo/. Forms a linked list of results.
+     6. Lazy repetition: /foo*?/, encoded as R = /zero | foo R/. Forms a linked list of results.
+     7. Lazy repetition: /foo+?/, encoded as R = /foo | foo R/. Forms a linked list of results.
+     8. Greedy option: /foo?/, encoded as /foo | zero/.
+     9. Lazy option: /foo??/, encoded as /zero | foo/.
+    10. Greedy bounded repetition: /foo{x,y}/, encoded using a special form that builds an array of results.
+    11. Lazy bounded repetition: /foo{x,y}?/, encoded using a special form that builds an array of results.
+
+  FIXME: Am I being too specific with this implementation? Something seems wrong here...
+
+  caterwaul.module('macro.peg', ':all', function ($) {});
 
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
