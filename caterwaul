@@ -636,7 +636,7 @@ terminal::info('rendering caterwaul');
 file::write('README.md', retrieve('markdown::readme'));
 
 # Render caterwaul core
-file::write('src/caterwaul.waul',   retrieve('pp::waul::caterwaul'), mkpath => 1);
+file::write('src/caterwaul.waul',   retrieve('code.waul::pp::sdoc::waul::caterwaul'), mkpath => 1);
 file::write('src/caterwaul.md',     retrieve('markdown::sdoc::waul::caterwaul'));
 file::write('src/caterwaul-all.md', retrieve('markdown::pp::sdoc::waul::caterwaul'));
 
