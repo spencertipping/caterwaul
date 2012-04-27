@@ -52,7 +52,7 @@ xi<xl;
 return xr} ) .call(this, (function(o) {var ks= [] ;
 for(var k in o)Object.prototype.hasOwnProperty.call(o,k) &&ks.push(k) ;
 return ks} ) .call(this, (common_methods) ) ) ) 
-:new $.syntax( 'null /* no common methods */' ) } ,metaclass=function(name,tree) {;
+:new $.syntax( ( 'null /* no common methods for ' + (name) + ' */' ) ) } ,metaclass=function(name,tree) {;
 return is_primitive(tree) ?primitive_metaclass(name,tree) 
 : (function(it) {return it&& !it._ref.length} ) .call(this, ( (inline_ref_form) .match(tree) ) ) ?alias_metaclass(name,tree[1] .data) 
 :tree.is_group() ?metaclass(name,tree[0] ) 
@@ -113,7 +113,7 @@ return(function() {var parser=function(name,t) {;
 return(qse8) .replace( {_name:name,_r: ( '/' + (t) + '/' ) } ) } ,proto=qse9;
 return metaclass_instance(name, (metaclass_constructor(name, [ 'start_' , 'match_' ] ) ) .replace( {_parser_implementation:parser(name,tree) } ) ,proto) } ) .call(this) } ,repetition_metaclass=function(name,tree) {;
 return(function() {var this_metaclass=function() {;
-return metaclass_instance(name, (metaclass_constructor(name, [ 'start_' , 'end_' , 'length' ] ) ) .replace( {_parser_implementation:parser} ) ,proto(tree) ) } ,sub=$.gensym() ,repeated_metaclass=metaclass(sub,tree.repeated_child() ) ,parser= (tree.is_non_greedy() && (function() {throw new Error( ( 'lazy matching semantics are not supported: ' + (tree) + '' ) ) } ) .call(this) , (qsea) .replace( {_name:name,_sub:sub,_upper: ( '' + (tree.upper_limit() ) + '' ) ,_lower: ( '' + (tree.lower_limit() ) + '' ) } ) ) ,proto=function(t) {;
+return metaclass_instance(name, (metaclass_constructor(name, [ 'start_' , 'end_' , 'length' ] ) ) .replace( {_parser_implementation:parser} ) ,proto(tree) ) } ,sub=$.gensym() ,repeated_metaclass=metaclass(sub,tree.repeated_child() ) ,parser= (tree.is_non_greedy() && (function() {throw new Error( ( 'lazy matching semantics are not supported: ' + (tree) + '' ) ) } ) .call(this) , (qsea) .replace( {_name:name,_upper: ( '' + (tree.upper_limit() ) + '' ) ,_sub:sub,_lower: ( '' + (tree.lower_limit() ) + '' ) } ) ) ,proto=function(t) {;
 return qseb} ;
 return(qsf) .replace( {_init:this_metaclass() ,_repeated:repeated_metaclass} ) } ) .call(this) } ,sequence_metaclass=function(name,tree) {;
 return(function() {var base_metaclass=function() {;

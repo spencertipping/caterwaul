@@ -650,8 +650,8 @@ file::write('bootstrap-compiler.js', retrieve('pp::js::bootstrap')) unless $$opt
 terminal::info('running bootstrap compiler to generate bootstrap image');
 file::write('bootstrap.js', join '', qx|node bootstrap-compiler.js|) unless $$options{-B};
 
-terminal::info('minifying bootstrap image');
-minify_yui('-m', 'bootstrap.js') unless $$options{-M};
+#terminal::info('minifying bootstrap image');
+#minify_yui('-m', 'bootstrap.js') unless $$options{-M};
 
 __
 meta::function('rm', <<'__');
@@ -1714,7 +1714,7 @@ meta::sdoc('js::bootstrap', <<'__');
 - include javascript-grammar.js
 
 caterwaul(':all')(function ($) {
-  process.stdout.write($.javascript_grammar.guarded().toString())})(caterwaul);
+  process.stdout.write('caterwaul.javascript_grammar = #{$.javascript_grammar.guarded()}()')})(caterwaul);
 
 __
 meta::sdoc('waul::javascript-grammar', <<'__');
@@ -1729,7 +1729,7 @@ caterwaul.module('javascript-grammar', ':all', function ($) {
                                   statement     = /@block | @with_semi | data:; post:@ws | @statement_/,
                                   block         = /data:\{ l:@statement \} post:@ws/,
                                   with_semi     = /l:@statement_ data:; post:@ws/,
-                                  statement_    = /@if_ | @for_iterator | @for_in | @while_ | @do_ | @switch_ | @throw_ | @try_ | @return_ | @break_ | @continue_ | @expressions/,
+                                  statement_    = /@if_ | @for_iterator | @for_in | @while_ | @do_ | @switch_ | @throw_ | @try_ | @return_ | @break_ | @continue_ | @var_ | @expressions/,
                                   if_           = /data:if pre:@ws \(cond:@expressions\) l:@statement r:@else_/,
                                   else_         = /data:else pre:@ws l:@statement | @ws/,
                                   for_iterator  = /data:for pre:@ws \(init:@statement cond:@expressions post_cond:@ws; inc:@expression\) l:@statement/,
@@ -1741,12 +1741,13 @@ caterwaul.module('javascript-grammar', ':all', function ($) {
                                   case_         = /pre:@ws data:case cond:@expressions \: post:@ws/,
                                   default_      = /pre:@ws data:default post:@ws \:/,
                                   throw_        = /data:throw l:@expressions/,
-                                  try_          = /data:try l:@statement (r: (@catch_ | @finally_))/,
+                                  try_          = /data:try l:@statement r:(@catch_ | @finally_)/,
                                   catch_        = /data:catch pre:@ws \(cond:@expressions\) r:@finally_/,
                                   finally_      = /data:finally l:@statement | @ws/,
                                   return_       = /data:return pre:@ws l:@expressions | return/,
                                   break_        = /data:break pre:@ws cond:@identifier | break/,
                                   continue_     = /data:continue pre:@ws cond:@identifier | break/,
+                                  var_          = /data:(var | const) pre:@ws l:@expression/,
 
                                   nontrivial_ws = /data:([\s]+) l:@ws | data:(\/\/) text:.* l:@ws | data:(\/\*) text:(([^*]|\*[^\/])*) \*\/ l:@ws/,
                                   ws            = /@nontrivial_ws | \s*/,
@@ -1849,7 +1850,7 @@ $.regexp_grammar().
 
           common_method_tree(name)          = common_methods ? common_methods /keys *['_name.prototype._k = _ref'.qs /~replace/ {_name: name, _k: x, _ref: '#{common_method_prefix}#{x}'}]
                                                                                     /['_x, _y'.qs                    /~replace/ {_x: x0, _y: x}] -seq
-                                                             : new $.syntax('null /* no common methods */'),
+                                                             : new $.syntax('null /* no common methods for #{name} */'),
 
   Metaclass instantiation.
   The metaclass constructor function (just a regular function) looks at the tree you hand it and builds a metaclass instance based on that.
@@ -1992,10 +1993,8 @@ $.regexp_grammar().
                                                                   while (x && ++count <= _upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
                                                                   if (count >= _lower) return r}]
 
-                                             /~replace/ {_name:  name,
-                                                         _sub:   sub,
-                                                         _upper: '#{tree.upper_limit()}',
-                                                         _lower: '#{tree.lower_limit()}'},
+                                             /~replace/ {_name: name,  _upper: '#{tree.upper_limit()}',
+                                                         _sub:  sub,   _lower: '#{tree.lower_limit()}'},
 
                         proto(t)           = qse[capture [start()                      = this.start_,
                                                           end()                        = this.end_,

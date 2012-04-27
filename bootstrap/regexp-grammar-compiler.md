@@ -76,7 +76,7 @@ This is just a series of side-effectful assignments into the constructor functio
 
             common_method_tree(name)          = common_methods ? common_methods /keys *['_name.prototype._k = _ref'.qs /~replace/ {_name: name, _k: x, _ref: '#{common_method_prefix}#{x}'}]
                                                                                       /['_x, _y'.qs                    /~replace/ {_x: x0, _y: x}] -seq
-                                                               : new $.syntax('null /* no common methods */'),
+                                                               : new $.syntax('null /* no common methods for #{name} */'),
 
 ## Metaclass instantiation
 
@@ -226,10 +226,8 @@ to the original input string.
                                                                     while (x && ++count <= _upper) r.push(x), r.end_ = x.end(), x = _sub(s, r.end_);
                                                                     if (count >= _lower) return r}]
 
-                                               /~replace/ {_name:  name,
-                                                           _sub:   sub,
-                                                           _upper: '#{tree.upper_limit()}',
-                                                           _lower: '#{tree.lower_limit()}'},
+                                               /~replace/ {_name: name,  _upper: '#{tree.upper_limit()}',
+                                                           _sub:  sub,   _lower: '#{tree.lower_limit()}'},
 
                           proto(t)           = qse[capture [start()                      = this.start_,
                                                             end()                        = this.end_,
