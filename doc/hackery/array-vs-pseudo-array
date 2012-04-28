@@ -4,10 +4,10 @@
 caterwaul('js_all')(function () {
   'starting benchmark' /!console.log,
 
-  bench('boxed 10-element arrays',  1000, "boxed_arrays_10  /~[x.xs /[x + x0]] -seq".qf),
-  bench('boxed 2-element arrays',   1000, "boxed_arrays_2   /~[x.xs /[x + x0]] -seq".qf),
-  bench('pseudo 10-element arrays', 1000, "pseudo_arrays_10 /~[x    /[x + x0]] -seq".qf),
-  bench('pseudo 2-element arrays',  1000, "pseudo_arrays_2  /~[x    /[x + x0]] -seq".qf),
+  bench('boxed 10-element arrays',  1000, "boxed_arrays_10  /[x.xs /[x + x0] -seq] -seq".qf),
+  bench('boxed 2-element arrays',   1000, "boxed_arrays_2   /[x.xs /[x + x0] -seq] -seq".qf),
+  bench('pseudo 10-element arrays', 1000, "pseudo_arrays_10 /[x    /[x + x0] -seq] -seq".qf),
+  bench('pseudo 2-element arrays',  1000, "pseudo_arrays_2  /[x    /[x + x0] -seq] -seq".qf),
 
   where [boxed_arrays_10 = n[10000] *[{data: 'x', xs: n[10] -seq}] -seq,
          boxed_arrays_2  = n[50000] *[{data: 'x', xs: n[2]  -seq}] -seq,
