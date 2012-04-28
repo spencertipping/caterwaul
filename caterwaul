@@ -632,6 +632,8 @@ else    {pop @{$transient{path}}}
 __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__');
+my ($options, @stuff) = separate_options(@_);
+
 terminal::info('rendering caterwaul');
 file::write('README.md', retrieve('markdown::readme'));
 
@@ -652,8 +654,10 @@ file::write('src/waul.waul', retrieve('pp::waul::waul'));
 file::write('src/waul.md',   retrieve('markdown::sdoc::waul::waul'));
 
 # Bootstrap everything
-terminal::info('bootstrapping waul (pass 1 of 2)'), sh('./waul src/waul.waul && cp src/waul.js ./waul && chmod 0700 waul');
-terminal::info('bootstrapping waul (pass 2 of 2)'), sh('./waul src/waul.waul && cp src/waul.js ./waul && chmod 0700 waul');
+unless ($$options{-B}) {
+  terminal::info('bootstrapping waul (pass 1 of 2)'), sh('./waul src/waul.waul && cp src/waul.js ./waul && chmod 0700 waul');
+  terminal::info('bootstrapping waul (pass 2 of 2)'), sh('./waul src/waul.waul && cp src/waul.js ./waul && chmod 0700 waul');
+}
 
 __
 meta::function('rm', <<'__');
@@ -1712,7 +1716,19 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('doc::syntax-tree-structure', '');
+meta::sdoc('doc::grammar-compilation', <<'__');
+Grammar compilation process.
+Caterwaul 1.3 and prior had a hand-coded parser; this has all of the properties of a parser that had been compiled offline. The advantage of an online grammar compiler is that you can add
+custom rules at runtime, useful when doing things like parsing heredocs. The major disadvantage is the speed tradeoff -- JIT-compiling Javascript code is slow.
+
+The initial bootstrap implementation uses regexps as grammar input. The reason is that regexps map directly onto PEGs. But I've also been considering other implementations, in particular
+things like using destructuring binds as a way to parse things. For example (and please forgive the notation; I'm sure it will change):
+
+| statement('if',  whitespace(pre), expression(cond), statement(lhs)) = 'if #{pre} (#{cond}) #{lhs}'.x,
+  statement('var', statement(lhs)) = 'var #{lhs}'.x,
+  statement('for', whitespace(pre), statement(init), expression(cond), expression(inc), statement(body)) = 'for #{pre} (#{init} #{cond}; #{inc}) #{body}'
+
+__
 meta::sdoc('doc::syntax-trees', <<'__');
 Syntax tree structure.
 Caterwaul 1.3 used a loose and inefficient syntax tree model that more resembled high-level lexer output than it did an AST. 1.4 and forward parse things at a higher level, often accumulating
