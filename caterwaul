@@ -640,6 +640,9 @@ file::write('src/caterwaul.waul',   retrieve('code.waul::pp::sdoc::waul::caterwa
 file::write('src/caterwaul.md',     retrieve('markdown::sdoc::waul::caterwaul'));
 file::write('src/caterwaul-all.md', retrieve('markdown::pp::sdoc::waul::caterwaul'));
 
+# Render project documentation
+file::write("doc/$_.md", retrieve("markdown::doc::$_")) for grep s/^sdoc::doc:://, sort keys %data;
+
 # Render module documentation
 my @modules = qw/core.gensym/;
 file::write("src/$_.md", retrieve("markdown::sdoc::waul::$_")) for @modules;
@@ -1708,6 +1711,17 @@ meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : und
 meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
+__
+meta::sdoc('doc::syntax-tree-structure', '');
+meta::sdoc('doc::syntax-trees', <<'__');
+Syntax tree structure.
+Caterwaul 1.3 used a loose and inefficient syntax tree model that more resembled high-level lexer output than it did an AST. 1.4 and forward parse things at a higher level, often accumulating
+sub-terms into a single node. For example, caterwaul 1.3 parses 'if (x) {y}' as (if (( x) ({ y)), whereas 1.4 would parse it as (if x ({ y)). The syntactic preservation of things like the
+block-as-braces is important for precise idiomatic rendering.
+
+Manipulation in 1.4 should primarily be done by find/replace operations rather than map(). Searching through syntax trees can be made more efficient than map() will be, and building up a
+find/replace pair could save some allocations (though a smarter map() implementation should help here as well).
+
 __
 meta::sdoc('readme', <<'__');
 Caterwaul.
