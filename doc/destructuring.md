@@ -1,0 +1,54 @@
+# Destructuring binds
+
+Destructuring binds are used to pull pieces out of an expression. Roughly, this corresponds to a kind of tree extraction; the destructuring expression's job is to identify some subset of nodes
+and bind them within the context of a different expression. For example, here are some trivial cases:
+
+    f([a, b])        /= a + b     <- destructuring over arrays
+    f({x: a, y: b})  /= a + b     <- destructuring over objects
+    f(a, b)          /= a + b     <- destructuring over arity
+    f(new foo(a, b)) /= a + b     <- destructuring over construction
+
+Each of these cases is written with /= instead of = to indicate that the mapping is piecewise, not complete. Caterwaul fuses piecewise operations into a single function, preferring
+alternatives from last to first.
+
+## Composable destructuring
+
+Destructuring should apply across quasi-isomorphic abstraction. For cases where the abstraction isn't isomorphic, it can be coerced into a deterministic projection (similar to the process
+for disambiguating PEGs). For example:
+
+    f([a, b])    /= {x: a, y: b},
+    g(f([a, b])) /= a + b,
+    g({x: 5, y: 8})             <- returns 13
+
+Destructuring should also respect runtime changes to those abstractions. For example:
+
+    accept_objects()    = f({x: a, y: b}) /= new foo(a, b),
+    accept_arrays()     = f([a, b]) /= new foo(a, b),
+    f()                /= null,
+    g(f([a, b]))       /= a + b,
+    g(f({x: a, y: b})) /= a * b
+
+The reassignment of f() needs to impact any destructuring binds made by g().
+
+## Upper-bound of variance
+
+There is a limit to how first-class destructuring binds can be. The set of variables introduced into a scope must be determined at compile-time and should be a runtime invariant. This
+requires the macroexpander to have a complete set of binding combinators, most likely things like {} and []. It further requires that the macroexpander be able to generate code that handles
+the detection and destructuring operations, making this also a runtime invariant.
+
+## Implementation challenges
+
+In order to use destructuring to implement an efficient parser, one would need to implement some sort of memoization stored in the parse state. Doing this requires two things. First, the
+parse state needs to be communciated through the destructuring mechanism; second, the memo table must be updated as destructuring operations are occurring, regardless of whether they are
+successful. (!) This means providing an interface by which side-effects can happen, ideally transparently, as intermediate results of the matching process.
+
+This isn't as simple as it sounds because destructuring must be erased during compilation. So the interface into runtime state-space must be static. Therefore, destructuring is a wrapper
+around method calls, not a simple assignment-statement generator:
+
+    f(g(x))     = E[x]          <- caterwaul.unapply.fn(g, v) = g.unapply(v)
+    f([x])      = E[x]          <- caterwaul.unapply.array(pattern, x')
+    f({foo: x}) = E[x]          <- caterwaul.unapply.object(pattern, x')
+
+More complex cases require some consideration:
+
+    f([x, y, ..., z])           <- the unapply() method needs to be aware of the pattern
