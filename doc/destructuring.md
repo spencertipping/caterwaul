@@ -45,10 +45,10 @@ successful. (!) This means providing an interface by which side-effects can happ
 This isn't as simple as it sounds because destructuring must be erased during compilation. So the interface into runtime state-space must be static. Therefore, destructuring is a wrapper
 around method calls, not a simple assignment-statement generator:
 
-    f(g(x))     = E[x]          <- caterwaul.unapply.fn(g)(v) = g.unapply(v)
-    f(new g(x)) = E[x]          <- caterwaul.unapply.ctor(c)(v) = c.unnew(v)
-    f([x])      = E[x]          <- caterwaul.unapply.array(pattern)(x')
-    f({foo: x}) = E[x]          <- caterwaul.unapply.object(pattern)(x')
+    f(g(x))     = E[x]          <- caterwaul.unapply.fn(g)(v, o) = g.unapply(v)
+    f(new g(x)) = E[x]          <- caterwaul.unapply.ctor(c)(v, o) = c.unnew(v)
+    f([x])      = E[x]          <- caterwaul.unapply.array(pattern)(x', o)
+    f({foo: x}) = E[x]          <- caterwaul.unapply.object(pattern)(x', o)     <- the role of 'o' is explained in 'Optimization'
 
 More complex cases require some consideration:
 
@@ -59,10 +59,23 @@ be presented with an erased syntax tree like this:
 
     [_gensym_1, _gensym_2, ..., _gensym_3]
 
-The unapply() method would then return an object of the form {_gensym_1: value_1, _gensym_2: value_2, _gensym_3: value_3}.
-
-This indirection is especially important when dealing with sub-patterns. For example:
+The unapply() method would then return an object of the form {_gensym_1: value_1, _gensym_2: value_2, _gensym_3: value_3}, or it would return a falsy value to indicate that the match is not
+possible. This indirection is especially important when dealing with sub-patterns. For example:
 
     f([new foo(x)])             <- array unapply is presented with [_gensym], that _gensym is then used to unapply the constructor
 
 The important thing here is that the array's unapply is unaware of the constructor's unapply. Unapplication homomorphism is another runtime invariant.
+
+## Optimization
+
+It's expensive to cons up a new object each time a function is called. Fortunately, we don't have to. The same object can be reused for every invocation of a given function because the match
+variables will quickly be assigned into locals. For example, this code could be generated:
+
+    f([a, b, c]) = {x: a, y: b, z: c}   <- generates: f(xs)        = caterwaul.unapply.array(qs[[_gs1, _gs2, _gs3]])(v, o), where [o = {_gs1: null, _gs2: null, _gs3: null}],
+                                                      f.unapply(o) = caterwaul.apply.array(qs[[_gs1, _gs2, _gs3]])([o.x, o.y, o.z])
+
+Indirection is necessary to unapply f() because of the possibility that splicing or other strange syntax is used. For instance:
+
+    f([a, bs...]) = {x: a, y: bs}       <- a naive reverse-array-mapping would fail here; array destructuring syntax is not a subset of array construction syntax!
+
+It doesn't make sense to preallocate the temporary object here because the result in this case is the actual array. (I may have missed something here...)
