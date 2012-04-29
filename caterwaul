@@ -1784,18 +1784,28 @@ alternatives from last to first.
 
   The important thing here is that the array's unapply is unaware of the constructor's unapply. Unapplication homomorphism is another runtime invariant.
 
+  Unapplication of functions.
+  Function unapplication follows this relation:
+
+  | [f(x) = y] -> [f.unapply(y) = x]
+
+  Destructuring should be possible for each side of the equation; in other words, definition of an unapply() method is orthogonal to the destructuring step itself. For example:
+
+  | f([a, bs...]) = {x: a, y: bs}
+    f.unapply({x: a, y: bs}) = [a, bs...]
+
+  This means that any destructuring syntax must also be usable to construct objects.
+
   Optimization.
-  It's expensive to cons up a new object each time a function is called. Fortunately, we don't have to. The same object can be reused for every invocation of a given function because the match
-  variables will quickly be assigned into locals. For example, this code could be generated:
+  It's expensive to cons up a new object each time a function is called. Fortunately, we don't have to in certain cases. The same object can be reused for every invocation of a given function
+  because the match variables will quickly be assigned into locals. For example:
 
-  | f([a, b, c]) = {x: a, y: b, z: c}   <- generates: f(xs)        = caterwaul.unapply.array(qs[[_gs1, _gs2, _gs3]])(v, o), where [o = {_gs1: null, _gs2: null, _gs3: null}],
-                                                      f.unapply(o) = caterwaul.apply.array(qs[[_gs1, _gs2, _gs3]])([o.x, o.y, o.z])
+  | f([a, b]) /= a + b          -> f(x, d = destructure(x, o), a = d._gensym_1, b = d._gensym_2, d._gensym_1 = null, d._gensym_2 = null) = a + b,
+                                   where [destructure = caterwaul.unapply.array(qs[[_gensym_1, _gensym_2]]),
+                                          o           = {_gensym_1: null, _gensym_2: null}]
 
-  Indirection is necessary to unapply f() because of the possibility that splicing or other strange syntax is used. For instance:
-
-  | f([a, bs...]) = {x: a, y: bs}       <- a naive reverse-array-mapping would fail here; array destructuring syntax is not a subset of array construction syntax!
-
-  It doesn't make sense to preallocate the temporary object here because the result in this case is the actual array. (I may have missed something here...)
+  This strategy fails for recursive destructuring, however. Consider what would happen if we said g(f(f(x))) /= E[x], for instance. The inner f() destructuring would side-effectfully
+  obliterate bindings from the outer invocation. Only non-recursive destructuring invocations are eligible for this optimization.
 
 __
 meta::sdoc('doc::grammar-compilation', <<'__');

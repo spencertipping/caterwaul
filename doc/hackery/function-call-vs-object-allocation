@@ -1,0 +1,38 @@
+#!/usr/bin/env waul
+# function-call-vs-object-allocation: tests the relative overhead of function calls and object allocations.
+
+caterwaul('js_all')(function () {
+  'starting benchmark' /!console.log,
+
+  matcher.prototype /-caterwaul.merge/ capture [matches(x) = true,
+                                                a(x)       = x,
+                                                b(x)       = x + 1],
+
+  bench('allocate short-lived singular object', 200, "xs *![o = allocate_1(x), a = o.x, b = o.x, a + b] -seq".qf),
+  bench('allocate short-lived binary object',   200, "xs *![o = allocate_2(x), a = o.x, b = o.y, a + b] -seq".qf),
+
+  bench('call single function',                 200, "xs *![a = f(x), b = a,    a + b, when [m(x)]] -seq".qf),
+  bench('call two functions',                   200, "xs *![a = f(x), b = g(x), a + b, when [m(x)]] -seq".qf),
+
+  bench('call two functions, no conditional',   200, "xs *![a = f(x), b = g(x), a + b] -seq".qf),
+  bench('inline functions, no conditional',     200, "xs *![a = x, b = x + 1, a + b] -seq".qf),
+
+  bench('call single method',                   200, "xs *![a = the_matcher.a(x), b = a, a + b, when [the_matcher.matches(x)]] -seq".qf),
+  bench('call two methods',                     200, "xs *![a = the_matcher.a(x), b = the_matcher.b(x),  a + b, when [the_matcher.matches(x)]] -seq".qf),
+  bench('call single method, no conditional',   200, "xs *![a = the_matcher.a(x), b = a, a + b] -seq".qf),
+  bench('call two methods, no conditional',     200, "xs *![a = the_matcher.a(x), b = the_matcher.b(x), a + b] -seq".qf),
+
+  where [xs            = n[100000] -seq,    a = null,  m(x) = true,
+         allocate_1(x) = {x: x},            b = null,  f(x) = x + 1,
+         allocate_2(x) = {x: x, y: x + 1},  o = null,  g(x) = x + 2,
+
+         matcher()   = this,
+         the_matcher = new matcher(),
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();
