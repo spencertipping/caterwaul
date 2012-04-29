@@ -75,7 +75,7 @@ Function unapplication follows this relation:
 Destructuring should be possible for each side of the equation; in other words, definition of an unapply() method is orthogonal to the destructuring step itself. For example:
 
     f([a, bs...]) = {x: a, y: bs}
-    f.unapply({x: a, y: bs}) = [a, bs...]
+    f.unapply({x: a, y: bs}) = [[a, bs...]]             <- extra array encasing to allow for n-ary functions (ugly hack necessitated by Javascript's lack of continuation symmetry)
 
 This means that any destructuring syntax must also be usable to construct objects.
 
