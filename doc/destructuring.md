@@ -45,10 +45,24 @@ successful. (!) This means providing an interface by which side-effects can happ
 This isn't as simple as it sounds because destructuring must be erased during compilation. So the interface into runtime state-space must be static. Therefore, destructuring is a wrapper
 around method calls, not a simple assignment-statement generator:
 
-    f(g(x))     = E[x]          <- caterwaul.unapply.fn(g, v) = g.unapply(v)
-    f([x])      = E[x]          <- caterwaul.unapply.array(pattern, x')
-    f({foo: x}) = E[x]          <- caterwaul.unapply.object(pattern, x')
+    f(g(x))     = E[x]          <- caterwaul.unapply.fn(g)(v) = g.unapply(v)
+    f(new g(x)) = E[x]          <- caterwaul.unapply.ctor(c)(v) = c.unnew(v)
+    f([x])      = E[x]          <- caterwaul.unapply.array(pattern)(x')
+    f({foo: x}) = E[x]          <- caterwaul.unapply.object(pattern)(x')
 
 More complex cases require some consideration:
 
     f([x, y, ..., z])           <- the unapply() method needs to be aware of the pattern
+
+Patterns presented to unapply() methods must have their variable names addressed anonymously. This is a result of the variance bound discussed above. So the unapply() method for arrays would
+be presented with an erased syntax tree like this:
+
+    [_gensym_1, _gensym_2, ..., _gensym_3]
+
+The unapply() method would then return an object of the form {_gensym_1: value_1, _gensym_2: value_2, _gensym_3: value_3}.
+
+This indirection is especially important when dealing with sub-patterns. For example:
+
+    f([new foo(x)])             <- array unapply is presented with [_gensym], that _gensym is then used to unapply the constructor
+
+The important thing here is that the array's unapply is unaware of the constructor's unapply. Unapplication homomorphism is another runtime invariant.
