@@ -6,7 +6,7 @@ Licensed under the terms of the MIT source code license
 Caterwaul is a programming language that compiles into Javascript. Visit http://caterwauljs.org and http://github.com/spencertipping/caterwaul for more information about it. You can also find
 a lot of technical information in the comments inside this file.
 
-    caterwaul.offline(':all')(function () {
+    caterwaul.offline(':all', function () {
       initializer(initializer),
 
 # Core modules

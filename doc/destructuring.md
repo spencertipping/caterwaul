@@ -79,6 +79,11 @@ Destructuring should be possible for each side of the equation; in other words, 
 
 This means that any destructuring syntax must also be usable to construct objects.
 
+## N-ary destructuring
+
+Javascript sucks in some major ways, among them being the lack of continuation symmetry. This means that functions return a single value while accepting multiple values; thus there is no
+performant way to invert CPS-conversion if variadic continuations are used. Perl does not have this problem because functions can return arrays, which are in effect multiple return values.
+
 ## Optimization
 
 It's expensive to cons up a new object each time a function is called. Fortunately, we don't have to in certain cases. The same object can be reused for every invocation of a given function
