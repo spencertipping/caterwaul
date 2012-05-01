@@ -1,0 +1,23 @@
+#!/usr/bin/env waul
+# iterator-forms: various ways to iterate through an array
+
+caterwaul('js_all')(function () {
+  'starting benchmark' /!console.log,
+
+  Array.prototype.each = function (f) {
+    for (var i = 0, l = this.length; i < l; ++i) f(this[i]);
+    return this},
+
+  bench('direct for-loop',         1000, function () {for (var i = 0, l = xs.length, total = 0.0; i < l; ++i) total += xs[i]; return total}),
+  bench('each() method',           1000, "xs.each(total += x, given.x) -then- total, where [total = 0.0]".qf),
+  bench('native forEach() method', 1000, "xs.each(total += x, given.x) -then- total, where [total = 0.0]".qf),
+
+  where [xs = n[100000] *[x + 0.1] -seq,
+
+         bench(name, n, f) = '#{name}\033[40G\033[1;32m#{average /!Math.round}ms avg, #{max}ms max, #{min}ms min, #{Math.sqrt(variance) /!Math.round}ms stddev\033[0;0m' /!console.log
+                     -where [samples  = n[8] *[run(name, n >>> 3, f)] -seq,
+                             average  = samples /[x + x0] -seq -re- it / 8,
+                             max      = samples /[x /-Math.max/ x0] -seq,
+                             min      = samples /[x /-Math.min/ x0] -seq,
+                             variance = samples /[0][x0 + (x - average) * (x - average)] -seq],
+         run = function (name, n, f) {var start = +new Date(); for (var i = n; i >= 0; --i) f(); return +new Date() - start}]})();
