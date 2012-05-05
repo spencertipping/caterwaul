@@ -4471,8 +4471,8 @@ syn match     jsCodeStringVariable      /\<_\>/ containedin=jsCodeString contain
 
   syn match   jsStringEscape            /\\\d\{3\}\|\\u[0-9A-Za-z]\{4\}\|\\[a-z"'\\]/ contained
   syn region  jsCaterwaulEscape         start=/#{/ end=/}/                            contained contains=TOP,jsWaulComment keepend
-  syn match   jsCaterwaulNumericHex     /xl\?\(_\?[0-9a-f]\{2\}_\?\)\+/
-  syn match   jsCaterwaulNumericBinary  /bl\?\(_\?[01]\{2\}_\?\)\{4,\}/
+  syn match   jsCaterwaulNumericHex     /\<x[0-9a-f_]\+\>/
+  syn match   jsCaterwaulNumericBinary  /\<b[01_]\+\>/
 
 syn match     jsColonLHS                /\k\+\s*:/
 syn region    jsVarBinding              matchgroup=jsVarBindingConstruct start=/\<var\>\|\<const\>/ end=/;/ contains=TOP
