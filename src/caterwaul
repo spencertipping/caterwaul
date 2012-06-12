@@ -1001,14 +1001,13 @@ $result;
 __
 meta::function('waul', <<'__');
 my ($name, %options) = @_;
-$name =~ s/^waul:://;
 my $output     = $options{output} || "$name.js";
 my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
-my $waul       = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+my $waul       = retrieve($name) =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
 
 terminal::info("compiling waul::$name using $waul ($extensions)");
 
-with_exported("waul::$name", sub {
+with_exported($name, sub {
   my ($exported) = @_;
   sh("$waul --output '$output' $extensions $exported")});
 
@@ -1430,7 +1429,7 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::parent('../waul-object', <<'__');
 function::minify-yui                                        6374d98eda8642e5cdebe4fb34f5419b
-function::waul                                              66b92f55d5db498934b487188a04b16d
+function::waul                                              1cf269b531e4c1b79b8936fb0ddab7ad
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
 parent::/home/spencertipping/conjectures/perl-objects/js    7ed4609019fe7e1b716582f46eb02e13
 parent::/home/spencertipping/conjectures/perl-objects/sdoc  083058e61853465525f6e9b70ee1ef0c

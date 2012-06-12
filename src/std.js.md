@@ -251,9 +251,9 @@ Version 1.3.1 removes any hash-comment prefixes, since these are illegal in Java
 
       var each_node = function (node) {var p = node.prefixes() |/^#/.test |seq, i = node.infixes() |/^#/.test |seq, s = node.suffixes() |/^#/.test |seq;
 
-                                       node -eq- node.thin_clone() -when [p || i || s];
-                                       node.prefix_data -eq- node.prefix_data %!/^#/.test /seq -when.p;
-                                       node.infix_data  -eq- node.infix_data  %!/^#/.test /seq -when.i;
+                                       node -eq- node.thin_clone() -when [p || i || s],
+                                       node.prefix_data -eq- node.prefix_data %!/^#/.test /seq -when.p,
+                                       node.infix_data  -eq- node.infix_data  %!/^#/.test /seq -when.i,
                                        node.suffix_data -eq- node.suffix_data %!/^#/.test /seq -when.s;
 
                                        return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||

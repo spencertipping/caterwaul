@@ -328,6 +328,7 @@ run this script with the 'usage' argument.
 
 __
 meta::cache('parent-identification', <<'__');
+../waul-boject 
 ../waul-object 4e04fdb8e560f4dd2ca4880b91a8e2ea
 /home/spencertipping/bin/object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 /home/spencertipping/conjectures/perl-objects/js 246bc56c88e8e8daae3737dbb16a2a2c
@@ -645,9 +646,9 @@ meta::function('render', <<'__');
 my ($options, @stuff) = separate_options(@_);
 my @pieces = qw/macro anonymize js js-literals words grammar seq/;
 
-file::write("std.$_.waul", retrieve("code.js::sdoc::waul::std.$_")) for @pieces;
-file::write("std.$_.md", retrieve("markdown::sdoc::waul::std.$_"))  for @pieces;
-waul("std.$_", output => "build/std.$_.js")                         for @pieces;
+file::write("std.$_.waul", retrieve("code.js::sdoc::waul::std.$_")),
+file::write("std.$_.md", retrieve("markdown::sdoc::waul::std.$_")),
+waul("std.$_.waul", output => "build/std.$_.js") for @pieces;
 
 file::write('build/caterwaul.std.js', cat('pp::js::caterwaul.std'));
 minify_yui('build/caterwaul.std.js') unless $$options{-M};
@@ -995,14 +996,13 @@ $result;
 __
 meta::function('waul', <<'__');
 my ($name, %options) = @_;
-$name =~ s/^waul:://;
 my $output     = $options{output} || "$name.js";
 my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
-my $waul       = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+my $waul       = retrieve($name) =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
 
 terminal::info("compiling waul::$name using $waul ($extensions)");
 
-with_exported("waul::$name", sub {
+with_exported($name, sub {
   my ($exported) = @_;
   sh("$waul --output '$output' $extensions $exported")});
 
@@ -1424,7 +1424,7 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::parent('../waul-object', <<'__');
 function::minify-yui                                        6374d98eda8642e5cdebe4fb34f5419b
-function::waul                                              66b92f55d5db498934b487188a04b16d
+function::waul                                              1cf269b531e4c1b79b8936fb0ddab7ad
 meta::type::waul                                            869b5820cd79178b94c3ccdd47dff9df
 parent::/home/spencertipping/conjectures/perl-objects/js    7ed4609019fe7e1b716582f46eb02e13
 parent::/home/spencertipping/conjectures/perl-objects/sdoc  083058e61853465525f6e9b70ee1ef0c
@@ -2111,9 +2111,9 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
 
     var each_node = function (node) {var p = node.prefixes() |/^#/.test |seq, i = node.infixes() |/^#/.test |seq, s = node.suffixes() |/^#/.test |seq;
 
-                                     node -eq- node.thin_clone() -when [p || i || s];
-                                     node.prefix_data -eq- node.prefix_data %!/^#/.test /seq -when.p;
-                                     node.infix_data  -eq- node.infix_data  %!/^#/.test /seq -when.i;
+                                     node -eq- node.thin_clone() -when [p || i || s],
+                                     node.prefix_data -eq- node.prefix_data %!/^#/.test /seq -when.p,
+                                     node.infix_data  -eq- node.infix_data  %!/^#/.test /seq -when.i,
                                      node.suffix_data -eq- node.suffix_data %!/^#/.test /seq -when.s;
 
                                      return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
