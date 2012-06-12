@@ -984,7 +984,7 @@ my $output     = $options{output} || "$name.js";
 my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
 my $waul       = retrieve($name) =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
 
-terminal::info("compiling waul::$name using $waul ($extensions)");
+terminal::info("compiling $name using $waul ($extensions)");
 
 with_exported($name, sub {
   my ($exported) = @_;
