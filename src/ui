@@ -335,7 +335,7 @@ meta::cache('parent-identification', <<'__');
 n 
 object 99aeabc9ec7fe80b1b39f5e53dc7e49e
 preprocessor 70dae4b46eb4e06798ec6f38d17d4c7b
-sdoc 
+sdoc a1e8480e579614c01dabeecf0f963bcc
 vim-highlighters 902333a0bd6ed90ff919fe8477cb4e69
 __
 meta::data('author', 'Spencer Tipping');
@@ -727,12 +727,9 @@ my ($filename, $specified_extension) = @_;
 # Two possibilities here. One is that the filename is an attribute, in which case
 # we want to look up the extension in the transients table. The other is that
 # it's a real filename.
-my ($extension)       = $specified_extension || ($filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo);
-my ($other_extension) = extension_for($filename);
-$other_extension =~ s/\.sdoc$//io;
-$other_extension =~ s/^\.//o;
+my ($extension) = $specified_extension || extension_for($filename) || ($filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo);
 
-my ($start, $end) = split /,/o, $comments_for_extension{lc($other_extension || $extension)} // $comments_for_extension{''} // '#';
+my ($start, $end) = split /,/o, $comments_for_extension{lc($extension)} // $comments_for_extension{''} // '#';
 
 join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
          "\n" . comment($generated_string, $start, $end) . "\n";
@@ -1448,11 +1445,11 @@ function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
 function::child                         f5764adf0b4e892f147a9b6b68d4816f
 function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
 function::cp                            3fe69d1b58d90045ad520048977538c4
-function::create                        3010d55f4dfa59a998742e07823ed54d
+function::create                        d65deb895a848b32d3d7ed92e81e8cb0
 function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
 function::cwd                           fd9b58e76c474a8fe93dc3abdccb8857
 function::disable                       53b449708cc2ffdefa352e53bb7d847d
-function::edit                          5778be977436f7245cf990bf95b6da34
+function::edit                          735dbdece3998a4478bec3b7bdc04f03
 function::edit-self                     71790df00f941ed9b56e17f789b93871
 function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
 function::export                        2374cd1dbf7616cb38cafba4e171075d
@@ -1708,6 +1705,23 @@ template::eval                 1a0e2124a05056be4abc11803883c294
 template::failing_conditional  e3a4523110dd859e828f342185de7c62
 template::include              47b5552d609d97fe7f2522d5c1027014
 template::pinclude             c07ff79bf8d642cceaa9ef844bfcb189
+
+__
+meta::parent('sdoc', <<'__');
+function::sdoc                           5ac9327a488e94b7fd5f386ddacd4d35
+function::sdoc-html                      b23152b3f5be696e5bae842ec43fc5a4
+function::sdoc-markdown                  a35a6441dd750466f2d0e636bee2b382
+function::sdoc-packed                    8ec4975fca7228708baae6ccd241bdbf
+function::sdocp                          c3d738d982ba87418a298ff58478a85b
+meta::type::sdoc                         22cd7315641d38c9d536344e83c36bed
+meta::type::slibrary                     95474943c4a5f8ff17d3cf66ddb7c386
+parent::/home/spencertipping/bin/object  58367e4fe7322b745f8597c9015780e4
+retriever::code-sdoc                     03b87ff8d1ecf7594db9ca0669fc69a1
+retriever::html-sdoc                     8ab7705d03276945b23a71677153233c
+retriever::markdown-sdoc                 67c34ba8223ec36a3ae018e411354db2
+retriever::sdoc                          662061e9e41491e2a1debd6862ccf1e7
+retriever::sdoc-packed                   f7116f96adf2c748ac1991f4d7c1792b
+retriever::sdocp                         fcfcf3a7de79d7d863402b9ccfcac3c4
 
 __
 meta::retriever('code-sdoc', <<'__');
