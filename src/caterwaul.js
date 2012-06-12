@@ -324,6 +324,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ::
     // Alteration.
 //     These functions let you make "changes" to a node by returning a modified copy.
 
+      thin_clone:       function ()       {var c = new this.constructor(this.data, Array.prototype.slice.call(this));
+                                           c.prefix_data = this.prefix_data, c.infix_data = this.infix_data, c.suffix_data = this.suffix_data;
+                                           return c},
+
       repopulated_with: function (xs)     {return new this.constructor(this.data, xs)},
       with_data:        function (d)      {return new this.constructor(d, Array.prototype.slice.call(this))},
       change:           function (i, x)   {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},

@@ -409,6 +409,7 @@ around_hook('create', $name, $value, sub {
   return edit($name) if exists $data{$name};
   associate($name, defined $value ? $value : '');
   edit($name) unless defined $value});
+
 __
 meta::function('current-state', 'serialize(\'-pS\');');
 meta::function('cwd', <<'__');
@@ -424,19 +425,16 @@ edit($attributes[0]);
 __
 meta::function('edit', <<'__');
 my ($options, @names) = separate_options(@_);
-
 @names = select_keys('--criteria' => "^$$options{'--prefix'}.*" . join('.*', @names), %$options) if $$options{'--prefix'};
 
 my ($name, @others) = @names;
 die "cannot edit multiple attributes simultaneously (others are @others)" if @others;
-
-my $extension = extension_for($name);
-
 die "$name is virtual or does not exist" unless exists $data{$name};
 die "$name is inherited; use 'edit $name -f' to edit anyway" unless is($name, '-u') || is($name, '-d') || exists $$options{'-f'};
 
+my $extension = extension_for($name);
 around_hook('edit', @_, sub {
-  associate($name, invoke_editor_on($data{$name} // '', %options, attribute => $name, extension => $extension), execute => 1)});
+  associate($name, invoke_editor_on($data{$name} // '', %$options, attribute => $name, extension => $extension), execute => 1)});
 
 save() unless $data{'data::edit::no-save'};
 '';
@@ -652,7 +650,7 @@ file::write("ui.$_.waul", retrieve("code.js::sdoc::waul::ui.$_"))  for @pieces;
 file::write("ui.$_.md",   retrieve("markdown::sdoc::waul::ui.$_")) for @pieces;
 waul("ui.$_", output => "build/ui.$_.js")                          for @pieces;
 
-file::write('build/caterwaul.ui.js', cat('pp::caterwaul.ui.js'));
+file::write('build/caterwaul.ui.js', cat('pp::js::caterwaul.ui'));
 minify_yui('build/caterwaul.ui.js') unless $$options{-M};
 
 __
@@ -728,8 +726,9 @@ my ($filename, $specified_extension) = @_;
 # we want to look up the extension in the transients table. The other is that
 # it's a real filename.
 my ($extension) = $specified_extension || extension_for($filename) || ($filename =~ /\.sdoc$/io ? $filename =~ /\.(\w+)\.sdoc$/igo : $filename =~ /\.(\w+)$/igo);
+$extension =~ s/^\.//o;
 
-my ($start, $end) = split /,/o, $comments_for_extension{lc($extension)} // $comments_for_extension{''} // '#';
+my ($start, $end) = split /,/o, $comments_for_extension{lc $extension} // $comments_for_extension{''} // '#';
 
 join '', map(is_code($_) || is_blank($_) ? ($_ =~ /^\s*c\n(.*)$/so ? $1 : $_) : comment($_, $start, $end), paragraphs retrieve($filename)),
          "\n" . comment($generated_string, $start, $end) . "\n";
@@ -1580,9 +1579,9 @@ retriever::sdocp                         fcfcf3a7de79d7d863402b9ccfcac3c4
 __
 meta::parent('object', <<'__');
 bootstrap::html                         f44dd03cb0c904b3a5f69fbda5f018d0
-bootstrap::initialization               1cf74e7209f32722a79b6e49e3907fd3
+bootstrap::initialization               d22fafa2938ecb0d4728e2958b54ed3d
 bootstrap::perldoc                      5793df44bdd2526bb461272924abfd4b
-function::ad                            77a05d9a6fef7871b2c3e8e94b56870a
+function::ad                            9220b9dc131f8f79878a6209adfe8ef2
 function::alias                         8eeeeb4e064ef3aba7edf8f254427bc2
 function::cat                           f684de6c8776617a437b76009114f52e
 function::cc                            12ea9176e388400704d823433c209b7a
@@ -1590,10 +1589,12 @@ function::ccc                           d151a9793edd83f80fb880b7f0ab9b34
 function::child                         f5764adf0b4e892f147a9b6b68d4816f
 function::clone                         bb42e04e10a8e54e88786b6fbc4fb213
 function::cp                            3fe69d1b58d90045ad520048977538c4
-function::create                        3010d55f4dfa59a998742e07823ed54d
+function::create                        d65deb895a848b32d3d7ed92e81e8cb0
 function::current-state                 6f03f86f1901e9ef07fdb5d4079a914c
+function::cwd                           fd9b58e76c474a8fe93dc3abdccb8857
 function::disable                       53b449708cc2ffdefa352e53bb7d847d
-function::edit                          9ce5ba1ae4607e8cf1975080bcde1cf4
+function::edit                          735dbdece3998a4478bec3b7bdc04f03
+function::edit-self                     71790df00f941ed9b56e17f789b93871
 function::enable                        7de1cedc36841f5de8f9fdfbc3b65097
 function::export                        2374cd1dbf7616cb38cafba4e171075d
 function::extern                        1290a5223e2824763eecfb3a54961eff
@@ -1608,56 +1609,56 @@ function::is                            41564c8f21b12ab80824ac825266d805
 function::load-state                    b6cf278a1f351f316fa6e070359b6081
 function::lock                          5d8db258704e6a8623fac796f62fac02
 function::ls                            01a23d51d5b529e03943bd57e33f92df
-function::mv                            4a0e338a6edb89ad1e2c779d51d4d47b
+function::mv                            ccd000960db4cf627d9246c43d87ba4c
 function::name                          955ba2d1fe1d67cd78651a4042283b00
 function::parents                       3da9e63b5aae9e2f5dcc946a86d166aa
-function::perl                          a0f341ea54391b63b6195e7992b6a686
-function::rd                            eea4e1cdd9133abb985205ae5daf5f15
+function::perl                          9f9fd744f0ed225ad8fb3b79fa53dd9a
+function::rd                            2adb16d7e819d2e87a27201744a581e7
 function::reload                        1589f4cf8374e0011991cb8907afca3e
 function::rm                            6f6fd7a6c25558eb469d78ea888f8551
-function::rmparent                      49051d669554867f87c08656380a8aba
-function::save                          778c0e1043b9c6c96fb8f266f8061624
+function::rmparent                      fc2884910a6939a47898a778f277332c
+function::save                          3cbe5c3735ee4ff99cb60ccf68bc8b91
 function::save-state                    5af59ebc4ad8965767e4dc106d3b557e
-function::serialize                     a19ada2d2558ea9da3a7942fb913e15f
-function::serialize-single              aa77af032272f5a2664e21713739a223
+function::serialize                     a97c7391c635a93b0a710d10eb8cb3cd
+function::serialize-single              8bac97e94a1162947d274421053387b0
 function::sh                            1b2f542ca9dd63ad437058b7f6f61aac
-function::shb                           7b2685a4041c25bc495816e472bdace5
+function::shb                           21139548efb79500d9c999dba024ab32
 function::shell                         a87f389b94713e5855e62241d649d01d
-function::size                          8d4bd7a84ece556717f8ba3bf258d33c
+function::size                          69f6ab4a100c6ef05d4d41510004d645
 function::snapshot                      56939a47f2758421669641e15ebd66eb
-function::state                         8c68044dccae28f33244d0c7e9e9acfb
+function::state                         88bc24e732c55aac68a103eab96b9e48
 function::touch                         3991b1b7c7187566f50e5e58ce01fa06
 function::unlock                        b4aac02f7f3fb700acf4acfd9b180ceb
 function::update                        ac391dc90e507e7586c81850e7c2ecdd
-function::update-from                   631721c4dc30e11b2023a6703cbcef52
+function::update-from                   06fef658374d482adb2e62fbeed9efb4
 function::usage                         5bdd370f5a56cfbf199e08d398091444
 function::verify                        0c0cc1dfeab7d705919df122f7850a4f
 indicator::cc                           3db7509c521ee6abfedd33d5f0148ed3
 indicator::locked                       fc2b4f4ca0d6a334b9ac423d06c8f18c
-indicator::path                         8a9685787cda6af8f63594f6dcde7582
+indicator::path                         b5e2cb524caa0283f713a0ddf9f4c162
 internal_function::around_hook          7cc876e7c5f78c34654337fc95255587
-internal_function::associate            05a75afb70daee635eefec8ae037f593
+internal_function::associate            55f202ffdbc6b9005e53d3e82f5f9bfe
 internal_function::attribute            dd6f010f9688977464783f60f5b6d3dd
-internal_function::attribute_is         a145549f6ce44abbcf66308b426d30ec
+internal_function::attribute_is         d28ac825b3937029386372c560a65775
 internal_function::cache                eb9da45580a9ac0882baf98acd2ecd60
 internal_function::chmod_self           2035e861eedab55ba0a9f6f5a068ca70
 internal_function::dangerous            46c4baaa214ab3d05af43e28083d5141
 internal_function::debug_trace          0faf9d9f4159d72dfe4481f6f3607ce1
 internal_function::execute              f0924e087d978ff2ab1e117124db3042
-internal_function::exported             3ec48f01deefa840b52111f2e3f34749
+internal_function::exported             ae35afef7d4762f2818aee5872c75be0
 internal_function::extension_for        9de8261d69cc93e9b92072b89c89befd
 internal_function::fast_hash            ee5eba48f837fda0fe472645fdd8899a
 internal_function::file::read           e647752332c8e05e81646a3ff98f9a8e
-internal_function::file::write          3e290fdcb353c6f842eb5a40f2e575f8
+internal_function::file::write          460e2343283eb9fd0e1815389f4e07e6
 internal_function::fnv_hash             c36d56f1e13a60ae427afc43ba025afc
 internal_function::hypothetically       b83e3f894a6df8623ccd370515dfd976
-internal_function::internal::main       f31f2945a19a668d92505f114ab29c78
+internal_function::internal::main       12c18f86d766ffb67b8dc0572985bf98
 internal_function::invoke_editor_on     5eb976796f0ec172d6ec036116a2f41e
 internal_function::is_locked            da12ced6aa38295251f7e748ffd22925
 internal_function::namespace            784d2e96003550681a4ae02b8d6d0a27
 internal_function::parent_attributes    f6ccfaa982ab1a4d066043981aaca277
 internal_function::parent_ordering      57b6da88f76b59f3fed9abfa61280e5e
-internal_function::retrieve             8a34d1fe047fe1b40c3d2957c4a789eb
+internal_function::retrieve             721a6800f328da05047fd7392758f55d
 internal_function::retrieve_with_hooks  0f1b0220ccd973d57a2e96ff00458cf2
 internal_function::select_keys          a5e3532ec6d58151d0ee24416ea1e2b5
 internal_function::separate_options     34ec41a6edaa15adde607a0db3ccfa36
@@ -1665,8 +1666,11 @@ internal_function::strip                14f490b10ebd519e829d8ae20ea4d536
 internal_function::table_display        d575f4dc873b2e0be5bd7352047fd904
 internal_function::temporary_name       6f548d101fc68356515ffd0fc9ae0c93
 internal_function::translate_backtrace  d77a56d608473b3cd8a3c6cb84185e10
+internal_function::with_cwd             928bae9caa3cb212f0c5c977ba55166c
 internal_function::with_exported        df345d5095d5ed13328ddd07ea922b36
-library::shell                          6b9f3befb61a01e9132a440601f8ea0a
+internal_function::with_fork            b252464d1efd12dc4a5ee6890076b6a9
+library::process                        9fe4e2320eae9f6661a6eb6e777fb6ca
+library::shell                          f561500cf223df1bf6daf43af93577a5
 library::terminal                       7e2d045782405934a9614fe04bcfe559
 message_color::cc                       2218ef0f7425de5c717762ffb100eb43
 message_color::state                    03621cd6ac0b1a40d703f41e26c5807f
@@ -1690,6 +1694,7 @@ meta::type::parent                      09d1d03379e4e0b262e06939f4e00464
 meta::type::retriever                   71a29050bf9f20f6c71afddff83addc9
 meta::type::state                       84da7d5220471307f1f990c5057d3319
 retriever::file                         3bbc9d8a887a536044bafff1d54def7e
+retriever::global                       4fe8df0cca548075169968772843a156
 retriever::id                           4da6080168d32445150cc4200af7af6e
 retriever::object                       c7633990b4e01bdc783da7e545799f4f
 retriever::perl                         f41938e6dbad317f62abffc1e4d28cca
@@ -1768,7 +1773,10 @@ return undef unless namespace($_[0]) eq 'pp';
 my $attr = retrieve(attribute($_[0]));
 defined $attr ? preprocess($attr) : undef;
 __
-meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
+meta::retriever('sdoc', <<'__');
+exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]", extension_for($_[0])) : undef;
+
+__
 meta::retriever('sdoc-packed', <<'__');
 return undef unless $_[0] =~ /^sdoc-packed::(.*)$/;
 exists $data{"sdoc::$1"} ? sdoc_packed("sdoc::$1") : undef;
@@ -1779,7 +1787,7 @@ return undef unless $_[0] =~ /^sdocp::(.*)$/;
 exists $data{"sdoc::$1"} ? sdocp("sdoc::$1") : undef;
 
 __
-meta::sdoc('caterwaul.ui.js', <<'__');
+meta::sdoc('js::caterwaul.ui', <<'__');
 Caterwaul UI macros | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
