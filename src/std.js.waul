@@ -1,7 +1,7 @@
 # Javascript-specific macros | Spencer Tipping
 # Licensed under the terms of the MIT source code license
 
-caterwaul.module('std.js', 'js js_literals', function ($) {
+caterwaul.module('std.js', 'js_all', function ($) {
 
 # Structured forms in Javascript.
 # These aren't macros, but forms. Each language has its own ways of expressing certain idioms; in Javascript we can set up some sensible defaults to make macros more consistent. For example,
@@ -236,7 +236,11 @@ caterwaul.module('std.js', 'js js_literals', function ($) {
   # I've got two closures here to avoid putting a conditional in either one of them. In particular, we know already whether we got a macroexpander, so there's no need to test it inside the
 #   function (which will be called lots of times).
 
-    var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
+  # Version 1.3.1 adds comment conversion. This is important; waul allows #-style comments to support shebang lines, but these are illegal in Javascript. To fix this, we convert hash comments to
+#   regular ones here. This conversion happens nondestructively.
+
+    var each_node = function (node) {if (node.prefix_data && node.prefix_data |/^#/.test |seq) node = node.clone() -se- node.prefix_data *[x.replace(/^#/, '//')] *!it.prefix /seq;
+                                     return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
                                             node.length && (modifier.call(this, node) || function_destructure.call(this, node) || tuple_destructure.call(this, node) ||
                                                             infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
 

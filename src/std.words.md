@@ -86,7 +86,7 @@ For example:
     var f = x + 1 -given.x;
 
       given:  $.reexpander('(function (_parameters) {return _expression})'.qs),
-      bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'.qs),
+      bgiven: $.reexpander('(function (t, f) {return function () {return f.apply(t, arguments)}})(this, function (_parameters) {return _expression})'.qs),
 
 ## Error handling
 
@@ -113,22 +113,16 @@ Version 1.2 adds the word 'then', which is equivalent to 'se' but doesn't bind '
 These provide higher-level assignment patterns and allow you to change the precedence of assignment operations. For example, it's common to write something like (x || (x = y)) because
 Javascript has no ||= operator. Caterwaul provides several modifiers for this:
 
-    x -oeq- y           -> (!!x || (x = y))                     // assign if falsy
-    x -aeq- y           -> (!x || (x = y))                      // assign if truthy
-    x -deq- y           -> (x !== void 0 || (x = y))            // assign if undefined
-    x -neq- y           -> (x !=  void 0 || (x = y))            // assign if null or undefined
     x -eq- y            -> x = y                                // assign unconditionally
-
-Related are cache behaviors:
-
     x -ocq- y           -> x ? x : x = y                        // cache assign if falsy
     x -acq- y           -> !x ? x : x = y                       // cache assign if truthy
     x -dcq- y           -> x !== void 0 ? x : x = y             // cache assign if undefined
     x -ncq- y           -> x !=  void 0 ? x : x = y             // cache assign if null or undefined
 
+I've removed the -oeq-, -aeq-, and related modifiers because they were implicated in so many bugs. They were not intuitive to use because their return value was always cast to a boolean;
+this is different from what you would expect to happen with something like ||= in Ruby or Perl.
+
       eq:  $.reexpander('_expression = _parameters'.qs),
-      aeq: $.reexpander('!_expression  || (_expression = _parameters)'.qs),  deq: $.reexpander('_expression !== void 0 || (_expression = _parameters)'.qs),
-      oeq: $.reexpander('!!_expression || (_expression = _parameters)'.qs),  neq: $.reexpander('_expression !=  void 0 || (_expression = _parameters)'.qs),
 
       ocq: $.reexpander(' _expression ? _expression : _expression = _parameters'.qs),  dcq: $.reexpander('_expression !== void 0 ? _expression : _expression = _parameters'.qs),
       acq: $.reexpander('!_expression ? _expression : _expression = _parameters'.qs),  ncq: $.reexpander('_expression !=  void 0 ? _expression : _expression = _parameters'.qs),

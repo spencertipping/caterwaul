@@ -647,9 +647,9 @@ meta::function('render', <<'__');
 my ($options, @stuff) = separate_options(@_);
 my @pieces = qw/macro anonymize js js-literals words grammar seq/;
 
-file::write("std.$_.waul", retrieve("waul::std.$_"))               for @pieces;
-file::write("std.$_.md", retrieve("markdown::sdoc::waul::std.$_")) for @pieces;
-waul("std.$_", output => "build/std.$_.js")                        for @pieces;
+file::write("std.$_.waul", retrieve("code.js::sdoc::waul::std.$_")) for @pieces;
+file::write("std.$_.md", retrieve("markdown::sdoc::waul::std.$_"))  for @pieces;
+waul("std.$_", output => "build/std.$_.js")                         for @pieces;
 
 file::write('build/caterwaul.std.js', cat('pp::caterwaul.std.js'));
 minify_yui('build/caterwaul.std.js') unless $$options{-M};
@@ -1850,7 +1850,7 @@ meta::sdoc('waul::std.js', <<'__');
 Javascript-specific macros | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-caterwaul.module('std.js', 'js js_literals', function ($) {
+caterwaul.module('std.js', 'js_all', function ($) {
 
 Structured forms in Javascript.
 These aren't macros, but forms. Each language has its own ways of expressing certain idioms; in Javascript we can set up some sensible defaults to make macros more consistent. For example,
@@ -2085,7 +2085,11 @@ Javascript has some syntactic weaknesses that it's worth correcting. These don't
   I've got two closures here to avoid putting a conditional in either one of them. In particular, we know already whether we got a macroexpander, so there's no need to test it inside the
   function (which will be called lots of times).
 
-    var each_node = function (node) {return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
+  Version 1.3.1 adds comment conversion. This is important; waul allows #-style comments to support shebang lines, but these are illegal in Javascript. To fix this, we convert hash comments to
+  regular ones here. This conversion happens nondestructively.
+
+    var each_node = function (node) {if (node.prefix_data && node.prefix_data |/^#/.test |seq) node = node.clone() -se- node.prefix_data *[x.replace(/^#/, '//')] *!it.prefix /seq;
+                                     return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
                                             node.length && (modifier.call(this, node) || function_destructure.call(this, node) || tuple_destructure.call(this, node) ||
                                                             infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
 
@@ -2596,7 +2600,7 @@ These act like binary operators in the sense that they have a left and a right-h
     var f = x + 1 -given.x;
 
     given:  $.reexpander('(function (_parameters) {return _expression})'.qs),
-    bgiven: $.reexpander('(function (t, f) {return (function () {return f.apply(t, arguments)})})(this, (function (_parameters) {return _expression}))'.qs),
+    bgiven: $.reexpander('(function (t, f) {return function () {return f.apply(t, arguments)}})(this, function (_parameters) {return _expression})'.qs),
 
   Error handling.
   Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
@@ -2620,22 +2624,16 @@ These act like binary operators in the sense that they have a left and a right-h
   These provide higher-level assignment patterns and allow you to change the precedence of assignment operations. For example, it's common to write something like (x || (x = y)) because
   Javascript has no ||= operator. Caterwaul provides several modifiers for this:
 
-  | x -oeq- y           -> (!!x || (x = y))                     // assign if falsy
-    x -aeq- y           -> (!x || (x = y))                      // assign if truthy
-    x -deq- y           -> (x !== void 0 || (x = y))            // assign if undefined
-    x -neq- y           -> (x !=  void 0 || (x = y))            // assign if null or undefined
-    x -eq- y            -> x = y                                // assign unconditionally
-
-  Related are cache behaviors:
-
-  | x -ocq- y           -> x ? x : x = y                        // cache assign if falsy
+  | x -eq- y            -> x = y                                // assign unconditionally
+    x -ocq- y           -> x ? x : x = y                        // cache assign if falsy
     x -acq- y           -> !x ? x : x = y                       // cache assign if truthy
     x -dcq- y           -> x !== void 0 ? x : x = y             // cache assign if undefined
     x -ncq- y           -> x !=  void 0 ? x : x = y             // cache assign if null or undefined
 
+  I've removed the -oeq-, -aeq-, and related modifiers because they were implicated in so many bugs. They were not intuitive to use because their return value was always cast to a boolean;
+  this is different from what you would expect to happen with something like ||= in Ruby or Perl.
+
     eq:  $.reexpander('_expression = _parameters'.qs),
-    aeq: $.reexpander('!_expression  || (_expression = _parameters)'.qs),  deq: $.reexpander('_expression !== void 0 || (_expression = _parameters)'.qs),
-    oeq: $.reexpander('!!_expression || (_expression = _parameters)'.qs),  neq: $.reexpander('_expression !=  void 0 || (_expression = _parameters)'.qs),
 
     ocq: $.reexpander(' _expression ? _expression : _expression = _parameters'.qs),  dcq: $.reexpander('_expression !== void 0 ? _expression : _expression = _parameters'.qs),
     acq: $.reexpander('!_expression ? _expression : _expression = _parameters'.qs),  ncq: $.reexpander('_expression !=  void 0 ? _expression : _expression = _parameters'.qs),

@@ -648,7 +648,7 @@ meta::function('render', <<'__');
 my ($options, @stuff) = separate_options(@_);
 my @pieces = qw/jquery/;
 
-file::write("ui.$_.waul", retrieve("waul::ui.$_"))                 for @pieces;
+file::write("ui.$_.waul", retrieve("code.js::sdoc::waul::ui.$_"))  for @pieces;
 file::write("ui.$_.md",   retrieve("markdown::sdoc::waul::ui.$_")) for @pieces;
 waul("ui.$_", output => "build/ui.$_.js")                          for @pieces;
 
