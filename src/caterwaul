@@ -2333,9 +2333,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                                                                                           s = this.suffix_data ? this.suffix_data.join('') : '';
                                        if (l && depth === 0) return e('...');
 
-                           switch (l) {case 0: if (has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, ''));
-                                          else if (has(parse_group, d))      return e(p), e(d), e(parse_group[d]);
-                                          else                               return e(p), e(d);
+                           switch (l) {case 0: if (has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, '')), e(s);
+                                          else if (has(parse_group, d))      return e(p), e(d), e(i), e(parse_group[d]), e(s);
+                                          else                               return e(p), e(d), e(s);
 
                                        case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, '')), this[0].serialize(xs, d1), e(s);
                                           else if (has(parse_misleading_postfix, d))            return this[0].serialize(xs, d1), e(p), e(d), e(s);
@@ -2355,7 +2355,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                           else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
                                                                                   ? (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
                                                                                   : (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
-                                          else                                  return this.unflatten().serialize(xs, d1)}}};
+                                          else                                  return this.unflatten().serialize(xs, d1), e(s)}}};
 
   References.
   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
@@ -2582,9 +2582,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
     position (we'll be incrementing i as we read characters), munch whitespace, and reset flags.
 
         while ((mark = i) < l) {
-          while (lex_space[c = cs(i)] && i++ < l);
-          prefix.push(s.substring(mark, i)), mark = i;
-          esc = exp = dot = t = false;
+          esc = exp = dot = t = 0;
 
       Miscellaneous lexing.
       This includes bracket resetting (the top case, where an open-bracket of any sort triggers regexp mode) and comment removal. Both line and block comments are removed by comparing against
@@ -2593,10 +2591,11 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       Caterwaul 1.1.6 adds recognition of # comments, which are treated just like other line comments. This is relevant in practice because node.js supports shebang-line invocation of
       Javascript files.
 
-            if                                        (lex_bracket[c])                                                                    {t = !! ++i; re = lex_opener[c]}
-       else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) {while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);  t = !  ++i}
-       else if            (c === lex_slash && cs(i + 1) === lex_slash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
-       else if                                        (c === lex_hash) {while                              (++i < l && ! lex_eol[cs(i)]);  t = false}
+            if                                          (lex_space[c]) while (++i < l && lex_space[c = cs(i)]);
+       else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
+       else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);
+       else if            (c === lex_slash && cs(i + 1) === lex_slash) while                              (++i < l && ! lex_eol[cs(i)]);
+       else if                                        (c === lex_hash) while                              (++i < l && ! lex_eol[cs(i)]);
 
       Regexp and string literal lexing.
       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
@@ -2604,7 +2603,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       logic for strings is not a problem. (This follows because we know ahead of time that the Javascript is valid.)
 
        else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs(i)) !== close || esc)  esc = ! esc && c === lex_back;
-                                                                                    while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = true}
+                                                                                    while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = 1}
 
       Numeric literal lexing.
       This is far more complex than the above cases. Numbers have several different formats, each of which requires some custom logic. The reason we need to parse numbers so exactly is that it
@@ -2628,9 +2627,9 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       Finally, in response to a recently discovered failure case, a period must be followed by a digit if it starts a number. The failure is the string '.end', which will be lexed as '.en',
       'd' if it is assumed to be a floating-point number. (In fact, any method or property beginning with 'e' will cause this problem.)
 
-       else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = true)}
+       else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = 1)}
        else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
-                                                                            while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = true)}
+                                                                            while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1)}
 
       Operator lexing.
       The 're' flag is reused here. Some operators have both unary and binary modes, and as a heuristic (which happens to be accurate) we can assume that anytime we expect a regular
@@ -2657,8 +2656,8 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
 
         if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 40) + '" with leading context "' + s.substr(mark - 40, 40) + '" (probably a Caterwaul bug)');
-        if (t === false) {prefix.push(s.substring(mark, i)); continue}
-        t = t === true ? s.substring(mark, i) : t === 'u;' ? ';' : t;
+        if (t === 0) {prefix.push(s.substring(mark, i)); continue}
+        t = t === 1 ? s.substring(mark, i) : t === 'u;' ? ';' : t;
 
       Grouping and operator indexing.
       Now that we have a token, we need to see whether it affects grouping status. There are a couple of possibilities. If it's an opener, then we create a new group; if it's a matching closer
