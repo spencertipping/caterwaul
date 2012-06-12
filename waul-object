@@ -980,14 +980,13 @@ $result;
 __
 meta::function('waul', <<'__');
 my ($name, %options) = @_;
-$name =~ s/^waul:://;
 my $output     = $options{output} || "$name.js";
 my $extensions = $options{extensions} ? join(' ', map "--extension '$_'", split /\s+/, $options{extensions}) : '';
-my $waul       = retrieve("waul::$name") =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
+my $waul       = retrieve($name) =~ m-^#!/usr/bin/env (\S+)- ? $1 : 'waul';
 
 terminal::info("compiling waul::$name using $waul ($extensions)");
 
-with_exported("waul::$name", sub {
+with_exported($name, sub {
   my ($exported) = @_;
   sh("$waul --output '$output' $extensions $exported")});
 
