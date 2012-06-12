@@ -626,9 +626,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     // Caterwaul 1.3 automatically parenthesizes low-precedence operators in the middle of a ternary node. This prevents the syntax errors that pop up if you say things like 'foo ? bar, bif :
 //     baz'. Even though this construct is unambiguous, most Javascript runtimes fail to accept it.
 
-      serialize: function (xs, depth) {var l = this.length, d = this.data, d1 = depth - 1, e = function (x) {xs.push(x)}, p = this.prefix_data ? this.prefix_data.join('') : ' ',
-                                                                                                                          i = this.infix_data  ? this.infix_data.join('')  : '',
-                                                                                                                          s = this.suffix_data ? this.suffix_data.join('') : '';
+      serialize: function (xs, depth) {var l = this.length, d = this.data, d1 = depth - 1, e = function (x) {x && xs.push(x)}, p = this.prefix_data && this.prefix_data.join(''),
+                                                                                                                               i = this.infix_data  && this.infix_data.join(''),
+                                                                                                                               s = this.suffix_data && this.suffix_data.join('');
                                        if (l && depth === 0) return e('...');
 
                            switch (l) {case 0: if (has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, '')), e(s);
@@ -653,7 +653,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                           else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
                                                                                   ? (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
                                                                                   : (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
-                                          else                                  return this.unflatten().serialize(xs, d1), e(s)}}};
+                                          else                                  return e(p), this.unflatten().serialize(xs, d1), e(s)}}};
 
   // References.
 //   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
@@ -889,11 +889,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // Caterwaul 1.1.6 adds recognition of # comments, which are treated just like other line comments. This is relevant in practice because node.js supports shebang-line invocation of
 //       Javascript files.
 
-            if                                          (lex_space[c]) while (++i < l && lex_space[c = cs(i)]);
+            if                                  (lex_space[c = cs(i)]) while (++i < l && lex_space[cs(i)]);
        else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
        else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);
-       else if            (c === lex_slash && cs(i + 1) === lex_slash) while                              (++i < l && ! lex_eol[cs(i)]);
-       else if                                        (c === lex_hash) while                              (++i < l && ! lex_eol[cs(i)]);
+       else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i < l && ! lex_eol[cs(i)]);
+       else if                                        (c === lex_hash) while (++i < l && ! lex_eol[cs(i)]);
 
       // Regexp and string literal lexing.
 //       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
@@ -926,7 +926,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       'd' if it is assumed to be a floating-point number. (In fact, any method or property beginning with 'e' will cause this problem.)
 
        else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = 1)}
-       else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
+       else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || dot ^ (dot |= c === lex_dot) || exp ^ (exp |= lex_exp[c] && ++i)));
                                                                             while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1)}
 
       // Operator lexing.
@@ -953,7 +953,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //       t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
 //       avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
 
-        if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 40) + '" with leading context "' + s.substr(mark - 40, 40) + '" (probably a Caterwaul bug)');
+        if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 80) + '" with leading context "' + s.substr(mark - 80, 80) + '" (probably a Caterwaul bug)');
         if (t === 0) {prefix.push(s.substring(mark, i)); continue}
         t = t === 1 ? s.substring(mark, i) : t === 'u;' ? ';' : t;
 

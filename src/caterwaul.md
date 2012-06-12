@@ -647,9 +647,9 @@ function, but it isn't the end of the world if you do.
 Caterwaul 1.3 automatically parenthesizes low-precedence operators in the middle of a ternary node. This prevents the syntax errors that pop up if you say things like 'foo ? bar, bif :
 baz'. Even though this construct is unambiguous, most Javascript runtimes fail to accept it.
 
-      serialize: function (xs, depth) {var l = this.length, d = this.data, d1 = depth - 1, e = function (x) {xs.push(x)}, p = this.prefix_data ? this.prefix_data.join('') : ' ',
-                                                                                                                          i = this.infix_data  ? this.infix_data.join('')  : '',
-                                                                                                                          s = this.suffix_data ? this.suffix_data.join('') : '';
+      serialize: function (xs, depth) {var l = this.length, d = this.data, d1 = depth - 1, e = function (x) {x && xs.push(x)}, p = this.prefix_data && this.prefix_data.join(''),
+                                                                                                                               i = this.infix_data  && this.infix_data.join(''),
+                                                                                                                               s = this.suffix_data && this.suffix_data.join('');
                                        if (l && depth === 0) return e('...');
 
                            switch (l) {case 0: if (has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, '')), e(s);
@@ -925,11 +925,11 @@ position (we'll be incrementing i as we read characters), munch whitespace, and 
 Caterwaul 1.1.6 adds recognition of # comments, which are treated just like other line comments. This is relevant in practice because node.js supports shebang-line invocation of
 Javascript files.
 
-          if                                          (lex_space[c]) while (++i < l && lex_space[c = cs(i)]);
+          if                                  (lex_space[c = cs(i)]) while (++i < l && lex_space[cs(i)]);
      else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
      else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i < l && cs(i) !== lex_slash || cs(i - 1) !== lex_star);
-     else if            (c === lex_slash && cs(i + 1) === lex_slash) while                              (++i < l && ! lex_eol[cs(i)]);
-     else if                                        (c === lex_hash) while                              (++i < l && ! lex_eol[cs(i)]);
+     else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i < l && ! lex_eol[cs(i)]);
+     else if                                        (c === lex_hash) while (++i < l && ! lex_eol[cs(i)]);
 
 #### Regexp and string literal lexing
 
@@ -964,7 +964,7 @@ Finally, in response to a recently discovered failure case, a period must be fol
 'd' if it is assumed to be a floating-point number. (In fact, any method or property beginning with 'e' will cause this problem.)
 
      else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = 1)}
-     else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || (dot ^ (dot |= c === lex_dot)) || (exp ^ (exp |= lex_exp[c] && ++i))));
+     else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || dot ^ (dot |= c === lex_dot) || exp ^ (exp |= lex_exp[c] && ++i)));
                                                                           while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1)}
 
 #### Operator lexing
