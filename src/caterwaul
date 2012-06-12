@@ -2355,7 +2355,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                           else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
                                                                                   ? (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
                                                                                   : (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
-                                          else                                  return this.unflatten().serialize(xs, d1), e(s)}}};
+                                          else                                  return e(p), this.unflatten().serialize(xs, d1), e(s)}}};
 
   References.
   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
@@ -2655,7 +2655,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
       avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
 
-        if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 40) + '" with leading context "' + s.substr(mark - 40, 40) + '" (probably a Caterwaul bug)');
+        if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 80) + '" with leading context "' + s.substr(mark - 80, 80) + '" (probably a Caterwaul bug)');
         if (t === 0) {prefix.push(s.substring(mark, i)); continue}
         t = t === 1 ? s.substring(mark, i) : t === 'u;' ? ';' : t;
 
