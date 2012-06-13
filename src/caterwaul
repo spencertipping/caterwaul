@@ -2046,7 +2046,7 @@ nodes. At the end of folding there is only one child per paren-group.
 
       collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
       replace: function (rs) {var r; return own.call(rs, this.data) && (r = rs[this.data]) ?
-                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : this.padding_encase(r) :
+                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : r :
                                               this.map(function (n) {return n.replace(rs)})},
 
     Alteration.
@@ -2146,11 +2146,9 @@ nodes. At the end of folding there is only one child per paren-group.
     reconstruct the group. First, we need the stuff to the left of the left-paren (prefix). Second, we need the stuff to the left of the right-paren (infix). Third, if the group is at the end
     of the file, we need the stuff to the right of the whole thing (suffix). The suffix is used only for the last syntax node.
 
-      prefix: function (d) {return this.prefixes().push(d), this},  prefixes: function () {return this.prefix_data || (this.prefix_data = [' '])},
+      prefix: function (d) {return this.prefixes().push(d), this},  prefixes: function () {return this.prefix_data || (this.prefix_data = [])},
       infix:  function (d) {return this.infixes ().push(d), this},  infixes:  function () {return this.infix_data  || (this.infix_data  = [])},
       suffix: function (d) {return this.suffixes().push(d), this},  suffixes: function () {return this.suffix_data || (this.suffix_data = [])},
-
-      padding_encase: function (x) {return new caterwaul_global.padded_tree(this.prefix_data, this.suffix_data, x)},
 
     Containment.
     You can ask a tree whether it contains any nodes that satisfy a given predicate. This is done using the .contains() method and is significantly more efficient than using .collect() if your
@@ -2353,33 +2351,35 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     Caterwaul 1.3 automatically parenthesizes low-precedence operators in the middle of a ternary node. This prevents the syntax errors that pop up if you say things like 'foo ? bar, bif :
     baz'. Even though this construct is unambiguous, most Javascript runtimes fail to accept it.
 
-      serialize: function (xs, depth) {var l = this.length, d = this.data, d1 = depth - 1, e = function (x) {x && xs.push(x)}, p = this.prefix_data  ? this.prefix_data.join('') : ' ',
-                                                                                                                               i = this.infix_data  && this.infix_data.join(''),
-                                                                                                                               s = this.suffix_data && this.suffix_data.join('');
+      serialize: function (xs, depth) {var ep = function (x) {e(p || x && lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)] ? ' ' : ''), x && e(x)},
+                                           e  = function (x) {x && xs.push(x)},             p = this.prefix_data && this.prefix_data.join(''),
+                                           l  = this.length, d = this.data, d1 = depth - 1, i = this.infix_data  && this.infix_data.join(''),
+                                                                                            s = this.suffix_data && this.suffix_data.join('');
+
                                        if (depth === 0 && (l || d.length > 32)) return e('...');
 
-                           switch (l) {case 0: if (has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, '')), e(s);
-                                          else if (has(parse_group, d))      return e(p), e(d), e(i), e(parse_group[d]), e(s);
-                                          else                               return e(p), e(d), e(s);
+                           switch (l) {case 0: if (has(parse_r_optional, d)) return ep(d.replace(/^u/, '')), e(s);
+                                          else if (has(parse_group, d))      return ep(d), e(i), e(parse_group[d]), e(s);
+                                          else                               return ep(d), e(s);
 
-                                       case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return e(p), e(d.replace(/^u/, '')), this[0].serialize(xs, d1), e(s);
-                                          else if (has(parse_misleading_postfix, d))            return this[0].serialize(xs, d1), e(p), e(d), e(s);
-                                          else if (has(parse_group, d))                         return e(p), e(d), this[0].serialize(xs, d1), e(i), e(parse_group[d]), e(s);
-                                          else if (has(parse_lr, d))                            return e(p), this[0].serialize(xs, d1), e(s);
-                                          else                                                  return this[0].serialize(xs, d1), e(p), e(d), e(s);
+                                       case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return ep(d.replace(/^u/, '')), this[0].serialize(xs, d1), e(s);
+                                          else if (has(parse_misleading_postfix, d))            return this[0].serialize(xs, d1), ep(d), e(s);
+                                          else if (has(parse_group, d))                         return ep(d), this[0].serialize(xs, d1), e(i), e(parse_group[d]), e(s);
+                                          else if (has(parse_lr, d))                            return ep(), this[0].serialize(xs, d1), e(s);
+                                          else                                                  return this[0].serialize(xs, d1), ep(d), e(s);
 
-                                       case 2: if (has(parse_invocation, d))    return this[0].serialize(xs, d1), e(p), e(d.charAt(0)), this[1].serialize(xs, d1), e(i), e(d.charAt(1)), e(s);
-                                          else if (has(parse_r_until_block, d)) return e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
+                                       case 2: if (has(parse_invocation, d))    return this[0].serialize(xs, d1), ep(d.charAt(0)), this[1].serialize(xs, d1), e(i), e(d.charAt(1)), e(s);
+                                          else if (has(parse_r_until_block, d)) return ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
                                           else if (has(parse_invisible, d))     return this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
-                                          else                                  return this[0].serialize(xs, d1), e(p), e(d), this[1].serialize(xs, d1), e(s);
+                                          else                                  return this[0].serialize(xs, d1), ep(d), this[1].serialize(xs, d1), e(s);
 
-                                      default: if (has(parse_ternary, d))       return this[0].serialize(xs, d1), e(p), e(d), this[1].precedence() > this.precedence()
+                                      default: if (has(parse_ternary, d))       return this[0].serialize(xs, d1), ep(d), this[1].precedence() > this.precedence()
                                                                                   ? (this[1].as('(').serialize(xs, d1), e(i), e(':'), this[2].serialize(xs, d1), e(s))
                                                                                   : (this[1].        serialize(xs, d1), e(i), e(':'), this[2].serialize(xs, d1), e(s));
                                           else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
-                                                                                  ? (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
-                                                                                  : (e(p), e(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
-                                          else                                  return e(p), this.unflatten().serialize(xs, d1), e(s)}}};
+                                                                                  ? (ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
+                                                                                  : (ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
+                                          else                                  return ep(), this.unflatten().serialize(xs, d1), e(s)}}};
 
   References.
   You can drop references into code that you're compiling. This is basically variable closure, but a bit more fun. For example:
@@ -2439,24 +2439,6 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                            else                               this.metadata = d,          this.data = '@' + (name || '')},
 
                                        caterwaul_global.ref_common);
-
-  Padded trees.
-  Caterwaul 1.3.1 parses comments and whitespace, storing each on the immediately-following syntax node. However, this creates some problems with serialization; in particular, the resulting
-  code string will be syntactically invalid if padding is lost from certain places, such as during a replace() operation. As a result, we need to preserve external padding; the mechanism I'm
-  using is a padded box.
-
-  Note the non-standard ordering of constructor arguments: p[refix] and s[uffix] come before the tree to be padded. The reason is that sometimes trees will need to be nested, but we still want
-  the copy constructor to work. Since the prefix is always an array or undefined, we can use its type to differentiate the two use cases.
-
-    caterwaul_global.padded_tree = caterwaul_global.syntax_subclass(
-                                     function (p, s, t) {if (p instanceof this.constructor) this.length = 0,              this.prefix_data = p.prefix_data, this.suffix_data = p.suffix_data;
-                                                         else                               this.length = 1, this[0] = t, this.prefix_data = p,             this.suffix_data = s},
-
-                                     caterwaul_global.ref_common, {data: '@padded', replace:   function (rs)        {return new this.constructor(this.prefix_data, this.suffix_data,
-                                                                                                                                                 this[0].replace(rs))},
-                                                                                    serialize: function (xs, depth) {this.prefix_data && xs.push(this.prefix_data.join(''));
-                                                                                                                     this[0].serialize(xs, depth);
-                                                                                                                     this.suffix_data && xs.push(this.suffix_data.join(''))}});
 
   Opaque (unparsed) code references.
   This gives Caterwaul a way to assemble code in a more performant manner. In particular, it lets Caterwaul omit the expensive (and unnecessary) parse() operation during a replicator() call.
