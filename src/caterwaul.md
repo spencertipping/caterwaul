@@ -329,16 +329,14 @@ rmap() provides a fairly rich interface to allow you to inform Caterwaul about w
 
       collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
       replace: function (rs) {var r; return own.call(rs, this.data) && (r = rs[this.data]) ?
-                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : r :
+                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : this.padding_encase(r) :
                                               this.map(function (n) {return n.replace(rs)})},
 
 ### Alteration
 
 These functions let you make "changes" to a node by returning a modified copy.
 
-      thin_clone:       function ()       {var c = new this.constructor(this.data, Array.prototype.slice.call(this));
-                                           c.prefix_data = this.prefix_data, c.infix_data = this.infix_data, c.suffix_data = this.suffix_data;
-                                           return c},
+      thin_clone:       function ()       {return this.map(function () {return false})},
 
       repopulated_with: function (xs)     {return new this.constructor(this.data, xs)},
       with_data:        function (d)      {return new this.constructor(d, Array.prototype.slice.call(this))},
@@ -437,9 +435,11 @@ Infix data is an odd case. It is stored for operators with two terminal componen
 reconstruct the group. First, we need the stuff to the left of the left-paren (prefix). Second, we need the stuff to the left of the right-paren (infix). Third, if the group is at the end
 of the file, we need the stuff to the right of the whole thing (suffix). The suffix is used only for the last syntax node.
 
-      prefix: function (d) {return this.prefixes().push(d), this},  prefixes: function () {return this.prefix_data || (this.prefix_data = [])},
+      prefix: function (d) {return this.prefixes().push(d), this},  prefixes: function () {return this.prefix_data || (this.prefix_data = [' '])},
       infix:  function (d) {return this.infixes ().push(d), this},  infixes:  function () {return this.infix_data  || (this.infix_data  = [])},
       suffix: function (d) {return this.suffixes().push(d), this},  suffixes: function () {return this.suffix_data || (this.suffix_data = [])},
+
+      padding_encase: function (x) {return new caterwaul_global.padded_tree(this.prefix_data, this.suffix_data, x)},
 
 ### Containment
 
@@ -742,6 +742,25 @@ an @ sign; this will trigger a compilation error if you leave it there. The purp
 
                                          caterwaul_global.ref_common);
 
+## Padded trees
+
+Caterwaul 1.3.1 parses comments and whitespace, storing each on the immediately-following syntax node. However, this creates some problems with serialization; in particular, the resulting
+code string will be syntactically invalid if padding is lost from certain places, such as during a replace() operation. As a result, we need to preserve external padding; the mechanism I'm
+using is a padded box.
+
+Note the non-standard ordering of constructor arguments: p[refix] and s[uffix] come before the tree to be padded. The reason is that sometimes trees will need to be nested, but we still want
+the copy constructor to work. Since the prefix is always an array or undefined, we can use its type to differentiate the two use cases.
+
+      caterwaul_global.padded_tree = caterwaul_global.syntax_subclass(
+                                       function (p, s, t) {if (p instanceof this.constructor) this.length = 0,              this.prefix_data = p.prefix_data, this.suffix_data = p.suffix_data;
+                                                           else                               this.length = 1, this[0] = t, this.prefix_data = p,             this.suffix_data = s},
+
+                                       caterwaul_global.ref_common, {data: '@padded', replace:   function (rs)        {return new this.constructor(this.prefix_data, this.suffix_data,
+                                                                                                                                                   this[0].replace(rs))},
+                                                                                      serialize: function (xs, depth) {this.prefix_data && xs.push(this.prefix_data.join(''));
+                                                                                                                       this[0].serialize(xs, depth);
+                                                                                                                       this.suffix_data && xs.push(this.suffix_data.join(''))}});
+
 ## Opaque (unparsed) code references
 
 This gives Caterwaul a way to assemble code in a more performant manner. In particular, it lets Caterwaul omit the expensive (and unnecessary) parse() operation during a replicator() call.
@@ -787,7 +806,9 @@ to be used.
 Caterwaul 1.2 adds the static caterwaul.syntax.from_string() constructor to simplify string-based syntax node construction.
 
       caterwaul_global.syntax = se(caterwaul_global.syntax_subclass(
-                                     function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0;
+                                     function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0, this.prefix_data = data.prefix_data,
+                                                                                                                                    this.infix_data  = data.infix_data,
+                                                                                                                                    this.suffix_data = data.suffix_data;
                                                       else {this.data = data && data.toString(); this.length = 0;
                                                         for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                           for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
@@ -1297,12 +1318,23 @@ Caterwaul 1.2b7 adds option support. Right now the only option is expression_ref
 references. The consequence of this is that you won't be able to reconstruct a value that comes out of this function after precompilation. Generally you'll want to leave it set to true.
 
       var trivial_node_template    = caterwaul_global.parse('new caterwaul.syntax(_data)'),
-          nontrivial_node_template = caterwaul_global.parse('new caterwaul.syntax(_data, _xs)');
+          nontrivial_node_template = caterwaul_global.parse('new caterwaul.syntax(_data, _xs)'),
+          node_prefix_template     = caterwaul_global.parse('_x.prefix(_y)'),
+          node_infix_template      = caterwaul_global.parse('_x.infix(_y)'),
+          node_suffix_template     = caterwaul_global.parse('_x.suffix(_y)');
+
+      caterwaul_global.node_padding_annotations = function (node, node_expression) {
+        for (var xs = node.prefixes(), i = 0, l = xs.length; i < l; ++i) node_expression = node_prefix_template.replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
+        for (var xs = node.infixes(),  i = 0, l = xs.length; i < l; ++i) node_expression = node_infix_template .replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
+        for (var xs = node.suffixes(), i = 0, l = xs.length; i < l; ++i) node_expression = node_suffix_template.replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
+        return node_expression};
 
       caterwaul_global.syntax_to_expression = function (tree) {
         if (tree.length) {for (var comma = new caterwaul_global.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push(caterwaul_global.syntax_to_expression(tree[i]));
-                          return nontrivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data), _xs: comma.unflatten()})}
-                    else return trivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data)})};
+                          return caterwaul_global.node_padding_annotations(tree,
+                                                                           nontrivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data), _xs: comma.unflatten()}))}
+
+                    else return caterwaul_global.node_padding_annotations(tree, trivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data)}))};
 
       caterwaul_global.late_bound_tree = function (tree, environment, options) {
         options = caterwaul_global.merge({expression_ref_table: true}, options);
