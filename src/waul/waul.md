@@ -21,6 +21,14 @@ Waul has some limitations:
     1. It cannot precompile any macros that generate refs (this includes the -eval- modifier, unfortunately, though as of 1.1.6 -using- works just fine).
     2. You need to inform it about any Caterwaul extensions up-front (I'll explain how to do this).
 
+# Shebang-line invocation
+
+You should use the -x option if you intend to use waul as a shebang line interpreter. This way it will ignore any other options you pass it, saving those for the script:
+
+    #!./my-waul-object -x
+    caterwaul(':all')(function () {
+      ...})();
+
 # Extensions
 
 Caterwaul can be extended with custom macros, and in order to precompile something that uses these extensions you'll have to inform Waul about them. You can do this with the --extension flag,
@@ -44,12 +52,13 @@ will be implicitly enabled in the resulting waul script.
              fs                         = require('fs'),
              options                    = {extensions: [], input_files: [], output_pattern: '$1$2.js', configuration: '', use_std: true, expression_ref_table: true, simple_repl: false}
                                           -se [it.input_files = []]
-                                          -se- process.argv.slice(2) *![x === '--extension' || x === '-e' ? it.extensions /~push/ xs[++xi]  :
-                                                                        x === '--output'    || x === '-o' ? it.output_pattern = xs[++xi]    :
-                                                                        x === '--no-table'  || x === '-T' ? it.expression_ref_table = false :
-                                                                        x === '--replicate' || x === '-r' ? it.replicate = true             :
-                                                                        x === '--stdin'                   ? it.simple_repl = true           :
-                                                                        x === '--configure' || x === '-c' ? it.configuration = xs[++xi]     : it.input_files /~push/ x] /seq,
+                                          -se [process.argv[2] === '-x' || process.argv[2] === '--execute' ? it.input_files = [process.argv[3]]
+                                               : process.argv.slice(2) *![x === '--extension' || x === '-e' ? it.extensions /~push/ xs[++xi]  :
+                                                                          x === '--output'    || x === '-o' ? it.output_pattern = xs[++xi]    :
+                                                                          x === '--no-table'  || x === '-T' ? it.expression_ref_table = false :
+                                                                          x === '--replicate' || x === '-r' ? it.replicate = true             :
+                                                                          x === '--stdin'                   ? it.simple_repl = true           :
+                                                                          x === '--configure' || x === '-c' ? it.configuration = xs[++xi]     : it.input_files /~push/ x] /seq],
 
              waul_input(filename)       = fs.readFileSync(filename, 'utf8') -re [/\.sdoc$/i.test(filename) ? it.split(/(?:\n\s*)+\n/) %![/^\s*[A-Z|]/.test(x)] -seq -re- it.join('\n') : it],
              extension_tree(filename)   = new $.opaque_tree(filename /!waul_input),
