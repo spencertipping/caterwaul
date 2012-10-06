@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  cb0bd1a070be53fdbcca0be57502aa6f
-# istate: 9f6f8e1b4835a14c3fbcad49bda743ed
+# state:  e18349be3cd0c26161261847a6c2b2ed
+# istate: 8b49753d79526af839a112cb8baa238a
 # id:     4e04fdb8e560f4dd2ca4880b91a8e2ea
 
 # This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
@@ -608,13 +608,14 @@ meta::function('minify-uglify', <<'__');
 # Minify using uglifyjs compressor
 my ($options, @filenames) = separate_options(@_);
 my $nomunge = $$options{-m} ? '' : '-nm';
+my $lift    = $$options{-L} ? '' : '--lift-vars';
 
 for my $filename (@filenames) {
   my $minified = $filename;
   $minified =~ s/\.js$/.min.js/;
 
   terminal::info("minifying $filename");
-  file::write($minified, join '', qx(uglifyjs $nomunge "$filename"));
+  file::write($minified, join '', qx(uglifyjs $nomunge $lift "$filename"));
 }
 
 __
