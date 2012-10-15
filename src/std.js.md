@@ -93,9 +93,9 @@ intending it to be used as a side-effect. (Doing that would just put the value i
           function_is_result           = function (n) {return n.is_empty() && n.data === 'result'},
 
           function_destructure = $.rereplacer('_f(_xs) = _y'.qs,
-                                              function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length; i < l; ++i)
-                                                                  (afters.length  || ps[i].contains(function_is_result) ? afters  :
-                                                                   befores.length || ps[i].length                       ? befores : formals).push(ps[i]);
+                                              function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length, p; i < l; ++i)
+                                                                  p = this(ps[i]), (afters.length  || p.contains(function_is_result) ? afters  :
+                                                                                    befores.length || p.length                       ? befores : formals).push(p);
 
                                                                 // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
                                                                 // into expression context by wrapping them in parentheses.
