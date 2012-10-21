@@ -23,11 +23,11 @@ To compensate, merge() manually copies toString if it is present on the extensio
 
       caterwaul_global.merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
         // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
-        function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (has(_, k)) o[k] = _[k]; return o} :
+        function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (Object.prototype.hasOwnProperty.call(_, k)) o[k] = _[k]; return o} :
 
         // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
         function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
-                        if (_ = arguments[i]) {for (var k in _) if (has(_, k)) o[k] = _[k];
+                        if (_ = arguments[i]) {for (var k in _) if (Object.prototype.hasOwnProperty.call(_, k)) o[k] = _[k];
                                                if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
 
 # Modules
