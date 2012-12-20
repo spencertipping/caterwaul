@@ -653,7 +653,10 @@ var shell = given.nothing in
  it.log.description = 'logs a value to the shell'],
 
  run_command(c) = log(history_entry_for(c))
- -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
+ -re- log(history_result_for(context.it = context.compiler(c, context)))
+ /rescue [context.compiler('(function(){return #{c}})()', context)
+ /rescue [context.compiler('(function(){#{c}})()', context)
+ /rescue [log(history_error_for(context.it = e))]]],
 
  shell_prompt = jquery [div.prompt[prompt, input, structure, shadow]]
  -se- setTimeout(realign, 10)
@@ -3330,7 +3333,10 @@ var shell = given.nothing in
                                                  it.log.description       = 'logs a value to the shell'],
 
                     run_command(c)        = log(history_entry_for(c))
-                                            -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
+                                            -re- log(history_result_for(context.it = context.compiler(c, context)))
+                                                 /rescue [context.compiler('(function(){return #{c}})()', context)
+                                                 /rescue [context.compiler('(function(){#{c}})()', context)
+                                                 /rescue [log(history_error_for(context.it = e))]]],
 
                     shell_prompt          = jquery [div.prompt[prompt, input, structure, shadow]]
                                             -se- setTimeout(realign, 10)

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  c4d50bef3a59d06b612f53bd10852c46
+# state:  f83ea66b3a81528f80cc01318b2a16dd
 # istate: d59ffc87d0e2127a7f8876531389cd00
 # id:     7fc45339b1264fb69fce96b725dfff72
 
@@ -1997,11 +1997,21 @@ meta::section('binding-forms', <<'__');
     to varying amounts of code. For example:
 
     - verbatim << end
-      x + 1 -where [x = 5]              // this works
-      x + 1, where [x = 5]              // works
-      x + 1 -where- x = 5               // fails; = binds after -
-      x + 1 /where [x = 5]              // fails; / binds after +
+      x + 1 -where [x = 5]   // (x + 1) - (where [x = 5])    -- this works
+      x + 1, where [x = 5]   // (x + 1), (where [x = 5])     -- this works
+      x + 1 -where- x = 5    // (((x + 1) - where) - x) = 5  -- fails
+      x + 1 /where [x = 5]   // x + (1 / (where [x = 5]))    -- fails
     - end
+
+    The last two cases here fail for different reasons. The first one fails
+    because {\tt where[]} can't see the {\tt = 5}, since {\tt =} has low
+    precedence and is therefore an ancestor of the other nodes. Because of
+    this, {\tt where} is almost always written with brackets.
+
+    The second one fails because the {\tt /} operator binds more tightly than
+    the {\tt -} operator, which means that {\tt x} isn't a part of the code
+    being modified by the {\tt where} binding. As a result, {\tt x} will be
+    undeclared and the code will throw a {\tt ReferenceError}.
 
     {\tt where} is generally written as \verb|x, where [...]| or as
     \verb|x -where [...]|.
@@ -2059,6 +2069,47 @@ meta::section('binding-forms', <<'__');
           apply(array, 'push', outer_args)
           -where [apply(obj, name, stuff) = obj[name].apply(obj, stuff)];
       - end
+    - end
+
+  - s2 Binding objects
+    You can create an object using {\tt where}-style syntax. To do this, you
+    use the {\tt capture[]} modifier:
+
+    - verbatim << end
+      obj = capture[x = 5, y = 6]
+      // translates to:
+      // obj = {x: 5, y: 6}
+    - end
+
+    Notice that due to the way this code is translated, you couldn't refer to
+    {\tt x} when defining {\tt y} like you can with {\tt where}. To deal with
+    this, Caterwaul gives you another form, {\tt wcapture}, which causes each
+    definition to be bound to a local variable before returning the object:
+
+    - verbatim << end
+      obj = wcapture[x = 5, y = x + 1]
+      // translates to:
+      // obj = (function () {
+      //         var x = 5, y = x + 1;
+      //         return {x: x, y: y};
+      //       })()
+    - end
+
+    The reason Caterwaul includes these forms is that it lets you use function
+    binding syntax to create object methods:
+
+    - verbatim << end
+      obj.prototype = capture [
+        plus(x) = this.value + x,
+        times(x) = this.value * x];
+    - end
+
+    You can also simply create those methods using dot-notation:
+
+    - verbatim << end
+      obj.prototype = {};
+      obj.prototype.plus(x) = this.x + x;
+      obj.prototype.times(x) = this.x * x;
     - end
 
   - s2 Exercises
@@ -2216,9 +2267,14 @@ meta::section('purpose', <<'__');
         http://caterwauljs.org/''.
 
       - item
-        Set a global variable {\tt x} to {\tt 10}. Notice that the Caterwaul
-        website doesn't let you use {\tt var} because {\tt var} doesn't return
-        a value.
+        Set a global variable {\tt x} to {\tt 10}. Notice that using {\tt var}
+        causes the variable to disappear; this happens because the web shell
+        runs each command inside a separate function.
+
+      - item
+        Type the expression \verb|x = y = z| at the prompt and look at the
+        parse tree below. Based on the tree, is the {\tt =} operator left or
+        right associative?
     - end
 
 __
