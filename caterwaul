@@ -869,16 +869,6 @@ var shell = given.nothing in
 
 
 
-
-
-
-
-
-
-
-
-
-
  $('head').append(jquery in title('caterwaul js'));
  $('body').empty().append(page_header, original_pages);
 
@@ -3197,8 +3187,6 @@ $(caterwaul('js_all jquery')(function () {
     - pinclude pp::js::web/source
 
     - pinclude pp::js::web/render-tutorial
-    - pinclude pp::js::web/benchmark
-    - pinclude pp::js::web/seq-decipher
 
     $('head').append(jquery in title('caterwaul js'));
     $('body').empty().append(page_header, original_pages);
