@@ -632,6 +632,7 @@ var shell = given.nothing in
  clear() = shell.children('.history').empty() -re- realign() -re- '',
  caterwaul = caterwaul.clone(),
  history = [],
+ console = capture [log() = context.log.apply(this, arguments) -then- undefined],
 
  help() = 'available variables:\n' +
  (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
@@ -644,6 +645,7 @@ var shell = given.nothing in
  -se [it.context = it]
  -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
  -se [it.context.description = 'variables available to the shell',
+ it.console.description = 'a logging interface; use console.log()',
  it.expand.description = 'expands the shell',
  it.collapse.description = 'collapses the shell',
  it.clear.description = 'clears old output',
@@ -653,7 +655,10 @@ var shell = given.nothing in
  it.log.description = 'logs a value to the shell'],
 
  run_command(c) = log(history_entry_for(c))
- -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
+ -re- log(history_result_for(context.it = context.compiler(c, context)))
+ /rescue [context.compiler('(function(){return #{c}})()', context)
+ /rescue [context.compiler('(function(){#{c}})()', context)
+ /rescue [log(history_error_for(context.it = e))]]],
 
  shell_prompt = jquery [div.prompt[prompt, input, structure, shadow]]
  -se- setTimeout(realign, 10)
@@ -3297,6 +3302,7 @@ var shell = given.nothing in
                                                      clear()             = shell.children('.history').empty() -re- realign() -re- '',
                                                      caterwaul           = caterwaul.clone(),
                                                      history             = [],
+                                                     console             = capture [log() = context.log.apply(this, arguments) -then- undefined],
 
                                                      help()              = 'available variables:\n' +
                                                                            (pairs %[x[1] && x[1].description] *['#{x[0]}: #{x[1].description}'] /seq
@@ -3309,6 +3315,7 @@ var shell = given.nothing in
                                             -se [it.context = it]
                                             -se [it.compiler = it.caterwaul.jquery(it.caterwaul.js_all())]
                                             -se [it.context.description   = 'variables available to the shell',
+                                                 it.console.description   = 'a logging interface; use console.log()',
                                                  it.expand.description    = 'expands the shell',
                                                  it.collapse.description  = 'collapses the shell',
                                                  it.clear.description     = 'clears old output',
@@ -3318,7 +3325,10 @@ var shell = given.nothing in
                                                  it.log.description       = 'logs a value to the shell'],
 
                     run_command(c)        = log(history_entry_for(c))
-                                            -re- log(history_result_for(context.it = context.compiler(c, context))) /rescue [log(history_error_for(context.it = e))],
+                                            -re- log(history_result_for(context.it = context.compiler(c, context)))
+                                                 /rescue [context.compiler('(function(){return #{c}})()', context)
+                                                 /rescue [context.compiler('(function(){#{c}})()', context)
+                                                 /rescue [log(history_error_for(context.it = e))]]],
 
                     shell_prompt          = jquery [div.prompt[prompt, input, structure, shadow]]
                                             -se- setTimeout(realign, 10)
