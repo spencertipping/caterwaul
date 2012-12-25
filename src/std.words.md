@@ -27,8 +27,14 @@ qs[] comes from pre-1.0 caterwaul; this lets you quote a piece of syntax, just l
 that macroexpands the syntax tree before returning it; this used to be there for performance reasons (now irrelevant with the introduction of precompilation) but is also useful for macro
 reuse.
 
+Caterwaul 1.3 introduces 'qc' and 'qce', which stand for 'quote code' and 'quote code and expand', respectively. These are analogous to 'qs' and 'qse', except that they evaluate the
+expression given rather than quoting it directly.
+
       qs(match)  = new $.expression_ref($.syntax_to_expression(match._expression), 'qs'),
       qse(match) = new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse'),
+
+      qc(match)  = $.compile(this(match._expression)),
+      qce(match) = this($.compile(this(match._expression))),
 
 ## Macroexpansion control
 

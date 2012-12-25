@@ -70,7 +70,7 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
 
 syn keyword   jsBindingMacro            where capture wcapture nextgroup=jsBindingGroup
 syn keyword   jsFunctionMacro           given bgiven           nextgroup=jsFunctionGroup
-syn keyword   jsQuotationMacro          qs qse                 nextgroup=jsQuotationGroup
+syn keyword   jsQuotationMacro          qs qse qc qce          nextgroup=jsQuotationGroup
 syn keyword   jsOtherMacro              raise seq noexpand reexpand eval ahead bitwise
 
 syn keyword   jsParameterizedMacro      se re then and or when unless using rescue eq aeq oeq deq neq acq ocq dcq ncq nextgroup=jsModifierSuffix
