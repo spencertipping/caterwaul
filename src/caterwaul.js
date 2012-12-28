@@ -891,9 +891,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
             if                                  (lex_space[c = cs(i)]) while (++i < l && lex_space[cs(i)]);
        else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
-       else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i < l && (cs(i) !== lex_slash || cs(i - 1) !== lex_star));
-       else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i < l && ! lex_eol[cs(i)]);
-       else if                                        (c === lex_hash) while (++i < l && ! lex_eol[cs(i)]);
+       else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i <= l && (cs(i - 1) !== lex_slash || cs(i - 2) !== lex_star));
+       else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i <= l && ! lex_eol[cs(i - 1)]);
+       else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
 
       // Regexp and string literal lexing.
 //       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
