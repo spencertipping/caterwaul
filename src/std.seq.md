@@ -284,12 +284,12 @@ such (from a design perspective).
       ifoldr      = form('for (var _xl = _xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f);      return _x0'.qs),
       iunfold     = form('for (var _xr = [], _x = _xs, _xi = 0, _x0;          _x0 = (_init); ++_xi) _xr.push(_x), _x = (_f);        return _xr'.qs),
 
-      exists      = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
-      not_exists  = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'.qs),
-      r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x = _xs[_xi], x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
+      exists      = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
+      not_exists  = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'.qs),
+      r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x, x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
 
-      iexists     = form('for (var _x = _xs[0], _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
-      ir_exists   = form('for (var _xl = _xs.length, _xi = _xl - 1, _x = _xs[_xi], x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
+      iexists     = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
+      ir_exists   = form('for (var _xl = _xs.length, _xi = _xl - 1, _x, x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
 
       concat      = anon('(S[_xs]).concat((S[_ys]))'.qs),
 
