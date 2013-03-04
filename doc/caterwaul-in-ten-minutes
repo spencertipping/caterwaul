@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  605cca2af9b08a77462db90ca8023eda
+# state:  82e3c13815345828fb45073b34320cc9
 # istate: d59ffc87d0e2127a7f8876531389cd00
 # id:     7fc45339b1264fb69fce96b725dfff72
 
@@ -1951,7 +1951,7 @@ meta::section('answers', <<'__');
 
   \textbf{Errata}
   - enumerate << end
-    - item[] \S 2, ex 2
+    - item[] \S 2, ex 3
       [Hat tip Alan Liu]
 
       The answer was incorrectly listed as:
