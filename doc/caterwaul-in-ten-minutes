@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  f83ea66b3a81528f80cc01318b2a16dd
+# state:  605cca2af9b08a77462db90ca8023eda
 # istate: d59ffc87d0e2127a7f8876531389cd00
 # id:     7fc45339b1264fb69fce96b725dfff72
 
@@ -1902,6 +1902,9 @@ meta::section('answers', <<'__');
       \verb|alert('you are at #{document.location.href}')|
     - item
       \verb|x = 10|
+    - item
+      {\tt =} is right-associative. A left-associative parse tree would be
+      {\tt ("=" ("=" x y) z)}.
   - end
 
   \textbf{Section 2}
@@ -1913,7 +1916,10 @@ meta::section('answers', <<'__');
       undefined1} because {\tt x} has not yet been initialized. (This is the
       same thing that happens with {\tt var}.)
     - item
-      \verb|args() = '[#{arguments.join(", ")}]'|
+      - verbatim << end
+        args(arg = arguments) = '[#{xs.join(", ")}]'
+                                -where [xs = Array.prototype.slice.call(arg)]
+      - end
     - item
       \verb|args(x, y) -where [x = 1, y = 2]|
   - end
@@ -1941,6 +1947,36 @@ meta::section('answers', <<'__');
           -where [row_array = people /pairs *[row(x[0], x[1])] -seq,
                   rows      = row_array /[x0.add(x)] -seq]
       - end
+  - end
+
+  \textbf{Errata}
+  - enumerate << end
+    - item[] \S 2, ex 2
+      [Hat tip Alan Liu]
+
+      The answer was incorrectly listed as:
+
+      \verb|args() = '[#{arguments.join(", ")}]'|
+
+      This answer fails because the {\tt arguments} object defines no {\tt
+      join} method (unlike arrays, which do). The fix is to convert {\tt
+      arguments} into an array before using it inside the string, which can be
+      done in a few different ways:
+
+      - verbatim << end
+        args() = '[#{Array.prototype.slice.call(arguments).join(", ")}]'
+
+        args(arg = arguments) = '[#{xs.join(", ")}]'
+                                -where [xs = Array.prototype.slice.call(arg)]
+
+        // using the seq[] macro:
+        args() = '[#{seq[+arguments].join(", ")}]'
+      - end
+
+      The prefix {\tt +} in sequence context causes an expression to be sliced
+      into an array. This isn't documented in the {\em ten minutes} guide, but
+      it is described on the Caterwaul website.
+
   - end
 
 __
