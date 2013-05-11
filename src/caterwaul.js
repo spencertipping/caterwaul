@@ -451,10 +451,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ::
 
       match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
                                            variables || (variables = {_: target});
-                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.without_metadata()] = target, variables;
-                                      else if (this.length === target.length && this.data === target.data)      {for (var i = 0, l = this.length; i < l; ++i)
-                                                                                                                   if (! this[i].match(target[i], variables)) return null;
-                                                                                                                 return variables}},
+                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !target.length)) return variables[this.without_metadata()] = target, variables;
+                                      else if (this.length === target.length && this.data === target.data)        {for (var i = 0, l = this.length; i < l; ++i)
+                                                                                                                     if (! this[i].match(target[i], variables)) return null;
+                                                                                                                   return variables}},
 
     // Inspection and syntactic serialization.
 //     Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). In the past, stray 'r' links were serialized as block
