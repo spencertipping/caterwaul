@@ -5,7 +5,9 @@ Licensed under the terms of the MIT source code license
 
 Caterwaul is a Javascript-to-Javascript compiler. Visit http://caterwauljs.org for information about how and why you might use it.
 
-    (function (f) {return f(f)})(function (initializer, key, undefined) {
+```
+(function (f) {return f(f)})(function (initializer, key, undefined) {
+```
 
 # Global caterwaul variable
 
@@ -13,14 +15,18 @@ Caterwaul creates a global symbol, caterwaul. Like jQuery, there's a mechanism t
 caterwaul and restore the global that was there when Caterwaul was loaded (might be useful in the unlikely event that someone else named their library Caterwaul). Note that deglobalize() is
 available only on the global caterwaul() function.
 
-    (function (f) {return f(f)})(function (initializer) {
-      var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
-          original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
-          caterwaul_global = calls_init();
+```
+(function (f) {return f(f)})(function (initializer) {
+  var calls_init       = function () {var f = function () {return f.init.apply(f, arguments)}; return f},
+      original_global  = typeof caterwaul === 'undefined' ? undefined : caterwaul,
+      caterwaul_global = calls_init();
+```
 
-      caterwaul_global.deglobalize      = function () {caterwaul = original_global; return caterwaul_global};
-      caterwaul_global.core_initializer = initializer;
-      caterwaul_global.context          = this;
+```
+  caterwaul_global.deglobalize      = function () {caterwaul = original_global; return caterwaul_global};
+  caterwaul_global.core_initializer = initializer;
+  caterwaul_global.context          = this;
+```
 
 The merge() function is compromised for the sake of Internet Explorer, which contains a bug-ridden and otherwise horrible implementation of Javascript. The problem is that, due to a bug in
 hasOwnProperty and DontEnum within JScript, these two expressions are evaluated incorrectly:
@@ -30,14 +36,18 @@ hasOwnProperty and DontEnum within JScript, these two expressions are evaluated 
 
 To compensate, merge() manually copies toString if it is present on the extension object.
 
-      caterwaul_global.merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
-        // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
-        function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (Object.prototype.hasOwnProperty.call(_, k)) o[k] = _[k]; return o} :
+```
+  caterwaul_global.merge = (function (o) {for (var k in o) if (o.hasOwnProperty(k)) return true})({toString: true}) ?
+    // hasOwnProperty, and presumably iteration, both work, so we use the sensible implementation of merge():
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i) if (_ = arguments[i]) for (var k in _) if (Object.prototype.hasOwnProperty.call(_, k)) o[k] = _[k]; return o} :
+```
 
-        // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
-        function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
-                        if (_ = arguments[i]) {for (var k in _) if (Object.prototype.hasOwnProperty.call(_, k)) o[k] = _[k];
-                                               if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
+```
+    // hasOwnProperty, and possibly iteration, both fail, so we hack around the problem with this gem:
+    function (o) {for (var i = 1, l = arguments.length, _; i < l; ++i)
+                    if (_ = arguments[i]) {for (var k in _) if (Object.prototype.hasOwnProperty.call(_, k)) o[k] = _[k];
+                                           if (_.toString && ! /\[native code\]/.test(_.toString.toString())) o.toString = _.toString} return o},
+```
 
 # Modules
 
@@ -62,15 +72,19 @@ supplied as a parameter rather than being closed over.
 You can invoke module() with just a name to get the initializer function for that module. This ultimately means that, given only a runtime instance of a Caterwaul function configured with one
 or modules, you can construct a string of Javascript code sufficient to recreate an equivalent Caterwaul function elsewhere. (The replicator() method does this by returning a syntax tree.)
 
-      caterwaul_global.modules = [];
-      caterwaul_global.module = function (name, transform, f) {
-        if (arguments.length === 1) return caterwaul_global[name + '_initializer'];
-        name + '_initializer' in caterwaul_global || caterwaul_global.modules.push(name);
-        f || (f = transform, transform = null);
-        (caterwaul_global[name + '_initializer'] = transform ? caterwaul_global(transform)(f) : f)(caterwaul_global);
-        return caterwaul_global};
+```
+  caterwaul_global.modules = [];
+  caterwaul_global.module = function (name, transform, f) {
+    if (arguments.length === 1) return caterwaul_global[name + '_initializer'];
+    name + '_initializer' in caterwaul_global || caterwaul_global.modules.push(name);
+    f || (f = transform, transform = null);
+    (caterwaul_global[name + '_initializer'] = transform ? caterwaul_global(transform)(f) : f)(caterwaul_global);
+    return caterwaul_global};
+```
 
-      return caterwaul = caterwaul_global});
+```
+  return caterwaul = caterwaul_global});
+```
 
 # Utility methods
 
@@ -95,17 +109,25 @@ Gensyms are unique identifiers that end with high-entropy noise that won't appea
 whoever requested the gensym (this allows gensyms to be more readable), 'count' is a base-36 number that is incremented with each gensym, and 'suffix' is a constant base-64 string containing
 128 bits of entropy. (Since 64 possibilities is 6 bits, this means that we have 22 characters.)
 
-        var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
+```
+    var qw = function (x) {return x.split(/\s+/)},  se = function (x, f) {return f && f.call(x, x) || x},  fail = function (m) {throw new Error(m)},
+```
 
-        unique = key || (function () {for (var xs = [], d = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_', i = 21, n; i >= 0; --i) xs.push(d.charAt(Math.random() * 64 >>> 0));
-                                      return xs.join('')})(),
+```
+    unique = key || (function () {for (var xs = [], d = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$_', i = 21, n; i >= 0; --i) xs.push(d.charAt(Math.random() * 64 >>> 0));
+                                  return xs.join('')})(),
+```
 
-        gensym = (function (c) {return function (name) {return [name || '', (++c).toString(36), unique].join('_')}})(0),  is_gensym = function (s) {return s.substr(s.length - 22) === unique},
+```
+    gensym = (function (c) {return function (name) {return [name || '', (++c).toString(36), unique].join('_')}})(0),  is_gensym = function (s) {return s.substr(s.length - 22) === unique},
+```
 
-          bind = function (f, t) {return function () {return f.apply(t, arguments)}},
-           map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
-          rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
-          hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
+```
+      bind = function (f, t) {return function () {return f.apply(t, arguments)}},
+       map = function (f, xs) {for (var i = 0, ys = [], l = xs.length; i < l; ++i) ys.push(f(xs[i], i)); return ys},
+      rmap = function (f, xs) {return map(function (x) {return x instanceof Array ? rmap(f, x) : f(x)})},
+      hash = function (s) {for (var i = 0, xs = qw(s), o = {}, l = xs.length; i < l; ++i) o[xs[i]] = true; return annotate_keys(o)},
+```
 
 ## Optimizations
 
@@ -125,11 +147,15 @@ special _max_length key are no longer necessary.
 Caterwaul 1.3 introduces the gensym_entropy() method, which allows you to grab the 128 bits of pseudorandom data that are used to mark gensyms. Be careful with this. If you introduce this
 data into your code, you compromise the uniqueness of past and future gensyms because you know enough to reproduce them and predict their future values.
 
-       max_length_key = gensym('hash'),
-        annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
-                  has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
+```
+   max_length_key = gensym('hash'),
+    annotate_keys = function (o)    {var max = 0; for (var k in o) own.call(o, k) && (max = k.length > max ? k.length : max); o[max_length_key] = max; return o},
+              has = function (o, p) {return p != null && ! (p.length > o[max_length_key]) && own.call(o, p)},  own = Object.prototype.hasOwnProperty,
+```
 
-     caterwaul_global = caterwaul.merge(caterwaul, {map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym, gensym_entropy: function () {return unique}}),
+```
+ caterwaul_global = caterwaul.merge(caterwaul, {map: map, rmap: rmap, gensym: gensym, is_gensym: is_gensym, gensym_entropy: function () {return unique}}),
+```
 
 # Shared parser data
 
@@ -152,15 +178,19 @@ Javascript assigns no semantics to them.
 Caterwaul 1.2 adds @ as an identifier character. This is a hack for me to encode metadata on symbols without having to build subtrees, and it is transparent to Javascript->Javascript
 compilation since @ is not a valid character in Javascript.
 
-         lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
-                       'return throw case var const break continue else u; ;'),
+```
+     lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
+                   'return throw case var const break continue else u; ;'),
+```
 
-      lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
-      lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
-      lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}?:'),     lex_opener = lex_table('([{?:'),                  lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
-        lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
-       lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('@$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
-       lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),  lex_dot = '.'.charCodeAt(0),  lex_hash = '#'.charCodeAt(0),
+```
+  lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
+  lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
+  lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}?:'),     lex_opener = lex_table('([{?:'),                  lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
+    lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
+   lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('@$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
+   lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),  lex_dot = '.'.charCodeAt(0),  lex_hash = '#'.charCodeAt(0),
+```
 
 ## Parse data
 
@@ -180,24 +210,32 @@ non-Javascript compilers like waul. So far these operators are:
 These operators matter only if you're writing waul-facing code. If you're writing Javascript-to-Javascript mappings you can ignore their existence, since no valid Javascript will contain
 them in the first place.
 
-      parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==',
-                                      '::', ':::', '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',', 'return throw break continue',
-                                      'var const', 'if else try catch finally for switch with while do', ';']),
+```
+  parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==',
+                                  '::', ':::', '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',', 'return throw break continue',
+                                  'var const', 'if else try catch finally for switch with while do', ';']),
+```
 
-    parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= :: ::: -> => ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case ' +
-                                'with while do'),
+```
+parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= :: ::: -> => ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case ' +
+                            'with while do'),
+```
 
-     parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)})(parse_reduce_order),
-     parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
-                                             for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs})(parse_reduce_order),
+```
+ parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)})(parse_reduce_order),
+ parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
+                                         for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs})(parse_reduce_order),
+```
 
-                parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
-     parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
-           parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
-        parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
-             parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
-     parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while with catch void delete new typeof in instanceof'),
-     parse_also_expression = hash('function'),                     parse_misleading_postfix = hash(':'),
+```
+            parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
+ parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
+       parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
+    parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
+         parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while with catch void delete new typeof in instanceof'),
+ parse_also_expression = hash('function'),                     parse_misleading_postfix = hash(':'),
+```
 
 # Syntax data structures
 
@@ -254,24 +292,32 @@ the fold stage, push() should be used instead of append(). append() works in a b
 These functions are common to various pieces of syntax nodes. Not all of them will always make sense, but the prototypes of the constructors can be modified independently later on if it
 turns out to be an issue.
 
-      syntax_common = caterwaul_global.syntax_common = {
+```
+  syntax_common = caterwaul_global.syntax_common = {
+```
 
 ### Mutability
 
   These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
 
-      _replace:  function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
-      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this) || empty)},
-      _append:   function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this) || empty)},
-      _sibling:  function (n) {return n.p = this.p, (this.r = n).l = this},                    _fold_lr: function () {return this._fold_l()._fold_r()},
-                                                                                               _fold_rr: function () {return this._fold_r()._fold_r()},
+```
+  _replace:  function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
+  _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this) || empty)},
+  _append:   function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this) || empty)},
+  _sibling:  function (n) {return n.p = this.p, (this.r = n).l = this},                    _fold_lr: function () {return this._fold_l()._fold_r()},
+                                                                                           _fold_rr: function () {return this._fold_r()._fold_r()},
+```
 
-      _wrap:     function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},
-      _unlink:   function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
+```
+  _wrap:     function (n) {return n.p = this._replace(n).p, this._reparent(n), delete this.l, delete this.r, this._append_to(n)},
+  _unlink:   function (n) {return this.l && (this.l.r = this.r), this.r && (this.r.l = this.l), delete this.l, delete this.r, this._reparent(n)},
+```
 
 These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
 
-      pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = caterwaul_global.syntax.promote(x || empty), this},
+```
+  pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = caterwaul_global.syntax.promote(x || empty), this},
+```
 
 ### Identification
 
@@ -279,8 +325,10 @@ You can request that a syntax node identify itself, in which case it will give y
 and after that it is stable. As of Caterwaul 0.7.0 the mechanism works differently (i.e. isn't borked) in that it replaces the prototype definition with an instance-specific closure the
 first time it gets called. This may reduce the number of decisions in the case that the node's ID has already been computed.
 
-                       id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
-      is_caterwaul_syntax: true,
+```
+                   id: function () {var id = gensym('id'); return (this.id = function () {return id})()},
+  is_caterwaul_syntax: true,
+```
 
 ### Traversal functions
 
@@ -316,33 +364,47 @@ rmap() provides a fairly rich interface to allow you to inform Caterwaul about w
     3. Preserve the original value, but don't descend into children. In this case you should return true. This has the advantage that it avoids allocating copies of trees that you don't
        intend to modify. You can also use this to escape from an rmap() operation by continuing to return true.
 
-      each:  function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
-      map:   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+```
+  each:  function (f) {for (var i = 0, l = this.length; i < l; ++i) f(this[i], i); return this},
+  map:   function (f) {for (var n = new this.constructor(this), i = 0, l = this.length; i < l; ++i) n.push(f(this[i], i) || this[i]); return n},
+```
 
-      reach: function (f) {f(this); for (var i = 0, l = this.length; i < l; ++i) this[i].reach(f); return this},
-      rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r === true ? this : r.rmap === undefined ? new this.constructor(r) : r},
+```
+  reach: function (f) {f(this); for (var i = 0, l = this.length; i < l; ++i) this[i].reach(f); return this},
+  rmap:  function (f) {var r = f(this); return ! r || r === this ? this.map(function (n) {return n.rmap(f)}) : r === true ? this : r.rmap === undefined ? new this.constructor(r) : r},
+```
 
-      peach: function (f) {for (var i = 0, l = this.length; i < l; ++i) this[i].peach(f); f(this); return this},
-      pmap:  function (f) {var t = this.map(function (n) {return n.pmap(f)}); return f(t)},
+```
+  peach: function (f) {for (var i = 0, l = this.length; i < l; ++i) this[i].peach(f); f(this); return this},
+  pmap:  function (f) {var t = this.map(function (n) {return n.pmap(f)}); return f(t)},
+```
 
-      clone: function () {return this.rmap(function () {return false})},
+```
+  clone: function () {return this.rmap(function () {return false})},
+```
 
-      collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
-      replace: function (rs) {var r; return own.call(rs, this.data) && (r = rs[this.data]) ?
-                                              r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : r :
-                                              this.map(function (n) {return n.replace(rs)})},
+```
+  collect: function (p)  {var ns = []; this.reach(function (n) {p(n) && ns.push(n)}); return ns},
+  replace: function (rs) {var r; return own.call(rs, this.data) && (r = rs[this.data]) ?
+                                          r.constructor === String ? se(this.map(function (n) {return n.replace(rs)}), function () {this.data = r}) : r :
+                                          this.map(function (n) {return n.replace(rs)})},
+```
 
 ### Alteration
 
 These functions let you make "changes" to a node by returning a modified copy.
 
-      thin_clone:       function ()       {return this.map(function () {return false})},
+```
+  thin_clone:       function ()       {return this.map(function () {return false})},
+```
 
-      repopulated_with: function (xs)     {return new this.constructor(this.data, xs)},
-      with_data:        function (d)      {return new this.constructor(d, Array.prototype.slice.call(this))},
-      change:           function (i, x)   {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
-      compose_single:   function (i, f)   {return this.change(i, f(this[i]))},
-      slice:            function (x1, x2) {return new this.constructor(this.data, Array.prototype.slice.call(this, x1, x2))},
+```
+  repopulated_with: function (xs)     {return new this.constructor(this.data, xs)},
+  with_data:        function (d)      {return new this.constructor(d, Array.prototype.slice.call(this))},
+  change:           function (i, x)   {return se(new this.constructor(this.data, Array.prototype.slice.call(this)), function (n) {n[i] = x})},
+  compose_single:   function (i, f)   {return this.change(i, f(this[i]))},
+  slice:            function (x1, x2) {return new this.constructor(this.data, Array.prototype.slice.call(this, x1, x2))},
+```
 
 ### General-purpose traversal
 
@@ -354,7 +416,9 @@ since they would fail any standard truthiness tests for 'entering' or 'exiting'.
 I used to have a method to perform scope-annotated traversal, but I removed it for two reasons. First, I had no use for it (and no tests, so I had no reason to believe that it worked).
 Second, Caterwaul is too low-level to need such a method. That would be more appropriate for an analysis extension.
 
-      traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n.traverse(f)})}); return this},
+```
+  traverse: function (f) {f({entering: this}); f({exiting: this.each(function (n) {n.traverse(f)})}); return this},
+```
 
 ### Structural transformation
 
@@ -387,14 +451,18 @@ or semicolon degrades gracefully for the unary case (this sentence makes more se
 The unflatten() method performs the inverse transformation. It doesn't delete a converted unary operator in the tree case, but if called on a node with more than two children it will nest
 according to associativity.
 
-      flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
-                                                     se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
-                                                     se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
-                                                                                                    for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+```
+  flatten:   function (d) {d = d || this.data; return d !== this.data ? this.as(d) : ! (has(parse_lr, d) && this.length) ? this : has(parse_associates_right, d) ?
+                                                 se(new this.constructor(d), bind(function (n) {for (var i = this;     i && i.data === d; i = i[1]) n.push(i[0]); n.push(i)}, this)) :
+                                                 se(new this.constructor(d), bind(function (n) {for (var i = this, ns = []; i.data === d; i = i[0]) i[1] && ns.push(i[1]); ns.push(i);
+                                                                                                for (i = ns.length - 1; i >= 0; --i) n.push(ns[i])}, this))},
+```
 
-      unflatten: function  () {var t = this, right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), function (n) {
-                                 if (right) for (var i = 0, l = t.length - 1; i  < l; ++i) n = n.push(t[i]).push(i < l - 2 ? t.data : t[i])[1];
-                                 else       for (var i = t.length - 1;        i >= 1; --i) n = n.push(i > 1 ? t.data : t[0]).push(t[i])[0]})},
+```
+  unflatten: function  () {var t = this, right = has(parse_associates_right, this.data); return this.length <= 2 ? this : se(new this.constructor(this.data), function (n) {
+                             if (right) for (var i = 0, l = t.length - 1; i  < l; ++i) n = n.push(t[i]).push(i < l - 2 ? t.data : t[i])[1];
+                             else       for (var i = t.length - 1;        i >= 1; --i) n = n.push(i > 1 ? t.data : t[0]).push(t[i])[0]})},
+```
 
 ### Wrapping
 
@@ -402,7 +470,9 @@ Sometimes you want your syntax tree to have a particular operator, and if it doe
 when you have a possibly-plural node representing a variable or expression -- often the case when you're dealing with argument lists -- and you want to be able to assume that it's wrapped
 in a comma node. Calling node.as(',') will return the node if it's a comma, and will return a new comma node containing the original one if it isn't.
 
-      as: function (d) {return this.data === d ? this : new caterwaul_global.syntax(d).push(this)},
+```
+  as: function (d) {return this.data === d ? this : new caterwaul_global.syntax(d).push(this)},
+```
 
 ### Value construction
 
@@ -417,14 +487,20 @@ whether a particular node intends to bind something.)
 Caterwaul 1.1.6 adds the ability to bind values generated by expressions which are evaluated later. This is necessary for precompilation to work for things like the standard library
 'using' modifier.
 
-      bindings:    function (hash) {var result = hash || {}; this.reach(function (n) {n.add_bindings_to(result)});    return result},
-      expressions: function (hash) {var result = hash || {}; this.reach(function (n) {n.add_expressions_to(result)}); return result},
+```
+  bindings:    function (hash) {var result = hash || {}; this.reach(function (n) {n.add_bindings_to(result)});    return result},
+  expressions: function (hash) {var result = hash || {}; this.reach(function (n) {n.add_expressions_to(result)}); return result},
+```
 
-      add_bindings_to:    function (hash) {},           // No-ops for most syntax nodes, but see caterwaul_global.ref and caterwaul_global.expression_ref below.
-      add_expressions_to: function (hash) {},
+```
+  add_bindings_to:    function (hash) {},           // No-ops for most syntax nodes, but see caterwaul_global.ref and caterwaul_global.expression_ref below.
+  add_expressions_to: function (hash) {},
+```
 
-      resolve: function () {return this},               // Identity for most nodes. This is necessary to allow opaque refs to construct expression closures.
-      reduce:  function () {return this},               // Ditto here; this is necessary to allow opaque refs to parse themselves but preserve expression ref bindings.
+```
+  resolve: function () {return this},               // Identity for most nodes. This is necessary to allow opaque refs to construct expression closures.
+  reduce:  function () {return this},               // Ditto here; this is necessary to allow opaque refs to parse themselves but preserve expression ref bindings.
+```
 
 ### Prefix/sufix data retrieval
 
@@ -435,18 +511,22 @@ Infix data is an odd case. It is stored for operators with two terminal componen
 reconstruct the group. First, we need the stuff to the left of the left-paren (prefix). Second, we need the stuff to the left of the right-paren (infix). Third, if the group is at the end
 of the file, we need the stuff to the right of the whole thing (suffix). The suffix is used only for the last syntax node.
 
-      prefix: function (d) {return this.prefixes().push(d), this},  prefixes: function () {return this.prefix_data || (this.prefix_data = [])},
-      infix:  function (d) {return this.infixes ().push(d), this},  infixes:  function () {return this.infix_data  || (this.infix_data  = [])},
-      suffix: function (d) {return this.suffixes().push(d), this},  suffixes: function () {return this.suffix_data || (this.suffix_data = [])},
+```
+  prefix: function (d) {return this.prefixes().push(d), this},  prefixes: function () {return this.prefix_data || (this.prefix_data = [])},
+  infix:  function (d) {return this.infixes ().push(d), this},  infixes:  function () {return this.infix_data  || (this.infix_data  = [])},
+  suffix: function (d) {return this.suffixes().push(d), this},  suffixes: function () {return this.suffix_data || (this.suffix_data = [])},
+```
 
 ### Containment
 
 You can ask a tree whether it contains any nodes that satisfy a given predicate. This is done using the .contains() method and is significantly more efficient than using .collect() if your
 tree does in fact contain a matching node.
 
-      contains: function (f) {var result = f(this);
-                              if (result) return result;
-                              for (var i = 0, l = this.length; i < l; ++i) if (result = this[i].contains(f)) return result},
+```
+  contains: function (f) {var result = f(this);
+                          if (result) return result;
+                          for (var i = 0, l = this.length; i < l; ++i) if (result = this[i].contains(f)) return result},
+```
 
 ### Matching
 
@@ -468,21 +548,25 @@ Caterwaul 1.2 introduces syntax node metadata using @. This is not returned in t
     var pattern = caterwaul.parse('_x@0 + foo');
     pattern.match('bar + foo')        -> {_x: {'bar'}, _: {'bar + foo'}}
 
-      match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
-                                           variables || (variables = {_: target});
-                                           if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.without_metadata()] = target, variables;
-                                      else if (this.length === target.length && this.data === target.data)      {for (var i = 0, l = this.length; i < l; ++i)
-                                                                                                                   if (! this[i].match(target[i], variables)) return null;
-                                                                                                                 return variables}},
+```
+  match: function (target, variables) {target = target.constructor === String ? caterwaul_global.parse(target) : target;
+                                       variables || (variables = {_: target});
+                                       if (this.is_wildcard() && (!this.leaf_nodes_only() || !this.length)) return variables[this.without_metadata()] = target, variables;
+                                  else if (this.length === target.length && this.data === target.data)      {for (var i = 0, l = this.length; i < l; ++i)
+                                                                                                               if (! this[i].match(target[i], variables)) return null;
+                                                                                                             return variables}},
+```
 
 ### Inspection and syntactic serialization
 
 Syntax nodes can be both inspected (producing a Lisp-like structural representation) and serialized (producing valid Javascript code). In the past, stray 'r' links were serialized as block
 comments. Now they are folded into implied semicolons by the parser, so they should never appear by the time serialization happens.
 
-      toString:  function (depth) {var xs = ['']; this.serialize(xs, depth || -1); return xs.join('')},
-      structure: function ()      {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
-                                   else             return this.data}};
+```
+  toString:  function (depth) {var xs = ['']; this.serialize(xs, depth || -1); return xs.join('')},
+  structure: function ()      {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
+                               else             return this.data}};
+```
 
 ## Syntax node subclassing
 
@@ -497,17 +581,21 @@ all syntax trees like this:
 This also defines the 'foo' method for all syntax classes that are created in the future. It does this by adding the method definitions to syntax_common, which is implicitly merged into the
 prototype of any syntax subclass. syntax_extend returns the global Caterwaul object.
 
-      caterwaul_global.syntax_subclasses = [];
-      caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1), proxy = function () {return ctor.apply(this, arguments)};
-                                                          caterwaul_global.merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
-                                                          caterwaul_global.syntax_subclasses.push(proxy);
-                                                          proxy.prototype.constructor = proxy;
-                                                          return proxy};
+```
+  caterwaul_global.syntax_subclasses = [];
+  caterwaul_global.syntax_subclass = function (ctor) {var extensions = Array.prototype.slice.call(arguments, 1), proxy = function () {return ctor.apply(this, arguments)};
+                                                      caterwaul_global.merge.apply(this, [proxy.prototype, syntax_common].concat(extensions));
+                                                      caterwaul_global.syntax_subclasses.push(proxy);
+                                                      proxy.prototype.constructor = proxy;
+                                                      return proxy};
+```
 
-      caterwaul_global.syntax_extend = function () {for (var i = 0, l = caterwaul_global.syntax_subclasses.length, es = Array.prototype.slice.call(arguments); i < l; ++i)
-                                                      caterwaul_global.merge.apply(this, [caterwaul_global.syntax_subclasses[i].prototype].concat(es));
-                                                    caterwaul_global.merge.apply(this, [syntax_common].concat(es));
-                                                    return caterwaul_global};
+```
+  caterwaul_global.syntax_extend = function () {for (var i = 0, l = caterwaul_global.syntax_subclasses.length, es = Array.prototype.slice.call(arguments); i < l; ++i)
+                                                  caterwaul_global.merge.apply(this, [caterwaul_global.syntax_subclasses[i].prototype].concat(es));
+                                                caterwaul_global.merge.apply(this, [syntax_common].concat(es));
+                                                return caterwaul_global};
+```
 
 ## Type detection and retrieval
 
@@ -520,55 +608,79 @@ eta-reduced (if it were, then the 'this' binding would be lost).
 Wildcards are used for pattern matching and are identified by beginning with an underscore. This is a very frequently-called method, so I'm using a very inexpensive numeric check rather
 than a string comparison. The ASCII value for underscore is 95.
 
-      var parse_hex = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i)
-                                                                              result *= 16, result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
-                                                                            return result},
+```
+  var parse_hex = caterwaul_global.parse_hex       = function (digits) {for (var result = 0, i = 0, l = digits.length, d; i < l; ++i)
+                                                                          result *= 16, result += (d = digits.charCodeAt(i)) <= 58 ? d - 48 : (d & 0x5f) - 55;
+                                                                        return result},
+```
 
-        parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i) result *= 8, result += digits.charCodeAt(i) - 48;
-                                                                            return result},
+```
+    parse_octal = caterwaul_global.parse_octal     = function (digits) {for (var result = 0, i = 0, l = digits.length; i < l; ++i) result *= 8, result += digits.charCodeAt(i) - 48;
+                                                                        return result},
+```
 
-    unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
-                                                                         if (is_escaped) is_escaped = false,
-                                                                                         result.push((c = s.charAt(i)) === '\\' ? '\\' :
-                                                                                                     c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
-                                                                                                     c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
-                                                                                                     c === '"' || c === '\'' ? c :
-                                                                                                     c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
-                                                                                                     c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
-                                                                                                                 String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
-                                                                    else if ((c = s.charAt(i)) === '\\') is_escaped = true;
-                                                                    else result.push(c);
+```
+unescape_string = caterwaul_global.unescape_string = function (s) {for (var i = 0, c, l = s.length, result = [], is_escaped = false; i < l; ++i)
+                                                                     if (is_escaped) is_escaped = false,
+                                                                                     result.push((c = s.charAt(i)) === '\\' ? '\\' :
+                                                                                                 c === 'n' ? '\n'     : c === 'r' ? '\r' : c === 'b' ? '\b' : c === 'f' ? '\f' :
+                                                                                                 c === '0' ? '\u0000' : c === 't' ? '\t' : c === 'v' ? '\v' :
+                                                                                                 c === '"' || c === '\'' ? c :
+                                                                                                 c === 'x' ? String.fromCharCode(parse_hex(s.substring(i, ++i + 1))) :
+                                                                                                 c === 'u' ? String.fromCharCode(parse_hex(s.substring(i, (i += 3) + 1))) :
+                                                                                                             String.fromCharCode(parse_octal(s.substring(i, (i += 2) + 1))));
+                                                                else if ((c = s.charAt(i)) === '\\') is_escaped = true;
+                                                                else result.push(c);
+```
 
-                                                                       return result.join('')};
+```
+                                                                   return result.join('')};
+```
 
-      caterwaul_global.javascript_tree_type_methods = {
-                 is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
-                 is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
-                is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
-                 is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
-                  is_array: function () {return this.data === '['},                        as_unescaped_string: function () {return unescape_string(this.as_escaped_string())},
+```
+  caterwaul_global.javascript_tree_type_methods = {
+             is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+             is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
+            is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
+             is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
+              is_array: function () {return this.data === '['},                        as_unescaped_string: function () {return unescape_string(this.as_escaped_string())},
+```
 
-       could_be_identifier: function () {return /^[A-Za-z_$@][A-Za-z0-9$_@]*$/.test(this.data)},
-             is_identifier: function () {return this.length === 0 && this.could_be_identifier() && ! this.is_boolean() && ! this.is_null_or_undefined() && ! has(lex_op, this.data)},
+```
+   could_be_identifier: function () {return /^[A-Za-z_$@][A-Za-z0-9$_@]*$/.test(this.data)},
+         is_identifier: function () {return this.length === 0 && this.could_be_identifier() && ! this.is_boolean() && ! this.is_null_or_undefined() && ! has(lex_op, this.data)},
+```
 
-         has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
-      is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
+```
+     has_grouped_block: function () {return has(parse_r_until_block, this.data)},                 is_block: function () {return has(parse_block, this.data)},
+  is_blockless_keyword: function () {return has(parse_r_optional, this.data)},        is_null_or_undefined: function () {return this.data === 'null' || this.data === 'undefined'},
+```
 
-               is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
-            left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
+```
+           is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
+        left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
+```
 
-                  is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
-           has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
-             is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
+```
+              is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
+       has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
+         is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
+```
 
-              is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
-    is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
-         is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
+```
+          is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
+is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
+     is_unary_operator: function () {return this.is_prefix_unary_operator() || this.is_postfix_unary_operator()},
+```
 
-                precedence: function () {return parse_inverse_order[this.data]},          is_right_associative: function () {return has(parse_associates_right, this.data)},
-            is_associative: function () {return /^[,;]$/.test(this.data)},                            is_group: function () {return /^[(\[{][)\]]?$/.test(this.data)},
+```
+            precedence: function () {return parse_inverse_order[this.data]},          is_right_associative: function () {return has(parse_associates_right, this.data)},
+        is_associative: function () {return /^[,;]$/.test(this.data)},                            is_group: function () {return /^[(\[{][)\]]?$/.test(this.data)},
+```
 
-                   accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
+```
+               accepts: function (e) {return has(parse_accepts, this.data) && parse_accepts[this.data] === (e.data || e)}};
+```
 
 ## Tree metadata
 
@@ -579,17 +691,23 @@ indicate things like this by inserting special characters into identifiers. The 
     2. Nodes beginning with @ are gensym-erased; they are guaranteed to match no other symbol. (This is also true of the character @ alone, used as an identifier.)
     3. Nodes can use @ later on to indicate the presence of match constraints. For example, you can indicate that a wildcard matches only leaf nodes by adding @0 to the end.
 
-      caterwaul_global.javascript_tree_metadata_methods = {
-        could_have_metadata: function () {return this.could_be_identifier()},     without_metadata: function () {return this.data.replace(/@.*$/g, '')},
+```
+  caterwaul_global.javascript_tree_metadata_methods = {
+    could_have_metadata: function () {return this.could_be_identifier()},     without_metadata: function () {return this.data.replace(/@.*$/g, '')},
+```
 
-                is_wildcard: function () {return this.data.charCodeAt(0) === 95},  leaf_nodes_only: function () {return /@0/.test(this.data)},
-                  is_opaque: function () {return this.data.charCodeAt(0) === 64}};
+```
+            is_wildcard: function () {return this.data.charCodeAt(0) === 95},  leaf_nodes_only: function () {return /@0/.test(this.data)},
+              is_opaque: function () {return this.data.charCodeAt(0) === 64}};
+```
 
 ## Javascript-specific serialization
 
 These methods are specific to the Javascript language. Other languages will have different serialization logic.
 
-      caterwaul_global.javascript_tree_serialization_methods = {
+```
+  caterwaul_global.javascript_tree_serialization_methods = {
+```
 
 ### Block detection
 
@@ -606,9 +724,11 @@ A naive approach (the one I was using before version 0.6) would miss the fact th
 What we do instead is dig through the tree and find out whether the last thing in the 'if' case ends with a block. If so, then no semicolon is inserted; otherwise we insert one. This
 algorithm makes serialization technically O(n^2), but nobody nests if/else blocks to such an extent that it would matter.
 
-      ends_with_block: function () {var block = this[this.length - 1];
-                                    if (block && block.data === parse_accepts[this.data]) block = block[0];
-                                    return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+```
+  ends_with_block: function () {var block = this[this.length - 1];
+                                if (block && block.data === parse_accepts[this.data]) block = block[0];
+                                return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+```
 
 There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
@@ -631,11 +751,15 @@ basically want to push the child to parenthesize if it's the same precedence, si
 Groups are unambiguous despite having high precedence. To prevent double-grouping in cases like this, a precedence of 'undefined' is passed into children of groups or invocations. This
 simulates a toplevel invocation, which is implicitly unparenthesized.
 
-      never_guarded: function ()  {return this.is_group() || this.precedence() > parse_inverse_order[',']},
-            guarded: function (p) {var this_p = this.never_guarded() ? undefined : this.precedence(), associative = this.is_associative(), right = this.is_right_associative(),
-                                       result = this.map(function (x, i) {return x.guarded(this_p - (!associative && !right && !!i))});
+```
+  never_guarded: function ()  {return this.is_group() || this.precedence() > parse_inverse_order[',']},
+        guarded: function (p) {var this_p = this.never_guarded() ? undefined : this.precedence(), associative = this.is_associative(), right = this.is_right_associative(),
+                                   result = this.map(function (x, i) {return x.guarded(this_p - (!associative && !right && !!i))});
+```
 
-                                   return this_p > p ? result.as('(') : result},
+```
+                               return this_p > p ? result.as('(') : result},
+```
 
 ### Optimized serialization cases
 
@@ -649,35 +773,52 @@ function, but it isn't the end of the world if you do.
 Caterwaul 1.3 automatically parenthesizes low-precedence operators in the middle of a ternary node. This prevents the syntax errors that pop up if you say things like 'foo ? bar, bif :
 baz'. Even though this construct is unambiguous, most Javascript runtimes fail to accept it.
 
-      serialize: function (xs, depth) {var ep = function (x) {e(p || x && lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)] ? ' ' : ''), x && e(x)},
-                                           e  = function (x) {x && xs.push(x)},             p = this.prefix_data && this.prefix_data.join(''),
-                                           l  = this.length, d = this.data, d1 = depth - 1, i = this.infix_data  && this.infix_data.join(''),
-                                                                                            s = this.suffix_data && this.suffix_data.join('');
+Caterwaul 1.3.1 fixes a Unicode serialization bug. The lex table only covers char-codes 0-255, but doesn't cover anything beyond that, so Caterwaul 1.3 interpreted higher codes as
+non-identifiers. This isn't correct, however; anytime we're dealing with a Unicode character, we need to insert a space just to be safe. The trick is to subtract the two boolean values.
+true - true, false - false, and anything involving undefined will all evaluate to falsy values, and true - false and false - true are truthy. So we ask the question, "are these two things
+different enough that we can omit the space?"
 
-                                       if (depth === 0 && (l || d.length > 32)) return e('...');
+```
+  serialize: function (xs, depth) {var ep = function (x) {e(!p && (!x || lex_ident[xs[xs.length - 1].charCodeAt(0)] - lex_ident[x.charCodeAt(0)]) ? '' : ' '), x && e(x)},
+                                       e  = function (x) {x && xs.push(x)},             p = this.prefix_data && this.prefix_data.join(''),
+                                       l  = this.length, d = this.data, d1 = depth - 1, i = this.infix_data  && this.infix_data.join(''),
+                                                                                        s = this.suffix_data && this.suffix_data.join('');
+```
 
-                           switch (l) {case 0: if (has(parse_r_optional, d)) return ep(d.replace(/^u/, '')), e(s);
-                                          else if (has(parse_group, d))      return ep(d), e(i), e(parse_group[d]), e(s);
-                                          else                               return ep(d), e(s);
+```
+                                   if (depth === 0 && (l || d.length > 32)) return e('...');
+```
 
-                                       case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return ep(d.replace(/^u/, '')), this[0].serialize(xs, d1), e(s);
-                                          else if (has(parse_misleading_postfix, d))            return this[0].serialize(xs, d1), ep(d), e(s);
-                                          else if (has(parse_group, d))                         return ep(d), this[0].serialize(xs, d1), e(i), e(parse_group[d]), e(s);
-                                          else if (has(parse_lr, d))                            return ep(), this[0].serialize(xs, d1), e(s);
-                                          else                                                  return this[0].serialize(xs, d1), ep(d), e(s);
+```
+                       switch (l) {case 0: if (has(parse_r_optional, d)) return ep(d.replace(/^u/, '')), e(s);
+                                      else if (has(parse_group, d))      return ep(d), e(i), e(parse_group[d]), e(s);
+                                      else                               return ep(d), e(s);
+```
 
-                                       case 2: if (has(parse_invocation, d))    return this[0].serialize(xs, d1), ep(d.charAt(0)), this[1].serialize(xs, d1), e(i), e(d.charAt(1)), e(s);
-                                          else if (has(parse_r_until_block, d)) return ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
-                                          else if (has(parse_invisible, d))     return this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
-                                          else                                  return this[0].serialize(xs, d1), ep(d), this[1].serialize(xs, d1), e(s);
+```
+                                   case 1: if (has(parse_r, d) || has(parse_r_optional, d)) return ep(d.replace(/^u/, '')), this[0].serialize(xs, d1), e(s);
+                                      else if (has(parse_misleading_postfix, d))            return this[0].serialize(xs, d1), ep(d), e(s);
+                                      else if (has(parse_group, d))                         return ep(d), this[0].serialize(xs, d1), e(i), e(parse_group[d]), e(s);
+                                      else if (has(parse_lr, d))                            return ep(), this[0].serialize(xs, d1), e(s);
+                                      else                                                  return this[0].serialize(xs, d1), ep(d), e(s);
+```
 
-                                      default: if (has(parse_ternary, d))       return this[0].serialize(xs, d1), ep(d), this[1].precedence() > this.precedence()
-                                                                                  ? (this[1].as('(').serialize(xs, d1), e(i), e(':'), this[2].serialize(xs, d1), e(s))
-                                                                                  : (this[1].        serialize(xs, d1), e(i), e(':'), this[2].serialize(xs, d1), e(s));
-                                          else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
-                                                                                  ? (ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
-                                                                                  : (ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
-                                          else                                  return ep(), this.unflatten().serialize(xs, d1), e(s)}}};
+```
+                                   case 2: if (has(parse_invocation, d))    return this[0].serialize(xs, d1), ep(d.charAt(0)), this[1].serialize(xs, d1), e(i), e(d.charAt(1)), e(s);
+                                      else if (has(parse_r_until_block, d)) return ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
+                                      else if (has(parse_invisible, d))     return this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(s);
+                                      else                                  return this[0].serialize(xs, d1), ep(d), this[1].serialize(xs, d1), e(s);
+```
+
+```
+                                  default: if (has(parse_ternary, d))       return this[0].serialize(xs, d1), ep(d), this[1].precedence() > this.precedence()
+                                                                              ? (this[1].as('(').serialize(xs, d1), e(i), e(':'), this[2].serialize(xs, d1), e(s))
+                                                                              : (this[1].        serialize(xs, d1), e(i), e(':'), this[2].serialize(xs, d1), e(s));
+                                      else if (has(parse_r_until_block, d)) return this.accepts(this[2]) && ! this[1].ends_with_block()
+                                                                              ? (ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), e(';'), this[2].serialize(xs, d1), e(s))
+                                                                              : (ep(d), this[0].serialize(xs, d1), this[1].serialize(xs, d1), this[2].serialize(xs, d1), e(s));
+                                      else                                  return ep(), this.unflatten().serialize(xs, d1), e(s)}}};
+```
 
 ## References
 
@@ -691,25 +832,33 @@ represent. This gives you the ability to use a ref even as an lvalue, since it's
 Caterwaul 1.0 adds named gensyms, and one of the things you can do is name your refs accordingly. If you don't name one it will just be called 'ref', but you can make it more descriptive by
 passing in a second constructor argument. This name will automatically be wrapped in a gensym, but that gensym will be removed at compile-time unless you specify not to rename gensyms.
 
-      caterwaul_global.ref_common = caterwaul_global.merge({}, caterwaul_global.javascript_tree_type_methods,
-                                                               caterwaul_global.javascript_tree_metadata_methods,
-                                                               caterwaul_global.javascript_tree_serialization_methods,
+```
+  caterwaul_global.ref_common = caterwaul_global.merge({}, caterwaul_global.javascript_tree_type_methods,
+                                                           caterwaul_global.javascript_tree_metadata_methods,
+                                                           caterwaul_global.javascript_tree_serialization_methods,
+```
 
 ## Reference replace() support
 
 Refs aren't normal nodes; in particular, invoking the constructor as we do in replace() will lose the ref's value and cause all kinds of problems. In order to avoid this we override the
 replace() method for syntax refs to behave more sensibly. Note that you can't replace a ref with a syntax 
 
-                                                               {replace: function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
-                                                                           r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) :
-                                                                           r : this},
-                                                                 length: 0});
+```
+                                                           {replace: function (replacements) {var r; return own.call(replacements, this.data) && (r = replacements[this.data]) ?
+                                                                       r.constructor === String ? se(new this.constructor(this.value), function () {this.data = r}) :
+                                                                       r : this},
+                                                             length: 0});
+```
 
-      caterwaul_global.ref = caterwaul_global.syntax_subclass(
-                               function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
-                                                       else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')},
+```
+  caterwaul_global.ref = caterwaul_global.syntax_subclass(
+                           function (value, name) {if (value instanceof this.constructor) this.value = value.value, this.data = value.data;
+                                                   else                                   this.value = value,       this.data = gensym(name && name.constructor === String ? name : 'ref')},
+```
 
-                               caterwaul_global.ref_common, {add_bindings_to: function (hash) {hash[this.data] = this.value}});
+```
+                           caterwaul_global.ref_common, {add_bindings_to: function (hash) {hash[this.data] = this.value}});
+```
 
 ## Expression references
 
@@ -725,22 +874,30 @@ This ends up evaluating code that looks like this:
       return ref_gensym + 1;
     }).call(this, 50 * 2)
 
-      caterwaul_global.expression_ref = caterwaul_global.syntax_subclass(
-                                          function (e, name) {if (e instanceof this.constructor) this.e = e.e, this.data = e.data;
-                                                              else                               this.e = e,   this.data = gensym(name && name.constructor === String ? name : 'e')},
+```
+  caterwaul_global.expression_ref = caterwaul_global.syntax_subclass(
+                                      function (e, name) {if (e instanceof this.constructor) this.e = e.e, this.data = e.data;
+                                                          else                               this.e = e,   this.data = gensym(name && name.constructor === String ? name : 'e')},
+```
 
-                                          caterwaul_global.ref_common, {add_expressions_to: function (hash) {hash[this.data] = this.e}});
+```
+                                      caterwaul_global.ref_common, {add_expressions_to: function (hash) {hash[this.data] = this.e}});
+```
 
 ## Metadata
 
 Caterwaul 1.3 allows you to add metadata to the syntax tree. The assumption is that it will be removed before you compile the tree; as such, it is represented as an identifier beginning with
 an @ sign; this will trigger a compilation error if you leave it there. The purpose of metadata is to hold extra information that you don't want to attach to a specific node.
 
-      caterwaul_global.metadata_node = caterwaul_global.syntax_subclass(
-                                         function (d, name) {if (d instanceof this.constructor) this.metadata = d.metadata, this.data = d.data;
-                                                             else                               this.metadata = d,          this.data = '@' + (name || '')},
+```
+  caterwaul_global.metadata_node = caterwaul_global.syntax_subclass(
+                                     function (d, name) {if (d instanceof this.constructor) this.metadata = d.metadata, this.data = d.data;
+                                                         else                               this.metadata = d,          this.data = '@' + (name || '')},
+```
 
-                                         caterwaul_global.ref_common);
+```
+                                     caterwaul_global.ref_common);
+```
 
 ## Opaque (unparsed) code references
 
@@ -765,18 +922,22 @@ Each string represents the expression that is used to construct the expression t
 If you ask an opaque node for its expression bindings, it will return more opaque nodes of those strings. This way you can reuse the bindings from the compile() function, but it won't incur
 any parsing overhead.
 
-      caterwaul_global.opaque_tree = caterwaul_global.syntax_subclass(
-                                       function (code, expression_refs) {if (code instanceof this.constructor) this.data = code.data, this.expression_refs = code.expression_refs;
-                                                                         else                                  this.data            = code.toString(),
-                                                                                                               this.expression_refs = expression_refs || code.caterwaul_expression_ref_table;
-                                                                         var rs = this.expression_refs;
-                                                                         for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
+```
+  caterwaul_global.opaque_tree = caterwaul_global.syntax_subclass(
+                                   function (code, expression_refs) {if (code instanceof this.constructor) this.data = code.data, this.expression_refs = code.expression_refs;
+                                                                     else                                  this.data            = code.toString(),
+                                                                                                           this.expression_refs = expression_refs || code.caterwaul_expression_ref_table;
+                                                                     var rs = this.expression_refs;
+                                                                     for (var k in rs) own.call(rs, k) && rs[k].constructor === String && (rs[k] = new caterwaul_global.opaque_tree(rs[k]))},
+```
 
-                                       {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(new this.constructor(this.data), this.expression_refs) : this},
-                                         reduce: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(this.parse(), this.expression_refs) : this.parse()},
-                                        guarded: function ()   {return this},
-                                      serialize: function (xs) {return xs.push(this.data), xs},
-                                          parse: function ()   {return caterwaul_global.parse(this.data)}});
+```
+                                   {resolve: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(new this.constructor(this.data), this.expression_refs) : this},
+                                     reduce: function ()   {return this.expression_refs ? caterwaul_global.late_bound_tree(this.parse(), this.expression_refs) : this.parse()},
+                                    guarded: function ()   {return this},
+                                  serialize: function (xs) {return xs.push(this.data), xs},
+                                      parse: function ()   {return caterwaul_global.parse(this.data)}});
+```
 
 ## Syntax node constructor
 
@@ -786,33 +947,47 @@ to be used.
 
 Caterwaul 1.2 adds the static caterwaul.syntax.from_string() constructor to simplify string-based syntax node construction.
 
-      caterwaul_global.syntax = se(caterwaul_global.syntax_subclass(
-                                     function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0, this.prefix_data = data.prefix_data,
-                                                                                                                                    this.infix_data  = data.infix_data,
-                                                                                                                                    this.suffix_data = data.suffix_data;
-                                                      else {this.data = data && data.toString(); this.length = 0;
-                                                        for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
-                                                          for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                            this._append(caterwaul_global.syntax.promote(it))}},
+```
+  caterwaul_global.syntax = se(caterwaul_global.syntax_subclass(
+                                 function (data) {if (data instanceof this.constructor) this.data = data.data, this.length = 0, this.prefix_data = data.prefix_data,
+                                                                                                                                this.infix_data  = data.infix_data,
+                                                                                                                                this.suffix_data = data.suffix_data;
+                                                  else {this.data = data && data.toString(); this.length = 0;
+                                                    for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
+                                                      for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
+                                                        this._append(caterwaul_global.syntax.promote(it))}},
+```
 
-                                     caterwaul_global.javascript_tree_type_methods,
-                                     caterwaul_global.javascript_tree_metadata_methods,
-                                     caterwaul_global.javascript_tree_serialization_methods),
+```
+                                 caterwaul_global.javascript_tree_type_methods,
+                                 caterwaul_global.javascript_tree_metadata_methods,
+                                 caterwaul_global.javascript_tree_serialization_methods),
+```
 
-                                   function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
-                                                                                                                                                    replace(/\n/g, '\\n') + '"')};
+```
+                               function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
+                                                                                                                                                replace(/\n/g, '\\n') + '"')};
+```
 
-                                                this.from_array  = function (xs) {for (var i = 0, c = new caterwaul_global.syntax(','), l = xs.length; i < l; ++i) c.push(xs[i]);
-                                                                                  return new caterwaul_global.syntax('[', c.length ? c.unflatten() : [])};
+```
+                                            this.from_array  = function (xs) {for (var i = 0, c = new caterwaul_global.syntax(','), l = xs.length; i < l; ++i) c.push(xs[i]);
+                                                                              return new caterwaul_global.syntax('[', c.length ? c.unflatten() : [])};
+```
 
-                                                this.from_object = function (o)  {var comma = new caterwaul_global.syntax(',');
-                                                                                  for (var k in o) if (own.call(o, k)) comma.push(new caterwaul_global.syntax(
-                                                                                    ':', /^[$_A-Za-z][A-Za-z0-9$_]*$/.test(k) ? k : caterwaul_global.syntax.from_string(k), o[k].as('(')));
-                                                                                  return new caterwaul_global.syntax('{', comma.length ? comma.unflatten() : [])}});
+```
+                                            this.from_object = function (o)  {var comma = new caterwaul_global.syntax(',');
+                                                                              for (var k in o) if (own.call(o, k)) comma.push(new caterwaul_global.syntax(
+                                                                                ':', /^[$_A-Za-z][A-Za-z0-9$_]*$/.test(k) ? k : caterwaul_global.syntax.from_string(k), o[k].as('(')));
+                                                                              return new caterwaul_global.syntax('{', comma.length ? comma.unflatten() : [])}});
+```
 
-      caterwaul_global.syntax.promote = function (v) {var c = v.constructor; return c === String || c === Number || c === Boolean ? new caterwaul_global.syntax(v) : v};
+```
+  caterwaul_global.syntax.promote = function (v) {var c = v.constructor; return c === String || c === Number || c === Boolean ? new caterwaul_global.syntax(v) : v};
+```
 
-      var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
+```
+  var empty = caterwaul_global.empty = new caterwaul_global.syntax('');
+```
 
 # Parsing
 
@@ -877,13 +1052,19 @@ handle regular expression cases. In the same function, though as a distinct case
 
 The input to the parse function can be anything whose toString() produces valid Javascript code.
 
-      caterwaul_global.parse = function (input) {
+```
+  caterwaul_global.parse = function (input) {
+```
 
-        // Caterwaul 1.3 revision: parse() is closed under null-ness.
-        if (input == null) return input;
+```
+    // Caterwaul 1.3 revision: parse() is closed under null-ness.
+    if (input == null) return input;
+```
 
-        // Caterwaul 1.1 revision: Allow the parse() function to be used as a 'make sure this thing is a syntax node' function.
-        if (input.constructor === caterwaul_global.syntax) return input;
+```
+    // Caterwaul 1.1 revision: Allow the parse() function to be used as a 'make sure this thing is a syntax node' function.
+    if (input.constructor === caterwaul_global.syntax) return input;
+```
 
 ### Lex variables
 
@@ -901,26 +1082,32 @@ nodes in the order in which they should be folded. invocation_nodes is an index 
 The push() function manages the mechanics of adding a node to the initial linked structure. There are a few cases here; one is when we've just created a paren group and have no 'head'
 node; in this case we append the node as 'head'. Another case is when 'head' exists; in that case we update head to be the new node, which gets added as a sibling of the old head.
 
-        var s = input.toString().replace(/^\s*|\s*$/g, ''), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length,
-            cs = function (i) {return s.charCodeAt(i)}, grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order),
-            invocation_nodes = [], all_nodes = [empty], new_node = function (n) {return all_nodes.push(n), n},
-            push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)}, syntax_node = this.syntax, groups = [], ternaries = [],
-            prefix = [], shift_prefix = function () {var k = prefix; prefix = []; return k}, prefixed_node = function (n) {n.prefix_data = shift_prefix(); return new_node(n)};
+```
+    var s = input.toString().replace(/^\s*|\s*$/g, ''), mark = 0, c = 0, re = true, esc = false, dot = false, exp = false, close = 0, t = '', i = 0, l = s.length,
+        cs = function (i) {return s.charCodeAt(i)}, grouping_stack = [], gs_top = null, head = null, parent = null, indexes = map(function () {return []}, parse_reduce_order),
+        invocation_nodes = [], all_nodes = [empty], new_node = function (n) {return all_nodes.push(n), n},
+        push = function (n) {return head ? head._sibling(head = n) : (head = n._append_to(parent)), new_node(n)}, syntax_node = this.syntax, groups = [], ternaries = [],
+        prefix = [], shift_prefix = function () {var k = prefix; prefix = []; return k}, prefixed_node = function (n) {n.prefix_data = shift_prefix(); return new_node(n)};
+```
 
 ### Trivial case
 
 The empty string will break the lexer because we won't generate a token (since we're already at the end). To prevent this we return an empty syntax node immediately, since this is an
 accurate representation of no input.
 
-        if (l === 0) return empty;
+```
+    if (l === 0) return empty;
+```
 
 ### Main lex loop
 
 This loop takes care of reading all of the tokens in the input stream. At the end, we'll have a linked node structure with paren groups. At the beginning, we set the mark to the current
 position (we'll be incrementing i as we read characters), munch whitespace, and reset flags.
 
-        while ((mark = i) < l) {
-          esc = exp = dot = t = 0;
+```
+    while ((mark = i) < l) {
+      esc = exp = dot = t = 0;
+```
 
 #### Miscellaneous lexing
 
@@ -930,11 +1117,13 @@ position (we'll be incrementing i as we read characters), munch whitespace, and 
 Caterwaul 1.1.6 adds recognition of # comments, which are treated just like other line comments. This is relevant in practice because node.js supports shebang-line invocation of
 Javascript files.
 
-          if                                  (lex_space[c = cs(i)]) while (++i < l && lex_space[cs(i)]);
-     else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
-     else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i <= l && (cs(i - 1) !== lex_slash || cs(i - 2) !== lex_star));
-     else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i <= l && ! lex_eol[cs(i - 1)]);
-     else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
+```
+      if                                  (lex_space[c = cs(i)]) while (++i < l && lex_space[cs(i)]);
+ else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
+ else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i <= l && (cs(i - 1) !== lex_slash || cs(i - 2) !== lex_star));
+ else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i <= l && ! lex_eol[cs(i - 1)]);
+ else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
+```
 
 #### Regexp and string literal lexing
 
@@ -942,8 +1131,10 @@ These both take more or less the same form. The idea is that we have an opening 
 illegal for a string to occur anywhere that a slash would indicate division (and it is also illegal to follow a string literal with extra characters), so reusing the regular expression
 logic for strings is not a problem. (This follows because we know ahead of time that the Javascript is valid.)
 
-     else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs(i)) !== close || esc)  esc = ! esc && c === lex_back;
-                                                                                  while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = 1}
+```
+ else if (lex_quote[c] && (close = c) && re && ! (re = ! (t = s.charAt(i)))) {while (++i < l && (c = cs(i)) !== close || esc)  esc = ! esc && c === lex_back;
+                                                                              while     (++i < l && lex_regexp_suffix[cs(i)])                               ; t = 1}
+```
 
 #### Numeric literal lexing
 
@@ -968,9 +1159,11 @@ approach has theoretically quadratic time in the length of the numbers, whereas 
 Finally, in response to a recently discovered failure case, a period must be followed by a digit if it starts a number. The failure is the string '.end', which will be lexed as '.en',
 'd' if it is assumed to be a floating-point number. (In fact, any method or property beginning with 'e' will cause this problem.)
 
-     else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = 1)}
-     else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || dot ^ (dot |= c === lex_dot) || exp ^ (exp |= lex_exp[c] && ++i)));
-                                                                          while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1)}
+```
+ else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = 1)}
+ else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || dot ^ (dot |= c === lex_dot) || exp ^ (exp |= lex_exp[c] && ++i)));
+                                                                      while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1)}
+```
 
 #### Operator lexing
 
@@ -981,7 +1174,9 @@ identifying the variants of these operators.
 
 The only exception to the regular logic happens if the operator is postfix-unary. (e.g. ++, --.) If so, then the re flag must remain false, since expressions like 'x++ / 4' can be valid.
 
-     else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+```
+ else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+```
 
 #### Identifier lexing
 
@@ -992,16 +1187,20 @@ at the very end, in addition to assigning t, we also set the re flag if the word
 Extended ASCII and above are considered identifiers. This allows Caterwaul to parse Unicode source, even though it will fail to distinguish between Unicode operator symbols and Unicode
 letters.
 
-     else {while (++i < l && (lex_ident[c = cs(i)] || c > 0x7f)); re = has(lex_op, t = s.substring(mark, i))}
+```
+ else {while (++i < l && (lex_ident[c = cs(i)] || c > 0x7f)); re = has(lex_op, t = s.substring(mark, i))}
+```
 
 #### Token unification
 
 t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
 avoid duplicated logic.) For reasons that are not entirely intuitive, the lexer sometimes produces the artifact 'u;'. This is never useful, so I have a case dedicated to removing it.
 
-      if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 80) + '" with leading context "' + s.substr(mark - 80, 80) + '" (probably a Caterwaul bug)');
-      if (t === 0) {prefix.push(s.substring(mark, i)); continue}
-      t = t === 1 ? s.substring(mark, i) : t === 'u;' ? ';' : t;
+```
+  if (i === mark) throw new Error('Caterwaul lex error at "' + s.substr(mark, 80) + '" with leading context "' + s.substr(mark - 80, 80) + '" (probably a Caterwaul bug)');
+  if (t === 0) {prefix.push(s.substring(mark, i)); continue}
+  t = t === 1 ? s.substring(mark, i) : t === 'u;' ? ';' : t;
+```
 
 #### Grouping and operator indexing
 
@@ -1017,10 +1216,12 @@ write destructuring binds against syntax trees.
 
 Caterwaul 1.3.1 stores infix data on group nodes such as (), [], {}, and ?:. The result is that it should be possible to reconstruct the original input string.
 
-      t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], (head || parent).infix_data = shift_prefix(), head = head ? head.p : parent, parent = null) :
-                     (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(new syntax_node(t))), groups.push(parent), head = null)
-                                          : push(prefixed_node(new syntax_node(t))),
-                      has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
+```
+  t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], (head || parent).infix_data = shift_prefix(), head = head ? head.p : parent, parent = null) :
+                 (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(new syntax_node(t))), groups.push(parent), head = null)
+                                      : push(prefixed_node(new syntax_node(t))),
+                  has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
+```
 
 #### Regexp flag special cases
 
@@ -1040,7 +1241,9 @@ valid alternative parse, minus the 'for' and 'var', is this:
 
 The only case where reverse-lexing is useful is when the regexp has no modifiers.
 
-      re |= t === ')' && head.l && has(parse_r_until_block, head.l.data)}
+```
+  re |= t === ')' && head.l && has(parse_r_until_block, head.l.data)}
+```
 
 ### Operator fold loop
 
@@ -1066,8 +1269,10 @@ This is actually merged into the for loop below, even though it happens before o
 Now we can go through the list of operators, folding each according to precedence and associativity. Highest to lowest precedence here, which is just going forwards through the indexes[]
 array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
 
-        for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)
-          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data, ll; forward ? j < lj : j >= 0; j += inc)
+```
+    for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)
+      for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data, ll; forward ? j < lj : j >= 0; j += inc)
+```
 
 #### Binary node behavior
 
@@ -1078,8 +1283,10 @@ There is a special case here. If the right-hand side is a prefix unary operator 
 that the colon has been used to denote a label. This won't universally hold true; in particular, it won't work if an expression is on the right instead of a statement. But it fixes all
 cases that would produce invalid syntax trees.
 
-          if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) node._fold_l();
-                                                         else                                                      node._fold_lr();
+```
+      if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) node._fold_l();
+                                                     else                                                      node._fold_lr();
+```
 
 #### Ambiguous parse groups
 
@@ -1102,18 +1309,22 @@ There is an even more pathological case to consider. Firefox and other SpiderMon
 
 In this case we need to encode an invocation. Fortunately by this point the function node is already folded.
 
-     else if (has(parse_ambiguous_group, data) && node.l && ! ((ll = node.l.l) && has(parse_r_until_block, ll.data)) &&
-             (node.l.data === '.' || (node.l.data === 'function' && node.l.length === 2) ||
-                                     ! (has(lex_op, node.l.data) ||
-                                        has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l._wrap(new_node(new syntax_node(data + parse_group[data]))).p._fold_r());
+```
+ else if (has(parse_ambiguous_group, data) && node.l && ! ((ll = node.l.l) && has(parse_r_until_block, ll.data)) &&
+         (node.l.data === '.' || (node.l.data === 'function' && node.l.length === 2) ||
+                                 ! (has(lex_op, node.l.data) ||
+                                    has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l._wrap(new_node(new syntax_node(data + parse_group[data]))).p._fold_r());
+```
 
 #### Unary left and right-fold behavior
 
 Unary nodes have different fold directions. In this case, it just determines which side we grab the node from. I'm glad that Javascript doesn't allow stuff like '++x++', which would make
 the logic here actually matter. Because there isn't that pathological case, exact rigidity isn't required.
 
-     else if (has(parse_l, data))  node._fold_l();
-     else if (has(parse_r, data))  node._fold_r();
+```
+ else if (has(parse_l, data))  node._fold_l();
+ else if (has(parse_r, data))  node._fold_r();
+```
 
 #### Ternary operator behavior
 
@@ -1128,7 +1339,9 @@ folded.
 
 The fix for this is to push the ternary onto a separate list. After all operators have been folded, we can resolve the ternary by assigning the children to the correct places.
 
-     else if (has(parse_ternary, data))  node._fold_lr(), ternaries.push(node);
+```
+ else if (has(parse_ternary, data))  node._fold_lr(), ternaries.push(node);
+```
 
 #### Grab-until-block behavior
 
@@ -1149,18 +1362,22 @@ object {'if': 4, 'for': 1, etc.} and render it as {if: 4, for: 1, etc.}. As you 
 prevent this from causing problems, I only collapse a node if it is not followed by a colon. (And the only case where any of these would legally be followed by a colon is as an object
 key.)
 
-     else if (has(parse_r_until_block, data) && node.r && node.r.data !== ':')
-                                               {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node._fold_r();
-                                                node.r && (node.r.data === ';' ? node.push(empty) : node._fold_r());
-                                                if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node._fold_r().pop()._fold_r();
-                                           else if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.data))               node._fold_r()}
+```
+ else if (has(parse_r_until_block, data) && node.r && node.r.data !== ':')
+                                           {for (var count = 0, limit = parse_r_until_block[data]; count < limit && node.r && ! has(parse_block, node.r.data); ++count) node._fold_r();
+                                            node.r && (node.r.data === ';' ? node.push(empty) : node._fold_r());
+                                            if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.r && node.r.r.data)) node._fold_r().pop()._fold_r();
+                                       else if (has(parse_accepts, data) && parse_accepts[data] === (node.r && node.r.data))               node._fold_r()}
+```
 
 #### Optional right-fold behavior
 
 The return, throw, break, and continue keywords can each optionally take an expression. If the token to the right is an expression, then we take it, but if the token to the right is a
 semicolon then the keyword should be nullary.
 
-     else if (has(parse_r_optional, data))  node.r && node.r.data !== ';' && node._fold_r();
+```
+ else if (has(parse_r_optional, data))  node.r && node.r.data !== ';' && node._fold_r();
+```
 
 ### Third step
 
@@ -1169,7 +1386,9 @@ instead. (e.g. 'if (foo) {bar} baz()' is valid, even though no semicolon precede
 associativity; in general, you can't make assumptions about the exact layout of semicolon nodes. Fortunately semicolon is associative, so it doesn't matter in practice. And just in case,
 these nodes are 'i;' rather than ';', meaning 'inferred semicolon' -- that way it's clear that they aren't original. (They also won't appear when you call toString() on the syntax tree.)
 
-        for (var i = all_nodes.length - 1, _; i >= 0; --i)  (_ = all_nodes[i]).r && _._wrap(new_node(new syntax_node('i;'))).p._fold_r();
+```
+    for (var i = all_nodes.length - 1, _; i >= 0; --i)  (_ = all_nodes[i]).r && _._wrap(new_node(new syntax_node('i;'))).p._fold_r();
+```
 
 ### Fourth step
 
@@ -1180,31 +1399,43 @@ just those now. I'm preserving the 'p' pointers, though they're probably not use
 At the same time, go through all bracket groups and insert empty nodes into the ones that are actually empty. This uniformity means that you can bind a match variable to the contents of an
 empty bracket group and sort out the difference later. Because we're not reparenting anything there is no need to set the 'p' pointer on the empty child.
 
-        for (var i = 0, l = invocation_nodes.length, _, child; i < l; ++i)  (child = (_ = invocation_nodes[i])[1] = _[1][0] || empty) && (child.p = _);
-        for (var i = 0, l = groups.length, _;                  i < l; ++i)  (_ = groups[i]).length || _.push(empty);
+```
+    for (var i = 0, l = invocation_nodes.length, _, child; i < l; ++i)  (child = (_ = invocation_nodes[i])[1] = _[1][0] || empty) && (child.p = _);
+    for (var i = 0, l = groups.length, _;                  i < l; ++i)  (_ = groups[i]).length || _.push(empty);
+```
 
 Another piece of this is fixing up all ternary nodes. Some ternaries have commas or assignments in the middle, which will be folded after the ternary as a whole is folded. This means two
 things. First, we couldn't have processed the ternary operator in a single step; and second, the children are in the wrong places as mentioned above. In particular, the ternary will have
 one child at [0], one at [length - 2], and the other at [length - 1]. The conditional is [length - 2], so we put this one first.
 
-        for (var i = 0, l = ternaries.length, _, n, temp; i < l; ++i)  n = (_ = ternaries[i]).length, temp = _[0], _[0] = _[n - 2], _[1] = temp, _[2] = _[n - 1], _.length = 3;
+```
+    for (var i = 0, l = ternaries.length, _, n, temp; i < l; ++i)  n = (_ = ternaries[i]).length, temp = _[0], _[0] = _[n - 2], _[1] = temp, _[2] = _[n - 1], _.length = 3;
+```
 
-        while (head.p) head = head.p;
+```
+    while (head.p) head = head.p;
+```
 
 ### Fifth step
 
 Prevent a space leak by clearing out all of the 'p', 'l', and 'r' pointers.
 
-        for (var i = all_nodes.length - 1, _; i >= 0; --i)  delete (_ = all_nodes[i]).p, delete _.l, delete _.r;
+```
+    for (var i = all_nodes.length - 1, _; i >= 0; --i)  delete (_ = all_nodes[i]).p, delete _.l, delete _.r;
+```
 
 ### Sixth step
 
 We probably have a prefix left over, and this prefix most likely wasn't assigned anywhere. This will happen if the input contains trailing whitespace or comments, for instance. In cases
 like this, we preserve the whitespace by assigning it as the suffix of the head node.
 
-        head.suffix_data = prefix;
+```
+    head.suffix_data = prefix;
+```
 
-        return head};
+```
+    return head};
+```
 
 # Environment-dependent compilation
 
@@ -1241,11 +1472,13 @@ the compiled function to access its references without any overhead. For the sec
 expression ref when the function is serialized into an opaque ref. This process is handled automatically by the opaque ref constructor if you're using the Caterwaul format for storing
 closure state.
 
-      var bound_expression_template     = caterwaul_global.parse('var _bindings; return(_expression)'),
-          binding_template              = caterwaul_global.parse('_variable = _base._variable'),
-          undefined_binding             = caterwaul_global.parse('undefined = void(0)'),
-          late_bound_template           = caterwaul_global.parse('(function (_bindings) {var _result=(_body);_result_init;return(_result)}).call(this, _expressions)'),
-          late_bound_ref_table_template = caterwaul_global.parse('_result.caterwaul_expression_ref_table = _expression_ref_table');
+```
+  var bound_expression_template     = caterwaul_global.parse('var _bindings; return(_expression)'),
+      binding_template              = caterwaul_global.parse('_variable = _base._variable'),
+      undefined_binding             = caterwaul_global.parse('undefined = void(0)'),
+      late_bound_template           = caterwaul_global.parse('(function (_bindings) {var _result=(_body);_result_init;return(_result)}).call(this, _expressions)'),
+      late_bound_ref_table_template = caterwaul_global.parse('_result.caterwaul_expression_ref_table = _expression_ref_table');
+```
 
 ## Compilation options
 
@@ -1260,30 +1493,44 @@ things like "don't rename the gensyms this time around". Options handled by comp
 
 Also see the option table for late_bound_tree; the options passed to compile() are passed into compile's invocation of late_bound_tree as well.
 
-      caterwaul_global.compile = function (tree, environment, options) {
-        options = caterwaul_global.merge({gensym_renaming: true, transparent_errors: false, unbound_closure: false, guard: true}, options);
-        tree    = caterwaul_global.late_bound_tree(tree, null, options);
+```
+  caterwaul_global.compile = function (tree, environment, options) {
+    options = caterwaul_global.merge({gensym_renaming: true, transparent_errors: false, unbound_closure: false, guard: true}, options);
+    tree    = caterwaul_global.late_bound_tree(tree, null, options);
+```
 
-        if (options.guard) tree = tree.guarded();
+```
+    if (options.guard) tree = tree.guarded();
+```
 
-        // Compute the bindings even when the closure is returned unbound. We need to do this to build up the list of local variables inside the closure.
-        var bindings = caterwaul_global.merge({}, this._environment, environment, tree.bindings()), variables = [undefined_binding], s = gensym('base');
-        for (var k in bindings) if (own.call(bindings, k) && k !== 'this') variables.push(binding_template.replace({_variable: k, _base: s}));
+```
+    // Compute the bindings even when the closure is returned unbound. We need to do this to build up the list of local variables inside the closure.
+    var bindings = caterwaul_global.merge({}, this._environment, environment, tree.bindings()), variables = [undefined_binding], s = gensym('base');
+    for (var k in bindings) if (own.call(bindings, k) && k !== 'this') variables.push(binding_template.replace({_variable: k, _base: s}));
+```
 
-        var variable_definitions = new this.syntax(',', variables).unflatten(),
-            function_body        = bound_expression_template.replace({_bindings: variable_definitions, _expression: tree});
+```
+    var variable_definitions = new this.syntax(',', variables).unflatten(),
+        function_body        = bound_expression_template.replace({_bindings: variable_definitions, _expression: tree});
+```
 
-        if (options.gensym_renaming) {var renaming_table = this.gensym_rename_table(function_body);
-                                      for (var k in bindings) own.call(bindings, k) && (bindings[renaming_table[k] || k] = bindings[k]);
-                                      function_body = function_body.replace(renaming_table);
-                                      s             = renaming_table[s]}
+```
+    if (options.gensym_renaming) {var renaming_table = this.gensym_rename_table(function_body);
+                                  for (var k in bindings) own.call(bindings, k) && (bindings[renaming_table[k] || k] = bindings[k]);
+                                  function_body = function_body.replace(renaming_table);
+                                  s             = renaming_table[s]}
+```
 
-        var code    = function_body.toString(),
-            closure = (function () {if (options.transparent_errors) return new Function(s, code);
-                               else                                 try       {return new Function(s, code)}
-                                                                    catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}})();
+```
+    var code    = function_body.toString(),
+        closure = (function () {if (options.transparent_errors) return new Function(s, code);
+                           else                                 try       {return new Function(s, code)}
+                                                                catch (e) {throw new Error((e.message || e) + ' while compiling ' + code)}})();
+```
 
-        return options.unbound_closure ? closure : closure.call(bindings['this'], bindings)};
+```
+    return options.unbound_closure ? closure : closure.call(bindings['this'], bindings)};
+```
 
 Caterwaul 1.1.6 adds support for expression bindings. To make this easier to work with, the Caterwaul global includes a way to wrap your code with the necessary closure to bind
 expression-bound node values. For example, for the code 'console.log(<expression>)', suppose you drop in qs[3 + 4] as the expression. caterwaul.late_bound_tree will take your code and return
@@ -1298,39 +1545,55 @@ You can also pass in your own environment expressions to supplement the ones in 
 Caterwaul 1.2b7 adds option support. Right now the only option is expression_ref_table, which defaults to true. If you set this to false, Caterwaul will not store a table of expression
 references. The consequence of this is that you won't be able to reconstruct a value that comes out of this function after precompilation. Generally you'll want to leave it set to true.
 
-      var trivial_node_template    = caterwaul_global.parse('new caterwaul.syntax(_data)'),
-          nontrivial_node_template = caterwaul_global.parse('new caterwaul.syntax(_data, _xs)'),
-          node_prefix_template     = caterwaul_global.parse('_x.prefix(_y)'),
-          node_infix_template      = caterwaul_global.parse('_x.infix(_y)'),
-          node_suffix_template     = caterwaul_global.parse('_x.suffix(_y)');
+```
+  var trivial_node_template    = caterwaul_global.parse('new caterwaul.syntax(_data)'),
+      nontrivial_node_template = caterwaul_global.parse('new caterwaul.syntax(_data, _xs)'),
+      node_prefix_template     = caterwaul_global.parse('_x.prefix(_y)'),
+      node_infix_template      = caterwaul_global.parse('_x.infix(_y)'),
+      node_suffix_template     = caterwaul_global.parse('_x.suffix(_y)');
+```
 
-      caterwaul_global.node_padding_annotations = function (node, node_expression) {
-        for (var xs = node.prefixes(), i = 0, l = xs.length; i < l; ++i) node_expression = node_prefix_template.replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
-        for (var xs = node.infixes(),  i = 0, l = xs.length; i < l; ++i) node_expression = node_infix_template .replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
-        for (var xs = node.suffixes(), i = 0, l = xs.length; i < l; ++i) node_expression = node_suffix_template.replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
-        return node_expression};
+```
+  caterwaul_global.node_padding_annotations = function (node, node_expression) {
+    for (var xs = node.prefixes(), i = 0, l = xs.length; i < l; ++i) node_expression = node_prefix_template.replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
+    for (var xs = node.infixes(),  i = 0, l = xs.length; i < l; ++i) node_expression = node_infix_template .replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
+    for (var xs = node.suffixes(), i = 0, l = xs.length; i < l; ++i) node_expression = node_suffix_template.replace({_x: node_expression, _y: caterwaul_global.syntax.from_string(xs[i])});
+    return node_expression};
+```
 
-      caterwaul_global.syntax_to_expression = function (tree) {
-        if (tree.length) {for (var comma = new caterwaul_global.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push(caterwaul_global.syntax_to_expression(tree[i]));
-                          return caterwaul_global.node_padding_annotations(tree,
-                                                                           nontrivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data), _xs: comma.unflatten()}))}
+```
+  caterwaul_global.syntax_to_expression = function (tree) {
+    if (tree.length) {for (var comma = new caterwaul_global.syntax(','), i = 0, l = tree.length; i < l; ++i) comma.push(caterwaul_global.syntax_to_expression(tree[i]));
+                      return caterwaul_global.node_padding_annotations(tree,
+                                                                       nontrivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data), _xs: comma.unflatten()}))}
+```
 
-                    else return caterwaul_global.node_padding_annotations(tree, trivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data)}))};
+```
+                else return caterwaul_global.node_padding_annotations(tree, trivial_node_template.replace({_data: caterwaul_global.syntax.from_string(tree.data)}))};
+```
 
-      caterwaul_global.late_bound_tree = function (tree, environment, options) {
-        options = caterwaul_global.merge({expression_ref_table: true}, options);
-        tree    = tree.rmap(function (node) {return node.resolve()});
+```
+  caterwaul_global.late_bound_tree = function (tree, environment, options) {
+    options = caterwaul_global.merge({expression_ref_table: true}, options);
+    tree    = tree.rmap(function (node) {return node.resolve()});
+```
 
-        var bindings = caterwaul_global.merge({}, environment, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(','), table = {};
-        for (var k in bindings) if (own.call(bindings, k)) variables.push(new caterwaul_global.syntax(k)), expressions.push(bindings[k]),
-                                                           table[k] = caterwaul_global.syntax.from_string(bindings[k].toString());
+```
+    var bindings = caterwaul_global.merge({}, environment, tree.expressions()), variables = new caterwaul_global.syntax(','), expressions = new caterwaul_global.syntax(','), table = {};
+    for (var k in bindings) if (own.call(bindings, k)) variables.push(new caterwaul_global.syntax(k)), expressions.push(bindings[k]),
+                                                       table[k] = caterwaul_global.syntax.from_string(bindings[k].toString());
+```
 
-        var result_gensym      = caterwaul_global.gensym('result'),
-            result_initializer = options.expression_ref_table ? late_bound_ref_table_template.replace({_result: result_gensym, _expression_ref_table: caterwaul_global.syntax.from_object(table)})
-                                                              : caterwaul_global.empty;
+```
+    var result_gensym      = caterwaul_global.gensym('result'),
+        result_initializer = options.expression_ref_table ? late_bound_ref_table_template.replace({_result: result_gensym, _expression_ref_table: caterwaul_global.syntax.from_object(table)})
+                                                          : caterwaul_global.empty;
+```
 
-        return variables.length ? late_bound_template.replace({_bindings: variables.unflatten(), _expressions: expressions.unflatten(), _result: result_gensym,
-                                                            _result_init: result_initializer, _body: tree}) : tree};
+```
+    return variables.length ? late_bound_template.replace({_bindings: variables.unflatten(), _expressions: expressions.unflatten(), _result: result_gensym,
+                                                        _result_init: result_initializer, _body: tree}) : tree};
+```
 
 ## Gensym erasure
 
@@ -1344,15 +1607,21 @@ actually arise, I'm not handling this case yet. (Though let me know if I need to
 New gensym names are chosen by choosing the smallest nonnegative integer N such that the gensym's prefix plus N.toString(36) doesn't occur as an identifier anywhere in the code. (The most
 elegant option is to use scope analysis to keep N low, but I'm too lazy to implement it.)
 
-      caterwaul_global.gensym_rename_table = function (tree) {
-        var names = {}, gensyms = [];
-        tree.reach(function (node) {var d = node.data; if (is_gensym(d)) names[d] || gensyms.push(d); names[d] = d.replace(/^(.*)_[a-z0-9]+_.{22}$/, '$1') || 'anon'});
+```
+  caterwaul_global.gensym_rename_table = function (tree) {
+    var names = {}, gensyms = [];
+    tree.reach(function (node) {var d = node.data; if (is_gensym(d)) names[d] || gensyms.push(d); names[d] = d.replace(/^(.*)_[a-z0-9]+_.{22}$/, '$1') || 'anon'});
+```
 
-        var unseen_count = {}, next_unseen = function (name) {if (! (name in names)) return name;
-                                                              var n = unseen_count[name] || 0; while (names[name + (++n).toString(36)]); return name + (unseen_count[name] = n).toString(36)};
+```
+    var unseen_count = {}, next_unseen = function (name) {if (! (name in names)) return name;
+                                                          var n = unseen_count[name] || 0; while (names[name + (++n).toString(36)]); return name + (unseen_count[name] = n).toString(36)};
+```
 
-        for (var renamed = {}, i = 0, l = gensyms.length, g; i < l; ++i) renamed[g = gensyms[i]] || (names[renamed[g] = next_unseen(names[g])] = true);
-        return renamed};
+```
+    for (var renamed = {}, i = 0, l = gensyms.length, g; i < l; ++i) renamed[g = gensyms[i]] || (names[renamed[g] = next_unseen(names[g])] = true);
+    return renamed};
+```
 
 # Initialization method
 
@@ -1389,40 +1658,53 @@ other. For example, here's how you might create the 'all' bundle:
     caterwaul.all = ['js_all', 'jquery', ...];
     var all_compiler = caterwaul(':all');               <- equivalent to caterwaul('js_all jquery ...');
 
-    var invoke_caterwaul_methods = function (methods) {
-      /^:/.test(methods) && (methods = caterwaul_global[methods.substr(1)]);
-      methods.constructor === String && (methods = methods.split(/\s+/));
-      for (var i = 1, l = methods.length, r = caterwaul_global[methods[0]](); i < l; ++i) r = caterwaul_global[methods[i]](r);
-      return r};
+```
+var invoke_caterwaul_methods = function (methods) {
+  /^:/.test(methods) && (methods = caterwaul_global[methods.substr(1)]);
+  methods.constructor === String && (methods = methods.split(/\s+/));
+  for (var i = 1, l = methods.length, r = caterwaul_global[methods[0]](); i < l; ++i) r = caterwaul_global[methods[i]](r);
+  return r};
+```
 
-    caterwaul_global.init = function (macroexpander) {
-      macroexpander || (macroexpander = function (x) {return true});
-      return macroexpander.constructor === Function
-        ? se((function () {var result = function (f, environment, options) {
-                             return typeof f === 'function' || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
-                                                                                          f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
-                           return result})(),
-            function () {this.global = caterwaul_global, this.macroexpander = macroexpander})
-        : invoke_caterwaul_methods(macroexpander)};
+```
+caterwaul_global.init = function (macroexpander) {
+  macroexpander || (macroexpander = function (x) {return true});
+  return macroexpander.constructor === Function
+    ? se((function () {var result = function (f, environment, options) {
+                         return typeof f === 'function' || f.constructor === String ? caterwaul_global.compile(result.call(result, caterwaul_global.parse(f)), environment, options) :
+                                                                                      f.rmap(function (node) {return macroexpander.call(result, node, environment, options)})};
+                       return result})(),
+        function () {this.global = caterwaul_global, this.macroexpander = macroexpander})
+    : invoke_caterwaul_methods(macroexpander)};
+```
 
-    caterwaul_global.initializer = initializer;
-    caterwaul_global.clone       = function () {return se(initializer(initializer, unique).deglobalize(),
-                                                          function () {for (var k in caterwaul_global) this[k] || (this[k] = caterwaul_global[k])})};
+```
+caterwaul_global.initializer = initializer;
+caterwaul_global.clone       = function () {return se(initializer(initializer, unique).deglobalize(),
+                                                      function () {for (var k in caterwaul_global) this[k] || (this[k] = caterwaul_global[k])})};
+```
 
 # Replication
 
 A Caterwaul function can replicate itself by returning a syntax tree that, when evaluated, returns an equivalent Caterwaul global (and in this case, installs it accordingly). This is not
 particularly computationally expensive most of the time, as opaque trees are returned.
 
-      var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
-          module_template = caterwaul_global.parse('module(_name, _f)');
+```
+  var w_template      = caterwaul_global.parse('(function (f) {return f(f)})(_x)'),
+      module_template = caterwaul_global.parse('module(_name, _f)');
+```
 
-      caterwaul_global.replicator = function (options) {
-        if (options && options.minimal_core_only) return w_template.replace({_x: new this.opaque_tree(this.core_initializer)});
-        if (options && options.core_only)         return w_template.replace({_x: new this.opaque_tree(this.initializer)});
-        for (var i = 0, ms = options && options.modules || this.modules, c = [], l = ms.length; i < l; ++i)
-          c.push(module_template.replace({_name: this.syntax.from_string(ms[i]), _f: new this.opaque_tree(this.module(ms[i]))}));
-        for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
-        return this.late_bound_tree(result.unflatten())};
+```
+  caterwaul_global.replicator = function (options) {
+    if (options && options.minimal_core_only) return w_template.replace({_x: new this.opaque_tree(this.core_initializer)});
+    if (options && options.core_only)         return w_template.replace({_x: new this.opaque_tree(this.initializer)});
+    for (var i = 0, ms = options && options.modules || this.modules, c = [], l = ms.length; i < l; ++i)
+      c.push(module_template.replace({_name: this.syntax.from_string(ms[i]), _f: new this.opaque_tree(this.module(ms[i]))}));
+    for (var i = 0, l = c.length, result = new this.syntax('.', w_template.replace({_x: new this.opaque_tree(this.initializer)})); i < l; ++i) result.push(c[i]);
+    return this.late_bound_tree(result.unflatten())};
+```
 
-      return caterwaul});
+```
+  return caterwaul});
+
+```

@@ -17,5 +17,8 @@ To anonymize a set of macros you first need to create an anonymizer. This is eas
 
 Each anonymizer uses a separate symbol table. This means that two anonymizers that match against 'A' (or any other macro pattern) will always map them to different gensyms.
 
-    caterwaul.module('std.anon', 'js_all', function ($) {
-      $.anonymizer(xs = arguments) = "$ /~parse/ _ /~replace/ table".qf -where [table = +xs *~![x.constructor === Array ? x : x.split(' ')] *[[x, $.gensym(x)]] /object -seq]});
+```.waul
+caterwaul.module('std.anon', 'js_all', function ($) {
+  $.anonymizer(xs = arguments) = "$ /~parse/ _ /~replace/ table".qf -where [table = +xs *~![x.constructor === Array ? x : x.split(' ')] *[[x, $.gensym(x)]] /object -seq]});
+
+```

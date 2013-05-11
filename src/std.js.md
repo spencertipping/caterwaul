@@ -1,7 +1,9 @@
 Javascript-specific macros | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
-    caterwaul.module('std.js', 'js_all', function ($) {
+```.waul
+caterwaul.module('std.js', 'js_all', function ($) {
+```
 
 # Structured forms in Javascript
 
@@ -12,7 +14,9 @@ caterwaul pre-1.0 had the problem of wildly divergent macros. The fn[] macro was
 In caterwaul 1.0, the macro author's job is reduced to specifying which words have which behavior; the language driver takes care of the rest. For instance, rather than specifying the full
 pattern syntax, you just specify a word and its definition with respect to an opaque expression and perhaps set of modifiers. Here are the standard Javascript macro forms:
 
-      $.js = function (macroexpander) {
+```.waul
+  $.js = function (macroexpander) {
+```
 
 # Javascript-specific shorthands
 
@@ -32,22 +36,30 @@ There are some caveats; if you have unbalanced braces (even in substrings), it w
 
     'foo #{"{" + bar}'          // won't find the ending properly and will try to compile the closing brace
 
-      var string_interpolator = function (node) {
-        var s = node.data, q = s.charAt(0), syntax = $.syntax;
-        if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
+```.waul
+  var string_interpolator = function (node) {
+    var s = node.data, q = s.charAt(0), syntax = $.syntax;
+    if (q !== '\'' && q !== '"' || ! /#\{[^\}]+\}/.test(s)) return false;             // DeMorgan's applied to (! ((q === ' || q === ") && /.../test(s)))
+```
 
-        for (var pieces = [], is_code = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
-          if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || (pieces.push(s.substring(start, i)), is_code.push(true)) && (start = i + 1), got_hash = false;
-                      else                                brace_depth += c === '{';
-     else                  if ((c = s.charAt(i)) === '#') got_hash = true;
-                      else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), is_code.push(false), start = i + 1, ++brace_depth;
-                      else                                got_hash = false;
+```.waul
+    for (var pieces = [], is_code = [], i = 1, l = s.length - 1, brace_depth = 0, got_hash = false, start = 1, c; i < l; ++i)
+      if (brace_depth) if ((c = s.charAt(i)) === '}') --brace_depth || (pieces.push(s.substring(start, i)), is_code.push(true)) && (start = i + 1), got_hash = false;
+                  else                                brace_depth += c === '{';
+ else                  if ((c = s.charAt(i)) === '#') got_hash = true;
+                  else if (c === '{' && got_hash)     pieces.push(s.substring(start, i - 1)), is_code.push(false), start = i + 1, ++brace_depth;
+                  else                                got_hash = false;
+```
 
-        pieces.push(s.substring(start, l)), is_code.push(false);
+```.waul
+    pieces.push(s.substring(start, l)), is_code.push(false);
+```
 
-        for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = is_code[i] ? this($.parse(pieces[i].replace(quoted, q)).as('(')) :
-                                                                                                                      new syntax(q + pieces[i] + q);
-        return new syntax('+', pieces).unflatten().as('(')};
+```.waul
+    for (var quoted = new RegExp('\\\\' + q, 'g'), i = 0, l = pieces.length; i < l; ++i) pieces[i] = is_code[i] ? this($.parse(pieces[i].replace(quoted, q)).as('(')) :
+                                                                                                                  new syntax(q + pieces[i] + q);
+    return new syntax('+', pieces).unflatten().as('(')};
+```
 
 ## Destructuring function creation
 
@@ -84,48 +96,64 @@ There are some rules governing how 'before' and 'after' statements are detected 
 This notation doesn't preclude the possibility of some form of destructuring binds in the future, since there wouldn't be much point to writing a toplevel array or object literal and
 intending it to be used as a side-effect. (Doing that would just put the value into void context; at that point you might as well leave it out.)
 
-      var function_local_template = 'var _x = _y'.qs,  function_bind_pattern = '_x = _y'.qs,  function_result_pattern  = 'result'.qs,
+```.waul
+  var function_local_template = 'var _x = _y'.qs,  function_bind_pattern = '_x = _y'.qs,  function_result_pattern  = 'result'.qs,
+```
 
-          function_with_afters         = 'function (_formals) {_befores; var result = _result; _afters; return result}'.qs,
-          function_without_afters      = 'function (_formals) {_befores; return _result}'.qs,
-          function_assignment_template = '_f = _x'.qs,
+```.waul
+      function_with_afters         = 'function (_formals) {_befores; var result = _result; _afters; return result}'.qs,
+      function_without_afters      = 'function (_formals) {_befores; return _result}'.qs,
+      function_assignment_template = '_f = _x'.qs,
+```
 
-          function_is_result           = function (n) {return n.is_empty() && n.data === 'result'},
+```.waul
+      function_is_result           = function (n) {return n.is_empty() && n.data === 'result'},
+```
 
-          function_destructure = $.rereplacer('_f(_xs) = _y'.qs,
-                                              function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length, p; i < l; ++i)
-                                                                  p = this(ps[i]), (afters.length  || p.contains(function_is_result) ? afters  :
-                                                                                    befores.length || p.length                       ? befores : formals).push(p);
+```.waul
+      function_destructure = $.rereplacer('_f(_xs) = _y'.qs,
+                                          function (match) {for (var formals = [], befores = [], afters = [], ps = match._xs.flatten(','), i = 0, l = ps.length, p; i < l; ++i)
+                                                              p = this(ps[i]), (afters.length  || p.contains(function_is_result) ? afters  :
+                                                                                befores.length || p.length                       ? befores : formals).push(p);
+```
 
-                                                                // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
-                                                                // into expression context by wrapping them in parentheses.
-                                                                for (var contains_locals = [befores, afters], i = 0, l = contains_locals.length; i < l; ++i)
-                                                                  for (var xs = contains_locals[i], j = 0, lj = xs.length, m; j < lj; ++j)
-                                                                    xs[j] = (m = function_bind_pattern.match(xs[j])) && m._x.is_empty() ? function_local_template.replace(m) :
-                                                                                                                                          xs[j].as('(');
-                                                                var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
-                                                                    new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
-                                                                    new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty,
+```.waul
+                                                            // Convert simple assignments into 'var' definitions in-place. Other 'before' and 'after' statements are coerced
+                                                            // into expression context by wrapping them in parentheses.
+                                                            for (var contains_locals = [befores, afters], i = 0, l = contains_locals.length; i < l; ++i)
+                                                              for (var xs = contains_locals[i], j = 0, lj = xs.length, m; j < lj; ++j)
+                                                                xs[j] = (m = function_bind_pattern.match(xs[j])) && m._x.is_empty() ? function_local_template.replace(m) :
+                                                                                                                                      xs[j].as('(');
+                                                            var new_formals = formals.length ? new $.syntax(',', formals).unflatten() : $.empty,
+                                                                new_befores = befores.length ? new $.syntax(';', befores).unflatten() : $.empty,
+                                                                new_afters  = afters.length  ? new $.syntax(';', afters) .unflatten() : $.empty,
+```
 
-                                                                    template    = function_assignment_template.replace(
-                                                                                    {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});
+```.waul
+                                                                template    = function_assignment_template.replace(
+                                                                                {_f: match._f, _x: afters.length ? function_with_afters : function_without_afters});
+```
 
-                                                                return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
+```.waul
+                                                            return template.replace({_formals: new_formals, _befores: new_befores, _afters: new_afters, _result: match._y})});
+```
 
 ## Tuple binding
 
 Tuples can be created just like functions but using *= instead of =. The right-hand side is an expression that produces a prototype. This is useful for defining container classes with a few
 minimal methods without doing all of the setup. Note that the prototype you specify will be referenced, not copied (!) and that its .constructor property will be set to the function.
 
-      var tuple_template    = '_f = (function () {var _g = _ctor; _g.prototype = _prototype; _g.prototype.constructor = _g; return _g}).call(this)'.qs,
-          tuple_constructor = 'function (_formals) {_assignments}'.qs,
-          tuple_assignment  = 'this._name = _name'.qs,
-          tuple_destructure = $.rereplacer('_f(_xs) *= _y'.qs,
-                                           function (match) {for (var formals = match._xs.flatten(','), assignments = new $.syntax(';'), i = 0, l = formals.length; i < l; ++i)
-                                                               assignments.push(tuple_assignment.replace({_name: formals[i]}));
-                                                             return tuple_template.replace({_f: match._f,  _g: $.gensym('tuple_ctor'),
-                                                                                         _ctor: tuple_constructor.replace({_formals: formals, _assignments: assignments.unflatten()}),
-                                                                                    _prototype: match._y})});
+```.waul
+  var tuple_template    = '_f = (function () {var _g = _ctor; _g.prototype = _prototype; _g.prototype.constructor = _g; return _g}).call(this)'.qs,
+      tuple_constructor = 'function (_formals) {_assignments}'.qs,
+      tuple_assignment  = 'this._name = _name'.qs,
+      tuple_destructure = $.rereplacer('_f(_xs) *= _y'.qs,
+                                       function (match) {for (var formals = match._xs.flatten(','), assignments = new $.syntax(';'), i = 0, l = formals.length; i < l; ++i)
+                                                           assignments.push(tuple_assignment.replace({_name: formals[i]}));
+                                                         return tuple_template.replace({_f: match._f,  _g: $.gensym('tuple_ctor'),
+                                                                                     _ctor: tuple_constructor.replace({_formals: formals, _assignments: assignments.unflatten()}),
+                                                                                _prototype: match._y})});
+```
 
 ## Infix function application
 
@@ -137,9 +165,11 @@ Caterwaul 1.1.2 introduces infix function notation, which lets the user avoid gr
 There used to be two different syntaxes depending on whether you wanted binary or n-ary function application. I realized this was probably overkill since the macro now distributes across
 parse trees appropriately.
 
-      var infix_function = function (node) {var d = node.data, left, fn;
-                                            if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0]))
-                                              return new $.syntax('()', fn, this(left[0]).flatten(d).push(this(node[1])).with_data(',').unflatten())};
+```.waul
+  var infix_function = function (node) {var d = node.data, left, fn;
+                                        if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u-' && (fn = left[1][0]))
+                                          return new $.syntax('()', fn, this(left[0]).flatten(d).push(this(node[1])).with_data(',').unflatten())};
+```
 
 ## Infix method application
 
@@ -148,10 +178,12 @@ Like infix function application, this macro respects precedence and associativit
 
     f /g /~a/ h /~b/ i          // -> ((f).a(g, h)).b(i)
 
-      var infix_method = function (node) {var d = node.data, left, fn;
-                                          if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u~' && (fn = left[1][0])) {
-                                            var xs = [].slice.call(this(node[0][0]).flatten(d)), object = xs.shift();
-                                            return new $.syntax('()', new $.syntax('.', new $.syntax('(', object), fn), new $.syntax(',', xs, this(node[1])).unflatten())}};
+```.waul
+  var infix_method = function (node) {var d = node.data, left, fn;
+                                      if ((d === '/' || d === '|') && (left = node[0]).data === d && left[1] && left[1].data === 'u~' && (fn = left[1][0])) {
+                                        var xs = [].slice.call(this(node[0][0]).flatten(d)), object = xs.shift();
+                                        return new $.syntax('()', new $.syntax('.', new $.syntax('(', object), fn), new $.syntax(',', xs, this(node[1])).unflatten())}};
+```
 
 ## Postfix function application
 
@@ -161,9 +193,11 @@ makes it easier to do that. This is particularly useful when you have many neste
     compose(f, g, h)(x) = x /!h /!g /!f         // -> f(g(h(x)))
     x /y /z /!f                                 // -> f(x, y, z)
 
-      var postfix_function_template = '_f(_x)'.qs,
-          postfix_function          = $.rereplacer('_x /!_f'.qs, function (match) {return postfix_function_template.replace({_f: match._f,
-                                                                                                                             _x: this(match._x).flatten('/').with_data(',').unflatten()})});
+```.waul
+  var postfix_function_template = '_f(_x)'.qs,
+      postfix_function          = $.rereplacer('_x /!_f'.qs, function (match) {return postfix_function_template.replace({_f: match._f,
+                                                                                                                         _x: this(match._x).flatten('/').with_data(',').unflatten()})});
+```
 
 ## Literal modification
 
@@ -183,20 +217,26 @@ Sadly, you can't modify object literals. The reason has to do with syntactic amb
 This function fails to parse under SpiderMonkey, since it assumes that {foo: 'bar'} is a statement-level block with a label 'foo' and a discarded string literal 'bar'. Rather than open this
 can of worms, I'm just nixing the whole idea of modifying object literals (besides, it doesn't seem particularly useful anyway, though perhaps I'm being myopic about it).
 
-      var modified_literal_form   = $.pattern('_literal._modifier'.qs),
+```.waul
+  var modified_literal_form   = $.pattern('_literal._modifier'.qs),
+```
 
-          lookup_literal_modifier = function (caterwaul, type, modifier) {var hash = caterwaul.literal_modifiers[type];
-                                                                          return hash.hasOwnProperty(modifier) && hash[modifier]},
+```.waul
+      lookup_literal_modifier = function (caterwaul, type, modifier) {var hash = caterwaul.literal_modifiers[type];
+                                                                      return hash.hasOwnProperty(modifier) && hash[modifier]},
+```
 
-          literal_modifier        = function (node) {var modified_literal = modified_literal_form.call(this, node), literal, expander;
-                                                     if (modified_literal && (literal  = modified_literal._literal) &&
-                                                                             (expander = literal.is_identifier() ? lookup_literal_modifier(this, 'identifier', modified_literal._modifier.data) :
-                                                                                         literal.is_array()      ? lookup_literal_modifier(this, 'array',      modified_literal._modifier.data) :
-                                                                                         literal.is_regexp()     ? lookup_literal_modifier(this, 'regexp',     modified_literal._modifier.data) :
-                                                                                         literal.is_number()     ? lookup_literal_modifier(this, 'number',     modified_literal._modifier.data) :
-                                                                                         literal.is_string()     ? lookup_literal_modifier(this, 'string',     modified_literal._modifier.data) :
-                                                                                                                   null))
-                                                       return expander.call(this, literal)};
+```.waul
+      literal_modifier        = function (node) {var modified_literal = modified_literal_form.call(this, node), literal, expander;
+                                                 if (modified_literal && (literal  = modified_literal._literal) &&
+                                                                         (expander = literal.is_identifier() ? lookup_literal_modifier(this, 'identifier', modified_literal._modifier.data) :
+                                                                                     literal.is_array()      ? lookup_literal_modifier(this, 'array',      modified_literal._modifier.data) :
+                                                                                     literal.is_regexp()     ? lookup_literal_modifier(this, 'regexp',     modified_literal._modifier.data) :
+                                                                                     literal.is_number()     ? lookup_literal_modifier(this, 'number',     modified_literal._modifier.data) :
+                                                                                     literal.is_string()     ? lookup_literal_modifier(this, 'string',     modified_literal._modifier.data) :
+                                                                                                               null))
+                                                   return expander.call(this, literal)};
+```
 
 ## Modifier syntax
 
@@ -207,36 +247,52 @@ function.
 Now modifiers are stored on the compiler function directly. Some modifiers take parameters, so there is always some degree of overhead involved in determining whether a modifier case does in
 fact match. However, there are only a few checks that need to happen before determining whether a modifier match is possible, unlike before.
 
-      var bracket_modifier_form = $.pattern('_modifier[_expression]'.qs),               slash_modifier_form = $.pattern('_expression /_modifier'.qs),
-          minus_modifier_form   = $.pattern('_expression -_modifier'.qs),               in_modifier_form    = $.pattern('_modifier in _expression'.qs),
-          pipe_modifier_form    = $.pattern('_expression |_modifier'.qs),               comma_modifier_form = $.pattern('_expression, _modifier'.qs),
+```.waul
+  var bracket_modifier_form = $.pattern('_modifier[_expression]'.qs),               slash_modifier_form = $.pattern('_expression /_modifier'.qs),
+      minus_modifier_form   = $.pattern('_expression -_modifier'.qs),               in_modifier_form    = $.pattern('_modifier in _expression'.qs),
+      pipe_modifier_form    = $.pattern('_expression |_modifier'.qs),               comma_modifier_form = $.pattern('_expression, _modifier'.qs),
+```
 
-          dot_parameters        = $.pattern('_modifier._parameters'.qs),                bracket_parameters  = $.pattern('_modifier[_parameters]'.qs),
+```.waul
+      dot_parameters        = $.pattern('_modifier._parameters'.qs),                bracket_parameters  = $.pattern('_modifier[_parameters]'.qs),
+```
 
-          parameterized_wickets = $.pattern('_expression <_modifier> _parameters'.qs),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'.qs),
+```.waul
+      parameterized_wickets = $.pattern('_expression <_modifier> _parameters'.qs),  parameterized_minus = $.pattern('_expression -_modifier- _parameters'.qs),
+```
 
-          modifier = function (node) {var modifier, parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
-                                      if (parameterized_match && this.parameterized_modifiers.hasOwnProperty(modifier = parameterized_match._modifier.data)) {
-                                        var r = this.parameterized_modifiers[modifier].call(this, parameterized_match);
-                                        if (r) return r}
+```.waul
+      modifier = function (node) {var modifier, parameterized_match = parameterized_wickets.call(this, node) || parameterized_minus.call(this, node);
+                                  if (parameterized_match && this.parameterized_modifiers.hasOwnProperty(modifier = parameterized_match._modifier.data)) {
+                                    var r = this.parameterized_modifiers[modifier].call(this, parameterized_match);
+                                    if (r) return r}
+```
 
-                                      var regular_match = bracket_modifier_form.call(this, node) || slash_modifier_form.call(this, node) ||
-                                                          minus_modifier_form  .call(this, node) || in_modifier_form   .call(this, node) ||
-                                                          pipe_modifier_form   .call(this, node) || comma_modifier_form.call(this, node);
+```.waul
+                                  var regular_match = bracket_modifier_form.call(this, node) || slash_modifier_form.call(this, node) ||
+                                                      minus_modifier_form  .call(this, node) || in_modifier_form   .call(this, node) ||
+                                                      pipe_modifier_form   .call(this, node) || comma_modifier_form.call(this, node);
+```
 
-                                      if (regular_match) {
-                                        // Could still be a parameterized function; try to match one of the parameter forms against the modifier.
-                                        var parameter_match = dot_parameters    .call(this, regular_match._modifier) ||
-                                                              bracket_parameters.call(this, regular_match._modifier);
+```.waul
+                                  if (regular_match) {
+                                    // Could still be a parameterized function; try to match one of the parameter forms against the modifier.
+                                    var parameter_match = dot_parameters    .call(this, regular_match._modifier) ||
+                                                          bracket_parameters.call(this, regular_match._modifier);
+```
 
-                                        if (parameter_match) {
-                                          regular_match._modifier   = parameter_match._modifier;
-                                          regular_match._parameters = parameter_match._parameters;
+```.waul
+                                    if (parameter_match) {
+                                      regular_match._modifier   = parameter_match._modifier;
+                                      regular_match._parameters = parameter_match._parameters;
+```
 
-                                          return this.parameterized_modifiers.hasOwnProperty(modifier = regular_match._modifier.data) &&
-                                                 this.parameterized_modifiers[modifier].call(this, regular_match)}
-                                        else
-                                          return this.modifiers.hasOwnProperty(modifier = regular_match._modifier.data) && this.modifiers[modifier].call(this, regular_match)}};
+```.waul
+                                      return this.parameterized_modifiers.hasOwnProperty(modifier = regular_match._modifier.data) &&
+                                             this.parameterized_modifiers[modifier].call(this, regular_match)}
+                                    else
+                                      return this.modifiers.hasOwnProperty(modifier = regular_match._modifier.data) && this.modifiers[modifier].call(this, regular_match)}};
+```
 
 ## Tying it all together
 
@@ -249,24 +305,39 @@ function (which will be called lots of times).
 
 Version 1.3.1 removes any hash-comment prefixes, since these are illegal in Javascript. Normal Javascript comment prefixes are preserved.
 
-      var each_node = function (node) {if (node.prefixes) {
-                                       var p = node.prefixes() |/^#/.test |seq, i = node.infixes() |/^#/.test |seq, s = node.suffixes() |/^#/.test |seq;
+```.waul
+  var each_node = function (node) {if (node.prefixes) {
+                                   var p = node.prefixes() |/^#/.test |seq, i = node.infixes() |/^#/.test |seq, s = node.suffixes() |/^#/.test |seq;
+```
 
-                                       node -eq- node.thin_clone() -when [p || i || s],
-                                       node.prefix_data -eq- node.prefix_data %!/^#/.test /seq -when.p,
-                                       node.infix_data  -eq- node.infix_data  %!/^#/.test /seq -when.i,
-                                       node.suffix_data -eq- node.suffix_data %!/^#/.test /seq -when.s;
-                                       }
+```.waul
+                                   node -eq- node.thin_clone() -when [p || i || s],
+                                   node.prefix_data -eq- node.prefix_data %!/^#/.test /seq -when.p,
+                                   node.infix_data  -eq- node.infix_data  %!/^#/.test /seq -when.i,
+                                   node.suffix_data -eq- node.suffix_data %!/^#/.test /seq -when.s;
+                                   }
+```
 
-                                       return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
-                                              node.length && (modifier.call(this, node) || function_destructure.call(this, node) || tuple_destructure.call(this, node) ||
-                                                              infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
+```.waul
+                                   return string_interpolator.call(this, node) || literal_modifier.call(this, node) ||
+                                          node.length && (modifier.call(this, node) || function_destructure.call(this, node) || tuple_destructure.call(this, node) ||
+                                                          infix_function.call(this, node) || infix_method.call(this, node) || postfix_function.call(this, node))},
+```
 
-          result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) : $(each_node);
+```.waul
+      result    = macroexpander ? $(function (node) {return macroexpander.call(this, node) || each_node.call(this, node)}) : $(each_node);
+```
 
-      result.modifiers               = {};
-      result.parameterized_modifiers = {};
+```.waul
+  result.modifiers               = {};
+  result.parameterized_modifiers = {};
+```
 
-      result.literal_modifiers = {regexp: {}, array: {}, string: {}, number: {}, identifier: {}};
+```.waul
+  result.literal_modifiers = {regexp: {}, array: {}, string: {}, number: {}, identifier: {}};
+```
 
-      return result}});
+```.waul
+  return result}});
+
+```

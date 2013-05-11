@@ -15,7 +15,7 @@ if !exists("main_syntax")
 endif
 
 syn case match
-setlocal iskeyword=48-57,95,36,A-Z,a-z
+setlocal iskeyword=48-57,95,36,A-Z,a-z,@
 
 syn region    jsWaulComment             start=/#/ end=/$/
 syn region    jsNodeShebang             start=/\%^#!/ end=/$/
@@ -66,7 +66,7 @@ syn region    jsParamBinding            matchgroup=jsBindingConstruct start=/\(f
   syn keyword jsVarBindingKeyword       const var contained
   syn keyword jsBindingKeyword          function catch contained
   syn match   jsBindingAssignment       /\k\+\s*=\([^=]\|$\)\@=/ contains=jsOperator contained containedin=jsVarBinding
-  syn match   jsExtraBindingAssignment  /[A-Za-z0-9$_]\+\s*\(=\([^=]\|$\)\@=\|(.*=\([^=]\|$\)\)\@=/ contained containedin=jsBindingGroup
+  syn match   jsExtraBindingAssignment  /\k\+\s*\(=\([^=]\|$\)\@=\|(.*=\([^=]\|$\)\)\@=/ contained containedin=jsBindingGroup
 
 syn keyword   jsBindingMacro            where capture wcapture nextgroup=jsBindingGroup
 syn keyword   jsFunctionMacro           given bgiven           nextgroup=jsFunctionGroup

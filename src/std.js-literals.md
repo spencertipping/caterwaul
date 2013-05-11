@@ -5,10 +5,14 @@ Licensed under the terms of the MIT source code license
 
 These macros provide some convenient literal notation for various Javascript literals. For obvious reasons they have names that are unlikely to collide with methods.
 
-    caterwaul.module('std.js-literals', 'js js_literals', function ($) {
-      $.js_literals = function (caterwaul_function) {
+```.waul
+caterwaul.module('std.js-literals', 'js js_literals', function ($) {
+  $.js_literals = function (caterwaul_function) {
+```
 
-        var function_template = 'function (_) {return _body}'.qs;
+```.waul
+    var function_template = 'function (_) {return _body}'.qs;
+```
 
 ## Regular expression literals
 
@@ -18,10 +22,14 @@ to the regexp in string form anyway.
 To make Javascript's regular expressions more useful I've also included the 'qf' modifier. This turns a regular expression into a matching function; for example, /foo/.qf becomes (function
 (s) {return /foo/.exec(s)}).
 
-      (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
+```.waul
+  (function (r) {r.x  = $.reexpander(function (node) {return node.with_data(node.data.replace(/\s+/g, ''))});
+```
 
-                     var call_exec_template = '_regexp.exec(_)'.qs;
-                     r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
+```.waul
+                 var call_exec_template = '_regexp.exec(_)'.qs;
+                 r.qf = function (node) {return function_template.replace({_body: call_exec_template.replace({_regexp: node})})}})(caterwaul_function.literal_modifiers.regexp);
+```
 
 ## String literals
 
@@ -36,21 +44,34 @@ persisted across invocations. (Unlike the way that array and object literals are
 
 Functions can be written concisely using qf. This causes the string to be interpreted as the body of a function whose sole argument is called _. This may change at some point in the future.
 
-      (function (s) {s.qw  = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
-                                                                    pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
-                                                             comma.push(new $.syntax(delimiter + pieces[i] + delimiter));
-                                                           return array_node.push(comma.unflatten())});
+```.waul
+  (function (s) {s.qw  = $.reexpander(function (node) {for (var array_node = new $.syntax('['), comma = new $.syntax(','), delimiter = node.data.charAt(0),
+                                                                pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; ++i)
+                                                         comma.push(new $.syntax(delimiter + pieces[i] + delimiter));
+                                                       return array_node.push(comma.unflatten())});
+```
 
-                     s.qh  = $.reexpander(function (node) {for (var hash_node = new $.syntax('{'), comma = new $.syntax(','), delimiter = node.data.charAt(0),
-                                                                    pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; i += 2)
-                                                             comma.push(new $.syntax(':', new $.syntax(delimiter + pieces[i] + delimiter), new $.syntax(delimiter + pieces[i + 1] + delimiter)));
-                                                           return hash_node.push(comma.unflatten())});
+```.waul
+                 s.qh  = $.reexpander(function (node) {for (var hash_node = new $.syntax('{'), comma = new $.syntax(','), delimiter = node.data.charAt(0),
+                                                                pieces = node.as_escaped_string().split(/\s+/), i = 0, l = pieces.length; i < l; i += 2)
+                                                         comma.push(new $.syntax(':', new $.syntax(delimiter + pieces[i] + delimiter), new $.syntax(delimiter + pieces[i + 1] + delimiter)));
+                                                       return hash_node.push(comma.unflatten())});
+```
 
-                     s.qr  = $.reexpander(function (node) {return node.with_data('/' + node.as_escaped_string().replace(/\//g, '\\/') + '/')});
+```.waul
+                 s.qr  = $.reexpander(function (node) {return node.with_data('/' + node.as_escaped_string().replace(/\//g, '\\/') + '/')});
+```
 
-                     s.qs  = function (node) {return new $.expression_ref($.syntax_to_expression($.parse(node.as_unescaped_string())), 'qs')};
-                     s.qse = function (node) {return new $.expression_ref($.syntax_to_expression(this.call(this, $.parse(node.as_unescaped_string()))), 'qse')};
+```.waul
+                 s.qs  = function (node) {return new $.expression_ref($.syntax_to_expression($.parse(node.as_unescaped_string())), 'qs')};
+                 s.qse = function (node) {return new $.expression_ref($.syntax_to_expression(this.call(this, $.parse(node.as_unescaped_string()))), 'qse')};
+```
 
-                     s.qf  = $.reexpander(function (node) {return function_template.replace({_body: $.parse(node.as_unescaped_string())})})})(caterwaul_function.literal_modifiers.string);
+```.waul
+                 s.qf  = $.reexpander(function (node) {return function_template.replace({_body: $.parse(node.as_unescaped_string())})})})(caterwaul_function.literal_modifiers.string);
+```
 
-      return caterwaul_function}});
+```.waul
+  return caterwaul_function}});
+
+```

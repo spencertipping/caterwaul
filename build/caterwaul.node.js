@@ -628,7 +628,12 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
     // Caterwaul 1.3 automatically parenthesizes low-precedence operators in the middle of a ternary node. This prevents the syntax errors that pop up if you say things like 'foo ? bar, bif :
 //     baz'. Even though this construct is unambiguous, most Javascript runtimes fail to accept it.
 
-      serialize: function (xs, depth) {var ep = function (x) {e(p || x && lex_ident[xs[xs.length - 1].charCodeAt(0)] === lex_ident[x.charCodeAt(0)] ? ' ' : ''), x && e(x)},
+    // Caterwaul 1.3.1 fixes a Unicode serialization bug. The lex table only covers char-codes 0-255, but doesn't cover anything beyond that, so Caterwaul 1.3 interpreted higher codes as
+//     non-identifiers. This isn't correct, however; anytime we're dealing with a Unicode character, we need to insert a space just to be safe. The trick is to subtract the two boolean values.
+//     true - true, false - false, and anything involving undefined will all evaluate to falsy values, and true - false and false - true are truthy. So we ask the question, "are these two things
+//     different enough that we can omit the space?"
+
+      serialize: function (xs, depth) {var ep = function (x) {e(!p && (!x || lex_ident[xs[xs.length - 1].charCodeAt(0)] - lex_ident[x.charCodeAt(0)]) ? '' : ' '), x && e(x)},
                                            e  = function (x) {x && xs.push(x)},             p = this.prefix_data && this.prefix_data.join(''),
                                            l  = this.length, d = this.data, d1 = depth - 1, i = this.infix_data  && this.infix_data.join(''),
                                                                                             s = this.suffix_data && this.suffix_data.join('');

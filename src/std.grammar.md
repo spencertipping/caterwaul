@@ -13,13 +13,20 @@ pattern/replacement pairs, where the replacement can be either a syntax tree or 
 
 Rules are matched from last to first as usual. The list of anonymization symbols can be specified as a space-delimited string or an array.
 
-    caterwaul.module('std.grammar', 'js js_literals words', function ($) {
-      $.grammar(anonymous_symbols, options, rule_cc) = "expand.call(expand, anon_pattern /~replace/ _) -re [this.constructor === Function ? this(it) /when.it : it]".qf
+```.waul
+caterwaul.module('std.grammar', 'js js_literals words', function ($) {
+  $.grammar(anonymous_symbols, options, rule_cc) = "expand.call(expand, anon_pattern /~replace/ _) -re [this.constructor === Function ? this(it) /when.it : it]".qf
+```
 
-      -where [default_options = {fix: true, descend: true, initial: 'S[_expression]'.qs},
-              settings        = {} / default_options /-$.merge/ options,
+```.waul
+  -where [default_options = {fix: true, descend: true, initial: 'S[_expression]'.qs},
+          settings        = {} / default_options /-$.merge/ options,
+```
 
-              anon            = $.anonymizer(anonymous_symbols),
-              anon_pattern    = anon(settings.initial),
-              rule(p, e)      = $[settings.fix ? 'rereplacer' : 'replacer'](anon(p), e.constructor === $.syntax ? anon(e) : e),
-              expand          = rule_cc(rule, anon) /!$.alternatives -re [settings.descend ? $(it) : it]]});
+```.waul
+          anon            = $.anonymizer(anonymous_symbols),
+          anon_pattern    = anon(settings.initial),
+          rule(p, e)      = $[settings.fix ? 'rereplacer' : 'replacer'](anon(p), e.constructor === $.syntax ? anon(e) : e),
+          expand          = rule_cc(rule, anon) /!$.alternatives -re [settings.descend ? $(it) : it]]});
+
+```

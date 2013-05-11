@@ -10,12 +10,16 @@ For example, constructing lambdas can be done with 'given' rather than the norma
 
 In this case, given.x is registered as a postfix binary adverb. Any postfix binary adverb forms added later will extend the possible uses of given.
 
-    caterwaul.module('std.words', 'js js_literals words', function ($) {
-      $.words(caterwaul_function) = ($.merge(caterwaul_function.modifiers,               $.words.modifiers),
-                                     $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers),
-                                     caterwaul_function),
+```.waul
+caterwaul.module('std.words', 'js js_literals words', function ($) {
+  $.words(caterwaul_function) = ($.merge(caterwaul_function.modifiers,               $.words.modifiers),
+                                 $.merge(caterwaul_function.parameterized_modifiers, $.words.parameterized_modifiers),
+                                 caterwaul_function),
+```
 
-      $.words.modifiers = capture [
+```.waul
+  $.words.modifiers = capture [
+```
 
 # Unparameterized modifiers
 
@@ -30,24 +34,32 @@ reuse.
 Caterwaul 1.3 introduces 'qc' and 'qce', which stand for 'quote code' and 'quote code and expand', respectively. These are analogous to 'qs' and 'qse', except that they evaluate the
 expression given rather than quoting it directly.
 
-      qs(match)  = new $.expression_ref($.syntax_to_expression(match._expression), 'qs'),
-      qse(match) = new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse'),
+```.waul
+  qs(match)  = new $.expression_ref($.syntax_to_expression(match._expression), 'qs'),
+  qse(match) = new $.expression_ref($.syntax_to_expression(this(match._expression)), 'qse'),
+```
 
-      qc(match)  = $.compile(this(match._expression)),
-      qce(match) = this($.compile(this(match._expression))),
+```.waul
+  qc(match)  = $.compile(this(match._expression)),
+  qce(match) = this($.compile(this(match._expression))),
+```
 
 ## Macroexpansion control
 
 Sometimes it's useful to request an additional macroexpansion or suppress macroexpansion for a piece of code. The 'reexpand' and 'noexpand' modifiers do these two things, respectively.
 
-      reexpand(match) = this(this(match._expression)),
-      noexpand(match) = match._expression,
+```.waul
+  reexpand(match) = this(this(match._expression)),
+  noexpand(match) = match._expression,
+```
 
 ## Error handling
 
 Javascript in particular has clunky error handling constructs. These words provide error handling in expression context.
 
-      raise = $.reexpander('(function () {throw _expression}).call(this)'.qs),
+```.waul
+  raise = $.reexpander('(function () {throw _expression}).call(this)'.qs),
+```
 
 ## Evaluation
 
@@ -56,8 +68,10 @@ and any errors are reported as compile-time errors. The expression being evaluat
 
 Caterwaul 1.2.8 introduces a related modifier, 'ahead', which produces an expression ref. The advantage of this approach is that you can precompile code that uses ahead.
 
-      eval(match)  = new $.ref($.compile(this(match._expression)), 'eval'),
-      ahead(match) = new $.expression_ref(this(match._expression), 'ahead'),
+```.waul
+  eval(match)  = new $.ref($.compile(this(match._expression)), 'eval'),
+  ahead(match) = new $.expression_ref(this(match._expression), 'ahead'),
+```
 
 ## Object construction
 
@@ -69,19 +83,25 @@ can also use regular assignments, each of which will be converted into a key/val
 
 A variant, wcapture, provides local 'where'-style bindings as well as returning the object. This allows the definitions to refer to one another.
 
-      capture  = function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
-                                     comma.push(this(bindings[i]).with_data(':'));
-                                   return new $.syntax('{', comma.unflatten())},
+```.waul
+  capture  = function (match) {for (var comma = new $.syntax(','), bindings = match._expression.flatten(','), i = 0, l = bindings.length; i < l; ++i)
+                                 comma.push(this(bindings[i]).with_data(':'));
+                               return new $.syntax('{', comma.unflatten())},
+```
 
-      wcapture = function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
-                                     (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
-                                   return scope_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})}],
+```.waul
+  wcapture = function (match) {for (var e = this(match._expression), comma = new $.syntax(','), bindings = e.flatten(','), node, i = 0, l = bindings.length; i < l; ++i)
+                                 (node = this(bindings[i]))[1] = node[0], comma.push(node.with_data(':'));
+                               return scope_template.replace({_variables: e, _expression: new $.syntax('{', comma.unflatten())})}],
+```
 
 # Parameterized modifiers
 
 These act like binary operators in the sense that they have a left and a right-hand side.
 
-      $.words.parameterized_modifiers = {
+```.waul
+  $.words.parameterized_modifiers = {
+```
 
 ## Function words
 
@@ -91,14 +111,18 @@ For example:
     var f = x + 1 -given [x];
     var f = x + 1 -given.x;
 
-      given:  $.reexpander('(function (_parameters) {return _expression})'.qs),
-      bgiven: $.reexpander('(function (t, f) {return function () {return f.apply(t, arguments)}})(this, function (_parameters) {return _expression})'.qs),
+```.waul
+  given:  $.reexpander('(function (_parameters) {return _expression})'.qs),
+  bgiven: $.reexpander('(function (t, f) {return function () {return f.apply(t, arguments)}})(this, function (_parameters) {return _expression})'.qs),
+```
 
 ## Error handling
 
 Provides expression-context catching of errors, similar to Ruby's 'rescue' postfix operator.
 
-      rescue: $.reexpander('(function () {try {return _expression} catch (e) {return _parameters}}).call(this)'.qs),
+```.waul
+  rescue: $.reexpander('(function () {try {return _expression} catch (e) {return _parameters}}).call(this)'.qs),
+```
 
 ## Side-effecting
 
@@ -110,9 +134,11 @@ bound the variable as _; version 1.0 changes this convention to bind the variabl
 
 Version 1.2 adds the word 'then', which is equivalent to 'se' but doesn't bind 'it'. This removes the overhead associated with creating a closure.
 
-      se:   $.reexpander('(function (it) {return _parameters, it}).call(this, (_expression))'.qs),
-      re:   $.reexpander('(function (it) {return _parameters}).call(this, (_expression))'.qs),
-      then: $.reexpander('(_expression, _parameters)'.qs),
+```.waul
+  se:   $.reexpander('(function (it) {return _parameters, it}).call(this, (_expression))'.qs),
+  re:   $.reexpander('(function (it) {return _parameters}).call(this, (_expression))'.qs),
+  then: $.reexpander('(_expression, _parameters)'.qs),
+```
 
 ## Assignment
 
@@ -128,10 +154,14 @@ Javascript has no ||= operator. Caterwaul provides several modifiers for this:
 I've removed the -oeq-, -aeq-, and related modifiers because they were implicated in so many bugs. They were not intuitive to use because their return value was always cast to a boolean;
 this is different from what you would expect to happen with something like ||= in Ruby or Perl.
 
-      eq:  $.reexpander('_expression = _parameters'.qs),
+```.waul
+  eq:  $.reexpander('_expression = _parameters'.qs),
+```
 
-      ocq: $.reexpander(' _expression ? _expression : _expression = _parameters'.qs),  dcq: $.reexpander('_expression !== void 0 ? _expression : _expression = _parameters'.qs),
-      acq: $.reexpander('!_expression ? _expression : _expression = _parameters'.qs),  ncq: $.reexpander('_expression !=  void 0 ? _expression : _expression = _parameters'.qs),
+```.waul
+  ocq: $.reexpander(' _expression ? _expression : _expression = _parameters'.qs),  dcq: $.reexpander('_expression !== void 0 ? _expression : _expression = _parameters'.qs),
+  acq: $.reexpander('!_expression ? _expression : _expression = _parameters'.qs),  ncq: $.reexpander('_expression !=  void 0 ? _expression : _expression = _parameters'.qs),
+```
 
 ## Scoping
 
@@ -140,7 +170,9 @@ You can create local variables by using the where[] modifier. If you do this, th
     where[x = 10][alert(x)]
     alert(x), where[x = 10]
 
-      where: $.reexpander('(function () {var _parameters; return _expression}).call(this)'.qs),
+```.waul
+  where: $.reexpander('(function () {var _parameters; return _expression}).call(this)'.qs),
+```
 
 ## Importation
 
@@ -151,18 +183,25 @@ This is a fun one. Caterwaul 1.1.2 introduces the 'using' modifier, which lets y
 Variables are computed at compile-time, not at runtime. This is much better than using the 'with' keyword, which degrades performance ('using' has no significant performance impact).
 However, the calling context is incomplete, as shown above. In particular, methods of the object that you're using will be called with a global 'this' rather than being bound to the object.
 
-      using: $.reexpander(function (match) {var m = this(match._parameters), o = $.compile(m), comma = new $.syntax(','), expression_ref = new $.expression_ref(m);
-                                            for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && /^[_$a-zA-Z][_$0-9a-zA-Z]*$/.test(k) &&
-                                                             !this.modifiers.hasOwnProperty(k) && !this.parameterized_modifiers.hasOwnProperty(k) &&
-                                                             comma.push(new $.syntax('=', k, new $.syntax('.', expression_ref, k)));
-                                            return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}),
+```.waul
+  using: $.reexpander(function (match) {var m = this(match._parameters), o = $.compile(m), comma = new $.syntax(','), expression_ref = new $.expression_ref(m);
+                                        for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && /^[_$a-zA-Z][_$0-9a-zA-Z]*$/.test(k) &&
+                                                         !this.modifiers.hasOwnProperty(k) && !this.parameterized_modifiers.hasOwnProperty(k) &&
+                                                         comma.push(new $.syntax('=', k, new $.syntax('.', expression_ref, k)));
+                                        return scope_template.replace({_variables: comma.unflatten(), _expression: match._expression})}),
+```
 
 ## Conditionals
 
 These impact whether an expression gets evaluated. x /when.y evaluates to x when y is true, and y when y is false. Similarly, x /unless[y] evaluates to x when y is false, and !y when y is
 truthy. 'and' and 'or' are provided so that you can change the syntax of short-circuit && and ||.
 
-      when:   $.reexpander('_parameters && _expression'.qs),    and: $.reexpander('_expression && _parameters'.qs),
-      unless: $.reexpander('! _parameters && _expression'.qs),  or:  $.reexpander('_expression || _parameters'.qs)},
+```.waul
+  when:   $.reexpander('_parameters && _expression'.qs),    and: $.reexpander('_expression && _parameters'.qs),
+  unless: $.reexpander('! _parameters && _expression'.qs),  or:  $.reexpander('_expression || _parameters'.qs)},
+```
 
-    where [scope_template = '(function () {var _variables; return _expression}).call(this)'.qs]});
+```.waul
+where [scope_template = '(function () {var _variables; return _expression}).call(this)'.qs]});
+
+```

@@ -74,8 +74,10 @@ Unlike the montenegro html[] macro, this one doesn't do any autodetection. The g
 
     my_element /jquery    ->  $('<my-element>')                   <- note the conversion of _ to -; this happens in class and attribute names too
 
-    caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
-      $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery = $.grammar('J', {initial: 'J[_expression]'.qs}, given [rule, anon] in jquery_macros /~concat/ string_macros
+```.waul
+caterwaul.module('ui.jquery', 'js js_literals words', function ($) {
+  $.jquery(caterwaul_function) = caterwaul_function -se [it.modifiers.jquery = $.grammar('J', {initial: 'J[_expression]'.qs}, given [rule, anon] in jquery_macros /~concat/ string_macros
+```
 
 ## Transforms
 
@@ -86,68 +88,109 @@ CSS selector.
 The small stages are S[], which just turns something into a string with underscore-to-dash conversion; TS[], which turns something into a tag-string (e.g. TS[foo] = "<foo>"); and PS[], which
 quotes a compiled pattern.
 
-    -where [jq            = 'jQuery'.qs,
-            hyphenate(s)  = s.replace(/_/g, '-'),
+```.waul
+-where [jq            = 'jQuery'.qs,
+        hyphenate(s)  = s.replace(/_/g, '-'),
+```
 
-            p             = where [p_pattern = anon('P[_thing]'.qs)] in p_pattern.replace({_thing: node}) -given.node,
+```.waul
+        p             = where [p_pattern = anon('P[_thing]'.qs)] in p_pattern.replace({_thing: node}) -given.node,
+```
 
-            jquery_macros = [rule('J[_element]'.qs,                 given.match [match._element.is_constant() || match._element.length ? wrap_in_jquery(match) : become_dom_node(match)]),
+```.waul
+        jquery_macros = [rule('J[_element]'.qs,                 given.match [match._element.is_constant() || match._element.length ? wrap_in_jquery(match) : become_dom_node(match)]),
+```
 
-                             rule('J[_element._class]'.qs,          'J[_element].addClass(S[_class])'.qs),
+```.waul
+                         rule('J[_element._class]'.qs,          'J[_element].addClass(S[_class])'.qs),
+```
 
-                             rule('J[_element *_attr(_val)]'.qs,    'J[_element].attr(S[_attr], _val)'.qs),
-                             rule('J[_element *!_name(_val)]'.qs,   'J[_element].data(S[_name], _val)'.qs),
-                             rule('J[_element /_method(_args)]'.qs, 'J[_element]._method(_args)'.qs),
-                             rule('J[_element /!_event(_args)]'.qs, 'J[_element].bind(S[_event], _args)'.qs),
-                             rule('J[_element %_function]'.qs,      '_function(J[_element])'.qs),
+```.waul
+                         rule('J[_element *_attr(_val)]'.qs,    'J[_element].attr(S[_attr], _val)'.qs),
+                         rule('J[_element *!_name(_val)]'.qs,   'J[_element].data(S[_name], _val)'.qs),
+                         rule('J[_element /_method(_args)]'.qs, 'J[_element]._method(_args)'.qs),
+                         rule('J[_element /!_event(_args)]'.qs, 'J[_element].bind(S[_event], _args)'.qs),
+                         rule('J[_element %_function]'.qs,      '_function(J[_element])'.qs),
+```
 
-                             rule('J[_element(_children)]'.qs,      'J[_element].append(J[_children])'.qs),
-                             rule('J[_element[_children]]'.qs,      'J[_element].append(_children)'.qs),
-                             rule('J[_element < _tree]'.qs,         'J[_element].append((_tree).toString())'.qs),
-                             rule('J[_element > _child]'.qs,        'J[_element].append(J[_child])'.qs),
-                             rule('J[_element >= _child]'.qs,       'J[_element].append(_child)'.qs),
+```.waul
+                         rule('J[_element(_children)]'.qs,      'J[_element].append(J[_children])'.qs),
+                         rule('J[_element[_children]]'.qs,      'J[_element].append(_children)'.qs),
+                         rule('J[_element < _tree]'.qs,         'J[_element].append((_tree).toString())'.qs),
+                         rule('J[_element > _child]'.qs,        'J[_element].append(J[_child])'.qs),
+                         rule('J[_element >= _child]'.qs,       'J[_element].append(_child)'.qs),
+```
 
-                             rule('J[_element1, _element2]'.qs,     'J[_element1].add(J[_element2])'.qs),
-                             rule('J[_element1 + _element2]'.qs,    'J[_element1].add(J[_element2])'.qs),
+```.waul
+                         rule('J[_element1, _element2]'.qs,     'J[_element1].add(J[_element2])'.qs),
+                         rule('J[_element1 + _element2]'.qs,    'J[_element1].add(J[_element2])'.qs),
+```
 
-                             rule('J[_element1 - _element2]'.qs,    'J[_element1] - _element2'.qs),
+```.waul
+                         rule('J[_element1 - _element2]'.qs,    'J[_element1] - _element2'.qs),
+```
 
-                             rule('J[_element >> _pattern]'.qs,     'J[_element].filter(PS[_pattern])'.qs),
-                             rule('J[_element >>> _pattern]'.qs,    'J[_element].find(PS[_pattern])'.qs),
-                             rule('J[_element << _pattern]'.qs,     'J[_element].parents(PS[_pattern])'.qs),
+```.waul
+                         rule('J[_element >> _pattern]'.qs,     'J[_element].filter(PS[_pattern])'.qs),
+                         rule('J[_element >>> _pattern]'.qs,    'J[_element].find(PS[_pattern])'.qs),
+                         rule('J[_element << _pattern]'.qs,     'J[_element].parents(PS[_pattern])'.qs),
+```
 
-                             rule('J[(_element)]'.qs,               '(J[_element])'.qs),
-                             rule('J[[_element]]'.qs,               '[J[_element]]'.qs),
+```.waul
+                         rule('J[(_element)]'.qs,               '(J[_element])'.qs),
+                         rule('J[[_element]]'.qs,               '[J[_element]]'.qs),
+```
 
-                             rule('J[+_expression]'.qs,             '_expression'.qs)]
+```.waul
+                         rule('J[+_expression]'.qs,             '_expression'.qs)]
+```
 
-                             -where [dom_node_template      = anon('#{jq}(TS[_element])'),       jquery_template       = anon('#{jq}("<span>" + (_element) + "</span>")'),
-                                     become_dom_node(match) = dom_node_template.replace(match),  wrap_in_jquery(match) = jquery_template.replace(match)],
+```.waul
+                         -where [dom_node_template      = anon('#{jq}(TS[_element])'),       jquery_template       = anon('#{jq}("<span>" + (_element) + "</span>")'),
+                                 become_dom_node(match) = dom_node_template.replace(match),  wrap_in_jquery(match) = jquery_template.replace(match)],
+```
 
-            string_macros = [rule('TS[_identifier]'.qs, string('<#{hyphenate(match._identifier.data)}>') -given.match),
-                             rule('S[_identifier]'.qs,  string(    hyphenate(match._identifier.data))    -given.match),
-                             rule('PS[_identifier]'.qs, string(     expand(p(match._identifier)).data)   -given.match)]
+```.waul
+        string_macros = [rule('TS[_identifier]'.qs, string('<#{hyphenate(match._identifier.data)}>') -given.match),
+                         rule('S[_identifier]'.qs,  string(    hyphenate(match._identifier.data))    -given.match),
+                         rule('PS[_identifier]'.qs, string(     expand(p(match._identifier)).data)   -given.match)]
+```
 
-                     -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
+```.waul
+                 -where [string(s) = new $.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"')],
+```
 
-            search_macros = [rule('P[_element]'.qs,                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                  -given.match),
-                             rule('P[_element._class]'.qs,             new $.syntax('#{this(p(match._element)).data}.#{hyphenate(match._class.data)}')           -given.match),
+```.waul
+        search_macros = [rule('P[_element]'.qs,                    new $.syntax(hyphenate(match._element.data -re [it === '_' ? '*' : it]))                  -given.match),
+                         rule('P[_element._class]'.qs,             new $.syntax('#{this(p(match._element)).data}.#{hyphenate(match._class.data)}')           -given.match),
+```
 
-                             rule('P[_element[_attributes]]'.qs,       new $.syntax('#{this(p(match._element)).data}[#{this(p(match._attributes))}]')            -given.match),
-                             rule('P[_attribute = _value]'.qs,         new $.syntax('#{this(p(match._attribute)).data}="#{' + interpolated(match._value) + '}"') -given.match),
+```.waul
+                         rule('P[_element[_attributes]]'.qs,       new $.syntax('#{this(p(match._element)).data}[#{this(p(match._attributes))}]')            -given.match),
+                         rule('P[_attribute = _value]'.qs,         new $.syntax('#{this(p(match._attribute)).data}="#{' + interpolated(match._value) + '}"') -given.match),
+```
 
-                             rule('P[(_element)]'.qs,                 'P[_element]'),        // No paren support
+```.waul
+                         rule('P[(_element)]'.qs,                 'P[_element]'),        // No paren support
+```
 
-                             rule('P[_element1 +   _element2]'.qs,     binary(', ')),
-                             rule('P[_element1,    _element2]'.qs,     binary(', ')),
-                             rule('P[_element1 >>  _element2]'.qs,     binary(' ')),
-                             rule('P[_element1 >>> _element2]'.qs,     binary(' ')),
-                             rule('P[_element1 >   _element2]'.qs,     binary(' > ')),
-                             rule('P[_element1(_element2)]'.qs,        binary(' > ')),
+```.waul
+                         rule('P[_element1 +   _element2]'.qs,     binary(', ')),
+                         rule('P[_element1,    _element2]'.qs,     binary(', ')),
+                         rule('P[_element1 >>  _element2]'.qs,     binary(' ')),
+                         rule('P[_element1 >>> _element2]'.qs,     binary(' ')),
+                         rule('P[_element1 >   _element2]'.qs,     binary(' > ')),
+                         rule('P[_element1(_element2)]'.qs,        binary(' > ')),
+```
 
-                             rule('P[_element /_selector]'.qs,         new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')     -given.match),
-                             rule('P[_element /_selector(_value)]'.qs, new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
-                                                                                    '{' + interpolated(match._value) + '}")')                                   -given.match)]
+```.waul
+                         rule('P[_element /_selector]'.qs,         new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}')     -given.match),
+                         rule('P[_element /_selector(_value)]'.qs, new $.syntax('#{expand(p(match._element)).data}:#{hyphenate(match._selector.data)}("#' +
+                                                                                '{' + interpolated(match._value) + '}")')                                   -given.match)]
+```
 
-                     -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
-                             binary(op)(match)  = new $.syntax('#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}')]])]});
+```.waul
+                 -where [interpolated(node) = '(#{node.toString()}).replace(/(\\)/g, "$1$1").replace(/(")/g, "\\$1")',
+                         binary(op)(match)  = new $.syntax('#{expand(p(match._element1)).data}#{op}#{expand(p(match._element2)).data}')]])]});
+
+```

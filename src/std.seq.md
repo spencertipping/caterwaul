@@ -202,132 +202,209 @@ This arose because of replacement ordering; the body was substituted first and t
 The seq library is theoretically portable to syntaxes besides JS, but you'll probably want to do some aggressive preprocessing if you do this. It assumes a lot about operator precedence and
 such (from a design perspective).
 
-    caterwaul.module('std.seq', 'js_all', function ($) {
-      $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', {initial: 'S[_expression]'.qs}, given [rule, anon] in operator_macros /~concat/ word_macros
+```.waul
+caterwaul.module('std.seq', 'js_all', function ($) {
+  $.seq(caterwaul_function) = caterwaul_function -se [it.modifiers.seq = $.grammar('S', {initial: 'S[_expression]'.qs}, given [rule, anon] in operator_macros /~concat/ word_macros
+```
 
-      -where [operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
+```.waul
+  -where [operator_macros = [rule('S[_x]'.qs, '_x'.qs),  rule('S[_xs + _ys]'.qs, concat),
+```
 
-                                                             // Distributive property
-                                                             rule('S[(_x)]'.qs, '(S[_x])'.qs),  rule('S[_x[_y]]'.qs, 'S[_x][_y]'.qs),     rule('S[_xs(_ys)]'.qs, 'S[_xs](_ys)'.qs),
-                                                             rule('S[[_x]]'.qs, '[_x]'.qs),     rule('S[_x, _y]'.qs, 'S[_x], S[_y]'.qs),  rule('S[_xs._p]'.qs,   'S[_xs]._p'.qs),
+```.waul
+                                                         // Distributive property
+                                                         rule('S[(_x)]'.qs, '(S[_x])'.qs),  rule('S[_x[_y]]'.qs, 'S[_x][_y]'.qs),     rule('S[_xs(_ys)]'.qs, 'S[_xs](_ys)'.qs),
+                                                         rule('S[[_x]]'.qs, '[_x]'.qs),     rule('S[_x, _y]'.qs, 'S[_x], S[_y]'.qs),  rule('S[_xs._p]'.qs,   'S[_xs]._p'.qs),
+```
 
-                                                             rule('S[~[_x]]'.qs,     '[S[_x]]'.qs),                // ~ modifier on arrays
-                                                             rule('S[~_xs(_ys)]'.qs, 'S[_xs](S[_ys])'.qs),         // ~ modifier on function calls
+```.waul
+                                                         rule('S[~[_x]]'.qs,     '[S[_x]]'.qs),                // ~ modifier on arrays
+                                                         rule('S[~_xs(_ys)]'.qs, 'S[_xs](S[_ys])'.qs),         // ~ modifier on function calls
+```
 
-                                                             rule('S[_x ? _y : _z]'.qs, '(S[_x]) ? (S[_y]) : (S[_z])'.qs),  rule('S[_x && _y]'.qs, '(S[_x]) && (S[_y])'.qs),
-                                                                                                                            rule('S[_x || _y]'.qs, '(S[_x]) || (S[_y])'.qs),
-                                                             // Unary seq operators
-                                                             rule('S[+_xs]'.qs, 'Array.prototype.slice.call((S[_xs]))'.qs),
+```.waul
+                                                         rule('S[_x ? _y : _z]'.qs, '(S[_x]) ? (S[_y]) : (S[_z])'.qs),  rule('S[_x && _y]'.qs, '(S[_x]) && (S[_y])'.qs),
+                                                                                                                        rule('S[_x || _y]'.qs, '(S[_x]) || (S[_y])'.qs),
+                                                         // Unary seq operators
+                                                         rule('S[+_xs]'.qs, 'Array.prototype.slice.call((S[_xs]))'.qs),
+```
 
-                                                             rule('S[_xs %_thing]'.qs,   filter_forms),   rule('S[_xs *_thing]'.qs,   map_forms),
-                                                             rule('S[_xs /_thing]'.qs,   fold_forms),     rule('S[_xs |_thing]'.qs,   exists_forms),
+```.waul
+                                                         rule('S[_xs %_thing]'.qs,   filter_forms),   rule('S[_xs *_thing]'.qs,   map_forms),
+                                                         rule('S[_xs /_thing]'.qs,   fold_forms),     rule('S[_xs |_thing]'.qs,   exists_forms),
+```
 
-                                                             rule('S[_xs %k*_thing]'.qs, kmap_forms),     rule('S[_xs %v*_thing]'.qs, vmap_forms),
-                                                             rule('S[_xs %k%_thing]'.qs, kfilter_forms),  rule('S[_xs %v%_thing]'.qs, vfilter_forms)]
+```.waul
+                                                         rule('S[_xs %k*_thing]'.qs, kmap_forms),     rule('S[_xs %v*_thing]'.qs, vmap_forms),
+                                                         rule('S[_xs %k%_thing]'.qs, kfilter_forms),  rule('S[_xs %v%_thing]'.qs, vfilter_forms)]
+```
 
-                        -where [// High-level form specializations
-                                operator_case(forms)(match)        = parse_modifiers(match._thing, use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
-                                                                     -where [use(form, iform)(body) = render_form(match._xs, body, form, iform)],
+```.waul
+                    -where [// High-level form specializations
+                            operator_case(forms)(match)        = parse_modifiers(match._thing, use(forms.normal, forms.inormal), use(forms.bang, forms.ibang), use(forms.tbang, forms.itbang))
+                                                                 -where [use(form, iform)(body) = render_form(match._xs, body, form, iform)],
+```
 
-                                map_forms                          = operator_case({normal: map,     bang: each,        tbang: flatmap,                                    itbang: iterate}),
-                                filter_forms                       = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                 itbang: imap_filter}),
-                                fold_forms                         = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl, ibang: ifoldr, itbang: iunfold}),
+```.waul
+                            map_forms                          = operator_case({normal: map,     bang: each,        tbang: flatmap,                                    itbang: iterate}),
+                            filter_forms                       = operator_case({normal: filter,  bang: filter_not,  tbang: map_filter,                                 itbang: imap_filter}),
+                            fold_forms                         = operator_case({normal: foldl,   bang: foldr,       tbang: unfold,     inormal: ifoldl, ibang: ifoldr, itbang: iunfold}),
+```
 
-                                kmap_forms                         = operator_case({normal: kmap,    bang: keach}),
-                                kfilter_forms                      = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
-                                vmap_forms                         = operator_case({normal: vmap,    bang: veach}),
-                                vfilter_forms                      = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
+```.waul
+                            kmap_forms                         = operator_case({normal: kmap,    bang: keach}),
+                            kfilter_forms                      = operator_case({normal: kfilter, bang: kfilter_not, tbang: kmap_filter}),
+                            vmap_forms                         = operator_case({normal: vmap,    bang: veach}),
+                            vfilter_forms                      = operator_case({normal: vfilter, bang: vfilter_not, tbang: vmap_filter}),
+```
 
-                                exists_forms                       = operator_case({normal: exists,  bang: not_exists,  tbang: r_exists,   inormal: iexists,               itbang: ir_exists}),
+```.waul
+                            exists_forms                       = operator_case({normal: exists,  bang: not_exists,  tbang: r_exists,   inormal: iexists,               itbang: ir_exists}),
+```
 
-                                parse_modifiers(tree, n, b, tb)    = ((r = '~!_x'.qs.match(tree)) ? tb(r._x) : (r = '!_x'.qs.match(tree)) ? b(r._x) : n(tree)) -where [r = null],
+```.waul
+                            parse_modifiers(tree, n, b, tb)    = ((r = '~!_x'.qs.match(tree)) ? tb(r._x) : (r = '!_x'.qs.match(tree)) ? b(r._x) : n(tree)) -where [r = null],
+```
 
-                                render_form(xs, body, form, iform) = ((r = '_var@0[_init][_x]'.qs.match(body) || '[_init][_x]'.qs.match(body)) ? use(iform, r) :
-                                                                      (r =        '_var@0[_x]'.qs.match(body) ||        '[_x]'.qs.match(body)) ? use(form,  r) : promote(form, body))
+```.waul
+                            render_form(xs, body, form, iform) = ((r = '_var@0[_init][_x]'.qs.match(body) || '[_init][_x]'.qs.match(body)) ? use(iform, r) :
+                                                                  (r =        '_var@0[_x]'.qs.match(body) ||        '[_x]'.qs.match(body)) ? use(form,  r) : promote(form, body))
+```
 
-                                                -where [r                = null,
-                                                        use(f, match)    = f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var)),
-                                                        promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ gensym_names), _s: xs}
-                                                                             /~replace/ gensym_names],
+```.waul
+                                            -where [r                = null,
+                                                    use(f, match)    = f.replace({_f: match._x, _init: match._init, _s: xs} /-$.merge/ names_for(match._var)),
+                                                    promote(f, body) = f /~replace/ {_f: (f.uses_x0 ? '_f(_x,_x0)'.qs : '_f(_x)'.qs).replace({_f: body} /-$.merge/ gensym_names), _s: xs}
+                                                                         /~replace/ gensym_names],
+```
 
-                                names_for(p)                       = p ? {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l', _xs: '#{p}s', _xr: '#{p}r'}
-                                                                       : {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs', _xr:    'xr'},
+```.waul
+                            names_for(p)                       = p ? {_x:  p , _x0: '#{p}0', _xi: '#{p}i', _xl: '#{p}l', _xs: '#{p}s', _xr: '#{p}r'}
+                                                                   : {_x: 'x', _x0:    'x0', _xi:    'xi', _xl:    'xl', _xs:    'xs', _xr:    'xr'},
+```
 
-                                // It's ok to use -seq inside the seq library due to waul precompilation
-                                gensym_names                       = names_for(null) %v*$.gensym -seq]
+```.waul
+                            // It's ok to use -seq inside the seq library due to waul precompilation
+                            gensym_names                       = names_for(null) %v*$.gensym -seq]
+```
 
-                        -where [// Setup for form definitions (see below)
-                                loop_anon   = $.anonymizer('x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
-                                scope       = anon('(function (_xs) {var _x, _x0, _xi, _xl, _xr; _body}).call(this, S[_s])'.qs),
-                                scoped(t)   = scope /~replace/ {_body: t},
+```.waul
+                    -where [// Setup for form definitions (see below)
+                            loop_anon   = $.anonymizer('x', 'y', 'i', 'j', 'l', 'lj', 'r', 'o', 'k'),
+                            scope       = anon('(function (_xs) {var _x, _x0, _xi, _xl, _xr; _body}).call(this, S[_s])'.qs),
+                            scoped(t)   = scope /~replace/ {_body: t},
+```
 
-                                form(x)     = x /!anon /!scoped /!loop_anon -se [it.uses_x0 = /_x0\s*=/.test(x.toString())],
+```.waul
+                            form(x)     = x /!anon /!scoped /!loop_anon -se [it.uses_x0 = /_x0\s*=/.test(x.toString())],
+```
 
-      // Form definitions
-      map         = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], _xr.push((_f));                                        return _xr'.qs),
-      each        = form('for (var                              _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], (_f);                                                  return _xs'.qs),
-      flatmap     = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], _xr.push.apply(_xr, Array.prototype.slice.call((_f))); return _xr'.qs),
+```.waul
+  // Form definitions
+  map         = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], _xr.push((_f));                                        return _xr'.qs),
+  each        = form('for (var                              _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], (_f);                                                  return _xs'.qs),
+  flatmap     = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length; _xi < _xl; ++_xi) _x = _xs[_xi], _xr.push.apply(_xr, Array.prototype.slice.call((_f))); return _xr'.qs),
+```
 
-      iterate     = form('for (var _x = _xs, _xi = 0, _x0, _xl; _x0 = (_init); ++_xi) _x = (_f); return _x'.qs),
+```.waul
+  iterate     = form('for (var _x = _xs, _xi = 0, _x0, _xl; _x0 = (_init); ++_xi) _x = (_f); return _x'.qs),
+```
 
-      filter      = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;    _xi < _xl; ++_xi) _x = _xs[_xi], (_f) && _xr.push(_x);      return _xr'.qs),
-      filter_not  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;    _xi < _xl; ++_xi) _x = _xs[_xi], (_f) || _xr.push(_x);      return _xr'.qs),
-      map_filter  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, y; _xi < _xl; ++_xi) _x = _xs[_xi], (y = (_f)) && _xr.push(y); return _xr'.qs),
+```.waul
+  filter      = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;    _xi < _xl; ++_xi) _x = _xs[_xi], (_f) && _xr.push(_x);      return _xr'.qs),
+  filter_not  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length;    _xi < _xl; ++_xi) _x = _xs[_xi], (_f) || _xr.push(_x);      return _xr'.qs),
+  map_filter  = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, y; _xi < _xl; ++_xi) _x = _xs[_xi], (y = (_f)) && _xr.push(y); return _xr'.qs),
+```
 
-      imap_filter = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0; _xi < _xl; ++_xi) _x = _xs[_xi], (_x0 = (_init)) && _xr.push(_f); return _xr'.qs),
+```.waul
+  imap_filter = form('for (var _xr = new _xs.constructor(), _xi = 0, _xl = _xs.length, _x0; _xi < _xl; ++_xi) _x = _xs[_xi], (_x0 = (_init)) && _xr.push(_f); return _xr'.qs),
+```
 
-      foldl       = form('for (var _x0 = _xs[0], _xi = 1, _xl = _xs.length;            _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f); return _x0'.qs),
-      foldr       = form('for (var _xl = _xs.length, _xi = _xl - 2, _x0 = _xs[_xl - 1]; _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f); return _x0'.qs),
-      unfold      = form('for (var _xr = [], _x = _xs, _xi = 0;                      _x !== null; ++_xi) _xr.push(_x), _x = (_f);   return _xr'.qs),
+```.waul
+  foldl       = form('for (var _x0 = _xs[0], _xi = 1, _xl = _xs.length;            _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f); return _x0'.qs),
+  foldr       = form('for (var _xl = _xs.length, _xi = _xl - 2, _x0 = _xs[_xl - 1]; _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f); return _x0'.qs),
+  unfold      = form('for (var _xr = [], _x = _xs, _xi = 0;                      _x !== null; ++_xi) _xr.push(_x), _x = (_f);   return _xr'.qs),
+```
 
-      ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = _xs.length;      _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f);      return _x0'.qs),
-      ifoldr      = form('for (var _xl = _xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f);      return _x0'.qs),
-      iunfold     = form('for (var _xr = [], _x = _xs, _xi = 0, _x0;          _x0 = (_init); ++_xi) _xr.push(_x), _x = (_f);        return _xr'.qs),
+```.waul
+  ifoldl      = form('for (var _x0 = (_init), _xi = 0, _xl = _xs.length;      _xi < _xl; ++_xi) _x = _xs[_xi], _x0 = (_f);      return _x0'.qs),
+  ifoldr      = form('for (var _xl = _xs.length - 1, _xi = _xl, _x0 = (_init); _xi >= 0; --_xi) _x = _xs[_xi], _x0 = (_f);      return _x0'.qs),
+  iunfold     = form('for (var _xr = [], _x = _xs, _xi = 0, _x0;          _x0 = (_init); ++_xi) _xr.push(_x), _x = (_f);        return _xr'.qs),
+```
 
-      exists      = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
-      not_exists  = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'.qs),
-      r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x, x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
+```.waul
+  exists      = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
+  not_exists  = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (x = (_f)) return false} return true'.qs),
+  r_exists    = form('for (var _xl = _xs.length, _xi = _xl - 1, _x, x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (x = (_f)) return x} return false'.qs),
+```
 
-      iexists     = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
-      ir_exists   = form('for (var _xl = _xs.length, _xi = _xl - 1, _x, x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
+```.waul
+  iexists     = form('for (var _x, _xi = 0, _xl = _xs.length, x; _xi < _xl; ++_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
+  ir_exists   = form('for (var _xl = _xs.length, _xi = _xl - 1, _x, x; _xi >= 0; --_xi) {_x = _xs[_xi]; if (_x0 = (_init)) return _f} return false'.qs),
+```
 
-      concat      = anon('(S[_xs]).concat((S[_ys]))'.qs),
+```.waul
+  concat      = anon('(S[_xs]).concat((S[_ys]))'.qs),
+```
 
-      kmap        = form('var _xr = new _xs.constructor(); for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x)) _xr[_f] = _xs[_x]; return _xr'.qs),
-      keach       = form('                                 for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x)) _f;                return _xs'.qs),
+```.waul
+  kmap        = form('var _xr = new _xs.constructor(); for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x)) _xr[_f] = _xs[_x]; return _xr'.qs),
+  keach       = form('                                 for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x)) _f;                return _xs'.qs),
+```
 
-      kfilter     = form('var _xr = new _xs.constructor();    for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x) &&      (_f))  _xr[_x] = _xs[_x]; return _xr'.qs),
-      kfilter_not = form('var _xr = new _xs.constructor();    for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x) &&    ! (_f))  _xr[_x] = _xs[_x]; return _xr'.qs),
-      kmap_filter = form('var _xr = new _xs.constructor(), x; for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x) && (x = (_f))) _xr[x]  = _xs[_x]; return _xr'.qs),
+```.waul
+  kfilter     = form('var _xr = new _xs.constructor();    for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x) &&      (_f))  _xr[_x] = _xs[_x]; return _xr'.qs),
+  kfilter_not = form('var _xr = new _xs.constructor();    for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x) &&    ! (_f))  _xr[_x] = _xs[_x]; return _xr'.qs),
+  kmap_filter = form('var _xr = new _xs.constructor(), x; for (var _x in _xs) if (Object.prototype.hasOwnProperty.call(_xs, _x) && (x = (_f))) _xr[x]  = _xs[_x]; return _xr'.qs),
+```
 
-      vmap        = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], _xr[k] = (_f); return _xr'.qs),
-      veach       = form('                                    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], _f;            return _xs'.qs),
+```.waul
+  vmap        = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], _xr[k] = (_f); return _xr'.qs),
+  veach       = form('                                    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], _f;            return _xs'.qs),
+```
 
-      vfilter     = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k],        (_f) && (_xr[k] = _x); return _xr'.qs),
-      vfilter_not = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k],        (_f) || (_xr[k] = _x); return _xr'.qs),
-      vmap_filter = form('var _xr = new _xs.constructor(), x; for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], x = (_f), x && (_xr[k] =  x); return _xr'.qs)],
+```.waul
+  vfilter     = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k],        (_f) && (_xr[k] = _x); return _xr'.qs),
+  vfilter_not = form('var _xr = new _xs.constructor();    for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k],        (_f) || (_xr[k] = _x); return _xr'.qs),
+  vmap_filter = form('var _xr = new _xs.constructor(), x; for (var  k in _xs) if (Object.prototype.hasOwnProperty.call(_xs, k)) _x = _xs[k], x = (_f), x && (_xr[k] =  x); return _xr'.qs)],
+```
 
-              word_macros     = [rule('S[n[_u]]'.qs,            n),  rule('S[ni[_u]]'.qs,            ni),
-                                 rule('S[n[_l, _u]]'.qs,        n),  rule('S[ni[_l, _u]]'.qs,        ni),
-                                 rule('S[n[_l, _u, _step]]'.qs, n),  rule('S[ni[_l, _u, _step]]'.qs, ni),
+```.waul
+          word_macros     = [rule('S[n[_u]]'.qs,            n),  rule('S[ni[_u]]'.qs,            ni),
+                             rule('S[n[_l, _u]]'.qs,        n),  rule('S[ni[_l, _u]]'.qs,        ni),
+                             rule('S[n[_l, _u, _step]]'.qs, n),  rule('S[ni[_l, _u, _step]]'.qs, ni),
+```
 
-                                 rule('S[_o /keys]'.qs,   keys),    rule('S[_o |object]'.qs, object),  rule('S[_o /mobject]'.qs, mobject),
-                                 rule('S[_o /values]'.qs, values),  rule('S[_o -object]'.qs, object),  rule('S[_o -mobject]'.qs, mobject),
-                                 rule('S[_o /pairs]'.qs,  pairs),   rule('S[_o /object]'.qs, object),  rule('S[_o |mobject]'.qs, mobject)]
+```.waul
+                             rule('S[_o /keys]'.qs,   keys),    rule('S[_o |object]'.qs, object),  rule('S[_o /mobject]'.qs, mobject),
+                             rule('S[_o /values]'.qs, values),  rule('S[_o -object]'.qs, object),  rule('S[_o -mobject]'.qs, mobject),
+                             rule('S[_o /pairs]'.qs,  pairs),   rule('S[_o /object]'.qs, object),  rule('S[_o |mobject]'.qs, mobject)]
+```
 
-                        -where [n(match)   = n_pattern .replace({_l: '0', _step: '1'} /-$.merge/ match),
-                                ni(match)  = ni_pattern.replace({_l: '0', _step: '1'} /-$.merge/ match),
+```.waul
+                    -where [n(match)   = n_pattern .replace({_l: '0', _step: '1'} /-$.merge/ match),
+                            ni(match)  = ni_pattern.replace({_l: '0', _step: '1'} /-$.merge/ match),
+```
 
-                                scope      = anon('(function (o) {_body}).call(this, (S[_o]))'.qs),
-                                scoped(t)  = scope.replace({_body: t}),
-                                form(p)    = "tree.replace(_)".qf -where [tree = scoped(anon(p))],
+```.waul
+                            scope      = anon('(function (o) {_body}).call(this, (S[_o]))'.qs),
+                            scoped(t)  = scope.replace({_body: t}),
+                            form(p)    = "tree.replace(_)".qf -where [tree = scoped(anon(p))],
+```
 
-      n_pattern  = anon('(function (i, u, s) {if ((u - i) * s <= 0)      return []; for (var r = [], d = u - i; d >= 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
-      ni_pattern = anon('(function (i, u, s) {if ((u - i) * s < 0 || !s) return []; for (var r = [], d = u - i; d >= 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
+```.waul
+  n_pattern  = anon('(function (i, u, s) {if ((u - i) * s <= 0)      return []; for (var r = [], d = u - i; d >= 0 ? i <  u : i >  u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
+  ni_pattern = anon('(function (i, u, s) {if ((u - i) * s < 0 || !s) return []; for (var r = [], d = u - i; d >= 0 ? i <= u : i >= u; i += s) r.push(i); return r})((_l), (_u), (_step))'.qs),
+```
 
-      keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'.qs),
-      values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'.qs),
-      pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'.qs),
+```.waul
+  keys       = form('var ks = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ks.push(k); return ks'.qs),
+  values     = form('var vs = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && vs.push(o[k]); return vs'.qs),
+  pairs      = form('var ps = []; for (var k in o) Object.prototype.hasOwnProperty.call(o, k) && ps.push([k, o[k]]); return ps'.qs),
+```
 
-      object     = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r'.qs),
-      mobject    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], (r[x[0]] || (r[x[0]] = [])).push(x[1]); return r'.qs)]])]});
+```.waul
+  object     = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], r[x[0]] = x[1]; return r'.qs),
+  mobject    = form('for (var r = {}, i = 0, l = o.length, x; i < l; ++i) x = o[i], (r[x[0]] || (r[x[0]] = [])).push(x[1]); return r'.qs)]])]});
+
+```
