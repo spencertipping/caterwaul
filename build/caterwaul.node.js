@@ -182,9 +182,9 @@
   // These operators matter only if you're writing waul-facing code. If you're writing Javascript-to-Javascript mappings you can ignore their existence, since no valid Javascript will contain
 //   them in the first place.
 
-    parse_reduce_order = map(hash, ['function', '( [ . [] ()', 'new delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in', '== != === !==',
-                                    '::', ':::', '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',', 'return throw break continue',
-                                    'var const', 'if else try catch finally for switch with while do', ';']),
+    parse_reduce_order = map(hash, ['function', 'new', '( [ . [] ()', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in',
+                                    '== != === !==', '::', ':::', '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',',
+                                    'return throw break continue', 'var const', 'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= :: ::: -> => ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case ' +
                               'with while do'),
@@ -258,8 +258,8 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ::
 //     These functions let you modify nodes in-place. They're used during syntax folding and shouldn't really be used after that (hence the underscores).
 
       _replace:  function (n) {return (n.l = this.l) && (this.l.r = n), (n.r = this.r) && (this.r.l = n), this},  _append_to: function (n) {return n && n._append(this), this},
-      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function (n) {return this._append(this.l && this.l._unlink(this) || empty)},
-      _append:   function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function (n) {return this._append(this.r && this.r._unlink(this) || empty)},
+      _reparent: function (n) {return this.p && this.p[0] === this && (this.p[0] = n), this},  _fold_l: function () {return this._append(this.l && this.l._unlink(this) || empty)},
+      _append:   function (n) {return (this[this.length++] = n) && (n.p = this), this},        _fold_r: function () {return this._append(this.r && this.r._unlink(this) || empty)},
       _sibling:  function (n) {return n.p = this.p, (this.r = n).l = this},                    _fold_lr: function () {return this._fold_l()._fold_r()},
                                                                                                _fold_rr: function () {return this._fold_r()._fold_r()},
 
@@ -268,7 +268,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ::
 
     // These methods are OK for use after the syntax folding stage is over (though because syntax nodes are shared it's generally dangerous to go modifying them):
 
-      pop: function () {return --this.length, this},  push: function (x) {return this[this.length++] = caterwaul_global.syntax.promote(x || empty), this},
+      pop: function () {return delete this[--this.length], this},  push: function (x) {return this[this.length++] = caterwaul_global.syntax.promote(x || empty), this},
 
     // Identification.
 //     You can request that a syntax node identify itself, in which case it will give you an identifier if it hasn't already. The identity is not determined until the first time it is requested,
@@ -980,8 +980,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
       // Caterwaul 1.3.1 stores infix data on group nodes such as (), [], {}, and ?:. The result is that it should be possible to reconstruct the original input string.
 
-        t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], (head || parent).infix_data = shift_prefix(), head = head ? head.p : parent, parent = null) :
-                       (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(new syntax_node(t))), groups.push(parent), head = null)
+        t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], (head || parent).infix_data = shift_prefix(), head = head ? head.p : parent, parent = null)
+                     : (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(new syntax_node(t))), groups.push(parent), head = null)
                                             : push(prefixed_node(new syntax_node(t))),
                         has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
 
@@ -1026,7 +1026,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 //     array. The parse_index_forward[] array indicates which indexes should be run left-to-right and which should go right-to-left.
 
         for (var i = 0, l = indexes.length, forward, _; _ = indexes[i], forward = parse_index_forward[i], i < l; ++i)
-          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data, ll; forward ? j < lj : j >= 0; j += inc)
+          for (var j = forward ? 0 : _.length - 1, lj = _.length, inc = forward ? 1 : -1, node, data, r, ll, rr; forward ? j < lj : j >= 0; j += inc)
 
       // Binary node behavior.
 //       The most common behavior is binary binding. This is the usual case for operators such as '+' or ',' -- they grab one or both of their immediate siblings regardless of what they are.
@@ -1038,6 +1038,27 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
             if (has(parse_lr, data = (node = _[j]).data))  if (data === ':' && parse_inverse_order[node.r.data] > i) node._fold_l();
                                                            else                                                      node._fold_lr();
+
+      // The "new" operator.
+//       This obsequious bow to Java is quite possibly the ugliest single thing about Javascript. Caterwaul 1.3 and prior just represented 'new' as a regular prefix unary operator, but Caterwaul
+//       1.3.1 groups it such that its operand represents a constructor function or invocation. Parsing 'new' is nontrivial because it grabs all dereferences (. and []) to its right until it
+//       gets an invocation (which it might not). We then consume that invocation if there is one. Here's what we're doing (line distance is just to accommodate things; it doesn't have meaning):
+
+      // | new x . y . z ( . f (          new  . y . z ( . f (          new . z ( . f (         new ( . f (          new . f (
+//                        \     \    ->   /             \     \   ->    /        \     \   ->   /    \     \   ->    /        \
+//                         a     g       x               a     g       x . y      a     g      /      a     g       /          g
+//                                                                                            /                    /
+//                                                                                           x . y . z            x . y . z (
+//                                                                                                                           \
+//                                                                                                                            a
+
+      // So basically, we munch one thing up front, then continue until we hit a non-dereference; we finally eat the invocation too if we have one.
+
+       else if (data === 'new')  {for (var consume = [node.r._unlink(node)]; (r = node.r) && /^[\[\.]$/.test(r.data);) consume.push(node.r._unlink(node)),
+                                                                                                                       r.data === '.' && consume.push(node.r._unlink(node));
+                                  if (r && r.data === '(') consume.push(node.r._unlink(node));
+                                  node._append(consume[0]);
+                                  for (var ci = 1, cl = consume.length; ci < cl; ++ci) consume[ci - 1]._sibling(consume[ci])}           // relink l and r pointers for new children
 
       // Ambiguous parse groups.
 //       As mentioned above, we need to determine whether grouping constructs are invocations or real groups. This happens to take place before other operators are parsed (which is good -- that
