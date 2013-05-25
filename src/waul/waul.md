@@ -117,18 +117,28 @@ caterwaul.module('waul', 'js_all', function ($) {
 ```
 
 ```.waul
-         waul_node_repl()           = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
-                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: $, caterwaul: $, require: require})) -rescue- cc(e, undefined),
-                                      instance                 = $(options.configuration)],
+         repl_history(size)         = wcapture [items      = [],
+                                                limit      = size || 5,
+                                                push(x)    = items.unshift(x) -then- items.pop() /when [items.length > limit] -then- x,
+                                                bindings() = n[limit] *[['_#{x + 1}', items[x]]] -object -seq],
 ```
 
 ```.waul
-         waul_simple_repl()         = introduce() -then- process.stdin.on('data', require('util') /~inspect/ instance(s, {$: $, caterwaul: $, require: require})
-                                                                                  -re- process.stderr.write('#{it}\n', 'utf8')
+         waul_node_repl()           = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
+                              -where [evaluator(s, _1, _2, cc) = cc(null, history /~push/ instance(s, {$: $, caterwaul: $, require: require} /-$.merge/ history.bindings())) -rescue- cc(e, undefined),
+                                      instance                 = $(options.configuration),
+                                      history                  = repl_history()],
+```
+
+```.waul
+         waul_simple_repl()         = introduce() -then- process.stdin.on('data', require('util') /~inspect/ history.push(instance(s, {$: $, caterwaul: $, require: require}
+                                                                                                                                      /-$.merge/ history.bindings()))
+                                                                                  -re-     process.stderr.write('#{it}\n', 'utf8')
                                                                                   -rescue- process.stderr.write('Error: #{e}') -given.s)
                                                   -then- process.stdin /~setEncoding/ 'utf8'
                                                   -then- process.stdin.resume()
-                              -where [instance = $(options.configuration)],
+                              -where [instance = $(options.configuration),
+                                      history  = repl_history()],
 ```
 
 ```.waul

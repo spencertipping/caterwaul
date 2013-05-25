@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  10445c609471e5fe5ecf788830d7ae97
-# istate: 1fb1f8f3f7a4cd2c76053482ec4d50dd
+# state:  9f439be938bfccaed69bb4b4da4bc038
+# istate: 1208046d23feebe45eda157027dbf384
 # id:     97d938428ee6c4d2a505f6f35bad0906
 
 # This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
@@ -3794,16 +3794,24 @@ caterwaul.module('waul', 'js_all', function ($) {
                                                            'Licensed under the terms of the MIT source code license\n' +
                                                            'http://github.com/spencertipping/caterwaul\n'),
 
-         waul_node_repl()           = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
-                              -where [evaluator(s, _1, _2, cc) = cc(null, instance(s, {$: $, caterwaul: $, require: require})) -rescue- cc(e, undefined),
-                                      instance                 = $(options.configuration)],
+         repl_history(size)         = wcapture [items      = [],
+                                                limit      = size || 5,
+                                                push(x)    = items.unshift(x) -then- items.pop() /when [items.length > limit] -then- x,
+                                                bindings() = n[limit] *[['_#{x + 1}', items[x]]] -object -seq],
 
-         waul_simple_repl()         = introduce() -then- process.stdin.on('data', require('util') /~inspect/ instance(s, {$: $, caterwaul: $, require: require})
-                                                                                  -re- process.stderr.write('#{it}\n', 'utf8')
+         waul_node_repl()           = introduce() -then- require('repl').start('waul> ', undefined, evaluator)
+                              -where [evaluator(s, _1, _2, cc) = cc(null, history /~push/ instance(s, {$: $, caterwaul: $, require: require} /-$.merge/ history.bindings())) -rescue- cc(e, undefined),
+                                      instance                 = $(options.configuration),
+                                      history                  = repl_history()],
+
+         waul_simple_repl()         = introduce() -then- process.stdin.on('data', require('util') /~inspect/ history.push(instance(s, {$: $, caterwaul: $, require: require}
+                                                                                                                                      /-$.merge/ history.bindings()))
+                                                                                  -re-     process.stderr.write('#{it}\n', 'utf8')
                                                                                   -rescue- process.stderr.write('Error: #{e}') -given.s)
                                                   -then- process.stdin /~setEncoding/ 'utf8'
                                                   -then- process.stdin.resume()
-                              -where [instance = $(options.configuration)],
+                              -where [instance = $(options.configuration),
+                                      history  = repl_history()],
 
          waul_repl()                = options.simple_repl ? waul_simple_repl() : waul_node_repl(),
 
