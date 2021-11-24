@@ -155,15 +155,19 @@
   // Caterwaul 1.2 adds @ as an identifier character. This is a hack for me to encode metadata on symbols without having to build subtrees, and it is transparent to Javascript->Javascript
 //   compilation since @ is not a valid character in Javascript.
 
-       lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ? = += -= *= /= %= &= |= ^= <<= >>= >>>= : , ' +
-                     'return throw case var const break continue else u; ;'),
+  // ES5 adds function* and yield* as keywords, which breaks the "reserved words look like identifiers" property.
+
+  lex_starred = hash('function* yield*'),
+       lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! u* ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ?? ? = += -= *= /= %= &= |= ^= <<= >>= >>>= ' +
+                     ': , &&= ||= ??= => return throw case var const let async await yield yield* break continue else u; ;'),
 
     lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
     lex_float = lex_table('.0123456789'),    lex_decimal = lex_table('0123456789'),  lex_integer = lex_table('0123456789abcdefABCDEFx'),  lex_exp = lex_table('eE'),
     lex_space = lex_table(' \n\r\t'),        lex_bracket = lex_table('()[]{}?:'),     lex_opener = lex_table('([{?:'),                  lex_punct = lex_table('+-*/%&|^!~=<>?:;.,'),
       lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
      lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('@$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
-     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),  lex_dot = '.'.charCodeAt(0),  lex_hash = '#'.charCodeAt(0),
+     lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
+ lex_backtick = '`'.charCodeAt(0),              lex_hash = '#'.charCodeAt(0),
 
   // Parse data.
 //   The lexer and parser aren't entirely separate, nor can they be considering the complexity of Javascript's grammar. The lexer ends up grouping parens and identifying block constructs such
@@ -172,34 +176,30 @@
   // Caterwaul 1.2.7 and 1.3 introduce a few fictional operators into the list. These operators are written such that they could never appear in valid Javascript, but are available to
 //   non-Javascript compilers like waul. So far these operators are:
 
-  // | ->  right-associative; folds just before = and ?
-//     =>  right-associative; same precedence as ->
-//     &&= right-associative; same precedence as =, +=, etc
-//     ||= right-associative; same precedence as =, +=, etc
-//     ::  right-associative; folds just after == and ===
+  // | ::  right-associative; folds just after == and ===
 //     ::: right-associative; folds just after ::
 
   // These operators matter only if you're writing waul-facing code. If you're writing Javascript-to-Javascript mappings you can ignore their existence, since no valid Javascript will contain
 //   them in the first place.
 
-    parse_reduce_order = map(hash, ['function', 'new', '( [ . [] ()', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u-', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in',
-                                    '== != === !==', '::', ':::', '&', '^', '|', '&&', '||', '-> =>', 'case', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||=', ':', ',',
-                                    'return throw break continue', 'var const', 'if else try catch finally for switch with while do', ';']),
+    parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u*', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in',
+                                    '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '-> =>', 'case async', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', ':', ',',
+                                    'return throw break continue yield yield* await', 'var const let', 'if else try catch finally for switch with while do', ';']),
 
-parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= :: ::: -> => ~ ! new typeof void u+ u- -- ++ u-- u++ ? if else function try catch finally for switch case ' +
-                              'with while do'),
+parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??= :: ::: -> => ~ ! new typeof void u+ u* u- -- ++ u-- u++ ? if else function function* try catch finally for ' +
+                              'switch case with while do async'),
 
    parse_inverse_order = (function (xs) {for (var  o = {}, i = 0, l = xs.length; i < l; ++i) for (var k in xs[i]) has(xs[i], k) && (o[k] = i); return annotate_keys(o)})(parse_reduce_order),
    parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
                                            for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs})(parse_reduce_order),
 
-              parse_lr = hash('[] . () * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
-   parse_r_until_block = annotate_keys({'function':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
+              parse_lr = hash('[] . () ?. * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
+   parse_r_until_block = annotate_keys({'function':2, 'function*':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
          parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
-      parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- new typeof finally case var const void delete'),
+      parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- u* new typeof finally case let var const void delete yield yield* await'),
            parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
- parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function if for while with catch void delete new typeof in instanceof'),
- parse_also_expression = hash('function'),                     parse_misleading_postfix = hash(':'),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function function* if for while with catch void delete new typeof in instanceof'),
+ parse_also_expression = hash('function function*'),           parse_misleading_postfix = hash(':'),
 
 // Syntax data structures.
 // There are two data structures used for syntax trees. At first, paren-groups are linked into doubly-linked lists, described below. These are then folded into immutable array-based specific
@@ -525,7 +525,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ::
                                                                      return result.join('')};
 
     caterwaul_global.javascript_tree_type_methods = {
-               is_string: function () {return /['"]/.test(this.data.charAt(0))},           as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
+               is_string: function () {return /['"`]/.test(this.data.charAt(0))},          as_escaped_string: function () {return this.data.substr(1, this.data.length - 2)}, 
                is_number: function () {return /^-?(0x|\d|\.\d+)/.test(this.data)},                 as_number: function () {return Number(this.data)},
               is_boolean: function () {return this.data === 'true' || this.data === 'false'},     as_boolean: function () {return this.data === 'true'},
                is_regexp: function () {return /^\/./.test(this.data)},                     as_escaped_regexp: function () {return this.data.substring(1, this.data.lastIndexOf('/'))},
@@ -540,9 +540,10 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ::
              is_constant: function () {return this.is_number() || this.is_string() || this.is_boolean() || this.is_regexp() || this.is_null_or_undefined()},
           left_is_lvalue: function () {return /=$/.test(this.data) || /\+\+$/.test(this.data) || /--$/.test(this.data)},
 
-                is_empty: function () {return !this.length},                              has_parameter_list: function () {return this.data === 'function' || this.data === 'catch'},
-         has_lvalue_list: function () {return this.data === 'var' || this.data === 'const'},  is_dereference: function () {return this.data === '.' || this.data === '[]'},
+                is_empty: function () {return !this.length},                                  is_dereference: function () {return this.data === '.' || this.data === '[]'},
            is_invocation: function () {return this.data === '()'},              is_contextualized_invocation: function () {return this.is_invocation() && this[0].is_dereference()},
+      has_parameter_list: function () {return this.data === 'function' || this.data === 'function*' || this.data === 'catch'},
+         has_lvalue_list: function () {return this.data === 'var'      || this.data === 'const'     || this.data === 'let'},
 
             is_invisible: function () {return has(parse_invisible, this.data)},           is_binary_operator: function () {return has(parse_lr, this.data)},
 is_prefix_unary_operator: function () {return has(parse_r, this.data)},            is_postfix_unary_operator: function () {return has(parse_l,  this.data)},
@@ -588,7 +589,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
       ends_with_block: function () {var block = this[this.length - 1];
                                     if (block && block.data === parse_accepts[this.data]) block = block[0];
-                                    return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' || this.length === 3) && block && block.ends_with_block()},
+                                    return this.data === '{' || has(parse_r_until_block, this.data) && (this.data !== 'function' && this.data !== 'function*' || this.length === 3)
+                                        && block && block.ends_with_block()},
 
     // There's a hack here for single-statement if-else statements. (See 'Grab-until-block behavior' in the parsing code below.) Basically, for various reasons the syntax tree won't munch the
 //     semicolon and connect it to the expression, so we insert one automatically whenever the second node in an if, else, while, etc. isn't a block.
@@ -905,6 +907,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
        else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i <= l && ! lex_eol[cs(i - 1)]);
        else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
 
+      // Backtick-string lexing.
+//       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime.
+
+       else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; t = 1}
+
       // Regexp and string literal lexing.
 //       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically
 //       illegal for a string to occur anywhere that a slash would indicate division (and it is also illegal to follow a string literal with extra characters), so reusing the regular expression
@@ -957,7 +964,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // Extended ASCII and above are considered identifiers. This allows Caterwaul to parse Unicode source, even though it will fail to distinguish between Unicode operator symbols and Unicode
 //       letters.
 
-       else {while (++i < l && (lex_ident[c = cs(i)] || c > 0x7f)); re = has(lex_op, t = s.substring(mark, i))}
+       else {while (++i < l && (lex_ident[c = cs(i)] || c > 0x7f || has(lex_starred, s.substring(mark, i + 1)))); re = has(lex_op, t = s.substring(mark, i))}
 
       // Token unification.
 //       t will contain true, false, or a string. If false, no token was lexed; this happens when we read a comment, for example. If true, the substring method should be used. (It's a shorthand to
@@ -1081,7 +1088,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // In this case we need to encode an invocation. Fortunately by this point the function node is already folded.
 
        else if (has(parse_ambiguous_group, data) && node.l && ! ((ll = node.l.l) && has(parse_r_until_block, ll.data)) &&
-               (node.l.data === '.' || (node.l.data === 'function' && node.l.length === 2) ||
+               (node.l.data === '.' || ((node.l.data === 'function' || node.l.data === 'function*') && node.l.length === 2) ||
                                        ! (has(lex_op, node.l.data) ||
                                           has(parse_not_a_value, node.l.data))))  invocation_nodes.push(node.l._wrap(new_node(new syntax_node(data + parse_group[data]))).p._fold_r());
 

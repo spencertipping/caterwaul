@@ -657,7 +657,10 @@ file::write("std.$_.md", retrieve("markdown::sdoc::waul::std.$_")),
 waul("std.$_.waul", output => "build/std.$_.js") for @pieces;
 
 file::write('build/caterwaul.std.js', cat('pp::js::caterwaul.std'));
-minify_yui('build/caterwaul.std.js') unless $$options{-M};
+
+$$options{-M}
+  ? file::write('build/caterwaul.std.min.js', file::read('build/caterwaul.std.js'))
+  : minify_uglify('build/caterwaul.std.js');
 
 __
 meta::function('rm', <<'__');

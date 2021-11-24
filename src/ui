@@ -657,7 +657,10 @@ file::write("ui.$_.md",   retrieve("markdown::sdoc::waul::ui.$_")),
 waul("ui.$_.waul", output => "build/ui.$_.js") for @pieces;
 
 file::write('build/caterwaul.ui.js', cat('pp::js::caterwaul.ui'));
-minify_yui('build/caterwaul.ui.js') unless $$options{-M};
+
+$$options{-M}
+  ? file::write('build/caterwaul.ui.min.js', file::read('build/caterwaul.ui.js'))
+  : minify_uglify('build/caterwaul.ui.js');
 
 __
 meta::function('rm', <<'__');

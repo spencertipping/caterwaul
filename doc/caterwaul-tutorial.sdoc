@@ -7,7 +7,7 @@ you're a normal person who wants to use modern tools to write normal, maintainab
 recommend using <a href='http://coffeescript.org' target='_blank'>CoffeeScript</a> instead.
 
 This page is written in Caterwaul using the libraries covered below. If you're feeling adventurous, you might be interested to see the <a
-href='https://github.com/spencertipping/caterwaul/blob/1.2/src/caterwaul.md' target='_blank'>annotated source</a> (the standard library has similar documentation and is in the same directory).
+href='https://github.com/spencertipping/caterwaul/blob/1.3-es5/src/caterwaul.md' target='_blank'>annotated source</a> (the standard library has similar documentation and is in the same directory).
 
 A <a href='javascript:void($(".shell").click().find(".input").val("help()"))'>shell</a> is available to interactively use Caterwaul while reading the tutorial below.
 
