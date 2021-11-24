@@ -158,7 +158,7 @@
   // ES5 adds function* and yield* as keywords, which breaks the "reserved words look like identifiers" property.
 
   lex_starred = hash('function* yield*'),
-       lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! u* ! * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || ?? ? = += -= *= /= %= &= |= ^= <<= >>= >>>= ' +
+       lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! u* ! * / % + - << >> >>> < > <= >= instanceof in of == != === !== & ^ | && || ?? ? = += -= *= /= %= &= |= ^= <<= >>= >>>= ' +
                      ': , &&= ||= ??= => return throw case var const let async await yield yield* break continue else u; ;'),
 
     lex_table = function (s) {for (var i = 0, xs = [false]; i < 8; ++i) xs.push.apply(xs, xs); for (var i = 0, l = s.length; i < l; ++i) xs[s.charCodeAt(i)] = true; return xs},
@@ -182,9 +182,10 @@
   // These operators matter only if you're writing waul-facing code. If you're writing Javascript-to-Javascript mappings you can ignore their existence, since no valid Javascript will contain
 //   them in the first place.
 
-    parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u*', '* / %', '+ -', '<< >> >>>', '< > <= >= instanceof in',
-                                    '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '-> =>', 'case async', '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', ':', ',',
-                                    'return throw break continue yield yield* await', 'var const let', 'if else try catch finally for switch with while do', ';']),
+    parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u*', '* / %', '+ -', '<< >> >>>',
+                                    '< > <= >= instanceof in', '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '-> =>', 'case async',
+                                    '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', ': of', ',', 'return throw break continue yield yield* await', 'var const let',
+                                    'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??= :: ::: -> => ~ ! new typeof void u+ u* u- -- ++ u-- u++ ? if else function function* try catch finally for ' +
                               'switch case with while do async'),
@@ -193,12 +194,12 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??
    parse_index_forward = (function (rs) {for (var xs = [], i = 0, l = rs.length, _ = null; _ = rs[i], xs[i] = true, i < l; ++i)
                                            for (var k in _) if (has(_, k) && (xs[i] = xs[i] && ! has(parse_associates_right, k))) break; return xs})(parse_reduce_order),
 
-              parse_lr = hash('[] . () ?. * / % + - << >> >>> < > <= >= instanceof in == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
+              parse_lr = hash('[] . () ?. * / % + - << >> >>> < > <= >= instanceof in of == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
    parse_r_until_block = annotate_keys({'function':2, 'function*':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
          parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
       parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- u* new typeof finally case let var const void delete yield yield* await'),
            parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
- parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function function* if for while with catch void delete new typeof in instanceof'),
+ parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function function* if for while with catch void delete new typeof of in instanceof'),
  parse_also_expression = hash('function function*'),           parse_misleading_postfix = hash(':'),
 
 // Syntax data structures.
