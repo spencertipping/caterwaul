@@ -968,7 +968,11 @@ Caterwaul 1.2 adds the static caterwaul.syntax.from_string() constructor to simp
 ```
 
 ```
-                               function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
+                               function () {this.around      = function (start, end, d) {var s = new caterwaul_global.syntax(d); s.start = start; s.end = end; return s};
+```
+
+```
+                                            this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
                                                                                                                                                 replace(/\n/g, '\\n') + '"')};
 ```
 
@@ -1229,8 +1233,8 @@ Caterwaul 1.3.1 stores infix data on group nodes such as (), [], {}, and ?:. The
 
 ```
   t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], (head || parent).infix_data = shift_prefix(), head = head ? head.p : parent, parent = null)
-               : (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(new syntax_node(t))), groups.push(parent), head = null)
-                                      : push(prefixed_node(new syntax_node(t))),
+               : (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(syntax_node.around(mark, i, t))), groups.push(parent), head = null)
+                                      : push(prefixed_node(syntax_node.around(mark, i, t))),
                   has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
 ```
 

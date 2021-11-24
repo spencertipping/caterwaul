@@ -780,7 +780,9 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                    caterwaul_global.javascript_tree_metadata_methods,
                                    caterwaul_global.javascript_tree_serialization_methods),
 
-                                 function () {this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
+                                 function () {this.around      = function (start, end, d) {var s = new caterwaul_global.syntax(d); s.start = start; s.end = end; return s};
+
+                                              this.from_string = function (s)  {return new caterwaul_global.syntax('"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').
                                                                                                                                                   replace(/\n/g, '\\n') + '"')};
 
                                               this.from_array  = function (xs) {for (var i = 0, c = new caterwaul_global.syntax(','), l = xs.length; i < l; ++i) c.push(xs[i]);
@@ -989,8 +991,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // Caterwaul 1.3.1 stores infix data on group nodes such as (), [], {}, and ?:. The result is that it should be possible to reconstruct the original input string.
 
         t === gs_top ? (grouping_stack.pop(), gs_top = grouping_stack[grouping_stack.length - 1], (head || parent).infix_data = shift_prefix(), head = head ? head.p : parent, parent = null)
-                     : (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(new syntax_node(t))), groups.push(parent), head = null)
-                                            : push(prefixed_node(new syntax_node(t))),
+                     : (has(parse_group, t) ? (grouping_stack.push(gs_top = parse_group[t]), parent = push(prefixed_node(syntax_node.around(mark, i, t))), groups.push(parent), head = null)
+                                            : push(prefixed_node(syntax_node.around(mark, i, t))),
                         has(parse_inverse_order, t) && indexes[parse_inverse_order[t]].push(head || parent));           // <- This is where the indexing happens
 
       // Regexp flag special cases.
