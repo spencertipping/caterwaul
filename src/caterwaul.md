@@ -182,8 +182,8 @@ ES5 adds function* and yield* as keywords, which breaks the "reserved words look
 
 ```
 lex_starred = hash('function* yield*'),
-     lex_op = hash('. new ++ -- u++ u-- u+ u- typeof void u~ u! u* ! * / % + - << >> >>> < > <= >= instanceof in of == != === !== & ^ | && || ?? ? = += -= *= /= %= &= |= ^= <<= >>= >>>= ' +
-                   ': , &&= ||= ??= => return throw case var const let async await yield yield* break continue else u; ;'),
+     lex_op = hash('. ?. new ++ -- u++ u-- u+ u- typeof void u~ u! u* u... ! * / % + - << >> >>> < > <= >= instanceof in of == != === !== & ^ | && || ?? ? = ' +
+                   '+= -= *= /= %= &= |= ^= <<= >>= >>>= : , &&= ||= ??= => return throw case var const let async await yield yield* break continue else u; ;'),
 ```
 
 ```
@@ -193,7 +193,7 @@ lex_starred = hash('function* yield*'),
     lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
    lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('@$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
    lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
- lex_backtick = '`'.charCodeAt(0),              lex_hash = '#'.charCodeAt(0),
+ lex_backtick = '`'.charCodeAt(0),              lex_hash = '#'.charCodeAt(0),          lex_qmark = '?'.charCodeAt(0),
 ```
 
 ## Parse data
@@ -211,7 +211,7 @@ These operators matter only if you're writing waul-facing code. If you're writin
 them in the first place.
 
 ```
-  parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u*', '* / %', '+ -', '<< >> >>>',
+  parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u* u...', '* / %', '+ -', '<< >> >>>',
                                   '< > <= >= instanceof in', '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '-> =>', 'case async',
                                   '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', ': of', ',', 'return throw break continue yield yield* await', 'var const let',
                                   'if else try catch finally for switch with while do', ';']),
@@ -229,11 +229,11 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??
 ```
 
 ```
-            parse_lr = hash('[] . () ?. * / % + - << >> >>> < > <= >= instanceof in of == != === !== & ^ | && || -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= , : ;'),
+            parse_lr = hash('[] . () ?. * / % + - << >> >>> < > <= >= instanceof in of == != === !== & ^ | && || ?? -> => = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??= , : ;'),
  parse_r_until_block = annotate_keys({'function':2, 'function*':2, 'if':1, 'do':1, 'catch':1, 'try':1, 'for':1, 'while':1, 'with':1, 'switch':1}),
        parse_accepts = annotate_keys({'if':'else', 'do':'while', 'catch':'finally', 'try':'catch'}),  parse_invocation = hash('[] ()'),
-    parse_r_optional = hash('return throw break continue else'),              parse_r = hash('u+ u- u! u~ u++ u-- u* new typeof finally case let var const void delete yield yield* await'),
-         parse_block = hash('; {'),  parse_invisible = hash('i;'),            parse_l = hash('++ --'),     parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
+    parse_r_optional = hash('return throw break continue else'),    parse_l = hash('++ --'),               parse_group = annotate_keys({'(':')', '[':']', '{':'}', '?':':'}),
+         parse_block = hash('; {'),  parse_invisible = hash('i;'),  parse_r = hash('u+ u- u! u~ u++ u-- u* u... new typeof finally case let var const void delete yield yield* await'),
  parse_ambiguous_group = hash('[ ('),    parse_ternary = hash('?'),   parse_not_a_value = hash('function function* if for while with catch void delete new typeof of in instanceof'),
  parse_also_expression = hash('function function*'),           parse_misleading_postfix = hash(':'),
 ```
@@ -1126,7 +1126,7 @@ Javascript files.
 
 ```
       if                                  (lex_space[c = cs(i)]) while (++i < l && lex_space[cs(i)]);
- else if                                        (lex_bracket[c]) ++i, t = 1, re = lex_opener[c];
+ else if                     (lex_bracket[c] && c !== lex_qmark) ++i, t = 1, re = lex_opener[c];
  else if (c === lex_slash && cs(i + 1) === lex_star && (i += 2)) while (++i <= l && (cs(i - 1) !== lex_slash || cs(i - 2) !== lex_star));
  else if            (c === lex_slash && cs(i + 1) === lex_slash) while (++i <= l && ! lex_eol[cs(i - 1)]);
  else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
@@ -1191,6 +1191,7 @@ The only exception to the regular logic happens if the operator is postfix-unary
 
 ```
  else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+ else if                                (c === lex_qmark) ++i, t = re = 1;
 ```
 
 #### Identifier lexing
