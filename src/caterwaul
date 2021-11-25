@@ -2642,7 +2642,7 @@ we can grab the token that precedes () (along with perhaps one more in the case 
       Backtick-string lexing.
       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime.
 
-       else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; t = 1}
+       else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; re = !(t = 1)}
 
       Regexp and string literal lexing.
       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically

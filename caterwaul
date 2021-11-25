@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  7f6fce094377c2d7ce5b2b4d2650e34a
+# state:  93515886a7872294eeda2c0195984c9b
 # istate: eefc9f8e75f368c1152766f7076ede7e
 # id:     97d938428ee6c4d2a505f6f35bad0906
 
@@ -1241,7 +1241,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
       // Backtick-string lexing.
 //       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime.
 
-       else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; t = 1}
+       else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; re = !(t = 1)}
 
       // Regexp and string literal lexing.
 //       These both take more or less the same form. The idea is that we have an opening delimiter, which can be ", ', or /; and we look for a closing delimiter that follows. It is syntactically

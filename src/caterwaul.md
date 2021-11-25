@@ -1137,7 +1137,7 @@ Javascript files.
 Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime.
 
 ```
- else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; t = 1}
+ else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; re = !(t = 1)}
 ```
 
 #### Regexp and string literal lexing
