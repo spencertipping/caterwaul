@@ -467,7 +467,7 @@ parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??
 //     comments. Now they are folded into implied semicolons by the parser, so they should never appear by the time serialization happens.
 
       toString:  function (depth) {var xs = ['']; this.serialize(xs, depth || -1); return xs.join('')},
-      structure: function ()      {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x.structure()}, this)).join(' ') + ')';
+      structure: function ()      {if (this.length) return '(' + ['"' + this.data + '"'].concat(map(function (x) {return x != null ? x.structure() : x}, this)).join(' ') + ')';
                                    else             return this.data}};
 
   // Syntax node subclassing.
@@ -774,7 +774,8 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                     else {this.data = data && data.toString(); this.length = 0;
                                                       for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                         for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                          this._append(caterwaul_global.syntax.promote(it))}},
+                                                          if ((it = caterwaul_global.syntax.promote(it)) instanceof caterwaul_global.syntax)
+                                                            this._append(it)}},
 
                                    caterwaul_global.javascript_tree_type_methods,
                                    caterwaul_global.javascript_tree_metadata_methods,
