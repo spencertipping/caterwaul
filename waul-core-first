@@ -774,8 +774,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                     else {this.data = data && data.toString(); this.length = 0;
                                                       for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                         for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                          if ((it = caterwaul_global.syntax.promote(it)) instanceof caterwaul_global.syntax)
-                                                            this._append(it)}},
+                                                          this._append(caterwaul_global.syntax.promote(it))}},
 
                                    caterwaul_global.javascript_tree_type_methods,
                                    caterwaul_global.javascript_tree_metadata_methods,
@@ -912,7 +911,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
        else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
 
       // Backtick-string lexing.
-//       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime.
+//       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime. We don't parse or split interpolated expressions (sorry).
 
        else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; re = !(t = 1)}
 
@@ -958,8 +957,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
       // The only exception to the regular logic happens if the operator is postfix-unary. (e.g. ++, --.) If so, then the re flag must remain false, since expressions like 'x++ / 4' can be valid.
 
-       else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
-       else if                                (c === lex_qmark) ++i, t = re = 1;
+      // We have a special branch to parse the "..." prefix-unary splat operator. It's difficult to deal with otherwise since ".." isn't a valid operator (so you can't build up to it).
+
+       else if (re && c === lex_dot && s.substr(i, 3) === '...') i += 3, t = 'u...';
+       else if  (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i))) t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+       else if                                 (c === lex_qmark) ++i, t = re = 1;
 
       // Identifier lexing.
 //       If nothing else matches, then the token is lexed as a regular identifier or Javascript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is

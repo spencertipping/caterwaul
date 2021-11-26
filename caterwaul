@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  cfd1493caa60f5a28ae85e0c5cf64e1a
-# istate: eefc9f8e75f368c1152766f7076ede7e
+# state:  906e4dff7150c9d103da26ccd2a8c46c
+# istate: 381b6c19c70e6e6ff4b79fa0d02e5b56
 # id:     97d938428ee6c4d2a505f6f35bad0906
 
 # This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
@@ -1102,8 +1102,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
                                                     else {this.data = data && data.toString(); this.length = 0;
                                                       for (var i = 1, l = arguments.length, _; _ = arguments[i], i < l; ++i)
                                                         for (var j = 0, lj = _.length, it, c; _ instanceof Array ? (it = _[j], j < lj) : (it = _, ! j); ++j)
-                                                          if ((it = caterwaul_global.syntax.promote(it)) instanceof caterwaul_global.syntax)
-                                                            this._append(it)}},
+                                                          this._append(caterwaul_global.syntax.promote(it))}},
 
                                    caterwaul_global.javascript_tree_type_methods,
                                    caterwaul_global.javascript_tree_metadata_methods,
@@ -1240,7 +1239,7 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
        else if                                        (c === lex_hash) while (++i <= l && ! lex_eol[cs(i - 1)]);
 
       // Backtick-string lexing.
-//       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime.
+//       Simple enough: just parse until we see another backtick, skipping any backslashed backticks in the meantime. We don't parse or split interpolated expressions (sorry).
 
        else if (c === lex_backtick) {while (++i < l && (c = cs(i)) !== lex_backtick || esc)  esc = ! esc && c === lex_back; ++i; re = !(t = 1)}
 
@@ -1286,8 +1285,11 @@ is_prefix_unary_operator: function () {return has(parse_r, this.data)},         
 
       // The only exception to the regular logic happens if the operator is postfix-unary. (e.g. ++, --.) If so, then the re flag must remain false, since expressions like 'x++ / 4' can be valid.
 
-       else if (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i)))  t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
-       else if                                (c === lex_qmark) ++i, t = re = 1;
+      // We have a special branch to parse the "..." prefix-unary splat operator. It's difficult to deal with otherwise since ".." isn't a valid operator (so you can't build up to it).
+
+       else if (re && c === lex_dot && s.substr(i, 3) === '...') i += 3, t = 'u...';
+       else if  (lex_punct[c] && (t = re ? 'u' : '', re = true)) {while (i < l && lex_punct[cs(i)] && has(lex_op, t + s.charAt(i))) t += s.charAt(i++); re = ! has(lex_postfix_unary, t)}
+       else if                                 (c === lex_qmark) ++i, t = re = 1;
 
       // Identifier lexing.
 //       If nothing else matches, then the token is lexed as a regular identifier or Javascript keyword. The 're' flag is set depending on whether the keyword expects a value. The nuance here is
@@ -2938,6 +2940,10 @@ unless ($$options{-W}) {
   terminal::info('regenerating waul from waul-core');
   file::write('waul', join '', qx|./waul-core --replicate -e build/caterwaul.std.js -e build/caterwaul.ui.js|);
   die 'failed to construct waul from waul-core' if $?;
+  chmod 0755, 'waul';
+
+  file::write('waul', join '', qx|./waul --replicate -e build/caterwaul.std.js -e build/caterwaul.ui.js|);
+  die 'failed to reconstruct waul from itself' if $?;
   chmod 0755, 'waul';
 } else {
   terminal::info('skipping waul render because -W was specified');
