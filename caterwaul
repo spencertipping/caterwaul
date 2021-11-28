@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  906e4dff7150c9d103da26ccd2a8c46c
-# istate: 381b6c19c70e6e6ff4b79fa0d02e5b56
+# state:  c1dd527179872862c239a1474b67b420
+# istate: fda959c6b45820b41d1852053e774fca
 # id:     97d938428ee6c4d2a505f6f35bad0906
 
 # This is a self-modifying Perl file. I'm sorry you're viewing the source (it's
@@ -2896,6 +2896,8 @@ __
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
 meta::function('render', <<'__');
 my ($options, @stuff) = separate_options(@_);
+
+$ENV{PATH} = "$ENV{PATH}:$ENV{PWD}";
 
 unless ($$options{-M}) {
   chdir 'src' or die 'no src/ directory exists; are you running this from the repository root?';
