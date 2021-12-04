@@ -178,8 +178,8 @@
 //   them in the first place.
 
     parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u* u...', '* / %', '+ -', '<< >> >>>',
-                                    '< > <= >= instanceof in', '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '-> =>', 'case async',
-                                    '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', ': of', ',', 'return throw break continue yield yield* await', 'var const let',
+                                    '< > <= >= instanceof in', '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '->', 'case async',
+                                    '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', '=>', ': of', ',', 'return throw break continue yield yield* await', 'var const let',
                                     'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??= :: ::: -> => ~ ! new typeof void u+ u* u- -- ++ u-- u++ ? if else function function* try catch finally for ' +

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # 99aeabc9ec7fe80b1b39f5e53dc7e49e      <- self-modifying Perl magic
-# state:  c1dd527179872862c239a1474b67b420
+# state:  79166a0ee88b6e766841d1ad8d80d5b3
 # istate: fda959c6b45820b41d1852053e774fca
 # id:     97d938428ee6c4d2a505f6f35bad0906
 
@@ -511,8 +511,8 @@ $('#cover .status').text('loading precompiled caterwaul');
 //   them in the first place.
 
     parse_reduce_order = map(hash, ['function function*', 'new', '( [ . [] () ?.', 'delete void', 'u++ u-- ++ -- typeof u~ u! u+ u- u* u...', '* / %', '+ -', '<< >> >>>',
-                                    '< > <= >= instanceof in', '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '-> =>', 'case async',
-                                    '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', ': of', ',', 'return throw break continue yield yield* await', 'var const let',
+                                    '< > <= >= instanceof in', '== != === !==', '::', ':::', '&', '^', '|', '&&', '|| ??', '->', 'case async',
+                                    '? = += -= *= /= %= &= |= ^= <<= >>= >>>= &&= ||= ??=', '=>', ': of', ',', 'return throw break continue yield yield* await', 'var const let',
                                     'if else try catch finally for switch with while do', ';']),
 
 parse_associates_right = hash('= += -= *= /= %= &= ^= |= <<= >>= >>>= &&= ||= ??= :: ::: -> => ~ ! new typeof void u+ u* u- -- ++ u-- u++ ? if else function function* try catch finally for ' +
