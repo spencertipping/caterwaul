@@ -7,14 +7,13 @@ The whole project is MIT-licensed, and in the unlikely event that you want to us
 
 What follows is a ten-minute introduction to caterwaul's core concepts. It covers about 5% of what caterwaul does.
 
-
 ## Heads up: before you use this
+
 It has a few defects. One relates to stuff like `if (x) switch (y) {} else z();`, which gets rewritten to broken code. This is a parse-level problem and I haven't had time to fix it yet.
 
 Second, various ES5/6 features aren't entirely supported; for example functions-in-objects (`let x = {f() {}};`). There's probably more; the ES5 support was hacked on last-minute.
 
 Third, Caterwaul parses non-JS. `let @x = 100` is fine, `let x\y\z = @foo[\]` works, etc. Not a defect exactly, but something to be aware of.
-
 
 ## Caterwaul as a library
 

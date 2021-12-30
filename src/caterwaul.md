@@ -193,7 +193,7 @@ lex_starred = hash('function* yield*'),
     lex_eol = lex_table('\n\r'),     lex_regexp_suffix = lex_table('gims'),          lex_quote = lex_table('\'"/'),                   lex_slash = '/'.charCodeAt(0),
    lex_zero = '0'.charCodeAt(0),     lex_postfix_unary = hash('++ --'),              lex_ident = lex_table('@\\$_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),
    lex_star = '*'.charCodeAt(0),              lex_back = '\\'.charCodeAt(0),             lex_x = 'x'.charCodeAt(0),                     lex_dot = '.'.charCodeAt(0),
- lex_backtick = '`'.charCodeAt(0),              lex_hash = '#'.charCodeAt(0),          lex_qmark = '?'.charCodeAt(0),
+ lex_backtick = '`'.charCodeAt(0),              lex_hash = '#'.charCodeAt(0),          lex_qmark = '?'.charCodeAt(0),                       lex_n = 'n'.charCodeAt(0),
 ```
 
 ## Parse data
@@ -1175,9 +1175,9 @@ Finally, in response to a recently discovered failure case, a period must be fol
 'd' if it is assumed to be a floating-point number. (In fact, any method or property beginning with 'e' will cause this problem.)
 
 ```
- else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]); re = ! (t = 1)}
+ else if                  (c === lex_zero && lex_integer[cs(i + 1)]) {while (++i < l && lex_integer[cs(i)]);   re = ! (t = 1); i += cs(i) === lex_n}
  else if (lex_float[c] && (c !== lex_dot || lex_decimal[cs(i + 1)])) {while (++i < l && (lex_decimal[c = cs(i)] || dot ^ (dot |= c === lex_dot) || exp ^ (exp |= lex_exp[c] && ++i)));
-                                                                      while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1)}
+                                                                      while (i < l && lex_decimal[cs(i)]) ++i; re = ! (t = 1); i += cs(i) === lex_n}
 ```
 
 #### Operator lexing
